@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
-    "test": "node tools/route-matrix.test.mjs && node tools/app-shell.test.mjs && node tools/workbench-visual-contract.test.mjs && node tools/page-content.test.mjs",
+    "check": "node tools/source-audit.test.mjs",
+    "test": "node tools/route-matrix.test.mjs && node tools/app-shell.test.mjs && node tools/workbench-visual-contract.test.mjs && node tools/page-content.test.mjs && node tools/network-guard.test.mjs",
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
