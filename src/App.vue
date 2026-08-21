@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import ExhibitionShell from './components/ExhibitionShell.vue';
 import GenericPage from './pages/GenericPage.vue';
+import PortalPage from './pages/PortalPage.vue';
 import WorkbenchPage from './pages/WorkbenchPage.vue';
 import { PAGE_MATRIX, resolvePage } from './fixtures/pages.js';
 
@@ -49,6 +50,7 @@ const page = computed(() => current.value);
 <template>
   <exhibition-shell :page="page">
     <workbench-page v-if="page.id === '01' && page.state === 'normal'" />
+    <portal-page v-else-if="page.state === 'normal'" :page="page" />
     <generic-page v-else :page="page" @restore="restoreNormal" />
   </exhibition-shell>
 </template>
