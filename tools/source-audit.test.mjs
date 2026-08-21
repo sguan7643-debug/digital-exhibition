@@ -6,7 +6,12 @@ const sourceFiles = [
   'src/App.vue', 'src/main.js', 'src/style.css', 'src/fixtures/pages.js',
   'src/fixtures/page-content.js', 'src/runtime/network-guard.js',
   'src/components/ExhibitionShell.vue', 'src/pages/WorkbenchPage.vue',
-  'src/pages/PortalPage.vue', 'src/pages/GenericPage.vue'
+  'src/pages/MessagesPage.vue', 'src/pages/FavoritesPage.vue', 'src/pages/ProfilePage.vue',
+  'src/pages/AnnouncementsPage.vue', 'src/pages/NoticeDetailPage.vue', 'src/pages/AppsPage.vue',
+  'src/pages/ToolDetailPage.vue', 'src/pages/HainengWorkDetailPage.vue', 'src/pages/ReportDetailPage.vue',
+  'src/pages/DashboardDetailPage.vue', 'src/pages/DatasetDetailPage.vue', 'src/pages/MetricDetailPage.vue',
+  'src/pages/AiDetailPage.vue', 'src/pages/EadDetailPage.vue', 'src/pages/PortalPage.vue',
+  'src/pages/GenericPage.vue'
 ];
 const sources = sourceFiles.map(path => [path, readFileSync(new URL(path, root), 'utf8')]);
 const joined = sources.map(([, value]) => value).join('\n');

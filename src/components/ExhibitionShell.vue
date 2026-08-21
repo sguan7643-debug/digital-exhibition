@@ -4,11 +4,11 @@ import { computed } from 'vue';
 const props = defineProps({ page: { type: Object, required: true } });
 
 const primaryNav = [
-  ['/workbench', '/assets/nav-首页工作台.png', '首页工作台'], ['/favorites', '/assets/nav-素材中心.png', '素材中心'],
-  ['/talent/people', '/assets/nav-人才管理.png', '人才管理'], ['/apps', '/assets/nav-应用中心.png', '应用中心'],
-  ['/training', '/assets/nav-培训课堂.png', '培训课堂'], ['/points', '/assets/nav-积分中心.png', '积分中心'],
-  ['/certification', '/assets/nav-数字化认证.png', '数字化认证'], ['/operations', '/assets/nav-运营管理.png', '运营管理'],
-  ['/announcements', '/assets/nav-公告通知.png', '公告通知'], ['/admin', '/assets/nav-后台管理.png', '后台管理']
+  ['/workbench', '/assets/nav-workbench.png', '首页工作台'], ['/favorites', '/assets/nav-materials.png', '素材中心'],
+  ['/talent/people', '/assets/nav-talent.png', '人才管理'], ['/apps', '/assets/nav-apps.png', '应用中心'],
+  ['/training', '/assets/nav-training.png', '培训课堂'], ['/points', '/assets/nav-points.png', '积分中心'],
+  ['/certification', '/assets/nav-certification.png', '数字化认证'], ['/operations', '/assets/nav-operations.png', '运营管理'],
+  ['/announcements', '/assets/nav-announcements.png', '公告通知'], ['/admin', '/assets/nav-admin.png', '后台管理']
 ];
 const simpleNav = primaryNav.map(([route, icon, label]) => [route, label, icon]);
 const categories = [
@@ -50,13 +50,13 @@ function active(route) {
       <aside class="sidebar">
         <template v-if="isCatalogue">
           <section class="catalogue-group">
-            <h2><img src="/assets/nav-素材中心.png" width="22" height="24" alt="" />素材中心<b>收起</b></h2>
+            <h2><img src="/assets/nav-materials.png" width="22" height="24" alt="" />素材中心<b>收起</b></h2>
             <nav aria-label="素材分类">
               <a v-for="([label, icon]) in categories" :key="`material-${label}`" href="/favorites"><img :src="icon" width="18" height="18" alt="" />{{ label }}</a>
             </nav>
           </section>
           <section class="catalogue-group app-group">
-            <h2><img src="/assets/nav-应用中心.png" width="22" height="24" alt="" />应用中心<b>收起</b></h2>
+            <h2><img src="/assets/nav-apps.png" width="22" height="24" alt="" />应用中心<b>收起</b></h2>
             <nav aria-label="应用分类">
               <a v-for="([label, icon]) in categories" :key="`app-${label}`" href="/apps"><img :src="icon" width="18" height="18" alt="" />{{ label }}</a>
             </nav>
@@ -75,14 +75,14 @@ function active(route) {
         </template>
         <template v-else-if="isTalent">
           <nav class="simple-nav" aria-label="人才管理功能">
-            <a href="/workbench"><img src="/assets/nav-首页工作台.png" width="22" height="24" alt="" />首页工作台</a>
-            <a href="/talent/people" :aria-current="props.page.id === '28' ? 'page' : undefined"><img src="/assets/nav-人才管理.png" width="22" height="24" alt="" />人才管理</a>
+            <a href="/workbench"><img src="/assets/nav-workbench.png" width="22" height="24" alt="" />首页工作台</a>
+            <a href="/talent/people" :aria-current="props.page.id === '28' ? 'page' : undefined"><img src="/assets/nav-talent.png" width="22" height="24" alt="" />人才管理</a>
             <a class="sub" href="/talent/people" :aria-current="props.page.id === '28' ? 'page' : undefined">人才库</a>
             <a class="sub" href="/talent/projects" :aria-current="props.page.id === '29' ? 'page' : undefined">人才项目管理</a>
             <a class="sub" href="/talent/progress" :aria-current="props.page.id === '30' ? 'page' : undefined">项目进度管理</a>
-            <a href="/apps"><img src="/assets/nav-应用中心.png" width="22" height="24" alt="" />应用中心</a>
-            <a href="/training"><img src="/assets/nav-培训课堂.png" width="22" height="24" alt="" />培训课堂</a>
-            <a href="/points"><img src="/assets/nav-积分中心.png" width="22" height="24" alt="" />积分中心</a>
+            <a href="/apps"><img src="/assets/nav-apps.png" width="22" height="24" alt="" />应用中心</a>
+            <a href="/training"><img src="/assets/nav-training.png" width="22" height="24" alt="" />培训课堂</a>
+            <a href="/points"><img src="/assets/nav-points.png" width="22" height="24" alt="" />积分中心</a>
           </nav>
         </template>
         <nav v-else class="simple-nav" aria-label="平台功能">
