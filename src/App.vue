@@ -2,7 +2,11 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import ExhibitionShell from './components/ExhibitionShell.vue';
 import GenericPage from './pages/GenericPage.vue';
+import AnnouncementsPage from './pages/AnnouncementsPage.vue';
+import FavoritesPage from './pages/FavoritesPage.vue';
+import MessagesPage from './pages/MessagesPage.vue';
 import PortalPage from './pages/PortalPage.vue';
+import ProfilePage from './pages/ProfilePage.vue';
 import WorkbenchPage from './pages/WorkbenchPage.vue';
 import { PAGE_MATRIX, resolvePage } from './fixtures/pages.js';
 
@@ -50,6 +54,10 @@ const page = computed(() => current.value);
 <template>
   <exhibition-shell :page="page">
     <workbench-page v-if="page.id === '01' && page.state === 'normal'" />
+    <messages-page v-else-if="page.id === '02' && page.state === 'normal'" />
+    <favorites-page v-else-if="page.id === '03' && page.state === 'normal'" />
+    <profile-page v-else-if="page.id === '04' && page.state === 'normal'" />
+    <announcements-page v-else-if="page.id === '05' && page.state === 'normal'" />
     <portal-page v-else-if="page.state === 'normal'" :page="page" />
     <generic-page v-else :page="page" @restore="restoreNormal" />
   </exhibition-shell>

@@ -4,17 +4,20 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
-    "build": "vite build",
+    "dev": "node --require ./tools/vite-sandbox-shim.cjs ./node_modules/vite/bin/vite.js --configLoader runner --host 127.0.0.1",
+    "build": "node --require ./tools/vite-sandbox-shim.cjs ./node_modules/vite/bin/vite.js build --configLoader runner",
     "check": "node tools/source-audit.test.mjs",
-    "test": "node tools/route-matrix.test.mjs && node tools/app-shell.test.mjs && node tools/workbench-visual-contract.test.mjs && node tools/page-content.test.mjs && node tools/network-guard.test.mjs",
-    "preview": "vite preview --host 127.0.0.1"
+    "test": "node tools/route-matrix.test.mjs && node tools/app-shell.test.mjs && node tools/workbench-visual-contract.test.mjs && node tools/page-content.test.mjs && node tools/network-guard.test.mjs && node tools/batch-01-05.test.mjs",
+    "preview": "node --require ./tools/vite-sandbox-shim.cjs ./node_modules/vite/bin/vite.js preview --configLoader runner --host 127.0.0.1"
   },
   "dependencies": {
     "vue": "3.5.39"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "5.2.4",
+    "@vue/compiler-sfc": "3.5.39",
+    "playwright": "1.62.1",
+    "rollup": "4.62.5",
     "vite": "6.4.1"
   },
   "engines": {
