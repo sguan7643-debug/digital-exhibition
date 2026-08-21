@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
-    "test": "node --test tools/*.test.mjs",
+    "test": "node tools/route-matrix.test.mjs && node tools/app-shell.test.mjs",
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
@@ -21,4 +21,3 @@
   },
   "packageManager": "pnpm@8.15.9"
 }
-
