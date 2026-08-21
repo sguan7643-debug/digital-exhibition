@@ -18,6 +18,21 @@ import DatasetDetailPage from './pages/DatasetDetailPage.vue';
 import MetricDetailPage from './pages/MetricDetailPage.vue';
 import AiDetailPage from './pages/AiDetailPage.vue';
 import EadDetailPage from './pages/EadDetailPage.vue';
+import RpaDetailPage from './pages/RpaDetailPage.vue';
+import OnboardingPage from './pages/OnboardingPage.vue';
+import PointsPage from './pages/PointsPage.vue';
+import PointsDetailsPage from './pages/PointsDetailsPage.vue';
+import TrainingPage from './pages/TrainingPage.vue';
+import OperationsPage from './pages/OperationsPage.vue';
+import AnnouncementAdminPage from './pages/AnnouncementAdminPage.vue';
+import AnnouncementEditorPage from './pages/AnnouncementEditorPage.vue';
+import AppAdminPage from './pages/AppAdminPage.vue';
+import AppEditorPage from './pages/AppEditorPage.vue';
+import AdminPage from './pages/AdminPage.vue';
+import CertificationPage from './pages/CertificationPage.vue';
+import TalentPeoplePage from './pages/TalentPeoplePage.vue';
+import TalentProjectsPage from './pages/TalentProjectsPage.vue';
+import TalentProgressPage from './pages/TalentProgressPage.vue';
 import { PAGE_MATRIX, resolvePage } from './fixtures/pages.js';
 
 const supportedStates = new Set([
@@ -78,6 +93,21 @@ const page = computed(() => current.value);
     <metric-detail-page v-else-if="page.id === '13' && page.state === 'normal'" />
     <ai-detail-page v-else-if="page.id === '14' && page.state === 'normal'" />
     <ead-detail-page v-else-if="page.id === '15' && page.state === 'normal'" />
+    <rpa-detail-page v-else-if="page.id === '16' && page.state === 'normal'" />
+    <onboarding-page v-else-if="page.id === '17' && page.state === 'normal'" />
+    <points-page v-else-if="page.id === '18' && page.state === 'normal'" />
+    <points-details-page v-else-if="page.id === '19' && page.state === 'normal'" />
+    <training-page v-else-if="page.id === '20' && page.state === 'normal'" />
+    <operations-page v-else-if="page.id === '21' && page.state === 'normal'" />
+    <announcement-admin-page v-else-if="page.id === '22' && page.state === 'normal'" />
+    <announcement-editor-page v-else-if="page.id === '23' && page.state === 'normal'" />
+    <app-admin-page v-else-if="page.id === '24' && page.state === 'normal'" />
+    <app-editor-page v-else-if="page.id === '25' && page.state === 'normal'" />
+    <admin-page v-else-if="page.id === '26' && page.state === 'normal'" />
+    <certification-page v-else-if="page.id === '27' && page.state === 'normal'" />
+    <talent-people-page v-else-if="page.id === '28' && page.state === 'normal'" />
+    <talent-projects-page v-else-if="page.id === '29' && page.state === 'normal'" />
+    <talent-progress-page v-else-if="page.id === '30' && page.state === 'normal'" />
     <portal-page v-else-if="page.state === 'normal'" :page="page" />
     <generic-page v-else :page="page" @restore="restoreNormal" />
   </exhibition-shell>

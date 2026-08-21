@@ -11,6 +11,12 @@ const sourceFiles = [
   'src/pages/ToolDetailPage.vue', 'src/pages/HainengWorkDetailPage.vue', 'src/pages/ReportDetailPage.vue',
   'src/pages/DashboardDetailPage.vue', 'src/pages/DatasetDetailPage.vue', 'src/pages/MetricDetailPage.vue',
   'src/pages/AiDetailPage.vue', 'src/pages/EadDetailPage.vue', 'src/pages/PortalPage.vue',
+  'src/pages/RpaDetailPage.vue', 'src/pages/OnboardingPage.vue', 'src/pages/PointsPage.vue',
+  'src/pages/PointsDetailsPage.vue', 'src/pages/TrainingPage.vue', 'src/pages/OperationsPage.vue',
+  'src/pages/AnnouncementAdminPage.vue', 'src/pages/AnnouncementEditorPage.vue',
+  'src/pages/AppAdminPage.vue', 'src/pages/AppEditorPage.vue', 'src/pages/AdminPage.vue',
+  'src/pages/CertificationPage.vue', 'src/pages/TalentPeoplePage.vue',
+  'src/pages/TalentProjectsPage.vue', 'src/pages/TalentProgressPage.vue',
   'src/pages/GenericPage.vue'
 ];
 const sources = sourceFiles.map(path => [path, readFileSync(new URL(path, root), 'utf8')]);
