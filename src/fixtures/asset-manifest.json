@@ -1,0 +1,6535 @@
+{
+  "schema": "xlt-mp-as-au-v1",
+  "result": "failed",
+  "globalVisibleUnmapped": "unknown_nonzero",
+  "technicalMapping": {
+    "referencedAssetCount": 104,
+    "sourceCoordinateMapped": 104,
+    "exactSourceCoordinateMapped": 99,
+    "candidateSourceCoordinateMapped": 5,
+    "coverage": 1.0
+  },
+  "pages": [
+    {
+      "id": "MP-01",
+      "route": "/workbench",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\01-首页工作台.png",
+      "referenceFileSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-02",
+      "route": "/messages",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\02-消息中心.png",
+      "referenceFileSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-03",
+      "route": "/favorites",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\03-收藏.png",
+      "referenceFileSha256": "9B259ED9F99029ECB68A1F2FB3EB8E745FF23692BC53CFFBD5D6A46008CEAE1A",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-04",
+      "route": "/profile",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\04-个人中心.png",
+      "referenceFileSha256": "F08DE51669B152D46224A0031945CFFF85969E40D7416D93849B6E1CDD35FA9A",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-05",
+      "route": "/announcements",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\05-公告通知.png",
+      "referenceFileSha256": "58A43229752CC4A5210A2846B88DB267A622543AA8F7F034CDA42BC2041F4F8C",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-06",
+      "route": "/announcements/notice-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\06-公告通知-通知详情.png",
+      "referenceFileSha256": "A9827301EF6051E8B9B963B07F7073F6AB7AE4BFD21BAC97FDDA67A08FF3D78F",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-07",
+      "route": "/apps",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\07-应用中心.png",
+      "referenceFileSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-08",
+      "route": "/apps/tool-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-工具.png",
+      "referenceFileSha256": "35ACE981294AF359A243AFB1F53C29590BA124742F8EEF3BBE7152F4984F7A69",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-09",
+      "route": "/apps/haineng-work-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-海能work应用.png",
+      "referenceFileSha256": "21D2FCC06638F323E7824176C53BB72DDE1050790E6B4E457D54CD2D7398431C",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-10",
+      "route": "/apps/report-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-可视化报表.png",
+      "referenceFileSha256": "A7A5B61527C5A2D7C83ACD2C769AA56FD038B252EDE4D1A46A91D1396F2113B1",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-11",
+      "route": "/apps/dashboard-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-可视化驾驶舱.png",
+      "referenceFileSha256": "3D66270477C159EB9097CF74C904858A9158D9C9005A90C372B284AFB8980C43",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-12",
+      "route": "/apps/dataset-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-数据集.png",
+      "referenceFileSha256": "7260427E1B5E85ECDFE37D52D6A88439178542503EC8E5E6FC5D679701633C97",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-13",
+      "route": "/apps/metric-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-指标.png",
+      "referenceFileSha256": "48C41CBB2DF433C9680DD955A4777FA436BBFF6E094D56A3B5E6E0E48B01690B",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-14",
+      "route": "/apps/ai-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-AI.png",
+      "referenceFileSha256": "2A55B1987EA239C0D5FB184B7CAECF9F39FFB5AB7C505FB669746356A2820EC7",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-15",
+      "route": "/apps/ead-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-EAD.png",
+      "referenceFileSha256": "8090BF0B8BFDCE7981D32F7C6B6335230D9F9508BF4549E716C10A2A4382D0CC",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-16",
+      "route": "/apps/rpa-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-RPA.png",
+      "referenceFileSha256": "C66930E5C44E4ADAEB81872C7E64E8D41DC17A5BB46256314E404A9177C2923A",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-17",
+      "route": "/apps/onboarding/status",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\09-应用上架.png",
+      "referenceFileSha256": "FC7F33ED038DD52F20892D1C4A7F58FAFF57FB54658B06443A1A885B1EB86F68",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-18",
+      "route": "/points",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\10-积分中心.png",
+      "referenceFileSha256": "A93E46949EBAF8861FFC6314A7AB2B05D6D7C99E60CC6B39FF8C925BF56A74E9",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-19",
+      "route": "/points/details",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\11-积分明细.png",
+      "referenceFileSha256": "82F80F3AB4A821165E6B14344C809B5E102CC7DD8013DD69B7F7F39BF9900F34",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-20",
+      "route": "/training",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\12-培训课堂.png",
+      "referenceFileSha256": "68508151B1490F117074C44F464732A6986DAE68DDE5C23296DB0529C2C12E86",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-21",
+      "route": "/operations",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\13-运营管理.png",
+      "referenceFileSha256": "5F2DC6F56EF909A2EBADED1184353856CB105F2BA33B5BEFD7B8AF00AA342E11",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-22",
+      "route": "/operations/announcements",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\14-运营管理-公告管理.png",
+      "referenceFileSha256": "07B0623CB569C7829B490B85A65007D2773C4AE2ADB3ADE4B6089279F3D248FB",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-23",
+      "route": "/operations/announcements/notice-001/edit",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\15-运营管理-公告发布与编辑.png",
+      "referenceFileSha256": "5ADAECAADC46CCC242A570AEE5037A045FCECF39CBDA7D091283CE288DF9BE4F",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-24",
+      "route": "/operations/apps",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\16-运营管理-应用管理.png",
+      "referenceFileSha256": "D3996593EAF90E612EA8874CDD41283565876ACDA3A9BD774343C0C469903795",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-25",
+      "route": "/operations/apps/app-001/edit",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\17-运营管理-应用运营编辑.png",
+      "referenceFileSha256": "A938145F4215B6AAC18DC370228DE182C9AAB531152746C6DA9EC27D82C3A864",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-26",
+      "route": "/admin",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\18-后台管理.png",
+      "referenceFileSha256": "91D03978BB5A413EBF79A2CDC25E00EABBF79499F65B672A267BFAB19596FB39",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-27",
+      "route": "/certification",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\19-数字化认证.png",
+      "referenceFileSha256": "3A6FE5F2761C9AF32A5759879FDBF1F27AEE4056EEE4006FD0297B6ECA5866D6",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-28",
+      "route": "/talent/people",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\20-人才管理-人才库.png",
+      "referenceFileSha256": "3F38FEA2909904F070F5CFBF4FB110337856035CE5774519545689776FD4C558",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-29",
+      "route": "/talent/projects",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\20-人才管理-人才项目管理.png",
+      "referenceFileSha256": "4EADBB9CAA596393D67C69CA4F446DBAD38856D2CFF2687E1530F9B8C9EC9E3D",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "MP-30",
+      "route": "/talent/progress",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\20-人才管理-项目进度管理.png",
+      "referenceFileSha256": "1C66525AC285F0825E52CEB928093EB0CA7A412C4B526B51E181A5A16BC732C3",
+      "userConfirmation": "pending"
+    }
+  ],
+  "assets": [
+    {
+      "id": "AS-001",
+      "file": "public/assets/ai-hero.png",
+      "width": 205,
+      "height": 105,
+      "fileSha256": "CA5FE5A3A1994B655E6F52A81538E54B899FE85EEE7C710D0874D3C05346970A",
+      "rgbSha256": "86911203972BE84D115BCC63F2E4FA3930B23E0B5968630A7BACB4AA37FBED88",
+      "source": {
+        "reference": "08-应用详情页-AI.png",
+        "referenceSha256": "2A55B1987EA239C0D5FB184B7CAECF9F39FFB5AB7C505FB669746356A2820EC7",
+        "rect": [
+          1235,
+          165,
+          205,
+          105
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-002",
+      "file": "public/assets/ai-logo.png",
+      "width": 82,
+      "height": 82,
+      "fileSha256": "7F9DB3E5953D11DAA6CACDF5ABB4823B7C35064AA31938A074FD3D05968C335B",
+      "rgbSha256": "F3BD40470B6255EA59596086F342A48E124DA26BBD1129F2E225A70500985467",
+      "source": {
+        "reference": "08-应用详情页-AI.png",
+        "referenceSha256": "2A55B1987EA239C0D5FB184B7CAECF9F39FFB5AB7C505FB669746356A2820EC7",
+        "rect": [
+          282,
+          128,
+          82,
+          82
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-003",
+      "file": "public/assets/ai-training.png",
+      "width": 1010,
+      "height": 75,
+      "fileSha256": "6A17453BFB752F47ACFE60FE9B62628045E1A070D9001A578C7C9AB054165E10",
+      "rgbSha256": "477C5690878BB9A96ACDE0D778910CD76BCC23B1F8B1561674F5686DBB6EE503",
+      "source": {
+        "reference": "08-应用详情页-AI.png",
+        "referenceSha256": "2A55B1987EA239C0D5FB184B7CAECF9F39FFB5AB7C505FB669746356A2820EC7",
+        "rect": [
+          296,
+          736,
+          1010,
+          75
+        ]
+      },
+      "disposition": "pending-composite-review",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-004",
+      "file": "public/assets/app-ai.png",
+      "width": 58,
+      "height": 58,
+      "fileSha256": "78C8B9EA58663866BF486526C5C9B99CD6D53B8E1E10268939BA7B25B74442C8",
+      "rgbSha256": "FC2D8AC832B090711679CDB119198326CF2672EE2EB061848EB16093A94A9859",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          1168,
+          484,
+          58,
+          58
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-005",
+      "file": "public/assets/app-cockpit.png",
+      "width": 58,
+      "height": 58,
+      "fileSha256": "902B2E7F246BB28BAB241255508ECF6AE0991997285E5F9A29DB90AB671A0B13",
+      "rgbSha256": "9425D1AFEE4E734C859824CF4E70C6DB673F14FDF7A31DEEDBE26697A120D6D3",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          1168,
+          260,
+          58,
+          58
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-006",
+      "file": "public/assets/app-dataset.png",
+      "width": 58,
+      "height": 58,
+      "fileSha256": "53BCC79B8861B9843ED8B1BF174A23755785DF2EB68F7F1D15570854CA6A9028",
+      "rgbSha256": "A2CAC9190E47FBB7C4ADB578999CA8A088B7F973BACA71920A279EC1E6BDEFCA",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          704,
+          484,
+          58,
+          58
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-007",
+      "file": "public/assets/app-metric.png",
+      "width": 58,
+      "height": 58,
+      "fileSha256": "EED4AD6C0ECA47AD08692ADBCEB5A9127FE28FDBAD150E257682AF109BFC4F01",
+      "rgbSha256": "544763D6563D6D05E618269BAF60DD7B75657DE25DA4C3FCB20E62B7AAB89CC8",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          255,
+          484,
+          58,
+          58
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-008",
+      "file": "public/assets/app-rpa.png",
+      "width": 58,
+      "height": 58,
+      "fileSha256": "FA33DAC22CF7E6639434E54AE6CEDC3C16289351547C0A9D14435ED7EC3EAFEF",
+      "rgbSha256": "54CDEBCEB5E4B461B01AB836A18072D76D7A2256F3428033F5AA9FD970B09DCD",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          255,
+          260,
+          58,
+          58
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-009",
+      "file": "public/assets/app-screen.png",
+      "width": 58,
+      "height": 58,
+      "fileSha256": "F4BB4DC516F48AAF821F37D6A7C5A84CCE820BFB9D2A19008E8C8A26CAA1E57D",
+      "rgbSha256": "F3ADF8FCA99C240059FA0E2957ED2E258448839BEB857B900E42BCDF967D0702",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          704,
+          260,
+          58,
+          58
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-010",
+      "file": "public/assets/app-work.png",
+      "width": 58,
+      "height": 58,
+      "fileSha256": "C8DAA7C416E394C5C192EED0F049F6E73F704EDBD15BA01587F4EDD164394836",
+      "rgbSha256": "009537C7281CC69084F64CD316E53600AB9C2C86AA7584E7BF83D268AC5D9A35",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          255,
+          694,
+          58,
+          58
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-011",
+      "file": "public/assets/catalogue-apps.png",
+      "width": 24,
+      "height": 24,
+      "fileSha256": "B035003CD49513AF3B63FBA472BD4C7155D9A1524972F54402C49BC7697DE3B4",
+      "rgbSha256": "2FC4E2B50D06A05CE9BFA1ABA8D1064623DB264D334B3557F100D7BF85245E2D",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          17,
+          387,
+          24,
+          24
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-012",
+      "file": "public/assets/catalogue-materials.png",
+      "width": 24,
+      "height": 24,
+      "fileSha256": "F4C9329C367294F35BF4D8089D0CCDEAE161A0A46AE090EEC639F68DC83195C9",
+      "rgbSha256": "84EC4F00F24FA8E1DB1FB6E51BCBFC23D91DA134240C61ADA20C6ADC23A48623",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          17,
+          83,
+          24,
+          24
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-013",
+      "file": "public/assets/category-ai.png",
+      "width": 20,
+      "height": 20,
+      "fileSha256": "A23DD4E568FDB4DB1BC91777214039AAF21AA26223290F6E35157022A8EC0A5D",
+      "rgbSha256": "75806C0A0428F4900B7C669E520472D372E06EB9F39A25438FE4B37E08B904AD",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          26,
+          303,
+          20,
+          20
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-014",
+      "file": "public/assets/category-cockpit.png",
+      "width": 20,
+      "height": 20,
+      "fileSha256": "D8D07ADDF8CE82F756F3468D0E2F1B9D2BBF377708374295E97F79109C7034A6",
+      "rgbSha256": "FF59CC20B97460BD45B258FC5B06F4B7CDA218A9118766C2EC225F88D65C8565",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          26,
+          196,
+          20,
+          20
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-015",
+      "file": "public/assets/category-dataset.png",
+      "width": 20,
+      "height": 20,
+      "fileSha256": "54D9E657816ABD880443819F4C10FEFA7F294E455FABF5421970614F98CE8D81",
+      "rgbSha256": "8E8C42356A9773F663B92B74D60F0A327F5186B7007F56CEB230BF354E3F0835",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          26,
+          268,
+          20,
+          20
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-016",
+      "file": "public/assets/category-metric.png",
+      "width": 20,
+      "height": 20,
+      "fileSha256": "94FC0D9BC90FC5A5C8E7F6C1E15A690CE617C907BDAFF98D0B7572D1F44109D1",
+      "rgbSha256": "F092BD427A49EE8DAC4D6AA64B2CB2024E4DC28894B43952F0503A5A592A442B",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          26,
+          232,
+          20,
+          20
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-017",
+      "file": "public/assets/category-report.png",
+      "width": 20,
+      "height": 20,
+      "fileSha256": "84837947A5699E81B337F17C96D7DA779E5F513C137F1A93BFE10BAEE661DC87",
+      "rgbSha256": "8F50C35AA71918CC97F50E42D4958E2F8561610E3DC3FC15BBA735F9DE40BC77",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          19,
+          195,
+          20,
+          20
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-018",
+      "file": "public/assets/category-rpa.png",
+      "width": 20,
+      "height": 20,
+      "fileSha256": "A08DE7E214C5AAE60D9C0164BDB33BFCFBB5D688335A1E4A8AEB509986342FC1",
+      "rgbSha256": "083845AB81AB1ECE035FF3FA703716DF4171750F25A382F81CF217D0DF9A5C1E",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          26,
+          124,
+          20,
+          20
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-019",
+      "file": "public/assets/category-screen.png",
+      "width": 20,
+      "height": 20,
+      "fileSha256": "185F45AC07E8F4C0140FCC2A491FA956A4BD121705499C07AB298F8462AFEE3B",
+      "rgbSha256": "1379AC15CC426C9ADDBE0005F387A107071EB2E35BA4985216232711BC255FCF",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          26,
+          160,
+          20,
+          20
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-020",
+      "file": "public/assets/category-work.png",
+      "width": 20,
+      "height": 20,
+      "fileSha256": "CBA41E8EE85AB386E945FC04B9929A18EA0A20D823AD3A72A8585C49F550C93F",
+      "rgbSha256": "5FEFEC2D5ED87053E674E1FFCC8DE489EEF2514C011B9D2A89B136334D7D5FAF",
+      "source": {
+        "reference": "07-应用中心.png",
+        "referenceSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+        "rect": [
+          26,
+          339,
+          20,
+          20
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-021",
+      "file": "public/assets/cert-booking.png",
+      "width": 42,
+      "height": 42,
+      "fileSha256": "0EF64B85C922C603B65292D9B4D332E407635EF2C50146DDDD47F26F01D39F2C",
+      "rgbSha256": "49D6B0F1CFE2CE29F81C6E885737AB049779148769D8BAF1214C600FFA23A8FB",
+      "source": {
+        "reference": "19-数字化认证.png",
+        "referenceSha256": "3A6FE5F2761C9AF32A5759879FDBF1F27AEE4056EEE4006FD0297B6ECA5866D6",
+        "rect": [
+          1088,
+          798,
+          42,
+          42
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-022",
+      "file": "public/assets/cert-tool.png",
+      "width": 42,
+      "height": 42,
+      "fileSha256": "CA09DE4E4074B4C832E91DFCFCE8468DE13396E24B496C4E941F1C897C196BC8",
+      "rgbSha256": "52BEDA531B59596D6BBD1B331C06566D760536B16EBCB2B30AC16D29FDC88D2D",
+      "source": {
+        "reference": "19-数字化认证.png",
+        "referenceSha256": "3A6FE5F2761C9AF32A5759879FDBF1F27AEE4056EEE4006FD0297B6ECA5866D6",
+        "rect": [
+          544,
+          798,
+          42,
+          42
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-023",
+      "file": "public/assets/certification-hero-illustration.png",
+      "width": 710,
+      "height": 302,
+      "fileSha256": "D2455C7A2278C78E1C118D5824A514D2989502F430430BB3FDAAE13F5E3D6EEF",
+      "rgbSha256": "9F5D27A24541058B993A12CF8C574F94E6539F3D2141583B2156943BE4724B38",
+      "source": {
+        "reference": "19-数字化认证.png",
+        "referenceSha256": "3A6FE5F2761C9AF32A5759879FDBF1F27AEE4056EEE4006FD0297B6ECA5866D6",
+        "rect": [
+          930,
+          108,
+          710,
+          302
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-024",
+      "file": "public/assets/cnooc-logo.png",
+      "width": 126,
+      "height": 43,
+      "fileSha256": "C812A0887F7668BDD91AE2BCDA4AFB3EAE45D75C8C344D38CD35E7FD65A79137",
+      "rgbSha256": "11D71B6608B299ED309D785ABE9588913B699BEABD9B60CF0DAE6AECE94A8775",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          18,
+          13,
+          126,
+          43
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-025",
+      "file": "public/assets/dashboard-hero.png",
+      "width": 145,
+      "height": 145,
+      "fileSha256": "4FA2115E6E692AAA6C22F8DA959B2B3D523F12A4CF28FC9E229168E00026C306",
+      "rgbSha256": "FCBBFB6EF2CE433E0B3C71CF4AB115E3104C3408D3C6B164EECCC913441F1295",
+      "source": {
+        "reference": "08-应用详情页-可视化驾驶舱.png",
+        "referenceSha256": "3D66270477C159EB9097CF74C904858A9158D9C9005A90C372B284AFB8980C43",
+        "rect": [
+          700,
+          175,
+          145,
+          145
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-026",
+      "file": "public/assets/dashboard-logo.png",
+      "width": 81,
+      "height": 95,
+      "fileSha256": "4E2BC20A2B3A4489C234FC9B73A7CC0CC1DA997D74E6664196B004ECA7C0B85B",
+      "rgbSha256": "510FD535846CEECF84D54521E87B68BDBDA19DC98E44FCABBB0755396670B6CC",
+      "source": {
+        "reference": "08-应用详情页-可视化驾驶舱.png",
+        "referenceSha256": "3D66270477C159EB9097CF74C904858A9158D9C9005A90C372B284AFB8980C43",
+        "rect": [
+          178,
+          140,
+          81,
+          95
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-027",
+      "file": "public/assets/dashboard-previews.png",
+      "width": 650,
+      "height": 130,
+      "fileSha256": "8ACB69FE0309CE9CD0C993F984B5E1B4476C4024BC319C0F520D5F2FC120FF72",
+      "rgbSha256": "8AF428BEAF0A473E9E8B6C3F8AB45EB5FE048E399FBFC8DDD6A7D0BD3C259A2E",
+      "source": {
+        "reference": "08-应用详情页-可视化驾驶舱.png",
+        "referenceSha256": "3D66270477C159EB9097CF74C904858A9158D9C9005A90C372B284AFB8980C43",
+        "rect": [
+          178,
+          965,
+          650,
+          130
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-028",
+      "file": "public/assets/dataset-hero.png",
+      "width": 185,
+      "height": 145,
+      "fileSha256": "09979678C72384BC0134FC40DD6340B66B2D84DD0529EFE65BB98402402FC5B2",
+      "rgbSha256": "5070E6F53B8EB920EAF3B79E56AA36FC8C3F8088494762B399F6D0235A58B286",
+      "source": {
+        "reference": "08-应用详情页-数据集.png",
+        "referenceSha256": "7260427E1B5E85ECDFE37D52D6A88439178542503EC8E5E6FC5D679701633C97",
+        "rect": [
+          710,
+          92,
+          185,
+          145
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-029",
+      "file": "public/assets/dataset-logo.png",
+      "width": 56,
+      "height": 56,
+      "fileSha256": "11D81DF5D3506535A8781AD723C49AA64A8797DCE79F0D162B561F4C01925EC4",
+      "rgbSha256": "CBD39BF5CC262B1C4D8DEADDF4CA2B223990E492633B6E03200A5995B17E5C37",
+      "source": {
+        "reference": "08-应用详情页-数据集.png",
+        "referenceSha256": "7260427E1B5E85ECDFE37D52D6A88439178542503EC8E5E6FC5D679701633C97",
+        "rect": [
+          220,
+          102,
+          56,
+          56
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-030",
+      "file": "public/assets/dataset-training.png",
+      "width": 410,
+      "height": 140,
+      "fileSha256": "4D10D2EF98EBB89E74C6516EB169C0FFE00288556141CA0376BC58A422493AD2",
+      "rgbSha256": "4946048993AC3344DC6B0F8515E46F37B317449AE940A6D978F52EFF67EE84F4",
+      "source": {
+        "reference": "08-应用详情页-数据集.png",
+        "referenceSha256": "7260427E1B5E85ECDFE37D52D6A88439178542503EC8E5E6FC5D679701633C97",
+        "rect": [
+          214,
+          1217,
+          410,
+          140
+        ]
+      },
+      "disposition": "pending-composite-review",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-031",
+      "file": "public/assets/ead-hero.png",
+      "width": 210,
+      "height": 145,
+      "fileSha256": "47100C88217B211C293725DB070830D7CF338CFB4B075B09E6E025A9736045D1",
+      "rgbSha256": "272D3EE377CE628A7847136CF95A23DE59B2C0ED3924B00444B815697918E799",
+      "source": {
+        "reference": "08-应用详情页-EAD.png",
+        "referenceSha256": "8090BF0B8BFDCE7981D32F7C6B6335230D9F9508BF4549E716C10A2A4382D0CC",
+        "rect": [
+          1160,
+          160,
+          210,
+          145
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-032",
+      "file": "public/assets/ead-logo.png",
+      "width": 66,
+      "height": 66,
+      "fileSha256": "55B69C055996B7C236F2205D8AA0FCDBCC1BC0978CD948076F5402F31E362BF6",
+      "rgbSha256": "4EAEE386214A3B630BFAE8D5C496E1E06F8ECA4A57A3FD845B71313B2E76F744",
+      "source": {
+        "reference": "08-应用详情页-EAD.png",
+        "referenceSha256": "8090BF0B8BFDCE7981D32F7C6B6335230D9F9508BF4549E716C10A2A4382D0CC",
+        "rect": [
+          266,
+          119,
+          66,
+          66
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-033",
+      "file": "public/assets/ead-preview.png",
+      "width": 290,
+      "height": 105,
+      "fileSha256": "0EAD94431165639AF4402E6097131F60EDDB56A146BEC64C7CAF2BF375B859DF",
+      "rgbSha256": "D05EB2591D527F670AABFEE11D12880F3CFDC4D96CCA1CAAB68E01FC3DE52D34",
+      "source": {
+        "reference": "08-应用详情页-EAD.png",
+        "referenceSha256": "8090BF0B8BFDCE7981D32F7C6B6335230D9F9508BF4549E716C10A2A4382D0CC",
+        "rect": [
+          280,
+          530,
+          290,
+          105
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-034",
+      "file": "public/assets/favorite-heart.png",
+      "width": 18,
+      "height": 18,
+      "fileSha256": "E80221BF8ABCAA1A3828AD1588CA267CCE6F28E48C383C86743506D26B11D34A",
+      "rgbSha256": "BFC1E6D697955A1BB3D3E7D885667D6AFB53555A467E82593F1D4A9029193547",
+      "source": {
+        "reference": "03-收藏.png",
+        "referenceSha256": "9B259ED9F99029ECB68A1F2FB3EB8E745FF23692BC53CFFBD5D6A46008CEAE1A",
+        "rect": [
+          535,
+          439,
+          18,
+          18
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-035",
+      "file": "public/assets/favorite-hero.png",
+      "width": 810,
+      "height": 104,
+      "fileSha256": "19966815B1AB9267E2819E126BA56F2BD28C00ABE0E00276F361272980D99257",
+      "rgbSha256": "40762E086D1C6B04D91FDA9D3758ACE81D8220C8BAE4F8AB4918BC8AE8C5E474",
+      "source": {
+        "reference": "03-收藏.png",
+        "referenceSha256": "9B259ED9F99029ECB68A1F2FB3EB8E745FF23692BC53CFFBD5D6A46008CEAE1A",
+        "rect": [
+          837,
+          96,
+          810,
+          104
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-036",
+      "file": "public/assets/favorite-stat-new.png",
+      "width": 67,
+      "height": 67,
+      "fileSha256": "5072219729287F23ED5DD5F13BB4726E0949A664F097C78E4FFD554756F27C4B",
+      "rgbSha256": "A4D08DA708CD2D79A8737634405BAC6B466A3A7ED4821FCF1DC4A981D0F58A56",
+      "source": {
+        "reference": "03-收藏.png",
+        "referenceSha256": "9B259ED9F99029ECB68A1F2FB3EB8E745FF23692BC53CFFBD5D6A46008CEAE1A",
+        "rect": [
+          714,
+          239,
+          67,
+          67
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-037",
+      "file": "public/assets/favorite-stat-recent.png",
+      "width": 67,
+      "height": 67,
+      "fileSha256": "7A79D99437785B1EA8398E5D36C55F265B22D0419C9178C4DA21517ABCAF03D5",
+      "rgbSha256": "DF01AFDA7549738CD0A1A7CC9ED35A89248A3F09F9E3BEAF1CEF42D7D8959157",
+      "source": {
+        "reference": "03-收藏.png",
+        "referenceSha256": "9B259ED9F99029ECB68A1F2FB3EB8E745FF23692BC53CFFBD5D6A46008CEAE1A",
+        "rect": [
+          1164,
+          239,
+          67,
+          67
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-038",
+      "file": "public/assets/favorite-stat-total.png",
+      "width": 67,
+      "height": 67,
+      "fileSha256": "DDDC3A81E0A48515DD6C8B6C65E8D0B78AAF8860D07F976A7A49A9590B23C2DC",
+      "rgbSha256": "66E77A1FCCA4EAB48C95D63091B060EA9940513B193106749621EE038FABEB90",
+      "source": {
+        "reference": "03-收藏.png",
+        "referenceSha256": "9B259ED9F99029ECB68A1F2FB3EB8E745FF23692BC53CFFBD5D6A46008CEAE1A",
+        "rect": [
+          270,
+          239,
+          67,
+          67
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-039",
+      "file": "public/assets/favorite-title.png",
+      "width": 59,
+      "height": 59,
+      "fileSha256": "ED5AA2C563E93A147A807BE3A6AE7D707E04DD15E5B385CA0E0CF53B92D678E1",
+      "rgbSha256": "5DAC9EFAED17F1F16FAC09A53D30BBC876ACE9C3332F2C68E2A38B83F3F69E83",
+      "source": {
+        "reference": "03-收藏.png",
+        "referenceSha256": "9B259ED9F99029ECB68A1F2FB3EB8E745FF23692BC53CFFBD5D6A46008CEAE1A",
+        "rect": [
+          271,
+          115,
+          59,
+          59
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-040",
+      "file": "public/assets/hero-ocean.png",
+      "width": 827,
+      "height": 136,
+      "fileSha256": "546FBA2B82E3D72B5DA552F821A8ADC1E1C7B433FE89EE5FAB8AE6C74B2497C6",
+      "rgbSha256": "D960ECA5FEB5BC1824C5C57CDF315E07997E4A3BD8799EB89FF5F04DD1F4FC22",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          820,
+          78,
+          827,
+          136
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-041",
+      "file": "public/assets/hot-inventory.png",
+      "width": 55,
+      "height": 55,
+      "fileSha256": "6B888C8F270D22499C832B92482D1CAB866F8891C2DA5ADFCB80DC86731A0EE5",
+      "rgbSha256": "1AEA443057D46364575C9AB4393605E13609EA15F66336F2D54723AC1C09C124",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          464,
+          448,
+          55,
+          55
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-042",
+      "file": "public/assets/hot-invoice.png",
+      "width": 55,
+      "height": 55,
+      "fileSha256": "CA168E536EA5EC77462FF3F1BBFFEBABF82D0AE8B635E7A8E7EDAA108DA80DB6",
+      "rgbSha256": "5BDABB62C9AF1E50CF349AF23C1B7BDFF49C8769F75596D4BC07B3A915CB9D8F",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          788,
+          448,
+          55,
+          55
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-043",
+      "file": "public/assets/hot-rpa.png",
+      "width": 55,
+      "height": 55,
+      "fileSha256": "FA693751E2D8770345DA5A932039AA70D0BDB268D50E48FFA6BD9709D7E9A07C",
+      "rgbSha256": "C3D4A42EB45D3FCE8E6E3D957492B8651389A753AA207E3C7446F8CC7BD922F6",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          626,
+          448,
+          55,
+          55
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-044",
+      "file": "public/assets/hot-supplier.png",
+      "width": 55,
+      "height": 55,
+      "fileSha256": "3EFA4F753D7F069171EAA33A38645EDDA2C214CCA6C18673B94669D0BD159309",
+      "rgbSha256": "BF1AE6259E27FEAB392EF4A83874641CB7B35A10ABC0E0891CDA2448B98C5D5B",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          303,
+          448,
+          55,
+          55
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-045",
+      "file": "public/assets/metric-hero.png",
+      "width": 390,
+      "height": 145,
+      "fileSha256": "054BC935CD21106ED7C1CBD5FFBC708BF6088E53CB427F17EB648F82E18AEE7D",
+      "rgbSha256": "2F38F5A7B092EEC767DB92763F881997638E58D22821478C5537DA1B57011FE2",
+      "source": {
+        "reference": "08-应用详情页-指标.png",
+        "referenceSha256": "48C41CBB2DF433C9680DD955A4777FA436BBFF6E094D56A3B5E6E0E48B01690B",
+        "rect": [
+          1005,
+          118,
+          390,
+          145
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-046",
+      "file": "public/assets/metric-logo.png",
+      "width": 64,
+      "height": 64,
+      "fileSha256": "27DEE0609931FC4CC3F0B1FD9D701654A876BB16362D2CAAE01774FA08BD5E50",
+      "rgbSha256": "FD02B42D752DA9C7ECE6394A778DB509CAD5E5DDE819E2ABEF86BD0A76ED2C5E",
+      "source": {
+        "reference": "08-应用详情页-指标.png",
+        "referenceSha256": "48C41CBB2DF433C9680DD955A4777FA436BBFF6E094D56A3B5E6E0E48B01690B",
+        "rect": [
+          274,
+          81,
+          64,
+          64
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-047",
+      "file": "public/assets/msg-stat-all.png",
+      "width": 61,
+      "height": 61,
+      "fileSha256": "EB0504EA307F4FCDC97628990CFA85776523817AB1A7ED3356C389B06FCC7804",
+      "rgbSha256": "C38874A2420D5DA38D55A45881FDDF924849B351DD9493E501692E954A6C08E0",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          290,
+          191,
+          61,
+          61
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-048",
+      "file": "public/assets/msg-stat-new.png",
+      "width": 61,
+      "height": 61,
+      "fileSha256": "2F20F1BE3C9F334110447703B639C46BAEAC73613C229D3B1FBE165444BF40A1",
+      "rgbSha256": "20734C2550AF69FAE40F2395B17976361D3CA01D5FC6C87C705F8CC1B2B1E268",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          1346,
+          191,
+          61,
+          61
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-049",
+      "file": "public/assets/msg-stat-read.png",
+      "width": 61,
+      "height": 61,
+      "fileSha256": "3CB402A0F2AFEA79CEAD32031BF4F8B61B307254342C964061B8552B89259480",
+      "rgbSha256": "DAE23CE226F38535C4EC5C8FF65B1F759783B4A7AE76D1207BC730D2D51A2178",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          996,
+          191,
+          61,
+          61
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-050",
+      "file": "public/assets/msg-stat-unread.png",
+      "width": 61,
+      "height": 61,
+      "fileSha256": "983CF897CE1CBD7067D6344C2F704A4AE6DB1B7EFF4A8ACA925B2AE4B512ECC1",
+      "rgbSha256": "55E7EE2ECB46A8AE9AE23A18A735A1E710A4E4C5ACE281FD49B9375CFC73201B",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          660,
+          191,
+          61,
+          61
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-051",
+      "file": "public/assets/nav-admin.png",
+      "width": 22,
+      "height": 24,
+      "fileSha256": "3B1059A871CD67F31E3F2E0E0805522B1EC1C14340EB8BFBB86CB309EF7CF599",
+      "rgbSha256": "17BA6708AC3936F5F2133533B84C5607C3991EDA911CD17F0E91F3BA6863EE5C",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          1280,
+          25,
+          22,
+          24
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-052",
+      "file": "public/assets/nav-announcements.png",
+      "width": 22,
+      "height": 24,
+      "fileSha256": "3CF9AE5A8C43F9135027B2E4B8F63770E740A95C3ADBB550E0018964C1D7FCD9",
+      "rgbSha256": "497C34E57F99A3D9962EC64371E87ACB9264FA25BD6F2A6869FA5C7D0D5DD887",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          1175,
+          25,
+          22,
+          24
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-053",
+      "file": "public/assets/nav-apps.png",
+      "width": 22,
+      "height": 24,
+      "fileSha256": "3A060171A8C5E611205DE4F05E4A142AD24DDE3CF6282A631F4C24ED2D9B4050",
+      "rgbSha256": "797E40A9BE494DC4992F99844C805AB8186A54EC7A2EC28805F77CC41D901C8F",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          637,
+          25,
+          22,
+          24
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-054",
+      "file": "public/assets/nav-certification.png",
+      "width": 22,
+      "height": 24,
+      "fileSha256": "D70793E8893E58C90C41E631B37FCA09A5F57A499912245632C9E5441206D5A0",
+      "rgbSha256": "5F05C0B27FBF282E894156B89D74D47F429F05A65A1DD60FC3A5D94AFE5E3F53",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          956,
+          25,
+          22,
+          24
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-055",
+      "file": "public/assets/nav-materials.png",
+      "width": 22,
+      "height": 24,
+      "fileSha256": "E515020DB50A168D1FAA7710BE7A7A41DFA608C616E6F82877313F2B6073091D",
+      "rgbSha256": "3D31A1EE2F642212A68AE51D8E9D880648824629A70977BAD2AC3668CB906E5C",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          427,
+          25,
+          22,
+          24
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-056",
+      "file": "public/assets/nav-operations.png",
+      "width": 22,
+      "height": 24,
+      "fileSha256": "306E8927B6258A2D4C0655C2CB0CFA372FA9E8D059142574A741612365D5FB5E",
+      "rgbSha256": "D29807DBD887A7A503C89CDBC8785AE79D4A77DFF078AD9BFCF003DD511847D5",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          1064,
+          25,
+          22,
+          24
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-057",
+      "file": "public/assets/nav-points.png",
+      "width": 22,
+      "height": 24,
+      "fileSha256": "F27ED919C4167CD258B948B8293F832FAD2D3D2B3117EF6169106308F0D617B9",
+      "rgbSha256": "095D7E512B7EF5F2219DA63866238A22063514D7645503D130FC00BA4A7D4679",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          850,
+          25,
+          22,
+          24
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-058",
+      "file": "public/assets/nav-talent.png",
+      "width": 22,
+      "height": 24,
+      "fileSha256": "9B1F53B31C952E50D5F50FA104EECF03A778879333B0A9F9BA7BFBB39A142F83",
+      "rgbSha256": "11050C27F33AC1903215457BB15E1E79276E0FDD98F2EBC2A90B5C220ED83CD1",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          533,
+          25,
+          22,
+          24
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-059",
+      "file": "public/assets/nav-training.png",
+      "width": 22,
+      "height": 24,
+      "fileSha256": "7B72E4E2DC9AF9D4DB705F57D3DDB93B94B5222A97BF77686F36D3939B71305A",
+      "rgbSha256": "29C2238D6C172C70C6F0A2E14D06D7B6BD815723C488D649478A6A1A2BD2CCFC",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          746,
+          25,
+          22,
+          24
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-060",
+      "file": "public/assets/nav-workbench.png",
+      "width": 22,
+      "height": 24,
+      "fileSha256": "0202B0404F62578692B1D795180D3D8C2F9B727748B3277F0098F91CB9F0777C",
+      "rgbSha256": "115EE056686D1B24F2E8F4AA14E1E2D9B747E8ADF1B097CE21417F94B28CDD71",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          307,
+          25,
+          22,
+          24
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-061",
+      "file": "public/assets/notice-risk-hero.png",
+      "width": 862,
+      "height": 206,
+      "fileSha256": "201A7DB1A4B54DEA6728CEBCEF8FF8E59EC04A42DDD67369FC6FCFD8700B1FD9",
+      "rgbSha256": "7E7DCA87584F4BA5B33747CBE3A633CE5A12F034DCF2FA2F9FC05A11A69FBEBA",
+      "source": {
+        "reference": "06-公告通知-通知详情.png",
+        "referenceSha256": "A9827301EF6051E8B9B963B07F7073F6AB7AE4BFD21BAC97FDDA67A08FF3D78F",
+        "rect": [
+          244,
+          346,
+          862,
+          206
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-062",
+      "file": "public/assets/notice-stat-new.png",
+      "width": 67,
+      "height": 67,
+      "fileSha256": "9547622A2221897ED251959EA2B82F2C1869F93DB727E81B9B331195E4BC6CA3",
+      "rgbSha256": "61021CF1265316F969181D289613B67F670EEE4EF81F7D3DA5F33DD9D6975547",
+      "source": {
+        "reference": "05-公告通知.png",
+        "referenceSha256": "58A43229752CC4A5210A2846B88DB267A622543AA8F7F034CDA42BC2041F4F8C",
+        "rect": [
+          976,
+          214,
+          67,
+          67
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-063",
+      "file": "public/assets/notice-stat-unread.png",
+      "width": 67,
+      "height": 67,
+      "fileSha256": "D9ED14E04E5F94AB964C12ADA7B09CAD1EAC8B4375C786FE6234EA9BAF1B30C7",
+      "rgbSha256": "452358EE0FCDC5C3946EB54AC2C01F1275B339DDBDBA71DE026471FB43413478",
+      "source": {
+        "reference": "05-公告通知.png",
+        "referenceSha256": "58A43229752CC4A5210A2846B88DB267A622543AA8F7F034CDA42BC2041F4F8C",
+        "rect": [
+          454,
+          214,
+          67,
+          67
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-064",
+      "file": "public/assets/overview-ai.png",
+      "width": 68,
+      "height": 68,
+      "fileSha256": "A88B63FB75C11B708BE3D39B3CCD47714EA223E52CE286B5F2498070597C1545",
+      "rgbSha256": "7A3C01CB755CDFA48B859C85493B2FF255206FD3AFA634B539DD56189A1BB31C",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          1202,
+          283,
+          68,
+          68
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-065",
+      "file": "public/assets/overview-dataset.png",
+      "width": 68,
+      "height": 68,
+      "fileSha256": "9266182F8128DC7748F83772BBE8E044BA2DD42C818B043DF222A426520642C6",
+      "rgbSha256": "A37AC18360146678725A7DBD82D22914DE7454ADE363FFB70156641823E31CD5",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          274,
+          283,
+          68,
+          68
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-066",
+      "file": "public/assets/overview-ead.png",
+      "width": 68,
+      "height": 68,
+      "fileSha256": "EC7A2B50B0D43AF1B9BD5F22198773848D2985387B68DEDB2B820BF81E5F79E3",
+      "rgbSha256": "39F646C5E1390CC38C1A34C637A1A0F8578A9D084062CDAB49F192656EECF31F",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          970,
+          283,
+          68,
+          68
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-067",
+      "file": "public/assets/overview-other.png",
+      "width": 68,
+      "height": 68,
+      "fileSha256": "365E72BB7AA0285B28694BDB22A398E5C48225B22DDDD1117C288404399900DD",
+      "rgbSha256": "E58055DC464CDEA7147E164B5D919F62E061C3EF32992E4A3285CE40011C4DFE",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          1434,
+          283,
+          68,
+          68
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-068",
+      "file": "public/assets/overview-report.png",
+      "width": 68,
+      "height": 68,
+      "fileSha256": "13C8FA232C68A298B77D51DEBB909E811092FC99635F7625FA8EDECB9CD5A338",
+      "rgbSha256": "2110006368E5CA810C32C6E7C9A35FD442F7E7A65C93E13F554381AF4AE0ABBA",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          506,
+          283,
+          68,
+          68
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-069",
+      "file": "public/assets/overview-rpa.png",
+      "width": 68,
+      "height": 68,
+      "fileSha256": "55B277CB7D2B944F162CC997512092E80836A83396EF3A501A3B3DC699CBB277",
+      "rgbSha256": "A7F8C2AE959B71F640F699E2810D23D441529766362EEBBFA2F434C2521C66E6",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          738,
+          283,
+          68,
+          68
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-070",
+      "file": "public/assets/points-current.png",
+      "width": 72,
+      "height": 72,
+      "fileSha256": "19DC89D43AFC473979C1830CEB1D4121610E778916C32903904438CD1A10C27C",
+      "rgbSha256": "70BE89244D5336B16709142A1583060EACE2034ED806069548EA497B6FCF32FE",
+      "source": {
+        "reference": "10-积分中心.png",
+        "referenceSha256": "A93E46949EBAF8861FFC6314A7AB2B05D6D7C99E60CC6B39FF8C925BF56A74E9",
+        "rect": [
+          248,
+          216,
+          72,
+          72
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-071",
+      "file": "public/assets/points-month.png",
+      "width": 72,
+      "height": 72,
+      "fileSha256": "3938A557B5B59D904DBA4DB9BE37A8626D7E035386D0513DAD0B4EDB63C10C7C",
+      "rgbSha256": "B95287C9D6DF53FB7131A9B86E66CF56E01ED8F258C620951D457E70FEE8D798",
+      "source": {
+        "reference": "10-积分中心.png",
+        "referenceSha256": "A93E46949EBAF8861FFC6314A7AB2B05D6D7C99E60CC6B39FF8C925BF56A74E9",
+        "rect": [
+          598,
+          216,
+          72,
+          72
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-072",
+      "file": "public/assets/points-total.png",
+      "width": 72,
+      "height": 72,
+      "fileSha256": "D7B0643D561F0D1244DD6AB910408A9283CAF0EC89DD3F70DD90B5E42A31F1C1",
+      "rgbSha256": "CA1D5863F878852F18FD901B7D061165792751663BF02B1CE863775B09923281",
+      "source": {
+        "reference": "10-积分中心.png",
+        "referenceSha256": "A93E46949EBAF8861FFC6314A7AB2B05D6D7C99E60CC6B39FF8C925BF56A74E9",
+        "rect": [
+          1298,
+          216,
+          72,
+          72
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-073",
+      "file": "public/assets/points-use.png",
+      "width": 72,
+      "height": 72,
+      "fileSha256": "D932B67C7B5E5670DAFF6BDF7DFACB99A4EB4589886ED617CA5F22945FB7B165",
+      "rgbSha256": "608C43BFA976D46F4A8C2F606D5F6D443056AC0C14F89ABF9EFE9D24A217B099",
+      "source": {
+        "reference": "10-积分中心.png",
+        "referenceSha256": "A93E46949EBAF8861FFC6314A7AB2B05D6D7C99E60CC6B39FF8C925BF56A74E9",
+        "rect": [
+          948,
+          216,
+          72,
+          72
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-074",
+      "file": "public/assets/profile-avatar.png",
+      "width": 134,
+      "height": 134,
+      "fileSha256": "094803A854B7EE64E8DEB3DD225A01B28B4A776AF21A9BBA37FC2B06395AFA3B",
+      "rgbSha256": "3F9E8F333EB140398540397008A25B62D95C24D81C74BD94E74C5D1A1755F162",
+      "source": {
+        "reference": "04-个人中心.png",
+        "referenceSha256": "F08DE51669B152D46224A0031945CFFF85969E40D7416D93849B6E1CDD35FA9A",
+        "rect": [
+          313,
+          213,
+          134,
+          134
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-075",
+      "file": "public/assets/profile-stat-favorite.png",
+      "width": 60,
+      "height": 60,
+      "fileSha256": "711BF5C803774BD92CD5DF867BEDB6F134C1AF979E3193605607D258469AE417",
+      "rgbSha256": "85EF8C89D0ECB7E7C663B20F9D9ACDB0FF04193F65CB23C9AFE7C779ECAD10DA",
+      "source": {
+        "reference": "04-个人中心.png",
+        "referenceSha256": "F08DE51669B152D46224A0031945CFFF85969E40D7416D93849B6E1CDD35FA9A",
+        "rect": [
+          1242,
+          265,
+          60,
+          60
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-076",
+      "file": "public/assets/profile-stat-points.png",
+      "width": 60,
+      "height": 60,
+      "fileSha256": "481EA2181F1E1A65A9DE5F295D929D608860515DF218736CA89611B5AEDA9E43",
+      "rgbSha256": "C67C3588CA1B8B7884464466548E53B262DD72C57A0A15BB3C6BFD8E802B64D1",
+      "source": {
+        "reference": "04-个人中心.png",
+        "referenceSha256": "F08DE51669B152D46224A0031945CFFF85969E40D7416D93849B6E1CDD35FA9A",
+        "rect": [
+          1035,
+          265,
+          60,
+          60
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-077",
+      "file": "public/assets/profile-stat-use.png",
+      "width": 60,
+      "height": 60,
+      "fileSha256": "2C464FFB30B4196B6EC6E46E25595C58F6CBF972E8920A4E71DF036C144A5FC8",
+      "rgbSha256": "8EDD25A6EA61B9D50348F6D5CE70353CDB191810454A0BEEBFF4036AC70977D9",
+      "source": {
+        "reference": "04-个人中心.png",
+        "referenceSha256": "F08DE51669B152D46224A0031945CFFF85969E40D7416D93849B6E1CDD35FA9A",
+        "rect": [
+          1674,
+          265,
+          60,
+          60
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-078",
+      "file": "public/assets/profile-stat-visits.png",
+      "width": 60,
+      "height": 60,
+      "fileSha256": "2DB9601261CB3B32A77D7E0F310BBA78752BBFA33AF551152F4D3E48E39740A5",
+      "rgbSha256": "0548EC3E95B833CDB8C03879284A65FE7F58D1C5EEAB7686C1C4934172D1F909",
+      "source": {
+        "reference": "04-个人中心.png",
+        "referenceSha256": "F08DE51669B152D46224A0031945CFFF85969E40D7416D93849B6E1CDD35FA9A",
+        "rect": [
+          1457,
+          265,
+          60,
+          60
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-079",
+      "file": "public/assets/report-hero.png",
+      "width": 165,
+      "height": 170,
+      "fileSha256": "5E1B3C964E88D178F4AF32212DDBF16896AB810499A840EBD009AC443584B3A6",
+      "rgbSha256": "FFC5EAE80BA7D973B2082BA52155DB30A93CA87E329ADB8FA3F6535FDD44DDA8",
+      "source": {
+        "reference": "08-应用详情页-可视化报表.png",
+        "referenceSha256": "A7A5B61527C5A2D7C83ACD2C769AA56FD038B252EDE4D1A46A91D1396F2113B1",
+        "rect": [
+          660,
+          175,
+          165,
+          170
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-080",
+      "file": "public/assets/report-logo.png",
+      "width": 80,
+      "height": 94,
+      "fileSha256": "FA504806256D49FAAF7EA9BFF0A75163DF05DC05484DB81421757EF76AC156D0",
+      "rgbSha256": "667492626BAF0C3177EA21BB42BF653A3CE3078D6272605F661A60FEC5EA7669",
+      "source": {
+        "reference": "08-应用详情页-可视化报表.png",
+        "referenceSha256": "A7A5B61527C5A2D7C83ACD2C769AA56FD038B252EDE4D1A46A91D1396F2113B1",
+        "rect": [
+          176,
+          140,
+          80,
+          94
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-081",
+      "file": "public/assets/report-previews.png",
+      "width": 640,
+      "height": 195,
+      "fileSha256": "FF3ED5D33812B84B50FA06B90034845E9719D4F28EAD689B2C13B98638BD3BD4",
+      "rgbSha256": "C084746FC42862F50B58CC3C82496A767A404236AF042C35CEEC8965AC07E9F2",
+      "source": {
+        "reference": "08-应用详情页-可视化报表.png",
+        "referenceSha256": "A7A5B61527C5A2D7C83ACD2C769AA56FD038B252EDE4D1A46A91D1396F2113B1",
+        "rect": [
+          175,
+          915,
+          640,
+          195
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-082",
+      "file": "public/assets/rpa-hero.png",
+      "width": 250,
+      "height": 130,
+      "fileSha256": "2EB5E25020161273EE4B9CAD3BF6A007D68BBC9F31EE30AE60C54B8EB8796886",
+      "rgbSha256": "E7C4F0823AC8DAD7D77069840753EF2B600BE1D9266B7DE9E4BD436A8D2BA567",
+      "source": {
+        "reference": "08-应用详情页-RPA.png",
+        "referenceSha256": "C66930E5C44E4ADAEB81872C7E64E8D41DC17A5BB46256314E404A9177C2923A",
+        "rect": [
+          1228,
+          162,
+          250,
+          130
+        ],
+        "method": "normalized-template-match-candidate",
+        "matchScore": 0.5265417695045471
+      },
+      "disposition": "pending-source-validation",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-083",
+      "file": "public/assets/rpa-logo.png",
+      "width": 80,
+      "height": 75,
+      "fileSha256": "0C7979A0FF96D0716A29A39686FE825072E7F829836D2ADB35B1F976060A2229",
+      "rgbSha256": "1CA468245E4201AF27931D6E2B1123811183E829796B3F58FAAED18B292E6F65",
+      "source": {
+        "reference": "08-应用详情页-RPA.png",
+        "referenceSha256": "C66930E5C44E4ADAEB81872C7E64E8D41DC17A5BB46256314E404A9177C2923A",
+        "rect": [
+          1456,
+          1013,
+          80,
+          75
+        ],
+        "method": "normalized-template-match-candidate",
+        "matchScore": 2.2758629322052
+      },
+      "disposition": "pending-source-validation",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-084",
+      "file": "public/assets/rpa-video.png",
+      "width": 1135,
+      "height": 192,
+      "fileSha256": "51718CB2B06724DD79546F592AC787E9F1FD4C76CE9914E751E4915933926AF0",
+      "rgbSha256": "A13B67958BC2F57C0673B27D41BE402C4EAE85F5A92C371D0B60DA5318A6CB35",
+      "source": {
+        "reference": "08-应用详情页-RPA.png",
+        "referenceSha256": "C66930E5C44E4ADAEB81872C7E64E8D41DC17A5BB46256314E404A9177C2923A",
+        "rect": [
+          401,
+          553,
+          1135,
+          192
+        ],
+        "method": "normalized-template-match-candidate",
+        "matchScore": 0.9114916920661926
+      },
+      "disposition": "pending-composite-review",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-085",
+      "file": "public/assets/tool-hero.png",
+      "width": 190,
+      "height": 190,
+      "fileSha256": "DAC046BCE0CB6D76147990D0A7CC148DED715FDE95BB05C5217E192FB700D6C8",
+      "rgbSha256": "17CA4D9DC036FFBB2160192CD420477FFCEC75EA59432C9FFC431054ACECB823",
+      "source": {
+        "reference": "08-应用详情页-工具.png",
+        "referenceSha256": "35ACE981294AF359A243AFB1F53C29590BA124742F8EEF3BBE7152F4984F7A69",
+        "rect": [
+          726,
+          197,
+          190,
+          190
+        ],
+        "method": "normalized-template-match-candidate",
+        "matchScore": 0.6323173642158508
+      },
+      "disposition": "pending-source-validation",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-086",
+      "file": "public/assets/tool-logo.png",
+      "width": 91,
+      "height": 91,
+      "fileSha256": "D8FC15B1663FD3F8BC138DC8A88A880DC0F6F7BEB625055F23182024487CCD3E",
+      "rgbSha256": "E814BD5B843683A7421F0701760E1CF649E8FD56BCAAA16CCB15A7657DEAC223",
+      "source": {
+        "reference": "08-应用详情页-工具.png",
+        "referenceSha256": "35ACE981294AF359A243AFB1F53C29590BA124742F8EEF3BBE7152F4984F7A69",
+        "rect": [
+          436,
+          498,
+          91,
+          91
+        ],
+        "method": "normalized-template-match-candidate",
+        "matchScore": 0.690291702747345
+      },
+      "disposition": "pending-source-validation",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-087",
+      "file": "public/assets/top-avatar.png",
+      "width": 43,
+      "height": 43,
+      "fileSha256": "A8D2E33B13360AFB99536A88D7731EDF76B5A2E2CACA778F4BAFC138FD9A3C31",
+      "rgbSha256": "407E46248633FA302D890571F460231D5BC66805E97B82284624E1AF4272D075",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          1528,
+          16,
+          43,
+          43
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-088",
+      "file": "public/assets/top-favorite-active.png",
+      "width": 34,
+      "height": 36,
+      "fileSha256": "12A671003416A9248D778B920FA116D87662FEAD076B1C67F69C4A483A42E659",
+      "rgbSha256": "22EBCB12287539483E04003A1FDCE5F886877634D013DC201737E18EC0A87666",
+      "source": {
+        "reference": "03-收藏.png",
+        "referenceSha256": "9B259ED9F99029ECB68A1F2FB3EB8E745FF23692BC53CFFBD5D6A46008CEAE1A",
+        "rect": [
+          1460,
+          14,
+          34,
+          36
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-089",
+      "file": "public/assets/top-favorite.png",
+      "width": 26,
+      "height": 28,
+      "fileSha256": "0F3778B5E4F7498E245200F376570B4B7F17DCAF3C2C5E36AA51E3156B9FEAB8",
+      "rgbSha256": "DA76F7C7CD7A0A0782D30DE7598FB5831F955A19F328370F60F22F421BD805AE",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          1470,
+          22,
+          26,
+          28
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-090",
+      "file": "public/assets/top-message.png",
+      "width": 41,
+      "height": 39,
+      "fileSha256": "F09D5A1DAB29B8694714DB0DB8FD21F5D82DD6605637FE134021D56EE37FA186",
+      "rgbSha256": "0E2A5827CEE343B34C360262DE395E4DF2A084452C26E9596AD3A0E4A7C2FF65",
+      "source": {
+        "reference": "02-消息中心.png",
+        "referenceSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+        "rect": [
+          1406,
+          15,
+          41,
+          39
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-091",
+      "file": "public/assets/training-ai.png",
+      "width": 58,
+      "height": 60,
+      "fileSha256": "A24A5D01239DDC5B077D48F611F9BC395E82E2CA73891D0BFB743D1EA5E37A29",
+      "rgbSha256": "6ADDFFFCEB4D89F3CA8807CB1A83026B7DB2AABDDA022C376DC85F8003CA9135",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          934,
+          442,
+          58,
+          60
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-092",
+      "file": "public/assets/training-community.png",
+      "width": 58,
+      "height": 60,
+      "fileSha256": "6937BB7DC46743D4D1634B77D86782328274199E9E996CFA327FF68DE4C5447D",
+      "rgbSha256": "7622678229E9FD05C4A70D83AA4CFA02EE53793E7FEA86D54C2DDEDD0560E949",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          934,
+          609,
+          58,
+          60
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-093",
+      "file": "public/assets/training-hero-illustration.png",
+      "width": 610,
+      "height": 226,
+      "fileSha256": "569428126B9C912EBBD34CFFEA929AA5E0FEEA8B2F2F62E25B92F0F8362547DB",
+      "rgbSha256": "67BD0227F04F9EC1FC5E2DBCC533AB6302383D29C1E69C0BA3AD4703A1F46DF7",
+      "source": {
+        "reference": "12-培训课堂.png",
+        "referenceSha256": "68508151B1490F117074C44F464732A6986DAE68DDE5C23296DB0529C2C12E86",
+        "rect": [
+          1030,
+          103,
+          610,
+          226
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-094",
+      "file": "public/assets/training-procurement.png",
+      "width": 58,
+      "height": 60,
+      "fileSha256": "FD8C21A34E17C56D4BB01AB8150C55617A34C40EF506C746A83806DBE01790F7",
+      "rgbSha256": "A194D4A13245DF4900776F92C789318E8C60ED20225CE9AC3A785DAE56A3A0E3",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          934,
+          528,
+          58,
+          60
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-095",
+      "file": "public/assets/training-stat-registered.png",
+      "width": 52,
+      "height": 52,
+      "fileSha256": "5730321730D45C0870B6169A2412941B1539BC9280A35FC03767850BCC0B7A7A",
+      "rgbSha256": "A7B094475A016F49031EFF4B5D9D090FC90E24CC6DD69D834CBEDC2B4408D49D",
+      "source": {
+        "reference": "12-培训课堂.png",
+        "referenceSha256": "68508151B1490F117074C44F464732A6986DAE68DDE5C23296DB0529C2C12E86",
+        "rect": [
+          590,
+          256,
+          52,
+          52
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-096",
+      "file": "public/assets/training-stat-soon.png",
+      "width": 52,
+      "height": 52,
+      "fileSha256": "91671FAA34FB11877DF8B9A9120138D553AA38531997C7C9A8163F4DBED18B69",
+      "rgbSha256": "FF33EB8A5C19EA305F8E1E9C1A79D1E0615B29C67B4888555189EA1B1E29656F",
+      "source": {
+        "reference": "12-培训课堂.png",
+        "referenceSha256": "68508151B1490F117074C44F464732A6986DAE68DDE5C23296DB0529C2C12E86",
+        "rect": [
+          837,
+          256,
+          52,
+          52
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-097",
+      "file": "public/assets/training-stat-total.png",
+      "width": 52,
+      "height": 52,
+      "fileSha256": "F4DC614A35280755BBE95FFD9EDA1B0B266D2F2199B8CDD1FF7A053773ECD1EC",
+      "rgbSha256": "71C00091A2706C2FDA1C7D0B1D124E435A2D9EEC987822C40A871AE8461DA5A5",
+      "source": {
+        "reference": "12-培训课堂.png",
+        "referenceSha256": "68508151B1490F117074C44F464732A6986DAE68DDE5C23296DB0529C2C12E86",
+        "rect": [
+          318,
+          256,
+          52,
+          52
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-098",
+      "file": "public/assets/usage-count.png",
+      "width": 58,
+      "height": 58,
+      "fileSha256": "4043F28F2112D1E6A7004B60FD31ECDD01034036E6D81B5729A8DDA7D610E54B",
+      "rgbSha256": "CD1276DD53B119389E77C7B486CCDB208024A366A77F20AD485E3ABE7E456B28",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          1184,
+          767,
+          58,
+          58
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-099",
+      "file": "public/assets/usage-favorites.png",
+      "width": 58,
+      "height": 58,
+      "fileSha256": "9B5609588BB80B45F60893EA2B5778B53814CC35B20DF1C79379F2826AF21E06",
+      "rgbSha256": "BB1DB19F7C8C7E7C5E9EA36F122B60515B143B7CA48F2521039DAE795F5F0C5D",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          1418,
+          767,
+          58,
+          58
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-100",
+      "file": "public/assets/usage-visits.png",
+      "width": 58,
+      "height": 58,
+      "fileSha256": "E4F92C8820C45FD6635CF00C0ACE3547B97086B64074F8D1CA78CC32113E8308",
+      "rgbSha256": "C7885F3DF030BBE3F7F3BC7A91CDAB8BB0253F93D24DA1E5015B65AE7DBD13D8",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          949,
+          767,
+          58,
+          58
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-101",
+      "file": "public/assets/user-avatar.png",
+      "width": 67,
+      "height": 67,
+      "fileSha256": "CE337A79DEEA154F4DE0124DFC0968C38E153B462741F3DC6EB7CF295D61CC54",
+      "rgbSha256": "A4C55AD9B6C8ABCCADEA76F1B86990F62243542217D9D3EE5C0839759A2ADBC8",
+      "source": {
+        "reference": "01-首页工作台.png",
+        "referenceSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+        "rect": [
+          267,
+          95,
+          67,
+          67
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-102",
+      "file": "public/assets/work-hero.png",
+      "width": 250,
+      "height": 135,
+      "fileSha256": "04698A6705A376E3851B019586DE4BF6E2B2E7D580E964308000199F4BA0C8C4",
+      "rgbSha256": "ED99793C0EAD3EE1C01EB4C548B46AE0718DFCC4CF6637D86FB476EEBB60241D",
+      "source": {
+        "reference": "08-应用详情页-海能work应用.png",
+        "referenceSha256": "21D2FCC06638F323E7824176C53BB72DDE1050790E6B4E457D54CD2D7398431C",
+        "rect": [
+          1200,
+          135,
+          250,
+          135
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-103",
+      "file": "public/assets/work-logo.png",
+      "width": 70,
+      "height": 70,
+      "fileSha256": "2477847A7F62B3A115151F1CE11E52C1F8A3AC5DCB92989AD77D26820FAED98D",
+      "rgbSha256": "A1E46FD1AC00597B9C2218B81E5FCBFD1D13FFDCFD3113DD55F8936A27103F36",
+      "source": {
+        "reference": "08-应用详情页-海能work应用.png",
+        "referenceSha256": "21D2FCC06638F323E7824176C53BB72DDE1050790E6B4E457D54CD2D7398431C",
+        "rect": [
+          303,
+          112,
+          70,
+          70
+        ]
+      },
+      "disposition": "approved-source-atomic-crop",
+      "userConfirmation": "pending"
+    },
+    {
+      "id": "AS-104",
+      "file": "public/assets/work-video.png",
+      "width": 240,
+      "height": 92,
+      "fileSha256": "7F619D6466E89ADF33799CD68363174CBF0A46984B9F17015D204607DF1D1591",
+      "rgbSha256": "B108A1AD37845BFFB6BCFD361A6C47717D996F0301D1B0E05BF85E1BB233C1ED",
+      "source": {
+        "reference": "08-应用详情页-海能work应用.png",
+        "referenceSha256": "21D2FCC06638F323E7824176C53BB72DDE1050790E6B4E457D54CD2D7398431C",
+        "rect": [
+          510,
+          428,
+          240,
+          92
+        ]
+      },
+      "disposition": "pending-composite-review",
+      "userConfirmation": "pending"
+    }
+  ],
+  "uses": [
+    {
+      "id": "AU-0001",
+      "pageId": "MP-14",
+      "assetId": "AS-001",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0002",
+      "pageId": "MP-14",
+      "assetId": "AS-002",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0003",
+      "pageId": "MP-14",
+      "assetId": "AS-003",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0004",
+      "pageId": "MP-07",
+      "assetId": "AS-004",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0005",
+      "pageId": "MP-07",
+      "assetId": "AS-005",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0006",
+      "pageId": "MP-08",
+      "assetId": "AS-005",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0007",
+      "pageId": "MP-09",
+      "assetId": "AS-005",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0008",
+      "pageId": "MP-12",
+      "assetId": "AS-005",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0009",
+      "pageId": "MP-14",
+      "assetId": "AS-005",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0010",
+      "pageId": "MP-16",
+      "assetId": "AS-005",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0011",
+      "pageId": "MP-26",
+      "assetId": "AS-005",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0012",
+      "pageId": "MP-07",
+      "assetId": "AS-006",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0013",
+      "pageId": "MP-08",
+      "assetId": "AS-006",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0014",
+      "pageId": "MP-09",
+      "assetId": "AS-006",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0015",
+      "pageId": "MP-10",
+      "assetId": "AS-006",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0016",
+      "pageId": "MP-07",
+      "assetId": "AS-007",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0017",
+      "pageId": "MP-10",
+      "assetId": "AS-007",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0018",
+      "pageId": "MP-11",
+      "assetId": "AS-007",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0019",
+      "pageId": "MP-26",
+      "assetId": "AS-007",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0020",
+      "pageId": "MP-06",
+      "assetId": "AS-008",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0021",
+      "pageId": "MP-07",
+      "assetId": "AS-008",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0022",
+      "pageId": "MP-08",
+      "assetId": "AS-008",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0023",
+      "pageId": "MP-09",
+      "assetId": "AS-008",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0024",
+      "pageId": "MP-12",
+      "assetId": "AS-008",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0025",
+      "pageId": "MP-14",
+      "assetId": "AS-008",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0026",
+      "pageId": "MP-16",
+      "assetId": "AS-008",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0027",
+      "pageId": "MP-06",
+      "assetId": "AS-009",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0028",
+      "pageId": "MP-07",
+      "assetId": "AS-009",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0029",
+      "pageId": "MP-25",
+      "assetId": "AS-009",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0030",
+      "pageId": "MP-26",
+      "assetId": "AS-009",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0031",
+      "pageId": "MP-07",
+      "assetId": "AS-010",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0032",
+      "pageId": "MP-01",
+      "assetId": "AS-011",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0033",
+      "pageId": "MP-07",
+      "assetId": "AS-011",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0034",
+      "pageId": "MP-08",
+      "assetId": "AS-011",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0035",
+      "pageId": "MP-09",
+      "assetId": "AS-011",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0036",
+      "pageId": "MP-10",
+      "assetId": "AS-011",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0037",
+      "pageId": "MP-11",
+      "assetId": "AS-011",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0038",
+      "pageId": "MP-12",
+      "assetId": "AS-011",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0039",
+      "pageId": "MP-13",
+      "assetId": "AS-011",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0040",
+      "pageId": "MP-14",
+      "assetId": "AS-011",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0041",
+      "pageId": "MP-15",
+      "assetId": "AS-011",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0042",
+      "pageId": "MP-16",
+      "assetId": "AS-011",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0043",
+      "pageId": "MP-17",
+      "assetId": "AS-011",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0044",
+      "pageId": "MP-01",
+      "assetId": "AS-012",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0045",
+      "pageId": "MP-07",
+      "assetId": "AS-012",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0046",
+      "pageId": "MP-08",
+      "assetId": "AS-012",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0047",
+      "pageId": "MP-09",
+      "assetId": "AS-012",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0048",
+      "pageId": "MP-10",
+      "assetId": "AS-012",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0049",
+      "pageId": "MP-11",
+      "assetId": "AS-012",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0050",
+      "pageId": "MP-12",
+      "assetId": "AS-012",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0051",
+      "pageId": "MP-13",
+      "assetId": "AS-012",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0052",
+      "pageId": "MP-14",
+      "assetId": "AS-012",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0053",
+      "pageId": "MP-15",
+      "assetId": "AS-012",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0054",
+      "pageId": "MP-16",
+      "assetId": "AS-012",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0055",
+      "pageId": "MP-17",
+      "assetId": "AS-012",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0056",
+      "pageId": "MP-01",
+      "assetId": "AS-013",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0057",
+      "pageId": "MP-07",
+      "assetId": "AS-013",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0058",
+      "pageId": "MP-08",
+      "assetId": "AS-013",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0059",
+      "pageId": "MP-09",
+      "assetId": "AS-013",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0060",
+      "pageId": "MP-10",
+      "assetId": "AS-013",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0061",
+      "pageId": "MP-11",
+      "assetId": "AS-013",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0062",
+      "pageId": "MP-12",
+      "assetId": "AS-013",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0063",
+      "pageId": "MP-13",
+      "assetId": "AS-013",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0064",
+      "pageId": "MP-14",
+      "assetId": "AS-013",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0065",
+      "pageId": "MP-15",
+      "assetId": "AS-013",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0066",
+      "pageId": "MP-16",
+      "assetId": "AS-013",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0067",
+      "pageId": "MP-17",
+      "assetId": "AS-013",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0068",
+      "pageId": "MP-01",
+      "assetId": "AS-014",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0069",
+      "pageId": "MP-07",
+      "assetId": "AS-014",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0070",
+      "pageId": "MP-08",
+      "assetId": "AS-014",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0071",
+      "pageId": "MP-09",
+      "assetId": "AS-014",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0072",
+      "pageId": "MP-10",
+      "assetId": "AS-014",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0073",
+      "pageId": "MP-11",
+      "assetId": "AS-014",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0074",
+      "pageId": "MP-12",
+      "assetId": "AS-014",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0075",
+      "pageId": "MP-13",
+      "assetId": "AS-014",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0076",
+      "pageId": "MP-14",
+      "assetId": "AS-014",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0077",
+      "pageId": "MP-15",
+      "assetId": "AS-014",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0078",
+      "pageId": "MP-16",
+      "assetId": "AS-014",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0079",
+      "pageId": "MP-17",
+      "assetId": "AS-014",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0080",
+      "pageId": "MP-01",
+      "assetId": "AS-015",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0081",
+      "pageId": "MP-07",
+      "assetId": "AS-015",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0082",
+      "pageId": "MP-08",
+      "assetId": "AS-015",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0083",
+      "pageId": "MP-09",
+      "assetId": "AS-015",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0084",
+      "pageId": "MP-10",
+      "assetId": "AS-015",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0085",
+      "pageId": "MP-11",
+      "assetId": "AS-015",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0086",
+      "pageId": "MP-12",
+      "assetId": "AS-015",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0087",
+      "pageId": "MP-13",
+      "assetId": "AS-015",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0088",
+      "pageId": "MP-14",
+      "assetId": "AS-015",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0089",
+      "pageId": "MP-15",
+      "assetId": "AS-015",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0090",
+      "pageId": "MP-16",
+      "assetId": "AS-015",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0091",
+      "pageId": "MP-17",
+      "assetId": "AS-015",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0092",
+      "pageId": "MP-01",
+      "assetId": "AS-016",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0093",
+      "pageId": "MP-07",
+      "assetId": "AS-016",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0094",
+      "pageId": "MP-08",
+      "assetId": "AS-016",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0095",
+      "pageId": "MP-09",
+      "assetId": "AS-016",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0096",
+      "pageId": "MP-10",
+      "assetId": "AS-016",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0097",
+      "pageId": "MP-11",
+      "assetId": "AS-016",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0098",
+      "pageId": "MP-12",
+      "assetId": "AS-016",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0099",
+      "pageId": "MP-13",
+      "assetId": "AS-016",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0100",
+      "pageId": "MP-14",
+      "assetId": "AS-016",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0101",
+      "pageId": "MP-15",
+      "assetId": "AS-016",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0102",
+      "pageId": "MP-16",
+      "assetId": "AS-016",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0103",
+      "pageId": "MP-17",
+      "assetId": "AS-016",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0104",
+      "pageId": "MP-01",
+      "assetId": "AS-017",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0105",
+      "pageId": "MP-07",
+      "assetId": "AS-017",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0106",
+      "pageId": "MP-08",
+      "assetId": "AS-017",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0107",
+      "pageId": "MP-09",
+      "assetId": "AS-017",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0108",
+      "pageId": "MP-10",
+      "assetId": "AS-017",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0109",
+      "pageId": "MP-11",
+      "assetId": "AS-017",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0110",
+      "pageId": "MP-12",
+      "assetId": "AS-017",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0111",
+      "pageId": "MP-13",
+      "assetId": "AS-017",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0112",
+      "pageId": "MP-14",
+      "assetId": "AS-017",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0113",
+      "pageId": "MP-15",
+      "assetId": "AS-017",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0114",
+      "pageId": "MP-16",
+      "assetId": "AS-017",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0115",
+      "pageId": "MP-17",
+      "assetId": "AS-017",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0116",
+      "pageId": "MP-01",
+      "assetId": "AS-018",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0117",
+      "pageId": "MP-07",
+      "assetId": "AS-018",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0118",
+      "pageId": "MP-08",
+      "assetId": "AS-018",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0119",
+      "pageId": "MP-09",
+      "assetId": "AS-018",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0120",
+      "pageId": "MP-10",
+      "assetId": "AS-018",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0121",
+      "pageId": "MP-11",
+      "assetId": "AS-018",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0122",
+      "pageId": "MP-12",
+      "assetId": "AS-018",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0123",
+      "pageId": "MP-13",
+      "assetId": "AS-018",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0124",
+      "pageId": "MP-14",
+      "assetId": "AS-018",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0125",
+      "pageId": "MP-15",
+      "assetId": "AS-018",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0126",
+      "pageId": "MP-16",
+      "assetId": "AS-018",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0127",
+      "pageId": "MP-17",
+      "assetId": "AS-018",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0128",
+      "pageId": "MP-01",
+      "assetId": "AS-019",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0129",
+      "pageId": "MP-07",
+      "assetId": "AS-019",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0130",
+      "pageId": "MP-08",
+      "assetId": "AS-019",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0131",
+      "pageId": "MP-09",
+      "assetId": "AS-019",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0132",
+      "pageId": "MP-10",
+      "assetId": "AS-019",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0133",
+      "pageId": "MP-11",
+      "assetId": "AS-019",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0134",
+      "pageId": "MP-12",
+      "assetId": "AS-019",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0135",
+      "pageId": "MP-13",
+      "assetId": "AS-019",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0136",
+      "pageId": "MP-14",
+      "assetId": "AS-019",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0137",
+      "pageId": "MP-15",
+      "assetId": "AS-019",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0138",
+      "pageId": "MP-16",
+      "assetId": "AS-019",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0139",
+      "pageId": "MP-17",
+      "assetId": "AS-019",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0140",
+      "pageId": "MP-01",
+      "assetId": "AS-020",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0141",
+      "pageId": "MP-07",
+      "assetId": "AS-020",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0142",
+      "pageId": "MP-08",
+      "assetId": "AS-020",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0143",
+      "pageId": "MP-09",
+      "assetId": "AS-020",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0144",
+      "pageId": "MP-10",
+      "assetId": "AS-020",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0145",
+      "pageId": "MP-11",
+      "assetId": "AS-020",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0146",
+      "pageId": "MP-12",
+      "assetId": "AS-020",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0147",
+      "pageId": "MP-13",
+      "assetId": "AS-020",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0148",
+      "pageId": "MP-14",
+      "assetId": "AS-020",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0149",
+      "pageId": "MP-15",
+      "assetId": "AS-020",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0150",
+      "pageId": "MP-16",
+      "assetId": "AS-020",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0151",
+      "pageId": "MP-17",
+      "assetId": "AS-020",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0152",
+      "pageId": "MP-27",
+      "assetId": "AS-021",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0153",
+      "pageId": "MP-27",
+      "assetId": "AS-022",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0154",
+      "pageId": "MP-27",
+      "assetId": "AS-023",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0155",
+      "pageId": "MP-01",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0156",
+      "pageId": "MP-02",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0157",
+      "pageId": "MP-03",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0158",
+      "pageId": "MP-04",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0159",
+      "pageId": "MP-05",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0160",
+      "pageId": "MP-06",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0161",
+      "pageId": "MP-07",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0162",
+      "pageId": "MP-08",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0163",
+      "pageId": "MP-09",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0164",
+      "pageId": "MP-10",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0165",
+      "pageId": "MP-11",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0166",
+      "pageId": "MP-12",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0167",
+      "pageId": "MP-13",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0168",
+      "pageId": "MP-14",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0169",
+      "pageId": "MP-15",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0170",
+      "pageId": "MP-16",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0171",
+      "pageId": "MP-17",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0172",
+      "pageId": "MP-18",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0173",
+      "pageId": "MP-19",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0174",
+      "pageId": "MP-20",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0175",
+      "pageId": "MP-21",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0176",
+      "pageId": "MP-22",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0177",
+      "pageId": "MP-23",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0178",
+      "pageId": "MP-24",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0179",
+      "pageId": "MP-25",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0180",
+      "pageId": "MP-26",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0181",
+      "pageId": "MP-27",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0182",
+      "pageId": "MP-28",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0183",
+      "pageId": "MP-29",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0184",
+      "pageId": "MP-30",
+      "assetId": "AS-024",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0185",
+      "pageId": "MP-11",
+      "assetId": "AS-025",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0186",
+      "pageId": "MP-11",
+      "assetId": "AS-026",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0187",
+      "pageId": "MP-13",
+      "assetId": "AS-026",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0188",
+      "pageId": "MP-11",
+      "assetId": "AS-027",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0189",
+      "pageId": "MP-12",
+      "assetId": "AS-028",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0190",
+      "pageId": "MP-12",
+      "assetId": "AS-029",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0191",
+      "pageId": "MP-13",
+      "assetId": "AS-029",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0192",
+      "pageId": "MP-14",
+      "assetId": "AS-029",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0193",
+      "pageId": "MP-16",
+      "assetId": "AS-029",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0194",
+      "pageId": "MP-12",
+      "assetId": "AS-030",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0195",
+      "pageId": "MP-15",
+      "assetId": "AS-031",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0196",
+      "pageId": "MP-15",
+      "assetId": "AS-032",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0197",
+      "pageId": "MP-15",
+      "assetId": "AS-033",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0198",
+      "pageId": "MP-03",
+      "assetId": "AS-034",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0199",
+      "pageId": "MP-03",
+      "assetId": "AS-035",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0200",
+      "pageId": "MP-03",
+      "assetId": "AS-036",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0201",
+      "pageId": "MP-03",
+      "assetId": "AS-037",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0202",
+      "pageId": "MP-03",
+      "assetId": "AS-038",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0203",
+      "pageId": "MP-03",
+      "assetId": "AS-039",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0204",
+      "pageId": "MP-01",
+      "assetId": "AS-040",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0205",
+      "pageId": "MP-01",
+      "assetId": "AS-041",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0206",
+      "pageId": "MP-01",
+      "assetId": "AS-042",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0207",
+      "pageId": "MP-20",
+      "assetId": "AS-042",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0208",
+      "pageId": "MP-01",
+      "assetId": "AS-043",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0209",
+      "pageId": "MP-01",
+      "assetId": "AS-044",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0210",
+      "pageId": "MP-13",
+      "assetId": "AS-045",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0211",
+      "pageId": "MP-13",
+      "assetId": "AS-046",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0212",
+      "pageId": "MP-02",
+      "assetId": "AS-047",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0213",
+      "pageId": "MP-02",
+      "assetId": "AS-048",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0214",
+      "pageId": "MP-02",
+      "assetId": "AS-049",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0215",
+      "pageId": "MP-02",
+      "assetId": "AS-050",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0216",
+      "pageId": "MP-01",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0217",
+      "pageId": "MP-02",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0218",
+      "pageId": "MP-03",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0219",
+      "pageId": "MP-04",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0220",
+      "pageId": "MP-05",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0221",
+      "pageId": "MP-06",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0222",
+      "pageId": "MP-07",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0223",
+      "pageId": "MP-08",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0224",
+      "pageId": "MP-09",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0225",
+      "pageId": "MP-10",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0226",
+      "pageId": "MP-11",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0227",
+      "pageId": "MP-12",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0228",
+      "pageId": "MP-13",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0229",
+      "pageId": "MP-14",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0230",
+      "pageId": "MP-15",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0231",
+      "pageId": "MP-16",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0232",
+      "pageId": "MP-17",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0233",
+      "pageId": "MP-18",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0234",
+      "pageId": "MP-19",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0235",
+      "pageId": "MP-20",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0236",
+      "pageId": "MP-21",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0237",
+      "pageId": "MP-22",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0238",
+      "pageId": "MP-23",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0239",
+      "pageId": "MP-24",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0240",
+      "pageId": "MP-25",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0241",
+      "pageId": "MP-26",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0242",
+      "pageId": "MP-27",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0243",
+      "pageId": "MP-28",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0244",
+      "pageId": "MP-29",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0245",
+      "pageId": "MP-30",
+      "assetId": "AS-051",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0246",
+      "pageId": "MP-01",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0247",
+      "pageId": "MP-02",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0248",
+      "pageId": "MP-03",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0249",
+      "pageId": "MP-04",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0250",
+      "pageId": "MP-05",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0251",
+      "pageId": "MP-06",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0252",
+      "pageId": "MP-07",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0253",
+      "pageId": "MP-08",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0254",
+      "pageId": "MP-09",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0255",
+      "pageId": "MP-10",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0256",
+      "pageId": "MP-11",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0257",
+      "pageId": "MP-12",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0258",
+      "pageId": "MP-13",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0259",
+      "pageId": "MP-14",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0260",
+      "pageId": "MP-15",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0261",
+      "pageId": "MP-16",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0262",
+      "pageId": "MP-17",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0263",
+      "pageId": "MP-18",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0264",
+      "pageId": "MP-19",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0265",
+      "pageId": "MP-20",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0266",
+      "pageId": "MP-21",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0267",
+      "pageId": "MP-22",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0268",
+      "pageId": "MP-23",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0269",
+      "pageId": "MP-24",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0270",
+      "pageId": "MP-25",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0271",
+      "pageId": "MP-26",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0272",
+      "pageId": "MP-27",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0273",
+      "pageId": "MP-28",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0274",
+      "pageId": "MP-29",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0275",
+      "pageId": "MP-30",
+      "assetId": "AS-052",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0276",
+      "pageId": "MP-01",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0277",
+      "pageId": "MP-02",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0278",
+      "pageId": "MP-03",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0279",
+      "pageId": "MP-04",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0280",
+      "pageId": "MP-05",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0281",
+      "pageId": "MP-06",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0282",
+      "pageId": "MP-07",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0283",
+      "pageId": "MP-08",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0284",
+      "pageId": "MP-09",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0285",
+      "pageId": "MP-10",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0286",
+      "pageId": "MP-11",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0287",
+      "pageId": "MP-12",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0288",
+      "pageId": "MP-13",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0289",
+      "pageId": "MP-14",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0290",
+      "pageId": "MP-15",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0291",
+      "pageId": "MP-16",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0292",
+      "pageId": "MP-17",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0293",
+      "pageId": "MP-18",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0294",
+      "pageId": "MP-19",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0295",
+      "pageId": "MP-20",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0296",
+      "pageId": "MP-21",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0297",
+      "pageId": "MP-22",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0298",
+      "pageId": "MP-23",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0299",
+      "pageId": "MP-24",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0300",
+      "pageId": "MP-25",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0301",
+      "pageId": "MP-26",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0302",
+      "pageId": "MP-27",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0303",
+      "pageId": "MP-28",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0304",
+      "pageId": "MP-29",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0305",
+      "pageId": "MP-30",
+      "assetId": "AS-053",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0306",
+      "pageId": "MP-01",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0307",
+      "pageId": "MP-02",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0308",
+      "pageId": "MP-03",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0309",
+      "pageId": "MP-04",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0310",
+      "pageId": "MP-05",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0311",
+      "pageId": "MP-06",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0312",
+      "pageId": "MP-07",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0313",
+      "pageId": "MP-08",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0314",
+      "pageId": "MP-09",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0315",
+      "pageId": "MP-10",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0316",
+      "pageId": "MP-11",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0317",
+      "pageId": "MP-12",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0318",
+      "pageId": "MP-13",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0319",
+      "pageId": "MP-14",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0320",
+      "pageId": "MP-15",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0321",
+      "pageId": "MP-16",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0322",
+      "pageId": "MP-17",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0323",
+      "pageId": "MP-18",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0324",
+      "pageId": "MP-19",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0325",
+      "pageId": "MP-20",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0326",
+      "pageId": "MP-21",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0327",
+      "pageId": "MP-22",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0328",
+      "pageId": "MP-23",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0329",
+      "pageId": "MP-24",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0330",
+      "pageId": "MP-25",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0331",
+      "pageId": "MP-26",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0332",
+      "pageId": "MP-27",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0333",
+      "pageId": "MP-28",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0334",
+      "pageId": "MP-29",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0335",
+      "pageId": "MP-30",
+      "assetId": "AS-054",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0336",
+      "pageId": "MP-01",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0337",
+      "pageId": "MP-02",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0338",
+      "pageId": "MP-03",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0339",
+      "pageId": "MP-04",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0340",
+      "pageId": "MP-05",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0341",
+      "pageId": "MP-06",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0342",
+      "pageId": "MP-07",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0343",
+      "pageId": "MP-08",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0344",
+      "pageId": "MP-09",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0345",
+      "pageId": "MP-10",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0346",
+      "pageId": "MP-11",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0347",
+      "pageId": "MP-12",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0348",
+      "pageId": "MP-13",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0349",
+      "pageId": "MP-14",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0350",
+      "pageId": "MP-15",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0351",
+      "pageId": "MP-16",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0352",
+      "pageId": "MP-17",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0353",
+      "pageId": "MP-18",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0354",
+      "pageId": "MP-19",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0355",
+      "pageId": "MP-20",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0356",
+      "pageId": "MP-21",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0357",
+      "pageId": "MP-22",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0358",
+      "pageId": "MP-23",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0359",
+      "pageId": "MP-24",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0360",
+      "pageId": "MP-25",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0361",
+      "pageId": "MP-26",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0362",
+      "pageId": "MP-27",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0363",
+      "pageId": "MP-28",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0364",
+      "pageId": "MP-29",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0365",
+      "pageId": "MP-30",
+      "assetId": "AS-055",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0366",
+      "pageId": "MP-01",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0367",
+      "pageId": "MP-02",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0368",
+      "pageId": "MP-03",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0369",
+      "pageId": "MP-04",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0370",
+      "pageId": "MP-05",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0371",
+      "pageId": "MP-06",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0372",
+      "pageId": "MP-07",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0373",
+      "pageId": "MP-08",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0374",
+      "pageId": "MP-09",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0375",
+      "pageId": "MP-10",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0376",
+      "pageId": "MP-11",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0377",
+      "pageId": "MP-12",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0378",
+      "pageId": "MP-13",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0379",
+      "pageId": "MP-14",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0380",
+      "pageId": "MP-15",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0381",
+      "pageId": "MP-16",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0382",
+      "pageId": "MP-17",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0383",
+      "pageId": "MP-18",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0384",
+      "pageId": "MP-19",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0385",
+      "pageId": "MP-20",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0386",
+      "pageId": "MP-21",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0387",
+      "pageId": "MP-22",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0388",
+      "pageId": "MP-23",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0389",
+      "pageId": "MP-24",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0390",
+      "pageId": "MP-25",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0391",
+      "pageId": "MP-26",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0392",
+      "pageId": "MP-27",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0393",
+      "pageId": "MP-28",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0394",
+      "pageId": "MP-29",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0395",
+      "pageId": "MP-30",
+      "assetId": "AS-056",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0396",
+      "pageId": "MP-01",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0397",
+      "pageId": "MP-02",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0398",
+      "pageId": "MP-03",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0399",
+      "pageId": "MP-04",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0400",
+      "pageId": "MP-05",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0401",
+      "pageId": "MP-06",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0402",
+      "pageId": "MP-07",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0403",
+      "pageId": "MP-08",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0404",
+      "pageId": "MP-09",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0405",
+      "pageId": "MP-10",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0406",
+      "pageId": "MP-11",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0407",
+      "pageId": "MP-12",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0408",
+      "pageId": "MP-13",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0409",
+      "pageId": "MP-14",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0410",
+      "pageId": "MP-15",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0411",
+      "pageId": "MP-16",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0412",
+      "pageId": "MP-17",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0413",
+      "pageId": "MP-18",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0414",
+      "pageId": "MP-19",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0415",
+      "pageId": "MP-20",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0416",
+      "pageId": "MP-21",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0417",
+      "pageId": "MP-22",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0418",
+      "pageId": "MP-23",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0419",
+      "pageId": "MP-24",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0420",
+      "pageId": "MP-25",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0421",
+      "pageId": "MP-26",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0422",
+      "pageId": "MP-27",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0423",
+      "pageId": "MP-28",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0424",
+      "pageId": "MP-29",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0425",
+      "pageId": "MP-30",
+      "assetId": "AS-057",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0426",
+      "pageId": "MP-01",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0427",
+      "pageId": "MP-02",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0428",
+      "pageId": "MP-03",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0429",
+      "pageId": "MP-04",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0430",
+      "pageId": "MP-05",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0431",
+      "pageId": "MP-06",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0432",
+      "pageId": "MP-07",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0433",
+      "pageId": "MP-08",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0434",
+      "pageId": "MP-09",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0435",
+      "pageId": "MP-10",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0436",
+      "pageId": "MP-11",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0437",
+      "pageId": "MP-12",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0438",
+      "pageId": "MP-13",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0439",
+      "pageId": "MP-14",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0440",
+      "pageId": "MP-15",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0441",
+      "pageId": "MP-16",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0442",
+      "pageId": "MP-17",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0443",
+      "pageId": "MP-18",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0444",
+      "pageId": "MP-19",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0445",
+      "pageId": "MP-20",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0446",
+      "pageId": "MP-21",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0447",
+      "pageId": "MP-22",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0448",
+      "pageId": "MP-23",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0449",
+      "pageId": "MP-24",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0450",
+      "pageId": "MP-25",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0451",
+      "pageId": "MP-26",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0452",
+      "pageId": "MP-27",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0453",
+      "pageId": "MP-28",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0454",
+      "pageId": "MP-29",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0455",
+      "pageId": "MP-30",
+      "assetId": "AS-058",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0456",
+      "pageId": "MP-01",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0457",
+      "pageId": "MP-02",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0458",
+      "pageId": "MP-03",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0459",
+      "pageId": "MP-04",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0460",
+      "pageId": "MP-05",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0461",
+      "pageId": "MP-06",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0462",
+      "pageId": "MP-07",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0463",
+      "pageId": "MP-08",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0464",
+      "pageId": "MP-09",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0465",
+      "pageId": "MP-10",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0466",
+      "pageId": "MP-11",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0467",
+      "pageId": "MP-12",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0468",
+      "pageId": "MP-13",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0469",
+      "pageId": "MP-14",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0470",
+      "pageId": "MP-15",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0471",
+      "pageId": "MP-16",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0472",
+      "pageId": "MP-17",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0473",
+      "pageId": "MP-18",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0474",
+      "pageId": "MP-19",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0475",
+      "pageId": "MP-20",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0476",
+      "pageId": "MP-21",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0477",
+      "pageId": "MP-22",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0478",
+      "pageId": "MP-23",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0479",
+      "pageId": "MP-24",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0480",
+      "pageId": "MP-25",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0481",
+      "pageId": "MP-26",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0482",
+      "pageId": "MP-27",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0483",
+      "pageId": "MP-28",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0484",
+      "pageId": "MP-29",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0485",
+      "pageId": "MP-30",
+      "assetId": "AS-059",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0486",
+      "pageId": "MP-01",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0487",
+      "pageId": "MP-02",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0488",
+      "pageId": "MP-03",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0489",
+      "pageId": "MP-04",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0490",
+      "pageId": "MP-05",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0491",
+      "pageId": "MP-06",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0492",
+      "pageId": "MP-07",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0493",
+      "pageId": "MP-08",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0494",
+      "pageId": "MP-09",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0495",
+      "pageId": "MP-10",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0496",
+      "pageId": "MP-11",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0497",
+      "pageId": "MP-12",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0498",
+      "pageId": "MP-13",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0499",
+      "pageId": "MP-14",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0500",
+      "pageId": "MP-15",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0501",
+      "pageId": "MP-16",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0502",
+      "pageId": "MP-17",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0503",
+      "pageId": "MP-18",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0504",
+      "pageId": "MP-19",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0505",
+      "pageId": "MP-20",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0506",
+      "pageId": "MP-21",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0507",
+      "pageId": "MP-22",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0508",
+      "pageId": "MP-23",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0509",
+      "pageId": "MP-24",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0510",
+      "pageId": "MP-25",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0511",
+      "pageId": "MP-26",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0512",
+      "pageId": "MP-27",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0513",
+      "pageId": "MP-28",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0514",
+      "pageId": "MP-29",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0515",
+      "pageId": "MP-30",
+      "assetId": "AS-060",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0516",
+      "pageId": "MP-06",
+      "assetId": "AS-061",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0517",
+      "pageId": "MP-05",
+      "assetId": "AS-062",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0518",
+      "pageId": "MP-05",
+      "assetId": "AS-063",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0519",
+      "pageId": "MP-22",
+      "assetId": "AS-063",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0520",
+      "pageId": "MP-01",
+      "assetId": "AS-064",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0521",
+      "pageId": "MP-20",
+      "assetId": "AS-064",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0522",
+      "pageId": "MP-26",
+      "assetId": "AS-064",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0523",
+      "pageId": "MP-01",
+      "assetId": "AS-065",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0524",
+      "pageId": "MP-26",
+      "assetId": "AS-065",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0525",
+      "pageId": "MP-01",
+      "assetId": "AS-066",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0526",
+      "pageId": "MP-21",
+      "assetId": "AS-066",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0527",
+      "pageId": "MP-24",
+      "assetId": "AS-066",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0528",
+      "pageId": "MP-26",
+      "assetId": "AS-066",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0529",
+      "pageId": "MP-01",
+      "assetId": "AS-067",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0530",
+      "pageId": "MP-26",
+      "assetId": "AS-067",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0531",
+      "pageId": "MP-01",
+      "assetId": "AS-068",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0532",
+      "pageId": "MP-26",
+      "assetId": "AS-068",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0533",
+      "pageId": "MP-01",
+      "assetId": "AS-069",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0534",
+      "pageId": "MP-21",
+      "assetId": "AS-069",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0535",
+      "pageId": "MP-26",
+      "assetId": "AS-069",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0536",
+      "pageId": "MP-18",
+      "assetId": "AS-070",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0537",
+      "pageId": "MP-19",
+      "assetId": "AS-070",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0538",
+      "pageId": "MP-18",
+      "assetId": "AS-071",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0539",
+      "pageId": "MP-19",
+      "assetId": "AS-071",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0540",
+      "pageId": "MP-21",
+      "assetId": "AS-071",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0541",
+      "pageId": "MP-22",
+      "assetId": "AS-071",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0542",
+      "pageId": "MP-24",
+      "assetId": "AS-071",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0543",
+      "pageId": "MP-18",
+      "assetId": "AS-072",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0544",
+      "pageId": "MP-22",
+      "assetId": "AS-072",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0545",
+      "pageId": "MP-24",
+      "assetId": "AS-072",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0546",
+      "pageId": "MP-18",
+      "assetId": "AS-073",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0547",
+      "pageId": "MP-19",
+      "assetId": "AS-073",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0548",
+      "pageId": "MP-21",
+      "assetId": "AS-073",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0549",
+      "pageId": "MP-22",
+      "assetId": "AS-073",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0550",
+      "pageId": "MP-24",
+      "assetId": "AS-073",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0551",
+      "pageId": "MP-04",
+      "assetId": "AS-074",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0552",
+      "pageId": "MP-04",
+      "assetId": "AS-075",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0553",
+      "pageId": "MP-04",
+      "assetId": "AS-076",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0554",
+      "pageId": "MP-04",
+      "assetId": "AS-077",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0555",
+      "pageId": "MP-04",
+      "assetId": "AS-078",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0556",
+      "pageId": "MP-10",
+      "assetId": "AS-079",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0557",
+      "pageId": "MP-10",
+      "assetId": "AS-080",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0558",
+      "pageId": "MP-10",
+      "assetId": "AS-081",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0559",
+      "pageId": "MP-16",
+      "assetId": "AS-082",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0560",
+      "pageId": "MP-16",
+      "assetId": "AS-083",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0561",
+      "pageId": "MP-16",
+      "assetId": "AS-084",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0562",
+      "pageId": "MP-08",
+      "assetId": "AS-085",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0563",
+      "pageId": "MP-08",
+      "assetId": "AS-086",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0564",
+      "pageId": "MP-01",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0565",
+      "pageId": "MP-02",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0566",
+      "pageId": "MP-03",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0567",
+      "pageId": "MP-04",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0568",
+      "pageId": "MP-05",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0569",
+      "pageId": "MP-06",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0570",
+      "pageId": "MP-07",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0571",
+      "pageId": "MP-08",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0572",
+      "pageId": "MP-09",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0573",
+      "pageId": "MP-10",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0574",
+      "pageId": "MP-11",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0575",
+      "pageId": "MP-12",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0576",
+      "pageId": "MP-13",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0577",
+      "pageId": "MP-14",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0578",
+      "pageId": "MP-15",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0579",
+      "pageId": "MP-16",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0580",
+      "pageId": "MP-17",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0581",
+      "pageId": "MP-18",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0582",
+      "pageId": "MP-19",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0583",
+      "pageId": "MP-20",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0584",
+      "pageId": "MP-21",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0585",
+      "pageId": "MP-22",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0586",
+      "pageId": "MP-23",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0587",
+      "pageId": "MP-24",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0588",
+      "pageId": "MP-25",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0589",
+      "pageId": "MP-26",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0590",
+      "pageId": "MP-27",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0591",
+      "pageId": "MP-28",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0592",
+      "pageId": "MP-29",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0593",
+      "pageId": "MP-30",
+      "assetId": "AS-087",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0594",
+      "pageId": "MP-01",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0595",
+      "pageId": "MP-02",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0596",
+      "pageId": "MP-03",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0597",
+      "pageId": "MP-04",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0598",
+      "pageId": "MP-05",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0599",
+      "pageId": "MP-06",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0600",
+      "pageId": "MP-07",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0601",
+      "pageId": "MP-08",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0602",
+      "pageId": "MP-09",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0603",
+      "pageId": "MP-10",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0604",
+      "pageId": "MP-11",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0605",
+      "pageId": "MP-12",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0606",
+      "pageId": "MP-13",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0607",
+      "pageId": "MP-14",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0608",
+      "pageId": "MP-15",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0609",
+      "pageId": "MP-16",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0610",
+      "pageId": "MP-17",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0611",
+      "pageId": "MP-18",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0612",
+      "pageId": "MP-19",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0613",
+      "pageId": "MP-20",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0614",
+      "pageId": "MP-21",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0615",
+      "pageId": "MP-22",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0616",
+      "pageId": "MP-23",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0617",
+      "pageId": "MP-24",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0618",
+      "pageId": "MP-25",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0619",
+      "pageId": "MP-26",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0620",
+      "pageId": "MP-27",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0621",
+      "pageId": "MP-28",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0622",
+      "pageId": "MP-29",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0623",
+      "pageId": "MP-30",
+      "assetId": "AS-088",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0624",
+      "pageId": "MP-01",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0625",
+      "pageId": "MP-02",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0626",
+      "pageId": "MP-03",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0627",
+      "pageId": "MP-04",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0628",
+      "pageId": "MP-05",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0629",
+      "pageId": "MP-06",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0630",
+      "pageId": "MP-07",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0631",
+      "pageId": "MP-08",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0632",
+      "pageId": "MP-09",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0633",
+      "pageId": "MP-10",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0634",
+      "pageId": "MP-11",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0635",
+      "pageId": "MP-12",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0636",
+      "pageId": "MP-13",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0637",
+      "pageId": "MP-14",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0638",
+      "pageId": "MP-15",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0639",
+      "pageId": "MP-16",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0640",
+      "pageId": "MP-17",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0641",
+      "pageId": "MP-18",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0642",
+      "pageId": "MP-19",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0643",
+      "pageId": "MP-20",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0644",
+      "pageId": "MP-21",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0645",
+      "pageId": "MP-22",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0646",
+      "pageId": "MP-23",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0647",
+      "pageId": "MP-24",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0648",
+      "pageId": "MP-25",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0649",
+      "pageId": "MP-26",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0650",
+      "pageId": "MP-27",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0651",
+      "pageId": "MP-28",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0652",
+      "pageId": "MP-29",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0653",
+      "pageId": "MP-30",
+      "assetId": "AS-089",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0654",
+      "pageId": "MP-01",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0655",
+      "pageId": "MP-02",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0656",
+      "pageId": "MP-03",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0657",
+      "pageId": "MP-04",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0658",
+      "pageId": "MP-05",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0659",
+      "pageId": "MP-06",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0660",
+      "pageId": "MP-07",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0661",
+      "pageId": "MP-08",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0662",
+      "pageId": "MP-09",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0663",
+      "pageId": "MP-10",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0664",
+      "pageId": "MP-11",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0665",
+      "pageId": "MP-12",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0666",
+      "pageId": "MP-13",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0667",
+      "pageId": "MP-14",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0668",
+      "pageId": "MP-15",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0669",
+      "pageId": "MP-16",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0670",
+      "pageId": "MP-17",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0671",
+      "pageId": "MP-18",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0672",
+      "pageId": "MP-19",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0673",
+      "pageId": "MP-20",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0674",
+      "pageId": "MP-21",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0675",
+      "pageId": "MP-22",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0676",
+      "pageId": "MP-23",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0677",
+      "pageId": "MP-24",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0678",
+      "pageId": "MP-25",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0679",
+      "pageId": "MP-26",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0680",
+      "pageId": "MP-27",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0681",
+      "pageId": "MP-28",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0682",
+      "pageId": "MP-29",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0683",
+      "pageId": "MP-30",
+      "assetId": "AS-090",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0684",
+      "pageId": "MP-01",
+      "assetId": "AS-091",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0685",
+      "pageId": "MP-20",
+      "assetId": "AS-091",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0686",
+      "pageId": "MP-01",
+      "assetId": "AS-092",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0687",
+      "pageId": "MP-20",
+      "assetId": "AS-092",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0688",
+      "pageId": "MP-20",
+      "assetId": "AS-093",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0689",
+      "pageId": "MP-01",
+      "assetId": "AS-094",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0690",
+      "pageId": "MP-20",
+      "assetId": "AS-094",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0691",
+      "pageId": "MP-20",
+      "assetId": "AS-095",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0692",
+      "pageId": "MP-20",
+      "assetId": "AS-096",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0693",
+      "pageId": "MP-20",
+      "assetId": "AS-097",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0694",
+      "pageId": "MP-01",
+      "assetId": "AS-098",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0695",
+      "pageId": "MP-01",
+      "assetId": "AS-099",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0696",
+      "pageId": "MP-01",
+      "assetId": "AS-100",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0697",
+      "pageId": "MP-18",
+      "assetId": "AS-100",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0698",
+      "pageId": "MP-21",
+      "assetId": "AS-100",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0699",
+      "pageId": "MP-01",
+      "assetId": "AS-101",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0700",
+      "pageId": "MP-09",
+      "assetId": "AS-102",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0701",
+      "pageId": "MP-09",
+      "assetId": "AS-103",
+      "visibleUse": "runtime-reference"
+    },
+    {
+      "id": "AU-0702",
+      "pageId": "MP-09",
+      "assetId": "AS-104",
+      "visibleUse": "runtime-reference"
+    }
+  ],
+  "risks": [
+    "用户逐页有限清单与叠加预览确认尚未执行",
+    "pending-composite-review 项尚未完成 HTML 化判定",
+    "globalVisibleUnmapped 依 PRD 保持 unknown_nonzero"
+  ]
+}

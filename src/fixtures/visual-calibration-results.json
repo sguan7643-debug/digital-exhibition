@@ -1,0 +1,660 @@
+{
+  "schema": "xlt-phase-1-visual-calibration-v1",
+  "result": "failed",
+  "threshold": 0.95,
+  "browser": {
+    "name": "Microsoft Edge",
+    "version": "151.0.4129.93",
+    "deviceScaleFactor": 1,
+    "headless": true
+  },
+  "protocol": {
+    "resize": false,
+    "crop": false,
+    "pad": false,
+    "mask": false,
+    "blur": false,
+    "ignoreRegion": false,
+    "win_size": 7,
+    "gradient": false,
+    "data_range": 255,
+    "channel_axis": 2,
+    "gaussian_weights": false,
+    "full": false,
+    "use_sample_covariance": true,
+    "K1": 0.01,
+    "K2": 0.03
+  },
+  "rows": [
+    {
+      "id": "01",
+      "route": "/workbench",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\01-首页工作台.png",
+      "referenceFileSha256": "B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B",
+      "referenceRgbSha256": "ECDAFD37C948DB41640EB13E4C44AC449579D7864A45414DCBFA1E483648E256",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\01.png",
+      "screenshotFileSha256": "8B644D3C30D2352DE1F6D0359463A144AF3BD721CADB2048ACB9297F9718C86F",
+      "screenshotRgbSha256": "A36D814705E6FC124BA2AF3C7054EA38E5FB6F146D6AB08862F10B22E1D61AEA",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.7322877932447917,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "02",
+      "route": "/messages",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\02-消息中心.png",
+      "referenceFileSha256": "8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22",
+      "referenceRgbSha256": "7F816E6CC76C477684D196BC4D3571DAE172185C67475BB90F6941FB661E69A0",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\02.png",
+      "screenshotFileSha256": "2CEB297FCDAFD099BCE95D7796AA64F4A5DD0313F137DCDFA1381B56EAED5354",
+      "screenshotRgbSha256": "4B82D41C60BACBD5CA73793F35A9F2B11A3321639596B7E7D0C420697681E132",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.7051886810746701,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "03",
+      "route": "/favorites",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\03-收藏.png",
+      "referenceFileSha256": "9B259ED9F99029ECB68A1F2FB3EB8E745FF23692BC53CFFBD5D6A46008CEAE1A",
+      "referenceRgbSha256": "BE1559B7D5AD63ACA517B5A357B3A4A74805B6906F495ED825B0B1F34E32D087",
+      "referenceSize": [
+        1671,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\03.png",
+      "screenshotFileSha256": "504D1CF0AFE9D32D6982B20039CA6404D28B2E6DCC1BCC3CAA92CBAAE5C82635",
+      "screenshotRgbSha256": "B6C4B0B55258CF0E939B9208350A5CE89E8272B3C9C865CD9A6B822E781ADB8C",
+      "actualSize": [
+        1671,
+        941
+      ],
+      "rawFloatSsim": 0.6436944125920387,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "04",
+      "route": "/profile",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\04-个人中心.png",
+      "referenceFileSha256": "F08DE51669B152D46224A0031945CFFF85969E40D7416D93849B6E1CDD35FA9A",
+      "referenceRgbSha256": "E0716E905BEC3C7AEDC8F50E7B892865255C09961282DD283B36E4D852FF69F1",
+      "referenceSize": [
+        1920,
+        1080
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\04.png",
+      "screenshotFileSha256": "D467DACED1634B2D83148784820AC5A64991A4CAC3522900AEF26F2A5AF720E4",
+      "screenshotRgbSha256": "DD79B68B13346DDD49F7A99AF03A8779E6C3453B9BE90C27C1792C4B62AC9296",
+      "actualSize": [
+        1920,
+        1080
+      ],
+      "rawFloatSsim": 0.7582174472426773,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "05",
+      "route": "/announcements",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\05-公告通知.png",
+      "referenceFileSha256": "58A43229752CC4A5210A2846B88DB267A622543AA8F7F034CDA42BC2041F4F8C",
+      "referenceRgbSha256": "6DC24A186422BF0D6E1A8B6D3BFA1399F612FD8DF636EF9BECA31050BF231D74",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\05.png",
+      "screenshotFileSha256": "DF5629F617AE5711D7F07FF32B2B186CE75AE615039CBBA62BCCA9FC7C6D2A2C",
+      "screenshotRgbSha256": "D8B727529673D403AE9109CB2F9F19A7DEA0696D814F3A08638416FD75B5E5E5",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.7203955687508166,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "06",
+      "route": "/announcements/notice-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\06-公告通知-通知详情.png",
+      "referenceFileSha256": "A9827301EF6051E8B9B963B07F7073F6AB7AE4BFD21BAC97FDDA67A08FF3D78F",
+      "referenceRgbSha256": "D753467EEEF15A1F22E5789355BF77AD4B7BE02631466131B88830D8FE0FC434",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\06.png",
+      "screenshotFileSha256": "E589983025EC6DCB8C62F679E908114870DD71BF975C3F66ACC2B9565F4CC92A",
+      "screenshotRgbSha256": "38B8CCC75AC8938D609C7F0AE806BF5ADDEC011CA670487904D49651DFF4F30A",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.6962466506139698,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "07",
+      "route": "/apps",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\07-应用中心.png",
+      "referenceFileSha256": "E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD",
+      "referenceRgbSha256": "4D67BC4BD26B965A715C212A3ABB1C4CEF9365463A955947B91571DE81134174",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\07.png",
+      "screenshotFileSha256": "D5F00CC63C928C5CBDAEF9E79B3E66AC8956A5CC50C6DB6B41833616A0506A60",
+      "screenshotRgbSha256": "E684CEB0CDA6381BFE8C3DCBF4978457EADB28DED59F46F584F0A2BE3E042912",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.7247754174271268,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "08",
+      "route": "/apps/tool-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-工具.png",
+      "referenceFileSha256": "35ACE981294AF359A243AFB1F53C29590BA124742F8EEF3BBE7152F4984F7A69",
+      "referenceRgbSha256": "50C3DE805E5E7720192C0876D47A04BFCA20950C87E0A9BD9F0D4CA03C2151D4",
+      "referenceSize": [
+        932,
+        1350
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\08.png",
+      "screenshotFileSha256": "C34B3B5A880E074093BC7923D6F0992DADBF42F54D3F98B8ECEB3229C730CDB0",
+      "screenshotRgbSha256": "C92F9162740B53AEE240D030FC34AA8048727DD6A8361A971BFC9C279DCD7010",
+      "actualSize": [
+        932,
+        1519
+      ],
+      "rawFloatSsim": null,
+      "status": "failed",
+      "failure": "dimension-mismatch"
+    },
+    {
+      "id": "09",
+      "route": "/apps/haineng-work-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-海能work应用.png",
+      "referenceFileSha256": "21D2FCC06638F323E7824176C53BB72DDE1050790E6B4E457D54CD2D7398431C",
+      "referenceRgbSha256": "3CEF2805E947EED8F852C899EE82A5FE9D0EC86B0CC4796F53103C913873FEE2",
+      "referenceSize": [
+        1548,
+        1016
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\09.png",
+      "screenshotFileSha256": "C42A19871737C0EF1B909A9607BFF30E2ABD395C0039FAC832F2E052BA82CA22",
+      "screenshotRgbSha256": "0B7CFA25558E954C4528609DC1F41B3B6288A541151DB076E1395241F9C7890E",
+      "actualSize": [
+        1548,
+        1016
+      ],
+      "rawFloatSsim": 0.7317969869720096,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "10",
+      "route": "/apps/report-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-可视化报表.png",
+      "referenceFileSha256": "A7A5B61527C5A2D7C83ACD2C769AA56FD038B252EDE4D1A46A91D1396F2113B1",
+      "referenceRgbSha256": "D39976C67718EF46DFF915AF1E697FE5781DE9AD7CD1EFB64EB20F6D2B604FE4",
+      "referenceSize": [
+        845,
+        1862
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\10.png",
+      "screenshotFileSha256": "DE23C2FC7735B5E0F86E48EF82AB4738BDDD864D086534CADE9B8CAA52026B3C",
+      "screenshotRgbSha256": "D4248984DFD7F48867F730D403A19ACBAB984627E42EF4CAC8C8A15E1CF7F950",
+      "actualSize": [
+        845,
+        2205
+      ],
+      "rawFloatSsim": null,
+      "status": "failed",
+      "failure": "dimension-mismatch"
+    },
+    {
+      "id": "11",
+      "route": "/apps/dashboard-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-可视化驾驶舱.png",
+      "referenceFileSha256": "3D66270477C159EB9097CF74C904858A9158D9C9005A90C372B284AFB8980C43",
+      "referenceRgbSha256": "C0E9A2F254193BA14F3D94D14AEF5E8EDE23876AF66E156FEDD78485B1953B47",
+      "referenceSize": [
+        869,
+        1810
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\11.png",
+      "screenshotFileSha256": "A5890867976D43789A81E96FE60B1DA427C7C2562FFAF2D87FF225EE180FF253",
+      "screenshotRgbSha256": "B436D366E7D2FDEBDAC4E07737E375FD1E5A08EB991E5066FCA4DD0DAC168271",
+      "actualSize": [
+        869,
+        2124
+      ],
+      "rawFloatSsim": null,
+      "status": "failed",
+      "failure": "dimension-mismatch"
+    },
+    {
+      "id": "12",
+      "route": "/apps/dataset-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-数据集.png",
+      "referenceFileSha256": "7260427E1B5E85ECDFE37D52D6A88439178542503EC8E5E6FC5D679701633C97",
+      "referenceRgbSha256": "7996309AA20C8D49B546700933DB91FC5CA961028F0C2123BEA0DE564F122E38",
+      "referenceSize": [
+        963,
+        1633
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\12.png",
+      "screenshotFileSha256": "12B4AA59F697DCC4442D80C886124D39B9F13098490DF57E24CEE5381A2BC92B",
+      "screenshotRgbSha256": "01FBF81181F816DD821FAAB15DE11398A8CE7CA19BEBEFC3FB5BBC11D13E944F",
+      "actualSize": [
+        963,
+        1943
+      ],
+      "rawFloatSsim": null,
+      "status": "failed",
+      "failure": "dimension-mismatch"
+    },
+    {
+      "id": "13",
+      "route": "/apps/metric-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-指标.png",
+      "referenceFileSha256": "48C41CBB2DF433C9680DD955A4777FA436BBFF6E094D56A3B5E6E0E48B01690B",
+      "referenceRgbSha256": "87599B8B008ACEDCF05445475D39078C6EFB4467EC72F3B3A59BBBE9798B09D4",
+      "referenceSize": [
+        1450,
+        1085
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\13.png",
+      "screenshotFileSha256": "E47EFC792EF252B467A6A6B24BB4176E7522A620BD3F495CF3608303D2C28A4E",
+      "screenshotRgbSha256": "8EFD0EF501EC8C18AC01C73E6EE7C393B63217048EE12E7E6CF5A6CF98C333E3",
+      "actualSize": [
+        1450,
+        1085
+      ],
+      "rawFloatSsim": 0.6609962239032564,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "14",
+      "route": "/apps/ai-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-AI.png",
+      "referenceFileSha256": "2A55B1987EA239C0D5FB184B7CAECF9F39FFB5AB7C505FB669746356A2820EC7",
+      "referenceRgbSha256": "ACA29BF09B34D2CB80B7BBA0811FF665006BC74343EDCE98FB4D6ECE1D62D55F",
+      "referenceSize": [
+        1536,
+        1024
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\14.png",
+      "screenshotFileSha256": "13AF9DEA048138EC43FE29FD581750A632D1C937FF4ECBAA35AC536A8AE3C1E5",
+      "screenshotRgbSha256": "25B54E0295DBB55E77A18648AC435BECDA339C24FDAB72DE94F9A69BAB309954",
+      "actualSize": [
+        1536,
+        1024
+      ],
+      "rawFloatSsim": 0.6736805984772415,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "15",
+      "route": "/apps/ead-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-EAD.png",
+      "referenceFileSha256": "8090BF0B8BFDCE7981D32F7C6B6335230D9F9508BF4549E716C10A2A4382D0CC",
+      "referenceRgbSha256": "A5F8FCE7BDA5E65BD57EAA712E20A27FC9DAC97A373473A761E650891F84765E",
+      "referenceSize": [
+        1449,
+        1086
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\15.png",
+      "screenshotFileSha256": "475E849C42CC342B710FD34383FB123C10F3D9A01F23021DABA496ED4907170A",
+      "screenshotRgbSha256": "42749537A51A4F922B8A4043C251A2E708439AFBC773771046E34002A26E2BF7",
+      "actualSize": [
+        1449,
+        1086
+      ],
+      "rawFloatSsim": 0.7236279121107779,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "16",
+      "route": "/apps/rpa-001",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\08-应用详情页-RPA.png",
+      "referenceFileSha256": "C66930E5C44E4ADAEB81872C7E64E8D41DC17A5BB46256314E404A9177C2923A",
+      "referenceRgbSha256": "FAA217B33718EF35C31B147EE7DBB2E32A4AF30254A60492929A5DE8FDE57A05",
+      "referenceSize": [
+        1536,
+        1228
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\16.png",
+      "screenshotFileSha256": "3A488FC0AC622E7ED2C374385138BC768C790E212C17FF69302F23F0C29ADA3A",
+      "screenshotRgbSha256": "3509112EDC5F7E04B7F76B284C4B9E1AD9E2B1F29548642DD61DB276B6B78638",
+      "actualSize": [
+        1536,
+        1672
+      ],
+      "rawFloatSsim": null,
+      "status": "failed",
+      "failure": "dimension-mismatch"
+    },
+    {
+      "id": "17",
+      "route": "/apps/onboarding/status",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\09-应用上架.png",
+      "referenceFileSha256": "FC7F33ED038DD52F20892D1C4A7F58FAFF57FB54658B06443A1A885B1EB86F68",
+      "referenceRgbSha256": "934AFB08E7BFDF37534C26ACED21D95C1EE7AB5637D6ECB8102D42C738782D1D",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\17.png",
+      "screenshotFileSha256": "0B6E19FE3FED9A33486844169361016002A1C912977D5C6408EEB060B814615B",
+      "screenshotRgbSha256": "8AF111807F45DEEC77E457DF92ADBB62DF6E31E0AD802B6E2EE9E7D000DEA55D",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.8853315326047829,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "18",
+      "route": "/points",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\10-积分中心.png",
+      "referenceFileSha256": "A93E46949EBAF8861FFC6314A7AB2B05D6D7C99E60CC6B39FF8C925BF56A74E9",
+      "referenceRgbSha256": "CD76BA9C9E00DF1F37BBDFF1B86801A1000FF02815B52BA3FFF9676B3547BEB1",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\18.png",
+      "screenshotFileSha256": "864A89D4F9B6AD6BF4D164EEDA0A5AEA246EDE641FCA4B4505416339F4683A56",
+      "screenshotRgbSha256": "B50DD856BD4D8EAF89CE6CF48A4B6098792C6729D4DC4E362B615E87656EFB50",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.7397289311077241,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "19",
+      "route": "/points/details",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\11-积分明细.png",
+      "referenceFileSha256": "82F80F3AB4A821165E6B14344C809B5E102CC7DD8013DD69B7F7F39BF9900F34",
+      "referenceRgbSha256": "60C0CCBB2E62AC7E1F601C7283E0513FF0E1747EE8B1383AEBAD436327ADB6EA",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\19.png",
+      "screenshotFileSha256": "2FDF53CB7E421EC9C2FF4AF6AFE72B382508CE45A8DCE244B9029D948781541A",
+      "screenshotRgbSha256": "D95DFBCC7951E34FF4856D605D5D41D1805BA3ED87582D3519E9A9973D55AFB3",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.7048182438025125,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "20",
+      "route": "/training",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\12-培训课堂.png",
+      "referenceFileSha256": "68508151B1490F117074C44F464732A6986DAE68DDE5C23296DB0529C2C12E86",
+      "referenceRgbSha256": "853B254456D0EDD321F32046BD0894975DF75AA2976DDCD8DD4C8E80492B640D",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\20.png",
+      "screenshotFileSha256": "29EE94779DB2B01A67AB7D8F28195A690953305C677D412EF742D2C9CEC5DBD7",
+      "screenshotRgbSha256": "510286C8B9A36D4C1CEEE9341A85A49971464F3D24FFDC7173B32DEDEA13436B",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.659128427821567,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "21",
+      "route": "/operations",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\13-运营管理.png",
+      "referenceFileSha256": "5F2DC6F56EF909A2EBADED1184353856CB105F2BA33B5BEFD7B8AF00AA342E11",
+      "referenceRgbSha256": "C2981413A804D5E09E575C8D46A9A95AD934C6AF7AB8B03DE36BFC985B5105B4",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\21.png",
+      "screenshotFileSha256": "B0A25F9478AB9725D72C1B546B2F4B7A1A6F85BDAA8765DE1581C29AF10DF531",
+      "screenshotRgbSha256": "4870DFD1772383314313EFC50897D79C33D64EEE141C4EDD488A4CAB1C5775B0",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.7225033136795703,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "22",
+      "route": "/operations/announcements",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\14-运营管理-公告管理.png",
+      "referenceFileSha256": "07B0623CB569C7829B490B85A65007D2773C4AE2ADB3ADE4B6089279F3D248FB",
+      "referenceRgbSha256": "1A2B04B934BA2A4292C0EEDB6530344693BF7DBAF35C532FC8A26AE48859561F",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\22.png",
+      "screenshotFileSha256": "FB6328AE4DDA05685892BA27B93CAB300C072B883EDC83B6F5B645215647D54B",
+      "screenshotRgbSha256": "BC0A74512ECB741BAC6387B230B8F3C55155AF215185D2A58559416385ECCDEF",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.7277405759365804,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "23",
+      "route": "/operations/announcements/notice-001/edit",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\15-运营管理-公告发布与编辑.png",
+      "referenceFileSha256": "5ADAECAADC46CCC242A570AEE5037A045FCECF39CBDA7D091283CE288DF9BE4F",
+      "referenceRgbSha256": "60B4FA5B420AFC9EC9E5D2B05ED463BE807A6C732EFD71C0B5FF5C0C98DEC2A7",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\23.png",
+      "screenshotFileSha256": "59D71B932DD2588E524C0C82B9A23FA629C424A49F605C8E9EB6FA567EFFD5F9",
+      "screenshotRgbSha256": "A103374918A78DD1D641E71398314D67CBD82AFB16BF2AF4AEED3D9636D408CD",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.7594634847725223,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "24",
+      "route": "/operations/apps",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\16-运营管理-应用管理.png",
+      "referenceFileSha256": "D3996593EAF90E612EA8874CDD41283565876ACDA3A9BD774343C0C469903795",
+      "referenceRgbSha256": "F45D95BAD1DCD03E038DD9616658429ED1C4EDCD9B02911D599737B1CAC052C8",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\24.png",
+      "screenshotFileSha256": "927C8D04C4072C216F7BAE0F31623F102454FE096D095597B1378CD2A8E99A40",
+      "screenshotRgbSha256": "F6EAB6759BC024EAB7602273D8024701108BDE01F9EAA296C2CF62D785E1B908",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.6966261181942959,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "25",
+      "route": "/operations/apps/app-001/edit",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\17-运营管理-应用运营编辑.png",
+      "referenceFileSha256": "A938145F4215B6AAC18DC370228DE182C9AAB531152746C6DA9EC27D82C3A864",
+      "referenceRgbSha256": "D3395039EB8F554AC4EFB93B33A6F4AB55A94DE323BA4FAA84BCE233FE11EDE0",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\25.png",
+      "screenshotFileSha256": "28FAECA252B7C9E028412F50A3C34F74030EC96E43C54D208C688085C3DF0A3C",
+      "screenshotRgbSha256": "6D3C0F70720F932A971EDDB50730AA5048E6655AAE379F628E2665F66B2539A4",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.7264701568738955,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "26",
+      "route": "/admin",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\18-后台管理.png",
+      "referenceFileSha256": "91D03978BB5A413EBF79A2CDC25E00EABBF79499F65B672A267BFAB19596FB39",
+      "referenceRgbSha256": "6C52582161E79F8CA67B6279B3606280D39A4C880111786D16B9EBA4945C8B46",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\26.png",
+      "screenshotFileSha256": "861A3D39004FB565AA7E0FFEB9E5EB28FCEFF658151CC3624A3490C82F68A419",
+      "screenshotRgbSha256": "6DBE3BE22AC2778E6F3B3BEBD47D873ABEF880C8750BCDB4983F4E83F6D09B30",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.6830217793227756,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "27",
+      "route": "/certification",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\19-数字化认证.png",
+      "referenceFileSha256": "3A6FE5F2761C9AF32A5759879FDBF1F27AEE4056EEE4006FD0297B6ECA5866D6",
+      "referenceRgbSha256": "7809EBEB73E1682A70CBA84BDCADA40C1B7A8F1D500F3C48A80EB07AAC666823",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\27.png",
+      "screenshotFileSha256": "3CC1444AF754589CB5DF8D6DBD2F57798DC3642B8873010F365BBC0B20BE1EFF",
+      "screenshotRgbSha256": "F9E5456F648DA30E52FB8A33C24D78335D6CDFA3B535F5BF57F04828989709FB",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.6428959842895515,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "28",
+      "route": "/talent/people",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\20-人才管理-人才库.png",
+      "referenceFileSha256": "3F38FEA2909904F070F5CFBF4FB110337856035CE5774519545689776FD4C558",
+      "referenceRgbSha256": "745BA1E42F9D3D44243ECDF2EC9A61794BCC7E3F0CB2D61AEA2D30E40558134E",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\28.png",
+      "screenshotFileSha256": "36D7CD12FFAEFBBF99735F96F2C93FE9729FC3355A223A33C3C7932494BE9F5D",
+      "screenshotRgbSha256": "64620C20A2E6D779DCF82DCBAB3677FE9127897F0F510247A6D743FEE735618D",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.716352754235789,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "29",
+      "route": "/talent/projects",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\20-人才管理-人才项目管理.png",
+      "referenceFileSha256": "4EADBB9CAA596393D67C69CA4F446DBAD38856D2CFF2687E1530F9B8C9EC9E3D",
+      "referenceRgbSha256": "F1B5E992889D8E86530A2E9B3D3A9EAD86E32ED767979840DB94A8CAC60C7796",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\29.png",
+      "screenshotFileSha256": "93334E8213A727613C87B9E91BE7525ED6758A08291526F19447ED9228D442A4",
+      "screenshotRgbSha256": "2CAE684E680D236708BC9B13B206B6630A6A0C0854BAC7A01804E3E0A25C9844",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.7498021105979822,
+      "status": "failed",
+      "failure": "below-threshold"
+    },
+    {
+      "id": "30",
+      "route": "/talent/progress",
+      "reference": "C:\\Users\\20266\\Desktop\\海油\\数智展厅\\页面UI_0817\\20-人才管理-项目进度管理.png",
+      "referenceFileSha256": "1C66525AC285F0825E52CEB928093EB0CA7A412C4B526B51E181A5A16BC732C3",
+      "referenceRgbSha256": "AC97C33108456669673C6FCC26367CC2290D56E7322C282B086A719FF28BEBC0",
+      "referenceSize": [
+        1672,
+        941
+      ],
+      "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\30.png",
+      "screenshotFileSha256": "0232C239085C4583CA4F05233EAD1FEEAD0B661D7AD18887D41DE36D7BE8AE97",
+      "screenshotRgbSha256": "35E658D5BA366A4780B2063ABBE3CC5E8ED4F7BFE90A828A3A25414488755C77",
+      "actualSize": [
+        1672,
+        941
+      ],
+      "rawFloatSsim": 0.7454967659170731,
+      "status": "failed",
+      "failure": "below-threshold"
+    }
+  ]
+}
