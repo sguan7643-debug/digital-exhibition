@@ -26,7 +26,15 @@ COMPONENT_PAGES = {
     'TalentPeoplePage.vue': ['28'], 'TalentProjectsPage.vue': ['29'], 'TalentProgressPage.vue': ['30'],
 }
 CATALOGUE_PAGES = ['01', *[f'{value:02d}' for value in range(7, 18)]]
-COMPOSITE_REVIEW = {'ai-training.png', 'dataset-training.png', 'rpa-video.png', 'work-video.png'}
+COMPOSITE_REVIEW = {'ai-training.png', 'dataset-training.png', 'work-video.png'}
+PINNED_SOURCES = {
+    'rpa-video.png': {
+        'reference': '08-应用详情页-RPA.png',
+        'referenceSha256': PAGE_BY_ID['16']['referenceFileSha256'],
+        'rect': [218, 513, 1135, 192],
+        'method': 'exact-atomic-crop',
+    },
+}
 
 
 def load_rgb(path: Path) -> np.ndarray:
@@ -104,7 +112,9 @@ for index, asset_name in enumerate(sorted(uses_by_asset), 1):
     rgb = load_rgb(path)
     preferred_pages = list(sorted(uses_by_asset[asset_name]))
     search_pages = preferred_pages + [page_id for page_id in PAGE_BY_ID if page_id not in preferred_pages]
-    source = next((match for page_id in search_pages if (match := locate(rgb, page_id))), None)
+    source = PINNED_SOURCES.get(asset_name)
+    if source is None:
+        source = next((match for page_id in search_pages if (match := locate(rgb, page_id))), None)
     if source is None:
         candidates = [locate_candidate(rgb, page_id) for page_id in preferred_pages]
         candidates = [candidate for candidate in candidates if candidate is not None]
@@ -124,7 +134,10 @@ for index, asset_name in enumerate(sorted(uses_by_asset), 1):
         uses.append({'id': f'AU-{len(uses) + 1:04d}', 'pageId': f'MP-{page_id}', 'assetId': asset_id, 'visibleUse': 'runtime-reference'})
 
 mapped = sum(asset['source'] is not None for asset in assets)
-exact_mapped = sum(asset['source'] is not None and asset['source'].get('method') is None for asset in assets)
+exact_mapped = sum(
+    asset['source'] is not None and asset['source'].get('method') in (None, 'exact-atomic-crop')
+    for asset in assets
+)
 manifest = {
     'schema': 'xlt-mp-as-au-v1', 'result': 'failed', 'globalVisibleUnmapped': 'unknown_nonzero',
     'technicalMapping': {'referencedAssetCount': len(assets), 'sourceCoordinateMapped': mapped, 'exactSourceCoordinateMapped': exact_mapped, 'candidateSourceCoordinateMapped': mapped - exact_mapped, 'coverage': mapped / len(assets) if assets else 0},

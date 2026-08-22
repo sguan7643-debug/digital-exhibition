@@ -73,6 +73,16 @@ assert.match(shell, /\.certification-shell \.page-frame\{grid-template-columns:2
   '数字化认证参考要求 242px 左侧导航宽度');
 assert.match(certification, /\.cert-page\{padding:17px 23px 17px 15px/,
   '最低 SSIM 的数字化认证页必须按冻结参考保留左 15px、右 23px 内容边距');
+assert.match(shell, /@media\(min-width:761px\) and \(max-width:1000px\)\{[\s\S]*\.primary-nav\{overflow:hidden\}/,
+  '845–1000px 冻结参考必须完整展示顶栏目的地，不能出现横向滚动条');
+assert.match(shell, /@media\(min-width:761px\) and \(max-width:1000px\)\{[\s\S]*\.primary-nav a\{min-width:0;flex:1 1 0/,
+  '窄幅顶栏项目必须等比分配可用宽度且保持全部可达');
+assert.match(globalStyle, /\.product-detail \.file-list\{[^}]*table-layout:fixed/,
+  '详情表格必须在右侧主内容宽度内布局，禁止撑出横向滚动');
+assert.match(globalStyle, /@media\(min-width:761px\) and \(max-width:1000px\)\{[\s\S]*\.product-detail \.detail-metrics div\{min-width:0;padding:0 4px\}/,
+  '窄幅详情指标必须允许收缩并保持七列完整可见');
+assert.match(globalStyle, /\.product-detail \.training-row article,\.product-detail \.related-row article\{min-width:0/,
+  '详情卡片必须允许网格收缩，禁止右侧内容被裁掉');
 assert.doesNotMatch(globalStyle, /@media\(max-width:1000px\)\{\.product-detail/,
   '845–963px 原生详情参考不能触发产品详情堆叠，避免整页高度膨胀');
 assert.match(globalStyle, /grid-template-columns:86px minmax\(0,1fr\) 330px/,
@@ -118,5 +128,12 @@ for (const asset of manifest.assets) {
 assert.ok(manifest.uses.length > 0);
 assert.ok(manifest.uses.every(use => /^AU-/.test(use.id) && /^MP-/.test(use.pageId) && /^AS-/.test(use.assetId)));
 assert.equal(manifest.globalVisibleUnmapped, 'unknown_nonzero');
+
+const rpaVideo = manifest.assets.find(asset => asset.file === 'public/assets/rpa-video.png');
+assert.ok(rpaVideo, 'RPA 视频封面必须登记到素材审计');
+assert.deepEqual(rpaVideo.source.rect, [218, 513, 1135, 192],
+  'RPA 视频封面必须来自冻结 RPA 参考的完整原子视频区域，不能保留透明错位填充');
+assert.equal(rpaVideo.source.method, 'exact-atomic-crop');
+assert.equal(rpaVideo.disposition, 'approved-source-atomic-crop');
 
 console.log('Phase 1 视觉合同：复合 Hero 清除、统一壳层、应用/人才关键几何与 30 页校准表通过');

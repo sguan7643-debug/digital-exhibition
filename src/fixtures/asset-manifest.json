@@ -5,8 +5,8 @@
   "technicalMapping": {
     "referencedAssetCount": 104,
     "sourceCoordinateMapped": 104,
-    "exactSourceCoordinateMapped": 99,
-    "candidateSourceCoordinateMapped": 5,
+    "exactSourceCoordinateMapped": 100,
+    "candidateSourceCoordinateMapped": 4,
     "coverage": 1.0
   },
   "pages": [
@@ -1891,21 +1891,20 @@
       "file": "public/assets/rpa-video.png",
       "width": 1135,
       "height": 192,
-      "fileSha256": "51718CB2B06724DD79546F592AC787E9F1FD4C76CE9914E751E4915933926AF0",
-      "rgbSha256": "A13B67958BC2F57C0673B27D41BE402C4EAE85F5A92C371D0B60DA5318A6CB35",
+      "fileSha256": "1718E4EE86960774741FC9F280EBA59C65049FB25E16A11017BED01B51F00C91",
+      "rgbSha256": "1DF2EB24005390AA923088BAFCC1988708838E57EB9FEF07FE75EB7FB1AA5F66",
       "source": {
         "reference": "08-应用详情页-RPA.png",
         "referenceSha256": "C66930E5C44E4ADAEB81872C7E64E8D41DC17A5BB46256314E404A9177C2923A",
         "rect": [
-          401,
-          553,
+          218,
+          513,
           1135,
           192
         ],
-        "method": "normalized-template-match-candidate",
-        "matchScore": 0.9114916920661926
+        "method": "exact-atomic-crop"
       },
-      "disposition": "pending-composite-review",
+      "disposition": "approved-source-atomic-crop",
       "userConfirmation": "pending"
     },
     {
