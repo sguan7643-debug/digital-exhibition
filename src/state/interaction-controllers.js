@@ -17,6 +17,7 @@ export function createAppsController(fixtures) {
   return reactive({
     fixtures: [...fixtures],
     filters: { category:'', query:'', tag:'', type:'', domain:'', scene:'' },
+    queryDraft: '',
     sort: 'default',
     view: 'grid',
     page: 1,
@@ -46,7 +47,7 @@ export function createAppsController(fixtures) {
     setView(value) { this.view = value; this.announcement = `已切换为${value === 'list' ? '列表' : '卡片'}视图`; },
     reset() {
       Object.assign(this.filters, { category:'', query:'', tag:'', type:'', domain:'', scene:'' });
-      this.sort = 'default'; this.view = 'grid'; this.page = 1;
+      this.queryDraft='';this.sort = 'default'; this.view = 'grid'; this.page = 1;
       this.announcement = `已重置筛选，共 ${this.results.length} 个应用`;
     }
   });

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { compileScript, parse } from '@vue/compiler-sfc';
 import { createRenderer, h, nextTick } from 'vue';
+import { ref as vueRef } from 'vue';
 
 const filename=new URL('../src/components/PageStateBoundary.vue',import.meta.url);
 const source=readFileSync(filename,'utf8');
@@ -14,7 +15,7 @@ const component=(await import(`data:text/javascript;base64,${Buffer.from(compile
 globalThis.window=globalThis;
 
 const hostOps={
-  createElement:type=>({type,props:{},children:[],text:'',focus(){this.focused=true;}}),createText:text=>({type:'#text',text}),createComment:text=>({type:'#comment',text}),
+  createElement:type=>({type,props:{},children:[],text:'',focus(){this.focused=true;globalThis.document.activeElement=this;},setAttribute(key,value){this.props[key]=value;},removeAttribute(key){delete this.props[key];},querySelectorAll(selector){return flatten(this).filter(node=>selector.includes('[data-state-result]')&&node.props?.['data-state-result']!==undefined);},querySelector(selector){return flatten(this).find(node=>selector.includes('[data-state-result-heading]')&&node.props?.['data-state-result-heading']!==undefined);}}),createText:text=>({type:'#text',text}),createComment:text=>({type:'#comment',text}),
   setText:(node,text)=>{node.text=text;},setElementText:(node,text)=>{node.text=text;node.children=[];},parentNode:node=>node.parent||null,nextSibling:()=>null,
   insert:(child,parent)=>{child.parent=parent;parent.children.push(child);},remove:child=>{if(child.parent)child.parent.children=child.parent.children.filter(node=>node!==child);},
   patchProp:(node,key,_old,value)=>{node.props[key]=value;}
@@ -23,10 +24,11 @@ const renderer=createRenderer(hostOps);
 const flatten=node=>[node,...(node.children||[]).flatMap(flatten)];
 const textOf=node=>[node.text||'',...(node.children||[]).map(textOf)].join('');
 async function mountState(state,{empty=true}={}){
-  const root={type:'root',children:[]};let restored=0;
-  renderer.createApp({render:()=>h(component,{page:{title:'受限对象名称',empty},state,onRestore:()=>{restored+=1;}},{default:()=>h('button',{id:'real-page-action'},'真实页面操作')})}).mount(root);
-  await nextTick();return {root,get restored(){return restored;}};
+  const root={type:'root',children:[]};let restored=0;const currentState=vueRef(state);
+  renderer.createApp({render:()=>h(component,{page:{title:'受限对象名称',empty},state:currentState.value,onRestore:()=>{restored+=1;currentState.value='normal';}},{default:()=>[h('form',{id:'real-filter'},[h('input',{id:'filter-input'})]),h('section',{'data-state-result':''},[h('h2',{'data-state-result-heading':'',tabindex:-1},'结果标题'),h('button',{id:'real-page-action'},'真实页面操作')])]} )}).mount(root);
+  await nextTick();await nextTick();return {root,get restored(){return restored;}};
 }
+globalThis.document={activeElement:null};
 
 const denied=await mountState('permission-denied');
 assert.match(textOf(denied.root),/访问受限/);
@@ -38,12 +40,18 @@ assert.match(textOf(disabled.root),/真实页面操作/,'disabled 必须保留�
 assert.ok(flatten(disabled.root).some(node=>node.props?.inert!==undefined),'disabled 页面目标必须不可操作');
 
 const empty=await mountState('empty');
-assert.match(textOf(empty.root),/真实页面操作/,'empty=A 必须保留真实页面筛选与边界');
+assert.ok(flatten(empty.root).some(node=>node.props?.id==='filter-input'),'empty=A 必须保留筛选控件');
+const emptyResult=flatten(empty.root).find(node=>node.props?.['data-state-result']!==undefined);
+assert.equal(emptyResult.hidden,true,'empty=A 必须隐藏旧结果');
+assert.ok(emptyResult.props.inert!==undefined,'empty=A 旧结果动作必须不可操作');
 const emptyButton=flatten(empty.root).find(node=>node.type==='button'&&textOf(node).includes('恢复当前页面'));
+emptyButton.focus();
 emptyButton.props.onClick();await nextTick();
-assert.match(textOf(empty.root),/内容加载中/,'empty 恢复必须先进入 loading');
+assert.equal(emptyButton.props['aria-disabled'],'true','empty 恢复期间按钮节点必须保持可聚焦且不可重复触发');
+assert.equal(globalThis.document.activeElement,emptyButton,'empty 恢复 loading 期间焦点应留在按钮');
 await new Promise(resolve=>setTimeout(resolve,850));await nextTick();
 assert.equal(empty.restored,1,'empty 恢复必须留在当前路由');
+assert.equal(globalThis.document.activeElement.props['data-state-result-heading'],'','empty 恢复 normal 后必须聚焦结果标题');
 
 const emptyNa=await mountState('empty',{empty:false});
 assert.match(textOf(emptyNa.root),/真实页面操作/,'empty=NA 应归一为详情允许的 normal 状态');
@@ -58,9 +66,11 @@ retry.focus();
 retry.props.onClick();await nextTick();
 assert.match(textOf(error.root),/正在重新加载/);
 assert.equal(retry.focused,true,'重试进入 loading 后焦点应保留在重试按钮');
+assert.equal(retry.props['aria-disabled'],'true','重试期间不得原生 disabled 当前焦点节点');
 assert.equal(flatten(error.root).find(node=>node.type==='h1')?.focused,undefined,'error/retry 不得把焦点移到标题');
 await new Promise(resolve=>setTimeout(resolve,850));await nextTick();
 assert.equal(error.restored,1,'error 必须经 800ms loading 后恢复');
+assert.equal(globalThis.document.activeElement.props['data-state-result-heading'],'','error 恢复 normal 后必须聚焦结果标题');
 
 const appSource=readFileSync(new URL('../src/App.vue',import.meta.url),'utf8');
 assert.ok(appSource.includes('PageStateBoundary'));

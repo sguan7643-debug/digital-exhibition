@@ -23,7 +23,8 @@ const apps=read('src/pages/AppsPage.vue');
 const favorites=read('src/pages/FavoritesPage.vue');
 const messages=read('src/pages/MessagesPage.vue');
 for(const contract of ['captureRouteSession','restoreRouteSession','routeSession.snapshot'])assert.ok(app.includes(contract),`F04 路由会话缺失：${contract}`);
-for(const source of [apps,favorites])assert.ok(source.includes('routeSession.favorites'),'应用中心与收藏必须共用收藏集合');
+assert.ok(apps.includes('routeSession.isRouteFavorite')&&apps.includes('routeSession.toggleRouteFavorite'),'应用中心必须通过 canonical route 映射使用收藏集合');
+assert.ok(favorites.includes('createFavoritesController(FAVORITE_FIXTURES,routeSession)'),'收藏页必须按唯一收藏 ID 使用共享集合');
 for(const source of [apps,favorites,messages])assert.ok(source.includes('routeSession.controller'),'已实现页面必须复用共享控制器');
 
 console.log('009 会话修复：筛选分页、滚动焦点快照与跨页收藏集合通过');

@@ -8,7 +8,7 @@ const stats = computed(() => [
   ['全部消息', controller.totalCount, '18', '/assets/msg-stat-all.png'], ['未读消息', controller.unreadCount, '5', '/assets/msg-stat-unread.png'],
   ['已读消息', controller.readCount, '13', '/assets/msg-stat-read.png'], ['今日新增', controller.todayCount, '3', '/assets/msg-stat-new.png']
 ]);
-const queryDraft=ref('');
+const queryDraft=computed({get:()=>controller.queryDraft,set:value=>{controller.queryDraft=value;}});
 const filteredMessages=computed(()=>controller.results);
 const pagedMessages=computed(()=>controller.pagedResults);
 const types=[...new Set(MESSAGE_FIXTURES.map(item=>item.type))];

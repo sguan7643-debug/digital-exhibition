@@ -45,6 +45,6 @@ for(const contract of ['createAnnouncementController','applyAnnouncementFilters'
 for(const contract of ['createNoticeDetailController','mockDownload','goBack','aria-live="polite"','state === \'permission-denied\''])
   assert.ok(notice.includes(contract),`PP06 未接线：${contract}`);
 assert.ok(app.includes(':state="page.state"'), 'PP05/PP06 必须接收页面级六态');
-assert.ok(app.includes('xltFromPath'), '同壳层详情返回必须记录来源路径');
+assert.ok(app.includes('xltSource'), '同壳层详情返回必须记录来源 entry、query、滚动和焦点');
 
 console.log('第四批 interaction：公告筛选分页、已读状态与通知详情本地行为通过');

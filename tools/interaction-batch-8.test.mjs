@@ -16,7 +16,7 @@ detail.commentDraft='指标摘要清晰';
 assert.equal(detail.submitComment(),true);
 
 const source=readFileSync(new URL('../src/pages/ReportDetailPage.vue',import.meta.url),'utf8');
-for(const contract of ['createDetailController','routeSession.favorites','aria-pressed','detail.mockDownload','detail.submitComment','detail.comments','figcaption','href="/training"'])assert.ok(source.includes(contract),`PP10 未接线：${contract}`);
+for(const contract of ['createDetailController','createDetailController(\'/apps/report-001\',routeSession','aria-pressed','detail.mockDownload','detail.submitComment','detail.comments','figcaption','href="/training"'])assert.ok(source.includes(contract),`PP10 未接线：${contract}`);
 assert.doesNotMatch(source,/href="#main-content"/,'报表预览与下载不得使用假锚点');
 assert.doesNotMatch(source,/window\.open|location\.(?:assign|replace)/,'报表详情不得打开真实业务系统');
 

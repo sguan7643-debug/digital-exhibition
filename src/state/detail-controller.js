@@ -1,6 +1,8 @@
 import { reactive } from 'vue';
 
 export function createDetailController(route, favorites, { name = '智能数据处理工具' } = {}) {
+  const isFavorite=()=>favorites.isRouteFavorite?favorites.isRouteFavorite(route):favorites.has(route);
+  const toggle=()=>favorites.toggleRouteFavorite?favorites.toggleRouteFavorite(route):(favorites.has(route)?(favorites.delete(route),false):(favorites.add(route),true));
   return reactive({
     route,
     name,
@@ -9,11 +11,11 @@ export function createDetailController(route, favorites, { name = '智能数据�
     commentDraft: '',
     comments: [],
     get favorite() {
-      return favorites.has(route);
+      return isFavorite();
     },
     toggleFavorite() {
-      this.favorite ? favorites.delete(route) : favorites.add(route);
-      this.announcement = `${name}：${this.favorite ? '已收藏' : '已取消收藏'}`;
+      const selected=toggle();
+      this.announcement = `${name}：${selected ? '已收藏' : '已取消收藏'}`;
     },
     apply(action) {
       this.announcement = `${name}：${action}已在本地演示中登记`;

@@ -4,8 +4,8 @@ import { FAVORITE_FIXTURES, createFavoritesController } from '../state/content-c
 import { routeSession } from '../state/session-store.js';
 const REFERENCE_SHA256 = '9B259ED9F99029ECB68A1F2FB3EB8E745FF23692BC53CFFBD5D6A46008CEAE1A';
 const stats = [['收藏总数','28','5','/assets/favorite-stat-total.png'],['本周新增','6','2','/assets/favorite-stat-new.png'],['最近使用','8','','/assets/favorite-stat-recent.png']];
-const controller=routeSession.controller('favorites',()=>createFavoritesController(FAVORITE_FIXTURES,routeSession.favorites));
-const queryDraft=ref('');
+const controller=routeSession.controller('favorites',()=>createFavoritesController(FAVORITE_FIXTURES,routeSession));
+const queryDraft=computed({get:()=>controller.queryDraft,set:value=>{controller.queryDraft=value;}});
 const filteredCards=computed(()=>controller.results);
 const pagedCards=computed(()=>controller.pagedResults);
 const types=[...new Set(FAVORITE_FIXTURES.map(item=>item.type))];
@@ -13,9 +13,9 @@ const domains=[...new Set(FAVORITE_FIXTURES.map(item=>item.domain))];
 function submit(){controller.setFilter('query',queryDraft.value);}
 function clearFilters(){queryDraft.value='';controller.resetFilters();}
 const resultTitleRef=ref(null);
-async function cancelFavorite(card){const rows=[...controller.pagedResults];const index=rows.findIndex(item=>item.id===card.id);const fallback=rows[index+1]?.id||rows[index-1]?.id;controller.cancel(card.id);if(!controller.results.some(item=>item.route===card.route))routeSession.setFavorite(card.route,false);await nextTick();restoreFavoriteFocus(fallback);}
+async function cancelFavorite(card){const rows=[...controller.pagedResults];const index=rows.findIndex(item=>item.id===card.id);const fallback=rows[index+1]?.id||rows[index-1]?.id;controller.cancel(card.id);await nextTick();restoreFavoriteFocus(fallback);}
 function restoreFavoriteFocus(id){const target=id&&document.querySelector(`[data-favorite-id="${id}"] .cancel-favorite`);(target||document.querySelector('.favorite-grid .cancel-favorite')||resultTitleRef.value)?.focus();}
-function resetData(){queryDraft.value='';controller.resetData();FAVORITE_FIXTURES.forEach(card=>routeSession.setFavorite(card.route,true));}
+function resetData(){queryDraft.value='';controller.resetData();}
 </script>
 
 <template>

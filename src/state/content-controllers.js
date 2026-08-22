@@ -27,6 +27,7 @@ export function createMessagesController(fixtures) {
   return reactive({
     fixtures: originals.map(item => ({ ...item })),
     filters: { type:'', query:'', status:'all' },
+    queryDraft: '',
     sort: 'newest',
     page: 1,
     pageSize: 10,
@@ -60,21 +61,21 @@ export function createMessagesController(fixtures) {
     markAllRead() { this.fixtures.forEach(item=>{item.read=true;}); this.announcement='全部消息已标记为已读'; },
     toggleSort() { this.sort=this.sort==='newest'?'oldest':'newest'; this.announcement=this.sort==='newest'?'最新消息优先':'最早消息优先'; },
     setPage(value){this.page=Math.min(this.totalPages,Math.max(1,Number(value)||1));this.announcement=`已切换到第 ${this.page} 页`;},
-    refresh() { this.fixtures=originals.map(item=>({...item})); Object.assign(this.filters,{type:'',query:'',status:'all'}); this.sort='newest';this.page=1; this.announcement='演示消息已刷新'; }
+    refresh() { this.fixtures=originals.map(item=>({...item})); Object.assign(this.filters,{type:'',query:'',status:'all'}); this.queryDraft='';this.sort='newest';this.page=1; this.announcement='演示消息已刷新'; }
   });
 }
 
 export function createFavoritesController(fixtures, sharedFavorites=null) {
   return reactive({
-    fixtures:[...fixtures], removed:[], filters:{query:'',type:'',domain:'',tag:''},page:1,pageSize:12,announcement:'',
-    get activeCount(){return this.fixtures.filter(item=>!this.removed.includes(item.id)&&(!sharedFavorites||sharedFavorites.has(item.route))).length;},
-    get results(){ const q=normalize(this.filters.query); return this.fixtures.filter(item=>!this.removed.includes(item.id)&&(!sharedFavorites||sharedFavorites.has(item.route))&&(!q||normalize(`${item.name} ${item.description}`).includes(q))&&(!this.filters.type||item.type===this.filters.type)&&(!this.filters.domain||item.domain===this.filters.domain)&&(!this.filters.tag||item.tag===this.filters.tag)); },
+    fixtures:[...fixtures], removed:[], filters:{query:'',type:'',domain:'',tag:''},queryDraft:'',page:1,pageSize:12,announcement:'',
+    get activeCount(){return this.fixtures.filter(item=>!this.removed.includes(item.id)&&(!sharedFavorites||sharedFavorites.isFavoriteId(item.id))).length;},
+    get results(){ const q=normalize(this.filters.query); return this.fixtures.filter(item=>!this.removed.includes(item.id)&&(!sharedFavorites||sharedFavorites.isFavoriteId(item.id))&&(!q||normalize(`${item.name} ${item.description}`).includes(q))&&(!this.filters.type||item.type===this.filters.type)&&(!this.filters.domain||item.domain===this.filters.domain)&&(!this.filters.tag||item.tag===this.filters.tag)); },
     get totalPages(){return Math.max(1,Math.ceil(this.results.length/this.pageSize));},
     get pagedResults(){const start=(this.page-1)*this.pageSize;return this.results.slice(start,start+this.pageSize);},
     setFilter(key,value){this.filters[key]=value;this.page=1;this.announcement=`筛选完成，共 ${this.results.length} 个收藏`;},
-    resetFilters(){Object.assign(this.filters,{query:'',type:'',domain:'',tag:''});this.page=1;this.announcement=`已清空筛选，共 ${this.results.length} 个收藏`;},
-    cancel(id){const item=this.fixtures.find(card=>card.id===id);if(!this.removed.includes(id))this.removed.push(id);if(sharedFavorites&&item)sharedFavorites.delete(item.route);this.page=Math.min(this.page,this.totalPages);this.announcement=`已取消收藏，剩余 ${this.activeCount} 个`;},
+    resetFilters(){Object.assign(this.filters,{query:'',type:'',domain:'',tag:''});this.queryDraft='';this.page=1;this.announcement=`已清空筛选，共 ${this.results.length} 个收藏`;},
+    cancel(id){if(!this.removed.includes(id))this.removed.push(id);if(sharedFavorites)sharedFavorites.setFavoriteId(id,false);this.page=Math.min(this.page,this.totalPages);this.announcement=`已取消收藏，剩余 ${this.activeCount} 个`;},
     setPage(value){this.page=Math.min(this.totalPages,Math.max(1,Number(value)||1));this.announcement=`已切换到第 ${this.page} 页`;},
-    resetData(){this.removed=[];this.resetFilters();this.announcement='已恢复演示收藏数据';}
+    resetData(){this.removed=[];this.fixtures.forEach(item=>sharedFavorites?.setFavoriteId(item.id,true));this.resetFilters();this.announcement='已恢复演示收藏数据';}
   });
 }

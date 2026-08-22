@@ -22,7 +22,7 @@ assert.deepEqual(detail.comments,['工具很实用']);
 assert.equal(detail.commentDraft,'');
 
 const source=readFileSync(new URL('../src/pages/ToolDetailPage.vue',import.meta.url),'utf8');
-for(const contract of ['createDetailController','routeSession.favorites','aria-pressed','mockDownload','watchTraining','submitComment','detail.comments'])assert.ok(source.includes(contract),`PP08 未接线：${contract}`);
+for(const contract of ['createDetailController','createDetailController(\'/apps/tool-001\',routeSession)','aria-pressed','mockDownload','watchTraining','submitComment','detail.comments'])assert.ok(source.includes(contract),`PP08 未接线：${contract}`);
 assert.doesNotMatch(source,/href="#main-content">下载/,'下载不得用假锚点冒充');
 
 console.log('第六批 interaction：工具详情收藏、申请、本地附件、培训和评论行为通过');

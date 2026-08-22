@@ -1,6 +1,8 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
+const RESULT_SELECTOR='[data-state-result],.panel,.message-stats,.message-panel,.favorite-stats,.favorite-grid,.favorite-pagination,.notice-stats,.notice-table,.apps-tools,.apps-grid,.apps-empty,.apps-pagination,.point-stats,.point-layout,.rule-panel,.detail-stats,.point-tabs,.point-table,.course-grid,.training-pagination,.ops-stats,.ops-grid,.operations-page>footer,.admin-stats,.admin-table,.app-admin-stats,.app-admin-table,.config-grid,.log-panel,.talent-people main>section,.talent-projects main>section,.progress-table';
+
 const props=defineProps({
   page:{type:Object,required:true},
   state:{type:String,default:'normal'}
@@ -9,37 +11,56 @@ const emit=defineEmits(['restore']);
 const normalizeState=value=>value==='empty'&&!props.page.empty?'normal':value;
 const localState=ref(normalizeState(props.state));
 const stateHeading=ref(null);
+const retainedPage=ref(null);
 const announcement=ref('');
-const retrying=ref(false);
+const recovering=ref('');
 let loadingTimer;
 
-const contentVisible=computed(()=>['normal','empty','disabled'].includes(localState.value));
+const contentVisible=computed(()=>['normal','empty','disabled'].includes(localState.value)||recovering.value==='empty');
 const contentDisabled=computed(()=>localState.value==='disabled');
+function syncResultRegions(){
+  nextTick(()=>{
+    const hidden=localState.value==='empty'||recovering.value==='empty';
+    retainedPage.value?.querySelectorAll(RESULT_SELECTOR).forEach(node=>{
+      if(hidden){node.hidden=true;node.setAttribute('inert','');node.setAttribute('aria-hidden','true');}
+      else{node.hidden=false;node.removeAttribute('inert');node.removeAttribute('aria-hidden');}
+    });
+  });
+}
+function focusResult(){
+  nextTick(()=>retainedPage.value?.querySelector('[data-state-result-heading]')?.focus());
+}
 function finishLoading(){
   window.clearTimeout(loadingTimer);
   loadingTimer=window.setTimeout(()=>{
     announcement.value='内容加载完成';
     emit('restore');
+    nextTick(focusResult);
   },800);
 }
 function retry(){
-  retrying.value=true;
+  if(recovering.value)return;
+  recovering.value='error';
   localState.value='loading';
   announcement.value='正在重新加载';
   finishLoading();
 }
 function restore(){
+  if(recovering.value)return;
+  recovering.value='empty';
   localState.value='loading';
   announcement.value='正在恢复当前页面';
+  syncResultRegions();
   finishLoading();
 }
 function syncState(value){
   window.clearTimeout(loadingTimer);
-  retrying.value=false;
+  recovering.value='';
   localState.value=normalizeState(value);
   announcement.value='';
   if(localState.value==='loading'){announcement.value='正在加载页面';finishLoading();}
   if(localState.value==='permission-denied')nextTick(()=>stateHeading.value?.focus());
+  syncResultRegions();
 }
 
 onMounted(()=>syncState(props.state));
@@ -50,13 +71,13 @@ onBeforeUnmount(()=>window.clearTimeout(loadingTimer));
 <template>
   <section class="page-state-boundary" :data-state="localState" :aria-busy="localState==='loading'">
     <p class="sr-only" aria-live="polite">{{ announcement }}</p>
-    <div v-if="localState!=='permission-denied'" class="retained-page" :hidden="!contentVisible" :inert="contentDisabled || !contentVisible" :aria-hidden="contentVisible?undefined:'true'">
+    <div v-if="localState!=='permission-denied'" ref="retainedPage" class="retained-page" :hidden="!contentVisible" :inert="contentDisabled || !contentVisible" :aria-hidden="contentVisible?undefined:'true'">
       <p v-if="contentDisabled" class="disabled-notice" role="status">当前页面操作暂不可用</p>
       <div :aria-disabled="contentDisabled||undefined"><slot /></div>
     </div>
-    <section v-if="localState==='loading'&&!retrying" class="state-surface"><h1>{{ page.title }}</h1><p>内容加载中，请稍候。</p></section>
-    <section v-else-if="localState==='empty'" class="inline-state" role="status"><p>当前筛选条件下暂无内容。</p><button type="button" @click="restore">恢复当前页面</button></section>
-    <section v-else-if="localState==='error'||retrying" class="state-surface" :role="retrying?'status':'alert'"><h1>{{ retrying?'正在重新加载':`${page.title}加载失败` }}</h1><p>{{ retrying?'内容加载中，请稍候。':'本地演示数据暂时不可用。' }}</p><button type="button" :disabled="retrying" @click="retry">{{ retrying?'重试中':'重试' }}</button></section>
+    <section v-if="localState==='loading'&&!recovering" class="state-surface"><h1>{{ page.title }}</h1><p>内容加载中，请稍候。</p></section>
+    <section v-else-if="localState==='empty'||recovering==='empty'" class="inline-state" role="status"><p>{{ recovering?'正在恢复当前页面':'当前筛选条件下暂无内容。' }}</p><button type="button" :aria-disabled="recovering?'true':undefined" @click="restore">{{ recovering?'恢复中':'恢复当前页面' }}</button></section>
+    <section v-else-if="localState==='error'||recovering==='error'" class="state-surface" :role="recovering?'status':'alert'"><h1>{{ recovering?'正在重新加载':`${page.title}加载失败` }}</h1><p>{{ recovering?'内容加载中，请稍候。':'本地演示数据暂时不可用。' }}</p><button type="button" :aria-disabled="recovering?'true':undefined" @click="retry">{{ recovering?'重试中':'重试' }}</button></section>
     <section v-else-if="localState==='permission-denied'" class="state-surface" role="alert"><h1 ref="stateHeading" tabindex="-1">访问受限</h1><p>当前角色无权访问该页面。</p><a href="/workbench">返回工作台</a></section>
   </section>
 </template>
