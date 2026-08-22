@@ -34,6 +34,7 @@ import TalentPeoplePage from './pages/TalentPeoplePage.vue';
 import TalentProjectsPage from './pages/TalentProjectsPage.vue';
 import TalentProgressPage from './pages/TalentProgressPage.vue';
 import { PAGE_MATRIX, resolvePage } from './fixtures/pages.js';
+import { routeSession } from './state/session-store.js';
 
 const supportedStates = new Set([
   'normal',
@@ -59,8 +60,24 @@ const current = computed(() => {
   };
 });
 
+function currentRouteKey(){return window.location.pathname;}
+function captureRouteSession(){
+  const main=document.getElementById('main-content');
+  const active=document.activeElement;
+  const focusId=active&&main?.contains(active)?active.id||active.getAttribute('data-session-focus')||'':'';
+  routeSession.capture(currentRouteKey(),{scrollTop:main?.scrollTop||0,focusId});
+}
+function restoreRouteSession(){
+  const main=document.getElementById('main-content');
+  const snapshot=routeSession.snapshot(currentRouteKey());
+  if(!main)return;
+  main.scrollTop=snapshot?.scrollTop||0;
+  const target=snapshot?.focusId&&(document.getElementById(snapshot.focusId)||document.querySelector(`[data-session-focus="${snapshot.focusId}"]`));
+  (target||main).focus();
+}
 function syncLocation() {
   locationKey.value = window.location.href;
+  nextTick(restoreRouteSession);
 }
 
 function restoreNormal() {
@@ -78,9 +95,9 @@ function handleInternalNavigation(event) {
   if (next.origin !== window.location.origin) return;
   if (next.pathname === window.location.pathname && next.search === window.location.search && next.hash) return;
   event.preventDefault();
+  captureRouteSession();
   window.history.pushState({ xltFromPath: window.location.pathname }, '', `${next.pathname}${next.search}${next.hash}`);
   syncLocation();
-  nextTick(() => document.getElementById('main-content')?.focus());
 }
 
 onMounted(() => {

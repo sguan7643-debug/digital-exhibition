@@ -113,10 +113,12 @@ for (const contract of ['createAppsController', 'setCategory', 'filteredApps', '
 for (const contract of ['createTalentController', 'role="dialog"', 'aria-modal="true"', '@keydown.esc', '查看详情']) {
   assert.ok(talentSource.includes(contract), `人才库未接通交互合同：${contract}`);
 }
+for (const contract of ['xltTalentDrawer', 'window.history.pushState', 'window.history.back()', 'setBackgroundInert', 'focusDrawer'])
+  assert.ok(talentSource.includes(contract), `人才抽屉 History/隔离合同缺失：${contract}`);
 for (const contract of ['pagedPeople', 'controller.setPage', '共 {{ controller.results.length }} 条'])
   assert.ok(talentSource.includes(contract), `人才库真实分页合同缺失：${contract}`);
 assert.ok(!talentSource.includes('>更多<'), '人才库不得保留“更多”操作');
-for (const contract of ['handleInternalNavigation', 'window.history.pushState', "document.getElementById('main-content')?.focus()"])
+for (const contract of ['handleInternalNavigation', 'window.history.pushState', 'restoreRouteSession', '(target||main).focus()'])
   assert.ok(appSource.includes(contract), `站内路由未保持壳层状态/焦点：${contract}`);
 
 console.log('第一批 mounted/interaction：壳层、应用中心、人才库、六态行为通过');

@@ -1,11 +1,12 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { ANNOUNCEMENT_FIXTURES, createAnnouncementController } from '../state/announcement-controllers.js';
+import { routeSession } from '../state/session-store.js';
 
 const REFERENCE_SHA256 = '58A43229752CC4A5210A2846B88DB267A622543AA8F7F034CDA42BC2041F4F8C';
 const props=defineProps({state:{type:String,default:'normal'}});
 const emit=defineEmits(['restore']);
-const controller=createAnnouncementController(ANNOUNCEMENT_FIXTURES);
+const controller=routeSession.controller('announcements',()=>createAnnouncementController(ANNOUNCEMENT_FIXTURES));
 const localState=ref(props.state);
 const state=computed(()=>localState.value);
 const startDateInput=ref(null);

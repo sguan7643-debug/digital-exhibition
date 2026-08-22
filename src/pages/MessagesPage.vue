@@ -1,18 +1,21 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { MESSAGE_FIXTURES, createMessagesController } from '../state/content-controllers.js';
+import { routeSession } from '../state/session-store.js';
 const REFERENCE_SHA256 = '8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22';
-const stats = [
-  ['全部消息', '128', '18', '/assets/msg-stat-all.png'], ['未读消息', '18', '5', '/assets/msg-stat-unread.png'],
-  ['已读消息', '110', '13', '/assets/msg-stat-read.png'], ['今日新增', '9', '3', '/assets/msg-stat-new.png']
-];
-const controller=createMessagesController(MESSAGE_FIXTURES);
+const controller=routeSession.controller('messages',()=>createMessagesController(MESSAGE_FIXTURES));
+const stats = computed(() => [
+  ['全部消息', controller.totalCount, '18', '/assets/msg-stat-all.png'], ['未读消息', controller.unreadCount, '5', '/assets/msg-stat-unread.png'],
+  ['已读消息', controller.readCount, '13', '/assets/msg-stat-read.png'], ['今日新增', controller.todayCount, '3', '/assets/msg-stat-new.png']
+]);
 const queryDraft=ref('');
 const filteredMessages=computed(()=>controller.results);
 const pagedMessages=computed(()=>controller.pagedResults);
 const types=[...new Set(MESSAGE_FIXTURES.map(item=>item.type))];
 function submit(){controller.setFilter('query',queryDraft.value);}
 function refresh(){queryDraft.value='';controller.refresh();}
+function actionFor(item){return controller.actionFor(item);}
+function activateMessage(item){controller.activate(item);}
 function moveTab(event,index){if(!['ArrowLeft','ArrowRight'].includes(event.key))return;event.preventDefault();const tabs=['all','unread','read'];const next=(index+(event.key==='ArrowRight'?1:2))%3;controller.setStatus(tabs[next]);event.currentTarget.parentElement.children[next].focus();}
 </script>
 
@@ -31,7 +34,7 @@ function moveTab(event,index){if(!['ArrowLeft','ArrowRight'].includes(event.key)
       <ul>
         <li v-for="(item,index) in pagedMessages" :key="item.id">
           <img :src="`/assets/msg-row-${index%6+1}.png`" width="42" height="42" alt="" /><small>{{ item.type }}</small><i v-if="!item.read" aria-label="未读"></i>
-          <div><strong>{{ item.title }}</strong><p>{{ item.copy }}</p></div><time :datetime="`2025-${item.time.replace(' ','T')}`">{{ item.time }}</time><em>{{ item.read?'已读':'未读' }}</em><a v-if="item.id==='message-001'" href="/announcements/notice-001" @click="controller.markRead(item.id)">{{ item.action }}　›</a><button v-else type="button" @click="controller.markRead(item.id)">{{ item.action }}　›</button>
+          <div><strong>{{ item.title }}</strong><p>{{ item.copy }}</p></div><time :datetime="`2025-${item.time.replace(' ','T')}`">{{ item.time }}</time><em>{{ item.read?'已读':'未读' }}</em><a v-if="actionFor(item).kind==='route'" :id="`message-${item.id}`" :data-session-focus="`message-${item.id}`" :href="actionFor(item).route" @click="controller.markRead(item.id)">{{ item.action }}　›</a><button v-else :id="`message-${item.id}`" type="button" @click="activateMessage(item)">{{ item.action }}　›</button>
         </li>
       </ul>
       <p v-if="!filteredMessages.length" class="message-empty" role="status">暂无符合条件的消息</p><footer><span>共 {{ filteredMessages.length }} 条</span><select aria-label="每页条数" disabled><option>10条/页</option></select><nav aria-label="分页"><button :disabled="controller.page===1" @click="controller.setPage(controller.page-1)">上一页</button><button v-for="page in controller.totalPages" :key="page" :aria-current="controller.page===page?'page':undefined" @click="controller.setPage(page)">{{ page }}</button><button :disabled="controller.page===controller.totalPages" @click="controller.setPage(controller.page+1)">下一页</button></nav></footer>

@@ -1,12 +1,12 @@
 <script setup>
 // Reference SHA-256: E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { APP_CATEGORIES, APP_FIXTURES } from '../fixtures/mock-data.js';
 import { createAppsController } from '../state/interaction-controllers.js';
+import { routeSession } from '../state/session-store.js';
 
-const controller = createAppsController(APP_FIXTURES);
+const controller = routeSession.controller('apps',()=>createAppsController(APP_FIXTURES));
 const queryDraft = ref('');
-const favoriteIds = reactive(new Set());
 const filteredApps = computed(() => controller.results);
 const filter = controller.filters;
 const tags = [...new Set(APP_FIXTURES.map(app => app.tag))];
@@ -27,9 +27,9 @@ function resetFilters() {
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 function setFilter(key, value) { controller.setFilter(key, value); }
-function toggleFavorite(id) {
-  favoriteIds.has(id) ? favoriteIds.delete(id) : favoriteIds.add(id);
-  controller.announcement = favoriteIds.has(id) ? '已收藏应用' : '已取消收藏';
+function toggleFavorite(route) {
+  const selected=routeSession.toggleFavorite(route);
+  controller.announcement = selected ? '已收藏应用' : '已取消收藏';
 }
 function localAction(label, app) { controller.announcement = `${app.name}：${label}为本地演示操作`; }
 function receiveCategory(event) { setCategory(event.detail); }
@@ -54,7 +54,7 @@ onBeforeUnmount(() => {
     <header><div><h1 id="apps-title">应用中心</h1><p>汇聚优质应用资源，助力业务高效协同与智能决策</p></div><button type="button" disabled title="当前演示未开放应用上线申请">应用上线申请</button></header>
     <form class="apps-filter" aria-label="应用筛选" @submit.prevent="submitSearch" @reset.prevent="resetFilters"><label>应用名称或关键词<input v-model="queryDraft" type="search" placeholder="请输入应用名称或关键词" /></label><label>标签<select :value="filter.tag" @change="setFilter('tag', $event.target.value)"><option value="">请选择标签</option><option v-for="tag in tags" :key="tag">{{ tag }}</option></select></label><label>应用类型<select :value="filter.type" @change="setFilter('type', $event.target.value)"><option value="">请选择应用类型</option><option v-for="category in APP_CATEGORIES" :key="category">{{ category }}</option></select></label><label>主题域<select :value="filter.domain" @change="setFilter('domain', $event.target.value)"><option value="">请选择主题域</option><option v-for="domain in domains" :key="domain">{{ domain }}</option></select></label><button type="reset">重置</button><button type="submit">查询</button></form>
     <div class="apps-tools"><strong>全部应用 {{ filteredApps.length }} 个</strong><button type="button" @click="resetFilters">清空筛选</button><span v-if="filter.category" class="active-category">{{ filter.category }}</span><select :value="controller.sort" aria-label="排序" @change="controller.setSort($event.target.value)"><option value="default">综合排序</option><option value="usage-desc">使用量从高到低</option><option value="favorites-desc">收藏量从高到低</option><option value="name">名称排序</option></select><button type="button" aria-label="卡片视图" :aria-pressed="controller.view === 'grid'" @click="controller.setView('grid')">卡片</button><button type="button" aria-label="列表视图" :aria-pressed="controller.view === 'list'" @click="controller.setView('list')">列表</button></div>
-    <section v-if="filteredApps.length" class="apps-grid" :class="{ 'list-view': controller.view === 'list' }" aria-label="应用列表"><article v-for="app in filteredApps" :key="app.id"><header><img :src="`/assets/${app.image}`" width="58" height="58" alt="" /><div><h2>{{ app.name }}</h2><mark>{{ app.category }}</mark><mark>{{ app.scene }}</mark></div></header><p>{{ app.description }}</p><dl><div><dt>使用量</dt><dd>{{ app.usage.toLocaleString('zh-CN') }}</dd></div><div><dt>收藏</dt><dd>{{ app.favorites.toLocaleString('zh-CN') }}</dd></div><div><dt>所属部门</dt><dd>{{ app.department }}</dd></div><div><dt>负责人</dt><dd>{{ app.owner }}</dd></div><div><dt>开发部门/单位</dt><dd>{{ app.developerDepartment }}</dd></div><div><dt>开发者</dt><dd>{{ app.developer }}</dd></div></dl><footer><a :href="app.route">查看详情</a><button type="button" @click="localAction('立即使用', app)">立即使用</button><button type="button" :aria-pressed="favoriteIds.has(app.id)" @click="toggleFavorite(app.id)">{{ favoriteIds.has(app.id) ? '已收藏' : '收藏' }}</button><button type="button" @click="localAction('申请复用', app)">申请复用</button></footer></article></section>
+    <section v-if="filteredApps.length" class="apps-grid" :class="{ 'list-view': controller.view === 'list' }" aria-label="应用列表"><article v-for="app in filteredApps" :key="app.id"><header><img :src="`/assets/${app.image}`" width="58" height="58" alt="" /><div><h2>{{ app.name }}</h2><mark>{{ app.category }}</mark><mark>{{ app.scene }}</mark></div></header><p>{{ app.description }}</p><dl><div><dt>使用量</dt><dd>{{ app.usage.toLocaleString('zh-CN') }}</dd></div><div><dt>收藏</dt><dd>{{ app.favorites.toLocaleString('zh-CN') }}</dd></div><div><dt>所属部门</dt><dd>{{ app.department }}</dd></div><div><dt>负责人</dt><dd>{{ app.owner }}</dd></div><div><dt>开发部门/单位</dt><dd>{{ app.developerDepartment }}</dd></div><div><dt>开发者</dt><dd>{{ app.developer }}</dd></div></dl><footer><a :id="`app-${app.id}`" :data-session-focus="`app-${app.id}`" :href="app.route">查看详情</a><button type="button" @click="localAction('立即使用', app)">立即使用</button><button type="button" :aria-pressed="routeSession.favorites.has(app.route)" @click="toggleFavorite(app.route)">{{ routeSession.favorites.has(app.route) ? '已收藏' : '收藏' }}</button><button type="button" @click="localAction('申请复用', app)">申请复用</button></footer></article></section>
     <section v-else class="apps-empty" role="status"><h2>暂无符合条件的应用</h2><p>请调整筛选条件或清空筛选后重试。</p><button type="button" @click="resetFilters">清空筛选</button></section>
     <footer class="apps-pagination"><strong>共 {{ filteredApps.length }} 条</strong><button type="button" aria-current="page" disabled>1</button><label>每页<select disabled><option>12条/页</option></select></label><label>跳至<input value="1" inputmode="numeric" aria-label="跳转页码" disabled />页</label></footer>
   </article>

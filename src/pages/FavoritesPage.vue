@@ -1,9 +1,10 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { FAVORITE_FIXTURES, createFavoritesController } from '../state/content-controllers.js';
+import { routeSession } from '../state/session-store.js';
 const REFERENCE_SHA256 = '9B259ED9F99029ECB68A1F2FB3EB8E745FF23692BC53CFFBD5D6A46008CEAE1A';
 const stats = [['收藏总数','28','5','/assets/favorite-stat-total.png'],['本周新增','6','2','/assets/favorite-stat-new.png'],['最近使用','8','','/assets/favorite-stat-recent.png']];
-const controller=createFavoritesController(FAVORITE_FIXTURES);
+const controller=routeSession.controller('favorites',()=>createFavoritesController(FAVORITE_FIXTURES,routeSession.favorites));
 const queryDraft=ref('');
 const filteredCards=computed(()=>controller.results);
 const pagedCards=computed(()=>controller.pagedResults);
@@ -11,17 +12,19 @@ const types=[...new Set(FAVORITE_FIXTURES.map(item=>item.type))];
 const domains=[...new Set(FAVORITE_FIXTURES.map(item=>item.domain))];
 function submit(){controller.setFilter('query',queryDraft.value);}
 function clearFilters(){queryDraft.value='';controller.resetFilters();}
-function cancelFavorite(id){controller.cancel(id);}
-function resetData(){queryDraft.value='';controller.resetData();}
+const resultTitleRef=ref(null);
+async function cancelFavorite(card){const rows=[...controller.pagedResults];const index=rows.findIndex(item=>item.id===card.id);const fallback=rows[index+1]?.id||rows[index-1]?.id;controller.cancel(card.id);if(!controller.results.some(item=>item.route===card.route))routeSession.setFavorite(card.route,false);await nextTick();restoreFavoriteFocus(fallback);}
+function restoreFavoriteFocus(id){const target=id&&document.querySelector(`[data-favorite-id="${id}"] .cancel-favorite`);(target||document.querySelector('.favorite-grid .cancel-favorite')||resultTitleRef.value)?.focus();}
+function resetData(){queryDraft.value='';controller.resetData();FAVORITE_FIXTURES.forEach(card=>routeSession.setFavorite(card.route,true));}
 </script>
 
 <template>
   <div class="favorites-page" :data-reference-sha="REFERENCE_SHA256"><p class="sr-only" aria-live="polite">{{ controller.announcement }}</p>
     <section class="favorite-hero"><img class="title-icon" src="/assets/favorite-title.png" width="59" height="59" alt="" /><div><h1>我的收藏</h1><p>集中管理您收藏的应用，快速访问常用业务应用</p></div><img class="ocean" src="/assets/favorite-hero.png" width="810" height="104" alt="海上钻井平台与船舶插图" /></section>
-    <section class="favorite-stats" aria-label="收藏数据概览"><article v-for="([label,total,increase,icon]) in stats" :key="label"><img :src="icon" width="67" height="67" alt="" /><div><strong>{{ label }}</strong><b>{{ total }}</b><small v-if="increase">较上周　<em>↑ {{ increase }}</em></small><small v-else>近7天使用的收藏应用</small></div></article></section>
+    <section class="favorite-stats" aria-label="收藏数据概览"><article v-for="([label,total,increase,icon]) in stats" :key="label"><img :src="icon" width="67" height="67" alt="" /><div><strong>{{ label }}</strong><b>{{ label==='收藏总数'?controller.activeCount:total }}</b><small v-if="increase">较上周　<em>↑ {{ increase }}</em></small><small v-else>近7天使用的收藏应用</small></div></article></section>
     <form class="favorite-filters" aria-label="收藏筛选" @submit.prevent="submit" @reset.prevent="clearFilters"><label>应用名称关键词 <input v-model="queryDraft" type="search" placeholder="请输入应用名称" /></label><label>应用类型 <select :value="controller.filters.type" @change="controller.setFilter('type',$event.target.value)"><option value="">全部类型</option><option v-for="value in types" :key="value">{{ value }}</option></select></label><label>主题域 <select :value="controller.filters.domain" @change="controller.setFilter('domain',$event.target.value)"><option value="">全部主题域</option><option v-for="value in domains" :key="value">{{ value }}</option></select></label><label>标签 <select :value="controller.filters.tag" @change="controller.setFilter('tag',$event.target.value)"><option value="">全部标签</option><option v-for="value in domains" :key="value">{{ value }}</option></select></label><button type="submit">查询</button><button type="reset">清空筛选</button></form>
-    <section class="favorite-grid" aria-label="收藏应用列表">
-      <article v-for="card in pagedCards" :key="card.id"><header><img :src="`/assets/${card.image}`" width="48" height="48" alt="" /><div><h2>{{ card.name }}</h2><mark>{{ card.type }}</mark><mark>{{ card.domain }}</mark></div><img class="heart" src="/assets/favorite-heart.png" width="18" height="18" alt="已收藏" /></header><p>{{ card.description }}</p><dl><div><dt>使用量</dt><dd>{{ card.usage }}</dd></div><div><dt>收藏</dt><dd>{{ card.favorites }}</dd></div><div><dt>所属部门</dt><dd>{{ card.domain }}部</dd></div><div><dt>负责人</dt><dd>{{ card.owner }}</dd></div><div><dt>开发部门/单位</dt><dd>信息技术中心</dd></div><div><dt>开发者</dt><dd>{{ card.developer }}</dd></div></dl><footer><button type="button" @click="controller.announcement=`${card.name}：立即使用为本地演示操作`">立即使用</button><a :href="card.route">查看详情</a><button type="button" @click="cancelFavorite(card.id)">取消收藏</button></footer></article>
+    <h2 ref="resultTitleRef" class="sr-only" tabindex="-1">收藏应用列表，共 {{ controller.activeCount }} 个</h2><section class="favorite-grid" aria-label="收藏应用列表">
+      <article v-for="card in pagedCards" :key="card.id" :data-favorite-id="card.id"><header><img :src="`/assets/${card.image}`" width="48" height="48" alt="" /><div><h2>{{ card.name }}</h2><mark>{{ card.type }}</mark><mark>{{ card.domain }}</mark></div><img class="heart" src="/assets/favorite-heart.png" width="18" height="18" alt="已收藏" /></header><p>{{ card.description }}</p><dl><div><dt>使用量</dt><dd>{{ card.usage }}</dd></div><div><dt>收藏</dt><dd>{{ card.favorites }}</dd></div><div><dt>所属部门</dt><dd>{{ card.domain }}部</dd></div><div><dt>负责人</dt><dd>{{ card.owner }}</dd></div><div><dt>开发部门/单位</dt><dd>信息技术中心</dd></div><div><dt>开发者</dt><dd>{{ card.developer }}</dd></div></dl><footer><button type="button" @click="controller.announcement=`${card.name}：立即使用为本地演示操作`">立即使用</button><a :href="card.route">查看详情</a><button class="cancel-favorite" type="button" @click="cancelFavorite(card)">取消收藏</button></footer></article>
     </section>
     <p v-if="!filteredCards.length" class="favorite-empty" role="status">暂无符合条件的收藏应用</p><footer class="favorite-pagination"><span>共 {{ filteredCards.length }} 条</span><button type="button" @click="resetData">重置演示数据</button><select aria-label="每页条数" disabled><option>12条/页</option></select><nav aria-label="分页"><button :disabled="controller.page===1" @click="controller.setPage(controller.page-1)">上一页</button><button v-for="page in controller.totalPages" :key="page" :aria-current="controller.page===page?'page':undefined" @click="controller.setPage(page)">{{ page }}</button><button :disabled="controller.page===controller.totalPages" @click="controller.setPage(controller.page+1)">下一页</button></nav></footer>
   </div>
