@@ -5,6 +5,7 @@ const root = new URL('../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');
 const shell = read('src/components/ExhibitionShell.vue');
 const messages = read('src/pages/MessagesPage.vue');
+const announcements = read('src/pages/AnnouncementsPage.vue');
 const favorites = read('src/pages/FavoritesPage.vue');
 const notice = read('src/pages/NoticeDetailPage.vue');
 const controllers = read('src/state/content-controllers.js');
@@ -34,6 +35,10 @@ assert.match(notice, /\.notice-sheet\{[^}]*background:#fafcff/,
   '通知详情主内容面板必须使用像素模拟正向的蓝白表面色');
 assert.match(messages, /\.messages-page\{[^}]*padding:27px 27px 21px 40px/,
   '消息中心主体必须按冻结参考校准顶部与左侧配准');
+assert.match(announcements, /\.announcements-page\{[^}]*padding:47px 26px 15px 39px/,
+  '公告通知主体必须按冻结参考校准顶部与左侧配准');
+assert.match(announcements, /\.announcements-page>header\{height:78px/,
+  '公告通知标题区高度必须让统计卡起点匹配冻结参考');
 assert.match(favorites, /@media\(min-width:761px\)\{\.favorites-page\{padding-top:33px\}\}/,
   '统一 63px 顶栏下，收藏页必须用 33px 顶距对齐冻结内容起点，不能改变全局顶栏');
 
