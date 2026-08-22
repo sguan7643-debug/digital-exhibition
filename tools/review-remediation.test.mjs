@@ -9,6 +9,7 @@ const training = read('src/pages/TrainingPage.vue');
 const certification = read('src/pages/CertificationPage.vue');
 const shell = read('src/components/ExhibitionShell.vue');
 const talent = read('src/pages/TalentPeoplePage.vue');
+const globalStyle = read('src/style.css');
 const calibration = JSON.parse(read('src/fixtures/visual-calibration-results.json'));
 const manifest = JSON.parse(read('src/fixtures/asset-manifest.json'));
 
@@ -51,6 +52,25 @@ for (const text of ['人才库', '所属部门：', '领域\/专业：', '责任
 assert.match(talent, /grid-template-columns:215px 128px 146px 132px 177px 60px 60px/);
 assert.match(talent, /tbody tr:first-child\{background:#eef5ff\}/);
 assert.doesNotMatch(talent, />×</);
+
+assert.match(shell, /@media\(min-width:761px\) and \(max-width:940px\)\{[^}]*grid-template-columns:150px/,
+  '845–932px 原生参考必须保留 150px 目录栏');
+assert.match(shell, /@media\(min-width:941px\) and \(max-width:1600px\)\{[^}]*grid-template-columns:180px/,
+  '963–1548px 原生参考必须保留 180px 目录栏');
+assert.doesNotMatch(globalStyle, /@media\(max-width:1000px\)\{\.product-detail/,
+  '845–963px 原生详情参考不能触发产品详情堆叠，避免整页高度膨胀');
+assert.match(globalStyle, /grid-template-columns:86px minmax\(0,1fr\) 330px/,
+  '宽幅详情页必须为同排三按钮与插画预留 330px，避免 Hero 纵向膨胀');
+assert.match(globalStyle, /@media\(min-width:761px\) and \(max-width:1000px\)[\s\S]*grid-template-columns:72px minmax\(0,1fr\) 240px/,
+  '窄幅参考仍保持三栏，但操作区收敛为 240px');
+assert.match(globalStyle, /@media\(min-width:761px\) and \(max-width:1000px\)[\s\S]*min-width:68px/,
+  '窄幅详情操作按钮必须同排，不能因 92px 最小宽度换行');
+assert.match(globalStyle, /\.rpa-detail \.detail-hero\{min-height:225px;padding:14px 18px 8px\}/,
+  'RPA Hero 必须按 1228px 原生长页密度收敛');
+assert.match(globalStyle, /\.rpa-detail \.file-list th,\.rpa-detail \.file-list td\{height:19px/,
+  'RPA 培训与附件表格必须保持冻结参考的紧凑行高');
+assert.match(globalStyle, /\.rpa-detail \.related-row article\{min-height:52px/,
+  'RPA 关联素材卡必须保持冻结参考的紧凑高度');
 
 assert.equal(calibration.schema, 'xlt-phase-1-visual-calibration-v1');
 assert.equal(calibration.result, 'failed');
