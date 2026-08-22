@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import ExhibitionShell from './components/ExhibitionShell.vue';
 import GenericPage from './pages/GenericPage.vue';
 import AnnouncementsPage from './pages/AnnouncementsPage.vue';
@@ -70,8 +70,27 @@ function restoreNormal() {
   syncLocation();
 }
 
-onMounted(() => window.addEventListener('popstate', syncLocation));
-onBeforeUnmount(() => window.removeEventListener('popstate', syncLocation));
+function handleInternalNavigation(event) {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const anchor = event.target.closest?.('a[href]');
+  if (!anchor || anchor.target || anchor.hasAttribute('download')) return;
+  const next = new URL(anchor.href, window.location.href);
+  if (next.origin !== window.location.origin) return;
+  if (next.pathname === window.location.pathname && next.search === window.location.search && next.hash) return;
+  event.preventDefault();
+  window.history.pushState({}, '', `${next.pathname}${next.search}${next.hash}`);
+  syncLocation();
+  nextTick(() => document.getElementById('main-content')?.focus());
+}
+
+onMounted(() => {
+  window.addEventListener('popstate', syncLocation);
+  document.addEventListener('click', handleInternalNavigation);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener('popstate', syncLocation);
+  document.removeEventListener('click', handleInternalNavigation);
+});
 
 const page = computed(() => current.value);
 </script>

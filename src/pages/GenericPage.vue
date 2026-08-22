@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
   page: {
@@ -10,25 +10,40 @@ const props = defineProps({
 
 const emit = defineEmits(['restore']);
 const announcement = ref('');
+const localState = ref(props.page.state);
 let loadingTimer;
 
-onMounted(() => {
-  if (props.page.state === 'loading') {
-    loadingTimer = window.setTimeout(() => {
-      announcement.value = '内容加载完成';
-      emit('restore');
-    }, 800);
-  }
-});
+function finishLoading() {
+  window.clearTimeout(loadingTimer);
+  loadingTimer = window.setTimeout(() => {
+    localState.value = 'normal';
+    announcement.value = '内容加载完成';
+    emit('restore');
+  }, 800);
+}
+function beginRetry() {
+  localState.value = 'loading';
+  announcement.value = '正在重新加载';
+  finishLoading();
+}
+function syncState(state) {
+  window.clearTimeout(loadingTimer);
+  localState.value = state;
+  announcement.value = '';
+  if (state === 'loading') finishLoading();
+}
+
+onMounted(() => syncState(props.page.state));
+watch(() => props.page.state, syncState);
 
 onBeforeUnmount(() => window.clearTimeout(loadingTimer));
 </script>
 
 <template>
-  <article class="generic-page" :data-state="page.state" :aria-busy="page.state === 'loading'">
+  <article class="generic-page" :data-state="localState" :aria-busy="localState === 'loading'">
     <p class="sr-only" aria-live="polite">{{ announcement }}</p>
 
-    <template v-if="page.state === 'normal'">
+    <template v-if="localState === 'normal'">
       <header class="page-title">
         <div><span>数智展厅</span><h1>{{ page.title }}</h1></div>
         <span class="page-role">{{ page.role }}</span>
@@ -43,27 +58,27 @@ onBeforeUnmount(() => window.clearTimeout(loadingTimer));
       </section>
     </template>
 
-    <section v-else-if="page.state === 'loading'" class="state-card" aria-live="polite">
+    <section v-else-if="localState === 'loading'" class="state-card" aria-live="polite">
       <span class="spinner" aria-hidden="true"></span><h1>{{ page.title }}</h1><p>内容加载中，请稍候。</p>
     </section>
 
-    <section v-else-if="page.state === 'empty'" class="state-card">
+    <section v-else-if="localState === 'empty'" class="state-card">
       <span class="state-symbol" aria-hidden="true">◇</span><h1>{{ page.title }}</h1><p>暂无可展示内容。</p>
       <a href="/workbench">返回工作台</a>
     </section>
 
-    <section v-else-if="page.state === 'error'" class="state-card" role="alert">
+    <section v-else-if="localState === 'error'" class="state-card" role="alert">
       <span class="state-symbol danger" aria-hidden="true">!</span><h1>{{ page.title }}</h1><p>内容加载失败，请重试。</p>
-      <button type="button" @click="$emit('restore')">重试</button>
+      <button type="button" @click="beginRetry">重试</button>
     </section>
 
-    <section v-else-if="page.state === 'disabled'" class="state-card">
+    <section v-else-if="localState === 'disabled'" class="state-card">
       <span class="state-symbol" aria-hidden="true">×</span><h1>{{ page.title }}</h1><p>该功能当前不可用。</p>
       <button type="button" disabled>暂不可用</button>
     </section>
 
-    <section v-else-if="page.state === 'permission-denied'" class="state-card" role="alert">
-      <span class="state-symbol danger" aria-hidden="true">!</span><h1>{{ page.title }}</h1><p>当前角色无权访问该页面。</p>
+    <section v-else-if="localState === 'permission-denied'" class="state-card" role="alert">
+      <span class="state-symbol danger" aria-hidden="true">!</span><h1>访问受限</h1><p>当前角色无权访问该页面。</p>
       <a href="/workbench">返回工作台</a>
     </section>
   </article>

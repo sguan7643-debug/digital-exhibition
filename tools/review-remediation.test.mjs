@@ -50,7 +50,8 @@ for (const text of ['人才库', '所属部门：', '领域\/专业：', '责任
   assert.ok(talent.includes(text), `人才库权威视觉合同缺少：${text}`);
 }
 assert.match(talent, /grid-template-columns:215px 128px 146px 132px 177px 60px 60px/);
-assert.match(talent, /tbody tr:first-child\{background:#eef5ff\}/);
+assert.match(talent, /tbody tr\[aria-selected=true\]\{background:#eef5ff\}/,
+  '人才库只能高亮用户实际选中的行，初始不得伪造首行选中');
 assert.doesNotMatch(talent, />×</);
 
 assert.match(shell, /@media\(min-width:761px\) and \(max-width:940px\)\{[^}]*grid-template-columns:150px/,
