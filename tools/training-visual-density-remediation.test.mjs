@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 
 const source = readFileSync(new URL('../src/pages/TrainingPage.vue', import.meta.url), 'utf8');
 
+assert.match(source, /\.training-page\{padding:24px 19px 18px/,
+  '培训页主体必须按 fresh 纵向配准下移 6px，保持固定壳层不变');
 assert.match(source, /\.training-hero\{[^}]*border:1px solid #f4faff/,
   '培训 Hero 外框必须使用冻结参考的低对比蓝白色');
 assert.match(source, /\.hero-stats article\{[^}]*border:1px solid #f4faff/,
