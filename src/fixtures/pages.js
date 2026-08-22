@@ -47,6 +47,8 @@ export const PAGE_MATRIX = [
 export function resolvePage(input, state = 'normal') {
   const pathname = new URL(input, 'http://127.0.0.1').pathname.replace(/\/$/, '') || '/';
   const page = PAGE_MATRIX.find(candidate => candidate.route === pathname);
-  if (!page || !page.states.includes(state)) return undefined;
-  return { ...page, state };
+  if (!page) return undefined;
+  const normalizedState=state==='empty'&&!page.empty?'normal':state;
+  if (!page.states.includes(normalizedState)) return undefined;
+  return { ...page, state:normalizedState };
 }

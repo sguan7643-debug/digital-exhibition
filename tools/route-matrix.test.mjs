@@ -64,7 +64,7 @@ assert.equal(resolvePage('/talent/people?drawer=person-001').id, '28');
 assert.equal(resolvePage('/talent/projects?drawer=create').id, '29');
 assert.equal(resolvePage('/unknown'), undefined);
 assert.equal(resolvePage('/workbench', 'loading').state, 'loading');
-assert.equal(resolvePage('/profile', 'empty'), undefined);
+assert.equal(resolvePage('/profile', 'empty').state, 'normal');
 assert.equal(resolvePage('/messages', 'empty').state, 'empty');
 
 console.log('30 路由与确定性 fixture 合同测试通过');

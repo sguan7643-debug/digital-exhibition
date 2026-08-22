@@ -37,7 +37,8 @@ assert.match(stateBoundary, /aria-busy/);
 assert.match(stateBoundary, /本地演示数据暂时不可用/);
 assert.match(stateBoundary, /当前角色无权访问该页面。/);
 assert.match(stateBoundary, /800/);
-assert.match(stateBoundary, /<div inert><slot/);
+assert.match(stateBoundary, /:inert="contentDisabled \|\| !contentVisible"/);
+assert.match(stateBoundary, /localState!==\'permission-denied\'/);
 
 assert.match(network, /localhost/);
 assert.match(network, /127\.0\.0\.1/);
