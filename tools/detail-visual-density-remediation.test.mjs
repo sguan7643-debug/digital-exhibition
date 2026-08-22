@@ -42,8 +42,8 @@ assert.match(style, /\.report-detail \.detail-hero,\.report-detail \.detail-pane
   '报表内容卡片边框必须使用冻结参考的低对比蓝白色，避免整页出现过重网格');
 assert.match(style, /\.report-detail \.detail-metrics,\.report-detail \.detail-metrics div,\.report-detail \.info-grid,\.report-detail \.info-grid div,\.report-detail \.file-list th,\.report-detail \.file-list td,\.report-detail \.training-row article,\.report-detail \.related-row article,\.report-detail \.detail-comment input\{border-color:#f4faff\}/,
   '报表内部表格、列表与输入框分隔线必须同步使用低对比边框');
-assert.match(style, /:is\(\.rpa-detail,\.dashboard-detail,\.metric-detail\) :is\(\.detail-hero,\.detail-panel,\.detail-comment,\.detail-metrics,\.info-grid,\.file-list th,\.file-list td,\.training-row article,\.related-row article,\.detail-comment input\),:is\(\.rpa-detail,\.dashboard-detail,\.metric-detail\) \.detail-metrics div,:is\(\.rpa-detail,\.dashboard-detail,\.metric-detail\) \.info-grid div\{border-color:#f4faff\}/,
-  'RPA、驾驶舱与指标详情的共享边框必须按像素模拟收敛到冻结低对比层级');
+assert.match(style, /:is\(\.rpa-detail,\.dashboard-detail,\.metric-detail,\.tool-detail,\.work-detail,\.dataset-detail,\.ai-detail,\.ead-detail\) :is\(\.detail-hero,\.detail-panel,\.detail-comment,\.detail-metrics,\.info-grid,\.file-list th,\.file-list td,\.training-row article,\.related-row article,\.detail-comment input\),:is\(\.rpa-detail,\.dashboard-detail,\.metric-detail,\.tool-detail,\.work-detail,\.dataset-detail,\.ai-detail,\.ead-detail\) \.detail-metrics div,:is\(\.rpa-detail,\.dashboard-detail,\.metric-detail,\.tool-detail,\.work-detail,\.dataset-detail,\.ai-detail,\.ead-detail\) \.info-grid div\{border-color:#f4faff\}/,
+  '八个共享详情页的边框必须按像素模拟收敛到冻结低对比层级');
 assert.doesNotMatch(dashboard, /class="detail-panel usage-panel"/,
   '驾驶舱 fresh 对照不得套用报表紧凑说明区而造成纵向回退');
 
