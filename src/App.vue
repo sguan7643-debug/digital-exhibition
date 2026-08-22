@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import ExhibitionShell from './components/ExhibitionShell.vue';
-import GenericPage from './pages/GenericPage.vue';
+import PageStateBoundary from './components/PageStateBoundary.vue';
 import AnnouncementsPage from './pages/AnnouncementsPage.vue';
 import FavoritesPage from './pages/FavoritesPage.vue';
 import MessagesPage from './pages/MessagesPage.vue';
@@ -114,37 +114,38 @@ const page = computed(() => current.value);
 
 <template>
   <exhibition-shell :page="page">
-    <workbench-page v-if="page.id === '01' && page.state === 'normal'" />
-    <messages-page v-else-if="page.id === '02' && page.state === 'normal'" />
-    <favorites-page v-else-if="page.id === '03' && page.state === 'normal'" />
-    <profile-page v-else-if="page.id === '04' && page.state === 'normal'" />
-    <announcements-page v-else-if="page.id === '05'" :state="page.state" @restore="restoreNormal" />
-    <notice-detail-page v-else-if="page.id === '06'" :state="page.state" @restore="restoreNormal" />
-    <apps-page v-else-if="page.id === '07' && page.state === 'normal'" />
-    <tool-detail-page v-else-if="page.id === '08' && page.state === 'normal'" />
-    <haineng-work-detail-page v-else-if="page.id === '09' && page.state === 'normal'" />
-    <report-detail-page v-else-if="page.id === '10' && page.state === 'normal'" />
-    <dashboard-detail-page v-else-if="page.id === '11' && page.state === 'normal'" />
-    <dataset-detail-page v-else-if="page.id === '12' && page.state === 'normal'" />
-    <metric-detail-page v-else-if="page.id === '13' && page.state === 'normal'" />
-    <ai-detail-page v-else-if="page.id === '14' && page.state === 'normal'" />
-    <ead-detail-page v-else-if="page.id === '15' && page.state === 'normal'" />
-    <rpa-detail-page v-else-if="page.id === '16' && page.state === 'normal'" />
-    <onboarding-page v-else-if="page.id === '17' && page.state === 'normal'" />
-    <points-page v-else-if="page.id === '18' && page.state === 'normal'" />
-    <points-details-page v-else-if="page.id === '19' && page.state === 'normal'" />
-    <training-page v-else-if="page.id === '20' && page.state === 'normal'" />
-    <operations-page v-else-if="page.id === '21' && page.state === 'normal'" />
-    <announcement-admin-page v-else-if="page.id === '22' && page.state === 'normal'" />
-    <announcement-editor-page v-else-if="page.id === '23' && page.state === 'normal'" />
-    <app-admin-page v-else-if="page.id === '24' && page.state === 'normal'" />
-    <app-editor-page v-else-if="page.id === '25' && page.state === 'normal'" />
-    <admin-page v-else-if="page.id === '26' && page.state === 'normal'" />
-    <certification-page v-else-if="page.id === '27' && page.state === 'normal'" />
-    <talent-people-page v-else-if="page.id === '28' && page.state === 'normal'" />
-    <talent-projects-page v-else-if="page.id === '29' && page.state === 'normal'" />
-    <talent-progress-page v-else-if="page.id === '30' && page.state === 'normal'" />
-    <portal-page v-else-if="page.state === 'normal'" :page="page" />
-    <generic-page v-else :page="page" @restore="restoreNormal" />
+    <page-state-boundary :page="page" :state="page.state" @restore="restoreNormal">
+      <workbench-page v-if="page.id === '01'" />
+      <messages-page v-else-if="page.id === '02'" />
+      <favorites-page v-else-if="page.id === '03'" />
+      <profile-page v-else-if="page.id === '04'" />
+      <announcements-page v-else-if="page.id === '05'" />
+      <notice-detail-page v-else-if="page.id === '06'" />
+      <apps-page v-else-if="page.id === '07'" />
+      <tool-detail-page v-else-if="page.id === '08'" />
+      <haineng-work-detail-page v-else-if="page.id === '09'" />
+      <report-detail-page v-else-if="page.id === '10'" />
+      <dashboard-detail-page v-else-if="page.id === '11'" />
+      <dataset-detail-page v-else-if="page.id === '12'" />
+      <metric-detail-page v-else-if="page.id === '13'" />
+      <ai-detail-page v-else-if="page.id === '14'" />
+      <ead-detail-page v-else-if="page.id === '15'" />
+      <rpa-detail-page v-else-if="page.id === '16'" />
+      <onboarding-page v-else-if="page.id === '17'" />
+      <points-page v-else-if="page.id === '18'" />
+      <points-details-page v-else-if="page.id === '19'" />
+      <training-page v-else-if="page.id === '20'" />
+      <operations-page v-else-if="page.id === '21'" />
+      <announcement-admin-page v-else-if="page.id === '22'" />
+      <announcement-editor-page v-else-if="page.id === '23'" />
+      <app-admin-page v-else-if="page.id === '24'" />
+      <app-editor-page v-else-if="page.id === '25'" />
+      <admin-page v-else-if="page.id === '26'" />
+      <certification-page v-else-if="page.id === '27'" />
+      <talent-people-page v-else-if="page.id === '28'" />
+      <talent-projects-page v-else-if="page.id === '29'" />
+      <talent-progress-page v-else-if="page.id === '30'" />
+      <portal-page v-else :page="page" />
+    </page-state-boundary>
   </exhibition-shell>
 </template>
