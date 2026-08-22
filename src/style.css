@@ -45,6 +45,13 @@ p { margin: 0; }
 .product-detail .usage-panel .related-row article{min-height:44px;padding:2px 8px;border:0}
 .report-detail .info-grid div{min-height:33px}
 .report-detail .detail-hero{padding-top:44px}
+.report-detail .detail-hero{min-height:350px;padding:44px 14px 13px}
+.report-detail .detail-hero-main{grid-template-columns:80px minmax(0,1fr) 220px;gap:27px}
+.report-detail .detail-logo{width:80px;height:94px;border-radius:0}
+.report-detail .detail-title>p:nth-of-type(2){position:absolute;left:22px;top:177px}
+.report-detail .detail-tags{position:absolute;left:22px;top:215px;margin:0}
+.report-detail .detail-metrics{position:absolute;left:14px;right:14px;bottom:12px;margin:0;padding-top:14px}
+.report-detail .preview-wide{width:640px;max-width:100%}
 .report-detail .detail-hero,.report-detail .detail-panel,.report-detail .detail-comment{border-color:#f4faff}
 .report-detail .detail-metrics,.report-detail .detail-metrics div,.report-detail .info-grid,.report-detail .info-grid div,.report-detail .file-list th,.report-detail .file-list td,.report-detail .training-row article,.report-detail .related-row article,.report-detail .detail-comment input{border-color:#f4faff}
 .report-detail figcaption{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
@@ -61,7 +68,7 @@ p { margin: 0; }
 .dashboard-detail .info-grid div{min-height:41px}
 .dashboard-detail figcaption{position:static;width:auto;height:auto;padding:0;margin-top:10px;overflow:visible;clip:auto;white-space:normal;border:0}
 .metric-detail .detail-crumb{height:32px}
-@media(max-width:760px){.product-detail .detail-hero-main{grid-template-columns:72px 1fr}.product-detail .detail-hero-side{grid-column:1/-1;justify-content:flex-start}.product-detail .detail-metrics{grid-template-columns:repeat(4,1fr)}.product-detail .training-row,.product-detail .related-row{grid-template-columns:repeat(2,1fr)}.dashboard-detail .detail-title>p:nth-of-type(2),.dashboard-detail .detail-tags,.dashboard-detail .detail-metrics{position:static;margin-top:11px}.dashboard-detail .detail-hero{padding:24px 16px 13px}.dashboard-detail .detail-logo{width:72px;height:72px}.dashboard-detail .detail-hero-main{grid-template-columns:72px 1fr;gap:18px}}
+@media(max-width:760px){.product-detail .detail-hero-main{grid-template-columns:72px 1fr}.product-detail .detail-hero-side{grid-column:1/-1;justify-content:flex-start}.product-detail .detail-metrics{grid-template-columns:repeat(4,1fr)}.product-detail .training-row,.product-detail .related-row{grid-template-columns:repeat(2,1fr)}.dashboard-detail .detail-title>p:nth-of-type(2),.dashboard-detail .detail-tags,.dashboard-detail .detail-metrics,.report-detail .detail-title>p:nth-of-type(2),.report-detail .detail-tags,.report-detail .detail-metrics{position:static;margin-top:11px}.dashboard-detail .detail-hero,.report-detail .detail-hero{padding:24px 16px 13px}.dashboard-detail .detail-logo,.report-detail .detail-logo{width:72px;height:72px}.dashboard-detail .detail-hero-main,.report-detail .detail-hero-main{grid-template-columns:72px 1fr;gap:18px}}
 @media(max-width:700px){.product-detail{padding:8px}.product-detail .detail-hero-main{grid-template-columns:1fr}.product-detail .detail-logo{width:68px;height:68px}.product-detail .detail-metrics,.product-detail .info-grid,.product-detail .feature-grid,.product-detail .training-row,.product-detail .related-row{grid-template-columns:1fr}.product-detail .detail-comment{position:static;grid-template-columns:1fr}.product-detail .detail-comment button{height:36px}}
 
 @media (forced-colors: active) {

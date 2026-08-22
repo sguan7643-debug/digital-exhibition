@@ -38,6 +38,20 @@ assert.match(style, /\.report-detail \.info-grid div\{min-height:33px/,
   '报表简介表格必须使用 fresh 对照的紧凑行高');
 assert.match(style, /\.report-detail \.detail-hero\{padding-top:44px\}/,
   '报表 Hero 主内容必须下移 20px 对齐冻结标题与插画起点');
+assert.match(style, /\.report-detail \.detail-hero\{min-height:350px;padding:44px 14px 13px\}/,
+  '报表 Hero 必须按冻结参考校准 14px 左右留白与 44px 顶部留白');
+assert.match(style, /\.report-detail \.detail-hero-main\{grid-template-columns:80px minmax\(0,1fr\) 220px;gap:27px\}/,
+  '报表 Hero 必须保留原生 80px Logo、27px 标题间距与 220px 操作区');
+assert.match(style, /\.report-detail \.detail-logo\{width:80px;height:94px;border-radius:0\}/,
+  '报表 Logo 必须保持冻结原子素材 80×94 的原生比例');
+assert.match(style, /\.report-detail \.detail-title>p:nth-of-type\(2\)\{position:absolute;left:22px;top:177px\}/,
+  '报表 URL 行必须回到冻结参考的 Logo 下方整行位置');
+assert.match(style, /\.report-detail \.detail-tags\{position:absolute;left:22px;top:215px;margin:0\}/,
+  '报表关键词必须回到冻结参考的整行位置');
+assert.match(style, /\.report-detail \.detail-metrics\{position:absolute;left:14px;right:14px;bottom:12px;margin:0;padding-top:14px\}/,
+  '报表指标行必须锚定 Hero 底部，保持长页纵向基线');
+assert.match(style, /\.report-detail \.preview-wide\{width:640px;max-width:100%\}/,
+  '报表演示截图必须保持同源 640px 原子素材宽度');
 assert.match(style, /\.report-detail \.detail-hero,\.report-detail \.detail-panel,\.report-detail \.detail-comment\{border-color:#f4faff\}/,
   '报表内容卡片边框必须使用冻结参考的低对比蓝白色，避免整页出现过重网格');
 assert.match(style, /\.report-detail \.detail-metrics,\.report-detail \.detail-metrics div,\.report-detail \.info-grid,\.report-detail \.info-grid div,\.report-detail \.file-list th,\.report-detail \.file-list td,\.report-detail \.training-row article,\.report-detail \.related-row article,\.report-detail \.detail-comment input\{border-color:#f4faff\}/,
