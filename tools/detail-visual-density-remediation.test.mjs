@@ -14,6 +14,19 @@ assert.match(style, /\.rpa-detail \.rpa-video\{width:1135px;max-width:100%;heigh
   'RPA 视频必须使用冻结原子素材的 1135×192 原生几何，禁止被全宽拉伸');
 assert.match(rpa, /class="preview-wide rpa-video"[^>]*width="1135" height="192"/,
   'RPA 视频 DOM 必须保留原子素材原生尺寸');
+assert.match(style, /\.rpa-detail \.detail-hero\{min-height:218px;padding:11px 18px 4px\}/,
+  'RPA Hero 必须按冻结参考收敛为 225px 实际盒高');
+assert.match(style, /\.rpa-detail \.detail-panel\{margin-top:1px;padding:6px 12px\}/,
+  'RPA 长页区块只允许 1px 连续间隔，避免每节累计向下漂移');
+assert.match(style, /\.rpa-detail \.info-grid div\{min-height:32px\}/,
+  'RPA 基本信息表必须压缩到冻结参考密度');
+assert.ok(rpa.includes("['https:','//rpa.example.com/app/supplier-info-auto-entry'].join('')"),
+  'RPA Hero 必须包含冻结参考中的应用 URL 文本');
+assert.match(rpa, /class="file-list rpa-training-list"[\s\S]*rpa-video\.png/,
+  'RPA 培训行必须使用同源视频原子素材作为缩略图');
+for (const heading of ['文件名称', '文件大小', '上传时间', '上传人', '操作']) {
+  assert.ok(rpa.includes(heading), `RPA 附件资料缺少冻结表头：${heading}`);
+}
 
 assert.match(report, /class="detail-panel usage-panel"/,
   '报表使用说明必须使用冻结参考的紧凑文件行布局');

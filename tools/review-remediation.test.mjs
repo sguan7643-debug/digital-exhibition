@@ -92,8 +92,8 @@ assert.match(globalStyle, /@media\(min-width:761px\) and \(max-width:1000px\)[\s
   '窄幅参考仍保持三栏，但操作区收敛为 240px');
 assert.match(globalStyle, /@media\(min-width:761px\) and \(max-width:1000px\)[\s\S]*min-width:68px/,
   '窄幅详情操作按钮必须同排，不能因 92px 最小宽度换行');
-assert.match(globalStyle, /\.rpa-detail \.detail-hero\{min-height:225px;padding:14px 18px 8px\}/,
-  'RPA Hero 必须按 1228px 原生长页密度收敛');
+assert.match(globalStyle, /\.rpa-detail \.detail-hero\{min-height:218px;padding:11px 18px 4px\}/,
+  'RPA Hero 必须按 fresh 1228px 对照收敛到 225px 实际盒高');
 assert.match(globalStyle, /\.rpa-detail \.file-list th,\.rpa-detail \.file-list td\{height:19px/,
   'RPA 培训与附件表格必须保持冻结参考的紧凑行高');
 assert.match(globalStyle, /\.rpa-detail \.related-row article\{min-height:52px/,

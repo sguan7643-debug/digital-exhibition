@@ -19,21 +19,29 @@ p { margin: 0; }
 
 .product-detail .detail-hero-main{grid-template-columns:86px minmax(0,1fr) 330px}
 @media(min-width:761px) and (max-width:1000px){.product-detail{padding-inline:10px}.product-detail .detail-hero-main{grid-template-columns:72px minmax(0,1fr) 240px}.product-detail .detail-hero-side button{min-width:68px;padding-inline:8px;font-size:10px}.product-detail .detail-metrics div{min-width:0;padding:0 4px}.product-detail .detail-metrics dt,.product-detail .detail-metrics dd{overflow-wrap:anywhere}.product-detail .info-grid div{min-width:0;grid-template-columns:115px minmax(0,1fr)}.product-detail .info-grid dd{overflow-wrap:anywhere}}
-.rpa-detail .detail-hero{min-height:225px;padding:14px 18px 8px}
+.rpa-detail .detail-hero{min-height:218px;padding:11px 18px 4px}
 .rpa-detail .detail-crumb,.report-detail .detail-crumb{height:21px}
 .rpa-detail .detail-hero-main{grid-template-columns:80px minmax(0,1fr) 330px;gap:14px}
 .rpa-detail .detail-hero-side button{height:29px}
 .rpa-detail .detail-illustration{height:92px;margin-top:4px}
 .rpa-detail .rpa-metrics{margin-top:8px;padding-top:7px}
 .rpa-detail .rpa-metrics div{min-height:38px;padding:0 7px}
-.rpa-detail .detail-panel{margin-top:7px;padding:8px 12px}
+.rpa-detail .detail-panel{margin-top:1px;padding:6px 12px}
 .rpa-detail .detail-panel>h2{margin-bottom:7px}
 .rpa-detail .rpa-video{width:1135px;max-width:100%;height:192px;object-fit:contain}
-.rpa-detail .info-grid div{min-height:34px}
+.rpa-detail .info-grid div{min-height:32px}
 .rpa-detail .file-list th,.rpa-detail .file-list td{height:19px;padding-inline:7px}
 .rpa-detail .related-row article{min-height:52px;padding:5px}
 .rpa-detail .related-row img{width:42px;height:42px}
 .rpa-detail .rpa-flow li{min-height:68px;padding:10px}
+.rpa-detail .rpa-training-list td:first-child{width:54px}
+.rpa-detail .rpa-training-list td:nth-child(3){width:180px}
+.rpa-detail .rpa-training-list td:last-child{width:72px}
+.rpa-detail .rpa-training-list img{width:45px;height:16px;object-fit:cover}
+.rpa-detail .rpa-attachments th:first-child{width:38%}
+.rpa-detail .rpa-attachments th:nth-child(2){width:16%}
+.rpa-detail .rpa-attachments th:nth-child(3){width:22%}
+.rpa-detail .rpa-attachments th:nth-child(4){width:15%}
 .product-detail .usage-panel .related-row article{min-height:44px;padding:2px 8px;border:0}
 .report-detail .info-grid div{min-height:33px}
 .report-detail figcaption{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
