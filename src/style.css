@@ -20,6 +20,7 @@ p { margin: 0; }
 .product-detail .detail-hero-main{grid-template-columns:86px minmax(0,1fr) 330px}
 @media(min-width:761px) and (max-width:1000px){.product-detail{padding-inline:10px}.product-detail .detail-hero-main{grid-template-columns:72px minmax(0,1fr) 240px}.product-detail .detail-hero-side button{min-width:68px;padding-inline:8px;font-size:10px}.product-detail .detail-metrics div{min-width:0;padding:0 4px}.product-detail .detail-metrics dt,.product-detail .detail-metrics dd{overflow-wrap:anywhere}.product-detail .info-grid div{min-width:0;grid-template-columns:115px minmax(0,1fr)}.product-detail .info-grid dd{overflow-wrap:anywhere}}
 .rpa-detail .detail-hero{min-height:225px;padding:14px 18px 8px}
+.rpa-detail .detail-crumb,.report-detail .detail-crumb{height:21px}
 .rpa-detail .detail-hero-main{grid-template-columns:80px minmax(0,1fr) 330px;gap:14px}
 .rpa-detail .detail-hero-side button{height:29px}
 .rpa-detail .detail-illustration{height:92px;margin-top:4px}
@@ -27,11 +28,19 @@ p { margin: 0; }
 .rpa-detail .rpa-metrics div{min-height:38px;padding:0 7px}
 .rpa-detail .detail-panel{margin-top:7px;padding:8px 12px}
 .rpa-detail .detail-panel>h2{margin-bottom:7px}
+.rpa-detail .rpa-video{width:1135px;max-width:100%;height:192px;object-fit:contain}
 .rpa-detail .info-grid div{min-height:34px}
 .rpa-detail .file-list th,.rpa-detail .file-list td{height:19px;padding-inline:7px}
 .rpa-detail .related-row article{min-height:52px;padding:5px}
 .rpa-detail .related-row img{width:42px;height:42px}
 .rpa-detail .rpa-flow li{min-height:68px;padding:10px}
+.product-detail .usage-panel .related-row article{min-height:44px;padding:2px 8px;border:0}
+.report-detail .info-grid div{min-height:33px}
+.report-detail figcaption{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.dashboard-detail .detail-crumb{height:32px}
+.dashboard-detail .info-grid div{min-height:41px}
+.dashboard-detail figcaption{position:static;width:auto;height:auto;padding:0;margin-top:10px;overflow:visible;clip:auto;white-space:normal;border:0}
+.metric-detail .detail-crumb{height:32px}
 @media(max-width:760px){.product-detail .detail-hero-main{grid-template-columns:72px 1fr}.product-detail .detail-hero-side{grid-column:1/-1;justify-content:flex-start}.product-detail .detail-metrics{grid-template-columns:repeat(4,1fr)}.product-detail .training-row,.product-detail .related-row{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){.product-detail{padding:8px}.product-detail .detail-hero-main{grid-template-columns:1fr}.product-detail .detail-logo{width:68px;height:68px}.product-detail .detail-metrics,.product-detail .info-grid,.product-detail .feature-grid,.product-detail .training-row,.product-detail .related-row{grid-template-columns:1fr}.product-detail .detail-comment{position:static;grid-template-columns:1fr}.product-detail .detail-comment button{height:36px}}
 
