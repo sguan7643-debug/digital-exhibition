@@ -562,13 +562,13 @@
         941
       ],
       "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\26.png",
-      "screenshotFileSha256": "861A3D39004FB565AA7E0FFEB9E5EB28FCEFF658151CC3624A3490C82F68A419",
-      "screenshotRgbSha256": "6DBE3BE22AC2778E6F3B3BEBD47D873ABEF880C8750BCDB4983F4E83F6D09B30",
+      "screenshotFileSha256": "4058446024D6984D44A1D8E5C8EF6F97C5AEFA74D44D892B975144FB56A33E33",
+      "screenshotRgbSha256": "5279B60DE87E31057538FF2DAE4E8C7743C3E58880FEAB95B5F2CA6E0747B9EA",
       "actualSize": [
         1672,
         941
       ],
-      "rawFloatSsim": 0.6830217793227756,
+      "rawFloatSsim": 0.7195380065837095,
       "status": "failed",
       "failure": "below-threshold"
     },
@@ -583,13 +583,13 @@
         941
       ],
       "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\27.png",
-      "screenshotFileSha256": "D33F062AEE9B8F79AC3D2A9A5BD771E4DCE1394B662DF996E5DC0111F1E83127",
-      "screenshotRgbSha256": "8DDE9DD5D82A2B66E7CD77C22DA437BC8C9FB0CF47223CE9752F8F7BC1B06180",
+      "screenshotFileSha256": "4FE196463CA548ECFECA3DE91F58064E92647AAECCFC46C81240D3961DC9F9F5",
+      "screenshotRgbSha256": "76F37698750635AAB4E2FB7693D7A385D0B615EB9F82F1133DBCC33D0C5E926D",
       "actualSize": [
         1672,
         941
       ],
-      "rawFloatSsim": 0.6845955130166216,
+      "rawFloatSsim": 0.7152823293585131,
       "status": "failed",
       "failure": "below-threshold"
     },
@@ -604,13 +604,13 @@
         941
       ],
       "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\28.png",
-      "screenshotFileSha256": "21DA9C44446FBFCA3F77F295C1669448965321D69FB3B4134E82A1ACB32CDED4",
-      "screenshotRgbSha256": "B93BF111D2759004EB0941B8CCD8F85794A7760E58DEF0321DE2255E8B550D9E",
+      "screenshotFileSha256": "9C0BE3C7FAB0FA5A85BB4BC13999D0FC257D41F98A369F66E3FD5530DC289509",
+      "screenshotRgbSha256": "87A026808049EF4473815A36C07AF4D22F43BDB18560215431E37A4C80EAC7D2",
       "actualSize": [
         1672,
         941
       ],
-      "rawFloatSsim": 0.7230593688104706,
+      "rawFloatSsim": 0.7611432237511866,
       "status": "failed",
       "failure": "below-threshold"
     },
@@ -625,13 +625,13 @@
         941
       ],
       "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\29.png",
-      "screenshotFileSha256": "922654594D3B17654A5321850D6DF1A668369BB4D9D3A0E592202C6786E01CCC",
-      "screenshotRgbSha256": "946A5B38F5F6AFD206AFE5D5BFAEB06F06273C2F033E28278DDD9500282986DE",
+      "screenshotFileSha256": "13EEC1D380D1D505271B66490C37C0E5477AD92CA5AEB215D370E3EC838F889E",
+      "screenshotRgbSha256": "3955F5D2816BB707FA8F98CE944569FE22961AC060C28B52D8C0051AF78F1B06",
       "actualSize": [
         1672,
         941
       ],
-      "rawFloatSsim": 0.7473454372218079,
+      "rawFloatSsim": 0.783708252149606,
       "status": "failed",
       "failure": "below-threshold"
     },
@@ -646,13 +646,13 @@
         941
       ],
       "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\30.png",
-      "screenshotFileSha256": "0232C239085C4583CA4F05233EAD1FEEAD0B661D7AD18887D41DE36D7BE8AE97",
-      "screenshotRgbSha256": "35E658D5BA366A4780B2063ABBE3CC5E8ED4F7BFE90A828A3A25414488755C77",
+      "screenshotFileSha256": "7AAE9B172BF1B7C82A44F187A5B8119911A4845A9E0E3F292A9CA132E25CDFB9",
+      "screenshotRgbSha256": "C5E79DDB542D81669AD8AA52CEFD95F557932FD85CB722B11BE3F48448DADD2C",
       "actualSize": [
         1672,
         941
       ],
-      "rawFloatSsim": 0.7454967659170731,
+      "rawFloatSsim": 0.7830094132407681,
       "status": "failed",
       "failure": "below-threshold"
     }
