@@ -57,6 +57,22 @@ assert.match(shell, /@media\(min-width:761px\) and \(max-width:940px\)\{[^}]*gri
   '845–932px 原生参考必须保留 150px 目录栏');
 assert.match(shell, /@media\(min-width:941px\) and \(max-width:1600px\)\{[^}]*grid-template-columns:180px/,
   '963–1548px 原生参考必须保留 180px 目录栏');
+assert.match(shell, /\.exhibition-shell\{height:100vh;overflow:hidden;display:grid;grid-template-rows:auto minmax\(0,1fr\)\}/,
+  '页面壳必须锁定 viewport，禁止 document 整体纵向滚动');
+assert.match(shell, /\.page-frame\{min-height:0;[^}]*grid-template-columns:220px minmax\(0,1fr\)\}/,
+  '固定顶栏下方区域必须允许右侧滚动容器收缩');
+assert.match(shell, /\.sidebar\{min-height:0;[^}]*overflow-y:auto/,
+  '左侧导航必须固定在壳层并在自身内容超高时独立滚动');
+assert.match(shell, /main\{min-width:0;min-height:0;overflow-y:auto/,
+  '只有右侧主要内容区域可以纵向滚动');
+assert.match(shell, /'certification-shell': props\.page\.id === '27'/,
+  '数字化认证必须有冻结参考专属的壳层视觉几何标识');
+assert.match(shell, /\.certification-shell \.topbar\{height:90px\}/,
+  '数字化认证参考要求 90px 顶部导航高度');
+assert.match(shell, /\.certification-shell \.page-frame\{grid-template-columns:242px minmax\(0,1fr\)\}/,
+  '数字化认证参考要求 242px 左侧导航宽度');
+assert.match(certification, /\.cert-page\{padding:17px 23px 17px 15px/,
+  '最低 SSIM 的数字化认证页必须按冻结参考保留左 15px、右 23px 内容边距');
 assert.doesNotMatch(globalStyle, /@media\(max-width:1000px\)\{\.product-detail/,
   '845–963px 原生详情参考不能触发产品详情堆叠，避免整页高度膨胀');
 assert.match(globalStyle, /grid-template-columns:86px minmax\(0,1fr\) 330px/,
