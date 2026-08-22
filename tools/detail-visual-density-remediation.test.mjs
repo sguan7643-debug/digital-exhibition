@@ -46,6 +46,20 @@ assert.match(style, /:is\(\.rpa-detail,\.dashboard-detail,\.metric-detail,\.tool
   '八个共享详情页的边框必须按像素模拟收敛到冻结低对比层级');
 assert.doesNotMatch(dashboard, /class="detail-panel usage-panel"/,
   '驾驶舱 fresh 对照不得套用报表紧凑说明区而造成纵向回退');
+assert.match(style, /\.dashboard-detail \.detail-hero\{min-height:350px;padding:32px 16px 13px\}/,
+  '驾驶舱 Hero 必须按冻结参考校准顶部与左右留白');
+assert.match(style, /\.dashboard-detail \.detail-logo\{width:81px;height:95px;border-radius:0\}/,
+  '驾驶舱 Logo 必须保持冻结原子素材的 81×95 原生比例');
+assert.match(style, /\.dashboard-detail \.detail-title>p:nth-of-type\(2\)\{position:absolute;left:16px;top:166px\}/,
+  '驾驶舱 URL 行必须回到冻结参考的 Logo 下方整行位置');
+assert.match(style, /\.dashboard-detail \.detail-tags\{position:absolute;left:16px;top:201px;margin:0\}/,
+  '驾驶舱关键词必须回到冻结参考的整行位置');
+assert.match(style, /\.dashboard-detail \.detail-metrics\{position:absolute;left:16px;right:16px;bottom:12px;margin:0;padding-top:14px\}/,
+  '驾驶舱指标行必须锚定 Hero 底部，避免上移后留下大块空白');
+assert.match(style, /\.dashboard-detail \.preview-wide\{width:650px;max-width:100%\}/,
+  '驾驶舱演示截图必须保持同源原子素材 650px 宽度，不得全宽拉伸');
+assert.match(style, /\.dashboard-detail \.detail-title h1\{font-size:20px\}/,
+  '驾驶舱标题字号必须收敛到冻结 20px 层级');
 
 assert.match(style, /\.metric-detail \.detail-crumb\{height:32px\}/,
   '本批 RPA/报表共享密度修复不得改动尚未证实改善的指标页纵向基线');
