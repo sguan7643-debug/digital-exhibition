@@ -58,6 +58,7 @@ export function createTalentController(fixtures) {
     filters: { query:'', department:'', domain:'', office:'', inPool:'' },
     selectedId: null,
     page: 1,
+    pageSize: 10,
     announcement: '',
     get results() {
       const query = normalize(this.filters.query);
@@ -71,6 +72,8 @@ export function createTalentController(fixtures) {
     },
     get selected() { return this.fixtures.find(person => person.id === this.selectedId) || null; },
     get drawerOpen() { return Boolean(this.selected); },
+    get totalPages() { return Math.max(1, Math.ceil(this.results.length / this.pageSize)); },
+    get pagedResults() { const start=(this.page-1)*this.pageSize; return this.results.slice(start,start+this.pageSize); },
     setFilter(key, value) {
       if (!(key in this.filters)) throw new TypeError(`Unknown talent filter: ${key}`);
       this.filters[key] = value; this.page = 1;
@@ -82,6 +85,12 @@ export function createTalentController(fixtures) {
       this.announcement = `已打开${this.selected.name}的人才详情`;
     },
     close() { this.selectedId = null; this.announcement = '人才详情已关闭'; },
+    setPage(value) {
+      const next=Math.min(this.totalPages,Math.max(1,Number(value)||1));
+      this.page=next;
+      if(this.selectedId && !this.pagedResults.some(person=>person.id===this.selectedId)) this.selectedId=null;
+      this.announcement=`已切换到第 ${this.page} 页`;
+    },
     reset() {
       Object.assign(this.filters, { query:'', department:'', domain:'', office:'', inPool:'' });
       this.selectedId = null; this.page = 1;

@@ -20,6 +20,13 @@ export const PEOPLE_FIXTURES = Object.freeze([
   ['person-008','郑十','33','是','管理人才','市场营销部','市场营销','市场策划科','市场分析 品牌推广','市场经理','2025-05-05','2025-11-05'],
   ['person-009','钱十一','29','否','专业技术人才','技术支持部','运维管理','运维保障科','系统运维 故障处理','运维主管','—','—'],
   ['person-010','陈十二','36','是','技术专家','技术研发部','云计算','云平台科','云架构 容器技术','云架构专家','2025-08-15','2026-02-15']
-].map(([id,name,age,inPool,type,department,domain,office,tags,direction,start,end]) => Object.freeze({ id,name,age,inPool,type,department,domain,office,tags,direction,start,end })));
+].concat(Array.from({ length: 22 }, (_, index) => {
+  const number = index + 11;
+  const departments = ['技术研发部','生产运营部','采购管理部','信息技术部'];
+  const domains = ['软件工程','生产管理','采购管理','数据治理'];
+  const offices = ['研发三科','生产计划科','采购业务科','数据治理科'];
+  const slot = index % departments.length;
+  return [`person-${String(number).padStart(3,'0')}`,`合成人才${String(number).padStart(2,'0')}`,String(26+(index%12)),index%5===0?'否':'是',index%3===0?'管理人才':'专业技术人才',departments[slot],domains[slot],offices[slot],`能力标签${number} 专业实践`,`培养方向${number}`,index%5===0?'—':'2025-09-01',index%5===0?'—':'2026-03-01'];
+})).map(([id,name,age,inPool,type,department,domain,office,tags,direction,start,end]) => Object.freeze({ id,name,age,inPool,type,department,domain,office,tags,direction,start,end })));
 
 export const APP_CATEGORIES = Object.freeze(['RPA','大屏','驾驶舱','可视化报表','指标','数据集','AI','海能work应用']);

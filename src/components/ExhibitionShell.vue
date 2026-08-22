@@ -30,7 +30,8 @@ function active(route) {
 }
 function setCategory(label) {
   if (props.page.id !== '07') {
-    window.location.assign(`/apps?category=${encodeURIComponent(label)}`);
+    window.history.pushState({}, '', `/apps?category=${encodeURIComponent(label)}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
     return;
   }
   const next = new URL(window.location.href);
@@ -42,7 +43,8 @@ function setCategory(label) {
 function setScene(scene) {
   if (props.page.id !== '07') {
     const suffix = scene ? `?scene=${encodeURIComponent(scene)}` : '';
-    window.location.assign(`/apps${suffix}`);
+    window.history.pushState({}, '', `/apps${suffix}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
     return;
   }
   const next = new URL(window.location.href);
@@ -89,6 +91,9 @@ onBeforeUnmount(() => window.removeEventListener('popstate', syncShellFilters));
           <span class="toggle-chevron" aria-hidden="true"></span><span>{{ sidebarExpanded ? '收起' : '展开' }}</span>
         </button>
         <p class="sr-only" aria-live="polite">{{ shellState.announcement }}</p>
+        <nav v-if="!sidebarExpanded" class="compact-sidebar-nav" aria-label="收起的左侧导航">
+          <a v-for="([route,label,icon]) in simpleNav" :key="`compact-${route}`" :href="route" :aria-label="label" :aria-current="active(route) ? 'page' : undefined"><img :src="icon" width="22" height="24" alt="" /></a>
+        </nav>
         <div id="sidebar-content" v-show="sidebarExpanded">
         <template v-if="isCatalogue">
           <section class="catalogue-group">
@@ -146,6 +151,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', syncShellFilters));
 .page-frame{min-height:0;overflow:hidden;display:grid;transition:grid-template-columns .18s ease;grid-template-columns:220px minmax(0,1fr)}.page-frame.sidebar-collapsed{grid-template-columns:52px minmax(0,1fr)}.sidebar{min-height:0;position:relative;background:#fff;border-right:1px solid #dce4ed;overflow-y:auto}.sidebar-toggle{width:100%;height:31px;display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:0 12px;color:#176ee6;background:#fff;border:0;border-bottom:1px solid #eef2f6;font-size:10px}.toggle-chevron{width:7px;height:7px;border-left:1px solid currentColor;border-bottom:1px solid currentColor;transform:rotate(45deg)}.sidebar-collapsed .toggle-chevron{transform:rotate(225deg)}.sidebar-collapsed .sidebar-toggle{height:48px;justify-content:center;padding:0;flex-direction:column}.sidebar-collapsed .sidebar-toggle span:last-child{font-size:9px}.catalogue-group{padding:9px 15px 8px;border-bottom:1px solid #e7edf3}.catalogue-group h2,.scene-search h2{height:28px;display:flex;align-items:center;gap:9px;margin:0;color:#203451;font-size:13px;font-weight:700}.catalogue-group h2>img{width:22px;height:24px;object-fit:contain}.catalogue-group nav{display:grid}.catalogue-group nav a,.catalogue-group nav button{height:29px;display:flex;align-items:center;gap:10px;padding-left:1px;color:#223b5d;background:transparent;border:0;text-align:left;font-size:12px}.catalogue-group nav button[aria-pressed=true]{color:#086fe8;background:#eaf3ff}.catalogue-group nav a>img,.catalogue-group nav button>img{width:18px;height:18px;object-fit:contain}.app-group{padding-top:7px}
 .scene-search{padding:10px 19px}.scene-search h2{font-size:14px}.scene-search label{height:31px;display:flex;align-items:center;padding:0 8px;border:1px solid #d7e1ec;border-radius:4px}.scene-search input{width:100%;min-width:0;border:0;outline:0;color:#51657e;font-size:11px}.scene-search>div{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 10px;padding-top:10px}.scene-search button{height:28px;border:1px solid #e5ebf2;color:#354e6d;background:#fff;border-radius:4px;font-size:11px}.scene-search button[aria-pressed=true]{color:#066cec;background:#eaf3ff;border-color:#eaf3ff}.scene-search button:disabled{color:#9ca8b6;background:#f2f4f6}
 .simple-nav{display:grid;padding-top:17px}.simple-nav a{height:58px;display:flex;align-items:center;gap:15px;padding:0 21px;color:#1d3353;border-left:3px solid transparent;font-size:14px;font-weight:600}.simple-nav a>img{width:22px;height:24px;object-fit:contain}.simple-nav a[aria-current='page']{color:#0869ee;background:#eaf2ff;border-left-color:#096ef0}.simple-nav a.section-current{color:#0869ee}.simple-nav a.sub{height:40px;padding-left:60px;color:#607088;font-size:12px;font-weight:400}.simple-nav a.sub[aria-current='page']{color:#0869ee;background:#eaf2ff;border-left-color:#096ef0}
+.compact-sidebar-nav{display:grid;padding-top:5px}.compact-sidebar-nav a{width:51px;height:46px;display:grid;place-items:center;border-left:3px solid transparent}.compact-sidebar-nav a[aria-current=page]{background:#eaf2ff;border-left-color:#096ef0}.compact-sidebar-nav img{width:22px;height:24px;object-fit:contain}
 main{min-width:0;min-height:0;overflow-y:auto;background:#fff;outline:none}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}a:focus-visible,button:focus-visible,input:focus-visible,main:focus-visible{outline:3px solid #ff9f1a;outline-offset:2px}
 .standard-shell .page-frame{grid-template-columns:220px minmax(0,1fr)}
 .standard-shell .page-frame.sidebar-collapsed{grid-template-columns:52px minmax(0,1fr)}

@@ -52,6 +52,12 @@ assert.deepEqual(talent.results.map(person => person.id), ['person-010']);
 talent.reset();
 assert.equal(talent.results.length, PEOPLE_FIXTURES.length);
 assert.equal(talent.selectedId, null);
+assert.equal(PEOPLE_FIXTURES.length, 32);
+assert.equal(talent.totalPages, 4);
+assert.equal(talent.pagedResults.length, 10);
+talent.setPage(2);
+assert.equal(talent.page, 2);
+assert.notEqual(talent.pagedResults[0].id, PEOPLE_FIXTURES[0].id);
 
 const scheduled = [];
 const sixState = createSixStateController('error', (callback, delay) => scheduled.push({ callback, delay }));
@@ -98,12 +104,17 @@ const talentSource = read('src/pages/TalentPeoplePage.vue');
 for (const contract of ['aria-expanded', '@click="toggleSidebar"', 'sidebar-collapsed']) {
   assert.ok(shellSource.includes(contract), `壳层未接通交互合同：${contract}`);
 }
+for (const contract of ['compact-sidebar-nav', ':aria-label="label"', 'window.history.pushState'])
+  assert.ok(shellSource.includes(contract), `收起态/同壳导航合同缺失：${contract}`);
+assert.doesNotMatch(shellSource, /location\.assign\(/, '应用分类不得整页重载并丢失壳层状态');
 for (const contract of ['createAppsController', 'setCategory', 'filteredApps', 'aria-pressed', '清空筛选']) {
   assert.ok(appsSource.includes(contract), `应用中心未接通交互合同：${contract}`);
 }
 for (const contract of ['createTalentController', 'role="dialog"', 'aria-modal="true"', '@keydown.esc', '查看详情']) {
   assert.ok(talentSource.includes(contract), `人才库未接通交互合同：${contract}`);
 }
+for (const contract of ['pagedPeople', 'controller.setPage', '共 {{ controller.results.length }} 条'])
+  assert.ok(talentSource.includes(contract), `人才库真实分页合同缺失：${contract}`);
 assert.ok(!talentSource.includes('>更多<'), '人才库不得保留“更多”操作');
 for (const contract of ['handleInternalNavigation', 'window.history.pushState', "document.getElementById('main-content')?.focus()"])
   assert.ok(appSource.includes(contract), `站内路由未保持壳层状态/焦点：${contract}`);
