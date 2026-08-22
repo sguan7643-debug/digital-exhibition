@@ -8,6 +8,9 @@ import {
 } from '../src/state/content-controllers.js';
 
 const messages = createMessagesController(MESSAGE_FIXTURES);
+assert.equal(MESSAGE_FIXTURES.length, 128);
+assert.equal(messages.totalPages, 13);
+assert.equal(messages.pagedResults.length, 10);
 assert.equal(messages.results.length, MESSAGE_FIXTURES.length);
 messages.setStatus('unread');
 assert.ok(messages.results.every(item => !item.read));
@@ -22,8 +25,14 @@ messages.refresh();
 assert.ok(messages.fixtures.some(item => !item.read));
 messages.toggleSort();
 assert.equal(messages.sort, 'oldest');
+messages.setPage(13);
+assert.equal(messages.page, 13);
+assert.equal(messages.pagedResults.length, 8);
 
 const favorites = createFavoritesController(FAVORITE_FIXTURES);
+assert.equal(FAVORITE_FIXTURES.length, 28);
+assert.equal(favorites.totalPages, 3);
+assert.equal(favorites.pagedResults.length, 12);
 favorites.setFilter('query', '智能采购');
 assert.deepEqual(favorites.results.map(item => item.id), ['favorite-007']);
 favorites.resetFilters();
@@ -34,13 +43,15 @@ favorites.cancel(removed);
 assert.ok(!favorites.results.some(item => item.id === removed));
 favorites.resetData();
 assert.ok(favorites.results.some(item => item.id === removed));
+favorites.setPage(3);
+assert.equal(favorites.pagedResults.length, 4);
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const messageSource = read('src/pages/MessagesPage.vue');
 const favoriteSource = read('src/pages/FavoritesPage.vue');
-for (const contract of ['createMessagesController', 'role="tablist"', 'aria-selected', 'markAllRead', 'refresh'])
+for (const contract of ['createMessagesController', 'role="tablist"', 'aria-selected', 'markAllRead', 'refresh', 'pagedMessages', 'controller.setPage'])
   assert.ok(messageSource.includes(contract), `PP02 未接线：${contract}`);
-for (const contract of ['createFavoritesController', 'filteredCards', 'cancelFavorite', 'resetData'])
+for (const contract of ['createFavoritesController', 'pagedCards', 'cancelFavorite', 'resetData', 'controller.setPage'])
   assert.ok(favoriteSource.includes(contract), `PP03 未接线：${contract}`);
 
 console.log('第二批 interaction：消息中心与收藏筛选、状态、复位行为通过');
