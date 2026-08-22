@@ -12,13 +12,16 @@ import {
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
 const shell = createShellController();
-assert.equal(shell.expanded, true);
-shell.toggle();
-assert.equal(shell.expanded, false);
-assert.equal(shell.announcement, '左侧导航已收起');
-shell.toggle();
-assert.equal(shell.expanded, true);
-assert.equal(shell.announcement, '左侧导航已展开');
+assert.equal(shell.materialsExpanded, true);
+assert.equal(shell.appsExpanded, true);
+shell.toggleGroup('materials');
+assert.equal(shell.materialsExpanded, false);
+assert.equal(shell.appsExpanded, true);
+assert.equal(shell.announcement, '素材中心子菜单已收起');
+shell.toggleGroup('apps');
+assert.equal(shell.materialsExpanded, false);
+assert.equal(shell.appsExpanded, false);
+assert.equal(shell.announcement, '应用中心子菜单已收起');
 
 assert.deepEqual([...new Set(APP_FIXTURES.map(app => app.category))].sort(),
   ['AI', 'RPA', '可视化报表', '大屏', '数据集', '指标', '海能work应用', '驾驶舱'].sort());
@@ -86,26 +89,34 @@ const renderer = createRenderer(hostOps);
 const mountedShell = createShellController();
 const root = { type: 'root', children: [] };
 renderer.createApp({
-  setup: () => () => h('button', {
-    'aria-expanded': String(mountedShell.expanded),
-    onClick: () => mountedShell.toggle()
-  }, mountedShell.expanded ? '收起' : '展开')
+  setup: () => () => h('div', {}, [h('button', {
+    'aria-expanded': String(mountedShell.materialsExpanded),
+    'aria-controls': 'materials-group-menu',
+    onClick: () => mountedShell.toggleGroup('materials')
+  }, mountedShell.materialsExpanded ? '收起素材中心子菜单' : '展开素材中心子菜单'),h('button', {
+    'aria-expanded': String(mountedShell.appsExpanded),
+    'aria-controls': 'apps-group-menu',
+    onClick: () => mountedShell.toggleGroup('apps')
+  }, mountedShell.appsExpanded ? '收起应用中心子菜单' : '展开应用中心子菜单')])
 }).mount(root);
-assert.equal(root.children[0].props['aria-expanded'], 'true');
-root.children[0].props.onClick();
+assert.equal(root.children[0].children[0].props['aria-expanded'], 'true');
+assert.equal(root.children[0].children[1].props['aria-expanded'], 'true');
+root.children[0].children[0].props.onClick();
 await nextTick();
-assert.equal(root.children[0].props['aria-expanded'], 'false');
-assert.equal(root.children[0].text, '展开');
+assert.equal(root.children[0].children[0].props['aria-expanded'], 'false');
+assert.equal(root.children[0].children[1].props['aria-expanded'], 'true');
+assert.equal(root.children[0].children[0].text, '展开素材中心子菜单');
 
 const shellSource = read('src/components/ExhibitionShell.vue');
 const appSource = read('src/App.vue');
 const appsSource = read('src/pages/AppsPage.vue');
 const talentSource = read('src/pages/TalentPeoplePage.vue');
-for (const contract of ['aria-expanded', '@click="toggleSidebar"', 'sidebar-collapsed']) {
+for (const contract of ['aria-controls="materials-group-menu"', 'aria-controls="apps-group-menu"', "@click=\"shellState.toggleGroup('materials')\"", "@click=\"shellState.toggleGroup('apps')\""]) {
   assert.ok(shellSource.includes(contract), `壳层未接通交互合同：${contract}`);
 }
-for (const contract of ['compact-sidebar-nav', ':aria-label="label"', 'window.history.pushState'])
-  assert.ok(shellSource.includes(contract), `收起态/同壳导航合同缺失：${contract}`);
+for (const forbidden of ['sidebar-toggle','sidebar-collapsed','compact-sidebar-nav'])
+  assert.ok(!shellSource.includes(forbidden), `壳层不得保留整栏折叠合同：${forbidden}`);
+assert.ok(shellSource.includes('window.history.pushState'), '应用分类必须保持同壳路由');
 assert.doesNotMatch(shellSource, /location\.assign\(/, '应用分类不得整页重载并丢失壳层状态');
 for (const contract of ['createAppsController', 'setCategory', 'filteredApps', 'aria-pressed', '清空筛选']) {
   assert.ok(appsSource.includes(contract), `应用中心未接通交互合同：${contract}`);

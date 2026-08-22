@@ -4,11 +4,15 @@ const normalize = value => String(value ?? '').trim().toLocaleLowerCase('zh-CN')
 
 export function createShellController() {
   return reactive({
-    expanded: true,
+    materialsExpanded: true,
+    appsExpanded: true,
     announcement: '',
-    toggle() {
-      this.expanded = !this.expanded;
-      this.announcement = this.expanded ? '左侧导航已展开' : '左侧导航已收起';
+    toggleGroup(group) {
+      const field=group==='materials'?'materialsExpanded':group==='apps'?'appsExpanded':null;
+      if(!field)return;
+      this[field]=!this[field];
+      const label=group==='materials'?'素材中心':'应用中心';
+      this.announcement=`${label}子菜单已${this[field]?'展开':'收起'}`;
     }
   });
 }
