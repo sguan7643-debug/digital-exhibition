@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const shell = read('src/components/ExhibitionShell.vue');
 const workbench = read('src/pages/WorkbenchPage.vue');
+const workbenchFixtures = read('src/state/workbench-profile-controllers.js');
+const workbenchAuthority = workbench + workbenchFixtures;
 
 for (const label of ['素材中心', 'RPA', '大屏', '驾驶舱', '可视化报表', '指标', '数据集', 'AI', '海能work应用', '场景化搜索']) {
   assert.ok(shell.includes(label), `工作台侧栏缺少：${label}`);
@@ -33,11 +35,11 @@ for (const content of [
   '应用使用次数',
   '收藏应用数'
 ]) {
-  assert.ok(workbench.includes(content), `工作台缺少权威内容：${content}`);
+  assert.ok(workbenchAuthority.includes(content), `工作台缺少权威内容：${content}`);
 }
 
 assert.match(workbench, /\/assets\/overview-dataset\.png/);
-assert.match(workbench, /\/assets\/hot-supplier\.png/);
+assert.match(workbenchAuthority, /\/assets\/hot-supplier\.png/);
 assert.match(workbench, /\/assets\/training-ai\.png/);
 assert.match(workbench, /\/assets\/usage-visits\.png/);
 assert.doesNotMatch(workbench, /2026年8月19日/);

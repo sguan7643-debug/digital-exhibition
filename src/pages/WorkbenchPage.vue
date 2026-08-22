@@ -1,14 +1,16 @@
 <script setup>
+import { computed, onBeforeUnmount, onMounted } from 'vue';
+import { HOT_APP_FIXTURES, createWorkbenchController } from '../state/workbench-profile-controllers.js';
+const controller=createWorkbenchController(HOT_APP_FIXTURES);
+const filteredHotApps=computed(()=>controller.results);
+function receiveWorkbenchFilter(event){const {key,value}=event.detail;if(key==='reset')controller.reset();else if(key==='query')controller.setQuery(value);else if(key==='scene')controller.setScene(value);}
+function overviewHref(label){const categories={'数据集':'数据集','帆软报表':'可视化报表','RPA机器人':'RPA','AI智能体':'AI'};return categories[label]?`/apps?category=${encodeURIComponent(categories[label])}`:'/apps';}
+onMounted(()=>window.addEventListener('xlt:workbench-filter',receiveWorkbenchFilter));
+onBeforeUnmount(()=>window.removeEventListener('xlt:workbench-filter',receiveWorkbenchFilter));
 const overview = [
   ['数据集', '186', '/assets/overview-dataset.png'], ['帆软报表', '92', '/assets/overview-report.png'],
   ['RPA机器人', '64', '/assets/overview-rpa.png'], ['EAD应用', '18', '/assets/overview-ead.png'],
   ['AI智能体', '27', '/assets/overview-ai.png'], ['其他应用', '35', '/assets/overview-other.png']
-];
-const hotApps = [
-  ['供应商评估看板', '帆软报表', '基于多维度指标对供应商进行综合评估与可视化分析。', '2,375', '/assets/hot-supplier.png'],
-  ['库存周转分析报表', '帆软报表', '分析库存周转效率，优化库存结构，降低库存成本。', '1,876', '/assets/hot-inventory.png'],
-  ['增值税发票查验机器人', 'RPA机器人', '自动查验发票真伪与税号，提升发票处理效率与准确性。', '1,542', '/assets/hot-rpa.png'],
-  ['电子发票录入校验', 'EAD应用', '电子发票信息自动录入与校验，提质增效录入准确率。', '1,291', '/assets/hot-invoice.png']
 ];
 const courses = [
   ['数说心智 · 数智应用案例分享', '分享最新应用实践与创新案例', '/assets/training-ai.png', '立即参加'],
@@ -29,7 +31,7 @@ const usage = [
 </script>
 
 <template>
-  <div class="workbench-page">
+  <div class="workbench-page"><p class="sr-only" aria-live="polite">{{ controller.announcement }}</p>
     <section class="hero-panel" aria-labelledby="greeting-title">
       <img class="hero-avatar" src="/assets/user-avatar.png" width="68" height="68" alt="张三丰头像" />
       <div class="greeting">
@@ -43,7 +45,7 @@ const usage = [
     <section class="panel overview-panel" aria-labelledby="overview-title">
       <h2 id="overview-title">应用类型概览</h2>
       <div class="overview-list">
-        <a v-for="([label, total, icon]) in overview" :key="label" href="/apps" class="overview-item">
+        <a v-for="([label, total, icon]) in overview" :key="label" :href="overviewHref(label)" class="overview-item">
           <img :src="icon" width="68" height="68" alt="" /><span><small>{{ label }}</small><strong>{{ total }}</strong></span>
         </a>
       </div>
@@ -53,11 +55,12 @@ const usage = [
       <section class="panel hot-panel" aria-labelledby="hot-title">
         <header><h2 id="hot-title">热门应用推荐</h2><a href="/apps">查看更多　›</a></header>
         <div class="hot-list">
-          <article v-for="([name, type, description, count, icon], index) in hotApps" :key="name" class="hot-card">
-            <img :src="icon" width="55" height="55" alt="" />
-            <h3>{{ name }}</h3><mark>{{ type }}</mark><p>{{ description }}</p><small>使用量　{{ count }}</small>
-            <a :href="index === 2 ? '/apps/rpa-001' : '/apps/report-001'">立即使用</a>
+          <article v-for="app in filteredHotApps" :key="app.id" class="hot-card">
+            <img :src="app.image" width="55" height="55" alt="" />
+            <h3>{{ app.name }}</h3><mark>{{ app.type }}</mark><p>{{ app.description }}</p><small>使用量　{{ app.count }}</small>
+            <a :href="app.route" :aria-label="`立即使用 ${app.name}`">立即使用</a>
           </article>
+          <p v-if="!filteredHotApps.length" class="hot-empty" role="status">暂无符合条件的热门应用</p>
         </div>
       </section>
 
@@ -104,4 +107,5 @@ const usage = [
 .usage-list{height:153px;display:grid;grid-template-columns:repeat(3,1fr);align-items:center}.usage-list article{height:97px;display:flex;align-items:center;justify-content:center;gap:17px;border-right:1px solid #e1e8ef}.usage-list article:last-child{border-right:0}.usage-list img{width:58px;height:58px}.usage-list span{display:grid;gap:5px}.usage-list small{color:#354a65;font-size:12px}.usage-list strong{color:#122949;font-size:25px;font-weight:500}.usage-list strong b{font-size:12px;font-weight:400}.usage-list em{color:#718299;font-size:11px;font-style:normal}.usage-list i{color:#10a950;font-size:15px;font-style:normal}
 @media(max-width:1250px){.overview-list{gap:8px}.overview-item{gap:8px}.dashboard-grid{grid-template-columns:1fr;grid-template-areas:'hot' 'course' 'notice' 'usage'}.hot-panel,.course-panel,.notice-panel,.usage-panel{height:auto}.workbench-page{overflow:auto}.hero-ocean{opacity:.58}}
 @media(max-width:760px){.workbench-page{padding:10px}.hero-avatar{margin-left:15px}.greeting{margin-left:14px}.greeting h1{font-size:21px}.greeting p{max-width:300px}.overview-panel{height:auto}.overview-list{grid-template-columns:repeat(2,1fr)}.hot-list{grid-template-columns:repeat(2,1fr)}.usage-list{grid-template-columns:1fr;height:auto}.usage-list article{border-right:0;border-bottom:1px solid #e1e8ef}.notice-panel li a{grid-template-columns:75px minmax(0,1fr)}.notice-panel time{display:none}}
+.hot-empty{grid-column:1/-1;min-height:200px;display:grid;place-items:center;color:#60718a}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 </style>

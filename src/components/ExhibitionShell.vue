@@ -41,6 +41,11 @@ function setCategory(label) {
   window.dispatchEvent(new CustomEvent('xlt:apps-category', { detail: label }));
 }
 function setScene(scene) {
+  if (props.page.id === '01') {
+    sceneDraft.value = scene;
+    window.dispatchEvent(new CustomEvent('xlt:workbench-filter', { detail: scene ? { key:'scene', value:scene } : { key:'reset' } }));
+    return;
+  }
   if (props.page.id !== '07') {
     const suffix = scene ? `?scene=${encodeURIComponent(scene)}` : '';
     window.history.pushState({}, '', `/apps${suffix}`);
@@ -52,6 +57,13 @@ function setScene(scene) {
   window.history.replaceState({}, '', `${next.pathname}${next.search}`);
   sceneDraft.value = scene;
   window.dispatchEvent(new CustomEvent('xlt:apps-filter', { detail: { key: 'scene', value: scene } }));
+}
+function submitSceneSearch() {
+  if (props.page.id === '01') {
+    window.dispatchEvent(new CustomEvent('xlt:workbench-filter', { detail: { key:'query', value:sceneDraft.value } }));
+    return;
+  }
+  setScene(sceneDraft.value);
 }
 function syncShellFilters() {
   const query = new URLSearchParams(window.location.search);
@@ -110,7 +122,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', syncShellFilters));
           </section>
           <section class="scene-search" aria-labelledby="scene-search-title">
             <h2 id="scene-search-title">场景化搜索</h2>
-            <label><span class="sr-only">搜索场景关键词</span><input v-model="sceneDraft" type="search" placeholder="搜索场景或关键字" @keydown.enter.prevent="setScene(sceneDraft)" /></label>
+            <label><span class="sr-only">搜索场景关键词</span><input v-model="sceneDraft" type="search" placeholder="搜索场景或关键字" @keydown.enter.prevent="submitSceneSearch" /></label>
             <div>
               <button type="button" :aria-pressed="!sceneDraft" @click="setScene('')">全部场景</button><button type="button" :aria-pressed="sceneDraft === '生产运营'" @click="setScene('生产运营')">生产运营</button>
               <button type="button" :aria-pressed="sceneDraft === '设备管理'" @click="setScene('设备管理')">设备管理</button><button type="button" :aria-pressed="sceneDraft === '设备分析'" @click="setScene('设备分析')">设备分析</button>
