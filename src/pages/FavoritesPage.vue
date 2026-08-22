@@ -35,4 +35,5 @@ function resetData(){queryDraft.value='';controller.resetData();}
 @media(min-width:761px){.favorites-page{padding-top:33px}}
 .favorite-pagination nav button:first-child,.favorite-pagination nav button:last-child{width:auto;padding:0 10px;white-space:nowrap}
 .favorite-empty{margin:0;padding:50px;text-align:center;background:#fff;color:#60718a}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.favorite-grid h2{font-size:16px}.favorite-grid>article>p{font-size:11px}.favorite-grid dl div{font-size:10px}.favorite-grid footer a,.favorite-grid footer button{font-size:11px}
 </style>
