@@ -78,7 +78,7 @@ function handleInternalNavigation(event) {
   if (next.origin !== window.location.origin) return;
   if (next.pathname === window.location.pathname && next.search === window.location.search && next.hash) return;
   event.preventDefault();
-  window.history.pushState({}, '', `${next.pathname}${next.search}${next.hash}`);
+  window.history.pushState({ xltFromPath: window.location.pathname }, '', `${next.pathname}${next.search}${next.hash}`);
   syncLocation();
   nextTick(() => document.getElementById('main-content')?.focus());
 }
@@ -101,8 +101,8 @@ const page = computed(() => current.value);
     <messages-page v-else-if="page.id === '02' && page.state === 'normal'" />
     <favorites-page v-else-if="page.id === '03' && page.state === 'normal'" />
     <profile-page v-else-if="page.id === '04' && page.state === 'normal'" />
-    <announcements-page v-else-if="page.id === '05' && page.state === 'normal'" />
-    <notice-detail-page v-else-if="page.id === '06' && page.state === 'normal'" />
+    <announcements-page v-else-if="page.id === '05'" :state="page.state" @restore="restoreNormal" />
+    <notice-detail-page v-else-if="page.id === '06'" :state="page.state" @restore="restoreNormal" />
     <apps-page v-else-if="page.id === '07' && page.state === 'normal'" />
     <tool-detail-page v-else-if="page.id === '08' && page.state === 'normal'" />
     <haineng-work-detail-page v-else-if="page.id === '09' && page.state === 'normal'" />
