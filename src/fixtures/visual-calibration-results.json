@@ -436,13 +436,13 @@
         941
       ],
       "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\20.png",
-      "screenshotFileSha256": "4EED041143B8F3DE9EBF60C224359C63ED2488DAA112A13A2F755F2529EFADFF",
-      "screenshotRgbSha256": "426E3EBC05354A7DBBBD5BCA563C9304378E515A3FC60D4A6E843E5C6C89A5B7",
+      "screenshotFileSha256": "C223CB069E60BE3F600F9B28793E0199E1622675900D09FA03A95A21BA7A9065",
+      "screenshotRgbSha256": "EECB65A3ED90A2CDB4072F5A559DC5D669B69FE83CB68A7931D405E153214E41",
       "actualSize": [
         1672,
         941
       ],
-      "rawFloatSsim": 0.6898465975662642,
+      "rawFloatSsim": 0.69096502650761,
       "status": "failed",
       "failure": "below-threshold"
     },
