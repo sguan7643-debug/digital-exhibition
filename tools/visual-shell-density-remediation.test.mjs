@@ -26,6 +26,8 @@ assert.doesNotMatch(favorites, /class="favorite-pagination"[\s\S]{0,220}@click="
   '分页栏不得包含冻结参考中不存在的演示重置按钮');
 assert.match(favorites, /grid-template-columns:repeat\(4,1fr\)/, '收藏首屏必须保留四列卡片');
 assert.match(favorites, /height:211px/, '收藏卡片高度必须保持冻结参考 211px');
+assert.match(favorites, /\.favorite-grid\{[^}]*background:#fafcff/,
+  '收藏首屏八卡结果区必须使用像素模拟正向的蓝白表面色');
 assert.match(favorites, /@media\(min-width:761px\)\{\.favorites-page\{padding-top:33px\}\}/,
   '统一 63px 顶栏下，收藏页必须用 33px 顶距对齐冻结内容起点，不能改变全局顶栏');
 
