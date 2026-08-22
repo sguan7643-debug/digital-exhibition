@@ -14,13 +14,13 @@ assert.match(messages.announcement,/演示环境不提供真实下载/,'导出�
 
 const favorites=createFavoritesController(FAVORITE_FIXTURES);
 assert.equal(favorites.activeCount,28);
-favorites.setPage(3);
+favorites.setPage(4);
 const lastPageIds=favorites.pagedResults.map(item=>item.id);
 assert.equal(lastPageIds.length,4);
 lastPageIds.forEach(id=>favorites.cancel(id));
 assert.equal(favorites.activeCount,24,'收藏总数必须从未取消集合派生');
-assert.equal(favorites.page,2,'删除末页最后一项后页码必须钳制');
-assert.equal(favorites.pagedResults.length,12);
+assert.equal(favorites.page,3,'删除末页最后一项后页码必须钳制');
+assert.equal(favorites.pagedResults.length,8);
 
 const read=path=>readFileSync(new URL(`../${path}`,import.meta.url),'utf8');
 const messagesPage=read('src/pages/MessagesPage.vue');

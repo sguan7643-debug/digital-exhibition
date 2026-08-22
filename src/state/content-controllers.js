@@ -67,7 +67,7 @@ export function createMessagesController(fixtures) {
 
 export function createFavoritesController(fixtures, sharedFavorites=null) {
   return reactive({
-    fixtures:[...fixtures], removed:[], filters:{query:'',type:'',domain:'',tag:''},queryDraft:'',page:1,pageSize:12,announcement:'',
+    fixtures:[...fixtures], removed:[], filters:{query:'',type:'',domain:'',tag:''},queryDraft:'',page:1,pageSize:8,announcement:'',
     get activeCount(){return this.fixtures.filter(item=>!this.removed.includes(item.id)&&(!sharedFavorites||sharedFavorites.isFavoriteId(item.id))).length;},
     get results(){ const q=normalize(this.filters.query); return this.fixtures.filter(item=>!this.removed.includes(item.id)&&(!sharedFavorites||sharedFavorites.isFavoriteId(item.id))&&(!q||normalize(`${item.name} ${item.description}`).includes(q))&&(!this.filters.type||item.type===this.filters.type)&&(!this.filters.domain||item.domain===this.filters.domain)&&(!this.filters.tag||item.tag===this.filters.tag)); },
     get totalPages(){return Math.max(1,Math.ceil(this.results.length/this.pageSize));},
