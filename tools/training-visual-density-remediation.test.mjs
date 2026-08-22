@@ -31,10 +31,14 @@ assert.match(source, /\.training-hero\{[^}]*border:1px solid #f4faff/,
   '培训 Hero 外框必须使用冻结参考的低对比蓝白色');
 assert.match(source, /\.hero-stats article\{[^}]*border:1px solid #f4faff/,
   '培训统计卡边框必须与冻结参考一致');
+assert.match(source, /\.hero-stats article\{[^}]*background:#fafcff/,
+  '培训统计卡必须使用像素模拟正向的蓝白表面色');
 assert.match(source, /\.training-tabs\{[^}]*border-bottom:1px solid #f4faff/,
   '培训分类分隔线不得继续使用过重蓝灰色');
 assert.match(source, /\.course-grid>article\{[^}]*border:1px solid #f4faff/,
   '培训课程卡边框必须与冻结参考一致');
+assert.match(source, /\.course-grid>article\{[^}]*background:#fafcff/,
+  '培训课程卡必须使用像素模拟正向的蓝白表面色');
 assert.match(source, /\.training-pagination button\{[^}]*border:1px solid #f4faff/,
   '培训分页边框必须使用同一低对比层级');
 
