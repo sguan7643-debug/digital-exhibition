@@ -8,6 +8,9 @@ const rpa = read('src/pages/RpaDetailPage.vue');
 const report = read('src/pages/ReportDetailPage.vue');
 const dashboard = read('src/pages/DashboardDetailPage.vue');
 
+assert.match(style, /\.product-detail \.detail-hero,\.product-detail \.detail-panel,\.product-detail \.detail-comment\{background:#fafcff;/,
+  '九个应用详情页的内容表面必须使用全矩阵像素模拟正向的蓝白色');
+
 assert.match(style, /\.rpa-detail \.detail-crumb,\.report-detail \.detail-crumb\{height:21px\}/,
   'RPA 与报表面包屑必须按 fresh 对照收敛到 21px，且不得影响未验证的详情路由');
 assert.match(style, /\.rpa-detail \.rpa-video\{width:1135px;max-width:100%;height:192px/,
