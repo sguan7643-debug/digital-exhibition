@@ -9,14 +9,22 @@ const favorites=createFavoritesController(FAVORITE_FIXTURES,store);
 assert.equal(favorites.activeCount,28,'28 个唯一收藏 fixture 必须全部活跃');
 const reportRows=FAVORITE_FIXTURES.filter(item=>item.route==='/apps/report-001');
 assert.ok(reportRows.length>1,'fixture 应复现同 route 多收藏条目');
-favorites.cancel(reportRows[0].id);
+favorites.cancel(reportRows[1].id);
 assert.equal(favorites.activeCount,27,'取消一条收藏只能减少一条');
 assert.equal(favorites.results.filter(item=>item.route==='/apps/report-001').length,reportRows.length-1,'同 route 其他收藏不得连带删除');
 assert.equal(store.isRouteFavorite('/apps/report-001'),true,'同 route 仍有收藏时详情保持已收藏');
 
+const routeActionStore=createSessionStore(FAVORITE_FIXTURES.map(item=>item.id),mappings);
+const routeActionBefore=routeActionStore.favorites.size;
+routeActionStore.setRouteFavorite('/apps/report-001',false);
+assert.equal(routeActionStore.favorites.size,routeActionBefore-1,'详情路由取消必须只绑定并移除一个明确 canonical 收藏 ID');
+assert.equal([...routeActionStore.favorites].filter(id=>routeActionStore.favoriteRoutes.get(id)==='/apps/report-001').length,reportRows.length-1,'详情路由取消不得批量删除同 route 独立收藏');
+
 const entryA=store.nextEntryKey();
 const entryB=store.nextEntryKey();
 assert.notEqual(entryA,entryB,'每个 History entry 必须具有唯一 key');
+const refreshedStore=createSessionStore([],mappings);
+assert.notEqual(refreshedStore.nextEntryKey(),entryA,'刷新后新的 store 前缀不得与浏览器旧 History entry key 碰撞');
 store.capture(entryA,{href:'/apps?category=RPA',scrollTop:321,focusId:'app-app-rpa-001',viewState:{apps:{queryDraft:'发票',filters:{category:'RPA'},page:2}}});
 store.capture(entryB,{href:'/apps?category=AI',scrollTop:22,focusId:'app-app-ai-001',viewState:{apps:{queryDraft:'助手',filters:{category:'AI'},page:1}}});
 assert.equal(store.snapshot(entryA).href,'/apps?category=RPA');
@@ -35,5 +43,7 @@ for(const file of ['AppsPage.vue','FavoritesPage.vue','MessagesPage.vue']){
   assert.doesNotMatch(source,/const queryDraft=ref\(/,`${file} 查询草稿不得脱离共享 controller`);
   assert.ok(source.includes('controller.queryDraft'),`${file} 查询草稿必须进入可恢复会话状态`);
 }
+const favoritesPage=read('src/pages/FavoritesPage.vue');
+assert.ok(favoritesPage.includes(':data-session-focus="`favorite-detail-${card.id}`"'),'收藏详情入口必须为每张卡片提供稳定且唯一的返回焦点标识');
 
 console.log('009 会话修复二：唯一收藏 ID、History entry、查询草稿与真实来源返回通过');

@@ -28,7 +28,13 @@ function syncResultRegions(){
   });
 }
 function focusResult(){
-  nextTick(()=>retainedPage.value?.querySelector('[data-state-result-heading]')?.focus());
+  nextTick(()=>{
+    const target=retainedPage.value?.querySelector('[data-state-result-heading]')||retainedPage.value?.querySelector('h1,h2,[role="heading"]');
+    if(!target)return;
+    target.setAttribute('data-state-result-heading','');
+    target.setAttribute('tabindex','-1');
+    target.focus();
+  });
 }
 function finishLoading(){
   window.clearTimeout(loadingTimer);

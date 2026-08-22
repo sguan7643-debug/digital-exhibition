@@ -69,10 +69,10 @@ function ensureEntryKey(){
 }
 const activeEntryKey=ref(ensureEntryKey());
 const activeHref=ref(`${window.location.pathname}${window.location.search}${window.location.hash}`);
-function captureRouteSession(entryKey=activeEntryKey.value){
+function captureRouteSession(entryKey=activeEntryKey.value,focusOverride=''){
   const main=document.getElementById('main-content');
   const active=document.activeElement;
-  const focusId=active&&main?.contains(active)?active.id||active.getAttribute('data-session-focus')||'':'';
+  const focusId=focusOverride||(active&&main?.contains(active)?active.id||active.getAttribute('data-session-focus')||'':'');
   routeSession.capture(entryKey,{href:activeHref.value,scrollTop:main?.scrollTop||0,focusId,viewState:routeSession.captureViewState()});
 }
 function restoreRouteSession(){
@@ -112,7 +112,7 @@ function handleInternalNavigation(event) {
     window.history.back();
     return;
   }
-  captureRouteSession(activeEntryKey.value);
+  captureRouteSession(activeEntryKey.value,anchor.getAttribute('data-session-focus')||'');
   const sourceSnapshot=routeSession.snapshot(activeEntryKey.value);
   const xltEntryKey=routeSession.nextEntryKey();
   const xltSource={entryKey:activeEntryKey.value,href:sourceSnapshot?.href,focusId:sourceSnapshot?.focusId,scrollTop:sourceSnapshot?.scrollTop};

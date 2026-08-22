@@ -13,12 +13,25 @@ const vueModuleUrl=new URL('../node_modules/vue/index.mjs',import.meta.url).href
 compiled=compiled.replace(/from\s+(['"])vue\1/g,`from '${vueModuleUrl}'`);
 const component=(await import(`data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`)).default;
 globalThis.window=globalThis;
+globalThis.Document=class Document{};
+globalThis.ShadowRoot=class ShadowRoot{};
+
+const matchesSelector=(node,selector)=>selector.split(',').some(part=>{
+  const token=part.trim().split('>').pop().trim();
+  if(token.startsWith('.'))return String(node.props?.class||'').split(/\s+/).includes(token.slice(1));
+  if(token==='[data-state-result-heading]')return node.props?.['data-state-result-heading']!==undefined;
+  if(token==='[data-state-result]')return node.props?.['data-state-result']!==undefined;
+  if(token==='h1'||token==='h2')return node.type===token;
+  if(token==='[role="heading"]')return node.props?.role==='heading';
+  return false;
+});
 
 const hostOps={
-  createElement:type=>({type,props:{},children:[],text:'',focus(){this.focused=true;globalThis.document.activeElement=this;},setAttribute(key,value){this.props[key]=value;},removeAttribute(key){delete this.props[key];},querySelectorAll(selector){return flatten(this).filter(node=>selector.includes('[data-state-result]')&&node.props?.['data-state-result']!==undefined);},querySelector(selector){return flatten(this).find(node=>selector.includes('[data-state-result-heading]')&&node.props?.['data-state-result-heading']!==undefined);}}),createText:text=>({type:'#text',text}),createComment:text=>({type:'#comment',text}),
+  createElement:type=>({type,props:{},children:[],text:'',value:'',focus(){this.focused=true;globalThis.document.activeElement=this;},getRootNode(){return globalThis.document;},addEventListener(event,handler){this.props[`native:${event}`]=handler;},removeEventListener(event){delete this.props[`native:${event}`];},setAttribute(key,value){this.props[key]=value;},removeAttribute(key){delete this.props[key];},querySelectorAll(selector){return flatten(this).filter(node=>node!==this&&matchesSelector(node,selector));},querySelector(selector){return flatten(this).find(node=>node!==this&&matchesSelector(node,selector));}}),createText:text=>({type:'#text',text}),createComment:text=>({type:'#comment',text}),
   setText:(node,text)=>{node.text=text;},setElementText:(node,text)=>{node.text=text;node.children=[];},parentNode:node=>node.parent||null,nextSibling:()=>null,
   insert:(child,parent)=>{child.parent=parent;parent.children.push(child);},remove:child=>{if(child.parent)child.parent.children=child.parent.children.filter(node=>node!==child);},
-  patchProp:(node,key,_old,value)=>{node.props[key]=value;}
+  patchProp:(node,key,_old,value)=>{node.props[key]=value;},
+  insertStaticContent:(content,parent)=>{const node={type:'#static',text:content,parent};parent.children.push(node);return [node,node];}
 };
 const renderer=createRenderer(hostOps);
 const flatten=node=>[node,...(node.children||[]).flatMap(flatten)];
@@ -28,7 +41,8 @@ async function mountState(state,{empty=true}={}){
   renderer.createApp({render:()=>h(component,{page:{title:'受限对象名称',empty},state:currentState.value,onRestore:()=>{restored+=1;currentState.value='normal';}},{default:()=>[h('form',{id:'real-filter'},[h('input',{id:'filter-input'})]),h('section',{'data-state-result':''},[h('h2',{'data-state-result-heading':'',tabindex:-1},'结果标题'),h('button',{id:'real-page-action'},'真实页面操作')])]} )}).mount(root);
   await nextTick();await nextTick();return {root,get restored(){return restored;}};
 }
-globalThis.document={activeElement:null};
+globalThis.document=new globalThis.Document();
+globalThis.document.activeElement=null;
 
 const denied=await mountState('permission-denied');
 assert.match(textOf(denied.root),/访问受限/);
@@ -71,6 +85,26 @@ assert.equal(flatten(error.root).find(node=>node.type==='h1')?.focused,undefined
 await new Promise(resolve=>setTimeout(resolve,850));await nextTick();
 assert.equal(error.restored,1,'error 必须经 800ms loading 后恢复');
 assert.equal(globalThis.document.activeElement.props['data-state-result-heading'],'','error 恢复 normal 后必须聚焦结果标题');
+
+async function compilePage(file){
+  const fileUrl=new URL(`../src/pages/${file}`,import.meta.url);
+  const parsed=parse(readFileSync(fileUrl,'utf8'),{filename:fileUrl.pathname});
+  assert.deepEqual(parsed.errors,[]);
+  let code=compileScript(parsed.descriptor,{id:`real-${file}`,inlineTemplate:true}).content;
+  code=code.replace(/from\s+(['"])vue\1/g,`from '${vueModuleUrl}'`);
+  code=code.replace(/from\s+(['"])(\.\.\/[^'"]+)\1/g,(_match,_quote,relative)=>`from '${new URL(relative,fileUrl).href}'`);
+  return (await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)).default;
+}
+const FavoritesPage=await compilePage('FavoritesPage.vue');
+const realRoot={type:'root',children:[]};
+const realState=vueRef('error');
+renderer.createApp({render:()=>h(component,{page:{title:'我的收藏',empty:true},state:realState.value,onRestore:()=>{realState.value='normal';}},{default:()=>h(FavoritesPage)})}).mount(realRoot);
+await nextTick();
+const realRetry=flatten(realRoot).find(node=>node.type==='button'&&textOf(node)==='重试');
+realRetry.focus();realRetry.props.onClick();await nextTick();
+await new Promise(resolve=>setTimeout(resolve,850));await nextTick();await nextTick();
+assert.equal(globalThis.document.activeElement?.props?.['data-state-result-heading'],'','真实 FavoritesPage 恢复后必须聚焦真实结果标题，而非合成测试节点');
+assert.match(textOf(globalThis.document.activeElement),/收藏应用列表/,'真实恢复焦点必须落在可感知的收藏结果标题');
 
 const appSource=readFileSync(new URL('../src/App.vue',import.meta.url),'utf8');
 assert.ok(appSource.includes('PageStateBoundary'));
