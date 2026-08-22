@@ -1,5 +1,6 @@
 <script setup>
 // Reference SHA-256: 3D66270477C159EB9097CF74C904858A9158D9C9005A90C372B284AFB8980C43
+import { nextTick, ref } from 'vue';
 import { createDetailController } from '../state/detail-controller.js';
 import { routeSession } from '../state/session-store.js';
 const metrics=[['访问次数','3,562 次'],['应用类型','驾驶舱'],['所属业务域','经营分析'],['最近更新','2025-05-06'],['开发单位','数据智能部'],['负责人','李四强'],['开发者','王海峰']];
@@ -8,6 +9,8 @@ const attachments=['用户操作手册.pdf','快速使用指南.pdf','驾驶舱�
 const training=['经营管理驾驶舱操作介绍','指标监控与预警配置','多维钻取与联动分析','自定义看板配置实战'];
 const indicators=['营业收入完成率指标','成本费用控制率指标','年度经营目标达成率指标'];
 const detail=routeSession.controller('detail-dashboard',()=>createDetailController('/apps/dashboard-001',routeSession,{name:'经营管理驾驶舱'}));
+const commentInput=ref(null);
+async function submitComment(){if(detail.submitComment()){await nextTick();commentInput.value?.focus();}}
 </script>
 <template>
   <article class="product-detail dashboard-detail" aria-labelledby="dashboard-title"><p class="sr-only" aria-live="polite">{{ detail.announcement }}</p><nav class="detail-crumb" aria-label="面包屑"><a href="/apps?category=驾驶舱" data-detail-return>应用中心</a>　/　驾驶舱　/　应用详情</nav>
@@ -16,10 +19,10 @@ const detail=routeSession.controller('detail-dashboard',()=>createDetailControll
     <section class="detail-panel"><h2>核心功能</h2><div class="feature-grid"><article v-for="([name,text],index) in features" :key="name"><b>{{ index+1 }}</b><strong>{{ name }}</strong><p>{{ text }}</p></article></div></section>
     <section class="detail-panel"><h2>演示截图</h2><figure><img class="preview-wide" src="/assets/dashboard-previews.png" width="650" height="130" alt="" /><figcaption>核心经营指标、趋势预测和多维分析三项只读驾驶舱预览；演示不连接实时业务数据。</figcaption></figure></section>
     <section class="detail-panel"><h2>使用说明</h2><div class="related-row"><article><b>PDF</b><div><h3>经营管理驾驶舱-用户操作手册.pdf</h3><p>2.6 MB　2025-04-28</p></div></article><article><b>PDF</b><div><h3>经营管理驾驶舱-快速使用指南.pdf</h3><p>1.9 MB　2025-04-28</p></div></article></div></section>
-    <section class="detail-panel"><h2>附件资料</h2><table class="file-list"><thead><tr><th scope="col">文件名称</th><th scope="col">文件大小</th><th scope="col">上传时间</th><th scope="col">上传人</th><th scope="col">操作</th></tr></thead><tbody><tr v-for="(name,index) in attachments" :key="name"><td>{{ name }}</td><td>{{ 2.6-index*.6 }} MB</td><td>2025-04-28 10:{{ 20+index }}:10</td><td>李四强</td><td><button class="text-action" type="button" @click="detail.mockDownload(name)">下载 {{ name }}</button></td></tr></tbody></table></section>
+    <section class="detail-panel"><h2>附件资料</h2><table class="file-list"><caption class="sr-only">经营管理驾驶舱附件资料</caption><thead><tr><th scope="col">文件名称</th><th scope="col">文件大小</th><th scope="col">上传时间</th><th scope="col">上传人</th><th scope="col">操作</th></tr></thead><tbody><tr v-for="(name,index) in attachments" :key="name"><td>{{ name }}</td><td>{{ 2.6-index*.6 }} MB</td><td>2025-04-28 10:{{ 20+index }}:10</td><td>李四强</td><td><button class="text-action" type="button" @click="detail.mockDownload(name)">下载 {{ name }}</button></td></tr></tbody></table></section>
     <section class="detail-panel"><h2>相关培训内容 <a href="/training">查看全部培训</a></h2><div class="training-row"><article v-for="(name,index) in training" :key="name"><img src="/assets/dashboard-logo.png" alt="" /><div><h3>{{ name }}</h3><p>时长：{{ 14+index }}:20</p><a href="/training" :aria-label="`学习：${name}`">去学习</a></div></article></div></section>
     <section class="detail-panel"><h2>关联素材</h2><div class="related-row"><article v-for="name in indicators" :key="name"><img src="/assets/app-metric.png" alt="" /><div><h3><a href="/apps/metric-001">{{ name }}</a></h3><p>经营分析　指标</p></div></article></div></section>
-    <form class="detail-comment" @submit.prevent="detail.submitComment"><label>应用评论<input v-model="detail.commentDraft" placeholder="请输入您对该应用的评论..." /></label><button type="submit" :disabled="!detail.commentDraft.trim()">提交评论</button><ul v-if="detail.comments.length" aria-label="本地评论"><li v-for="comment in detail.comments" :key="comment">{{ comment }}</li></ul></form>
+    <form class="detail-comment" @submit.prevent="submitComment"><label>应用评论<input ref="commentInput" v-model="detail.commentDraft" placeholder="请输入您对该应用的评论..." /></label><button type="submit" :disabled="!detail.commentDraft.trim()">提交评论</button><ul v-if="detail.comments.length" aria-label="本地评论"><li v-for="comment in detail.comments" :key="comment.id" :data-comment-id="comment.id">{{ comment.text }}</li></ul></form>
   </article>
 </template>
 <style scoped>.dashboard-detail .detail-hero{min-height:350px}.dashboard-detail .preview-wide{background:#071838}.dashboard-detail figure{margin:0}.dashboard-detail figcaption{margin-top:10px;color:#536a84;font-size:10px}.text-action{padding:0;border:0;color:#0870e8;background:transparent}.detail-comment ul{margin:12px 0 0;padding-left:24px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #ff9f1a;outline-offset:2px}</style>

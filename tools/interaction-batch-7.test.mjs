@@ -14,7 +14,8 @@ detail.mockDownload('海能work应用使用说明.pdf');
 assert.match(detail.announcement,/演示环境不提供真实下载/);
 detail.commentDraft='统一门户很方便';
 assert.equal(detail.submitComment(),true);
-assert.deepEqual(detail.comments,['统一门户很方便']);
+assert.equal(detail.comments[0].text,'统一门户很方便');
+assert.match(detail.comments[0].id,/comment-1$/);
 
 const source=readFileSync(new URL('../src/pages/HainengWorkDetailPage.vue',import.meta.url),'utf8');
 for(const contract of ['createDetailController','createDetailController(\'/apps/haineng-work-001\',routeSession','aria-pressed','detail.mockDownload','detail.submitComment','detail.comments','href="/apps?category=海能work应用"'])assert.ok(source.includes(contract),`PP09 未接线：${contract}`);

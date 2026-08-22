@@ -1,6 +1,7 @@
 import { reactive } from 'vue';
 
 export function createDetailController(route, favorites, { name = '智能数据处理工具' } = {}) {
+  let commentSequence = 0;
   const isFavorite=()=>favorites.isRouteFavorite?favorites.isRouteFavorite(route):favorites.has(route);
   const toggle=()=>favorites.toggleRouteFavorite?favorites.toggleRouteFavorite(route):(favorites.has(route)?(favorites.delete(route),false):(favorites.add(route),true));
   return reactive({
@@ -32,7 +33,7 @@ export function createDetailController(route, favorites, { name = '智能数据�
         this.announcement = '请输入评论内容';
         return false;
       }
-      this.comments.unshift(comment);
+      this.comments.unshift({ id: `${route}-comment-${++commentSequence}`, text: comment });
       this.commentDraft = '';
       this.announcement = '评论已添加到本地演示列表';
       return true;

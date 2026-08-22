@@ -18,7 +18,8 @@ assert.match(detail.announcement,/演示环境不播放直播或远程视频/);
 assert.equal(detail.submitComment(),false);
 detail.commentDraft='工具很实用';
 assert.equal(detail.submitComment(),true);
-assert.deepEqual(detail.comments,['工具很实用']);
+assert.equal(detail.comments[0].text,'工具很实用');
+assert.match(detail.comments[0].id,/comment-1$/);
 assert.equal(detail.commentDraft,'');
 
 const source=readFileSync(new URL('../src/pages/ToolDetailPage.vue',import.meta.url),'utf8');
