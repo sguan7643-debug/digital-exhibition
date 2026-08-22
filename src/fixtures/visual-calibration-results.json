@@ -247,13 +247,13 @@
         1810
       ],
       "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\11.png",
-      "screenshotFileSha256": "EDD4506DACAD48BE521D1FE47BFE1FBD257F2932BE0FAC0A8B8FE67EC00C422F",
-      "screenshotRgbSha256": "9EDB41A96D9E08048233513DAFA90C22F93D2198DA6869238E7E39E1942D3E87",
+      "screenshotFileSha256": "19ADA31FA96161C85B1ABE5156C44FAE5C5490C289BB667A63D22EB482411EEA",
+      "screenshotRgbSha256": "2E23E2CB0DE100B7E00049AC89135AA1C3045050ACD9571B4A9DA322281285DF",
       "actualSize": [
         869,
         1810
       ],
-      "rawFloatSsim": 0.6444054684086526,
+      "rawFloatSsim": 0.6841586848158975,
       "status": "failed",
       "failure": "below-threshold"
     },
@@ -289,13 +289,13 @@
         1085
       ],
       "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\13.png",
-      "screenshotFileSha256": "FFED6EA9A8F997E05138D943FE25E2E4BD1384EBF990B5680C7CAEBE3A9BBFBD",
-      "screenshotRgbSha256": "BB098A6FFA0F89F1FEE2DEFC599C39FE5C355C5D9C1917CB61951EE74DE8E27D",
+      "screenshotFileSha256": "3950E0DD85AA367EFBF8F2A09831AEE56E09AB352FB2D85C33EDA7AE160BFA55",
+      "screenshotRgbSha256": "EFF9C591EC0BD79FE368E1BE73EC398B5C37EF063C14A5FEB42C2241C1072A30",
       "actualSize": [
         1450,
         1085
       ],
-      "rawFloatSsim": 0.6554051490023972,
+      "rawFloatSsim": 0.6912704031045496,
       "status": "failed",
       "failure": "below-threshold"
     },
@@ -352,13 +352,13 @@
         1228
       ],
       "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\16.png",
-      "screenshotFileSha256": "5D03E2D582E9A43E3609FD0DA1E263434144023A1E0145FB8493CE1A2DE72B79",
-      "screenshotRgbSha256": "BF63D624665EF471C87DEB8B932EFCBB0C452EEB5C378FC610B439F1C4E8507C",
+      "screenshotFileSha256": "91F88DD5C41D9FE92F3099D15DC6B22F83281DCB2FC3A328F342D4665EC8B04C",
+      "screenshotRgbSha256": "C4CEE4BC583CEE3443E2511A24BE195D4A0EF614D3521BBA9310AB68432ED9C6",
       "actualSize": [
         1536,
         1228
       ],
-      "rawFloatSsim": 0.6537318704384939,
+      "rawFloatSsim": 0.7010040544701529,
       "status": "failed",
       "failure": "below-threshold"
     },

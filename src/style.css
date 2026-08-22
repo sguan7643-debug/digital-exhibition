@@ -48,6 +48,7 @@ p { margin: 0; }
 .report-detail .detail-hero,.report-detail .detail-panel,.report-detail .detail-comment{border-color:#f4faff}
 .report-detail .detail-metrics,.report-detail .detail-metrics div,.report-detail .info-grid,.report-detail .info-grid div,.report-detail .file-list th,.report-detail .file-list td,.report-detail .training-row article,.report-detail .related-row article,.report-detail .detail-comment input{border-color:#f4faff}
 .report-detail figcaption{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+:is(.rpa-detail,.dashboard-detail,.metric-detail) :is(.detail-hero,.detail-panel,.detail-comment,.detail-metrics,.info-grid,.file-list th,.file-list td,.training-row article,.related-row article,.detail-comment input),:is(.rpa-detail,.dashboard-detail,.metric-detail) .detail-metrics div,:is(.rpa-detail,.dashboard-detail,.metric-detail) .info-grid div{border-color:#f4faff}
 .dashboard-detail .detail-crumb{height:32px}
 .dashboard-detail .info-grid div{min-height:41px}
 .dashboard-detail figcaption{position:static;width:auto;height:auto;padding:0;margin-top:10px;overflow:visible;clip:auto;white-space:normal;border:0}
