@@ -56,8 +56,8 @@ assert.doesNotMatch(talent, />×</);
 
 assert.match(shell, /@media\(min-width:761px\) and \(max-width:940px\)\{[^}]*grid-template-columns:150px/,
   '845–932px 原生参考必须保留 150px 目录栏');
-assert.match(shell, /@media\(min-width:941px\) and \(max-width:1600px\)\{[^}]*grid-template-columns:180px/,
-  '963–1548px 原生参考必须保留 180px 目录栏');
+assert.match(shell, /@media\(min-width:941px\) and \(max-width:1600px\)\{[^}]*grid-template-columns:220px/,
+  '941–1600px 参考必须保留获批的 220px 固定目录栏');
 assert.match(shell, /\.exhibition-shell\{height:100vh;overflow:hidden;display:grid;grid-template-rows:auto minmax\(0,1fr\)\}/,
   '页面壳必须锁定 viewport，禁止 document 整体纵向滚动');
 assert.match(shell, /\.page-frame\{min-height:0;[^}]*grid-template-columns:220px minmax\(0,1fr\)\}/,
