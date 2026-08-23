@@ -42,6 +42,8 @@ assert.match(favorites, /\.favorite-grid\{[^}]*background:#fafcff/,
   '收藏首屏八卡结果区必须使用像素模拟正向的蓝白表面色');
 assert.match(notice, /\.notice-sheet\{[^}]*background:#fafcff/,
   '通知详情主内容面板必须使用像素模拟正向的蓝白表面色');
+assert.match(notice, /\.notice-page\{[^}]*padding:28px 21px 0 7px/,
+  '通知详情主体必须按冻结参考校准四向内容起点');
 assert.match(messages, /\.messages-page\{[^}]*padding:27px 27px 21px 40px/,
   '消息中心主体必须按冻结参考校准顶部与左侧配准');
 assert.match(announcements, /\.announcements-page\{[^}]*padding:47px 26px 15px 39px/,
