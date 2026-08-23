@@ -40,7 +40,7 @@ const read=path=>readFileSync(new URL(`../${path}`,import.meta.url),'utf8');
 const list=read('src/pages/AnnouncementsPage.vue');
 const notice=read('src/pages/NoticeDetailPage.vue');
 const app=read('src/App.vue');
-for(const contract of ['createAnnouncementController','applyAnnouncementFilters','markAllRead','pagedAnnouncements',':aria-current','validationError','state === \'empty\''])
+for(const contract of ['createAnnouncementController','applyAnnouncementFilters','markAllRead','pagedAnnouncements','PaginationControl','validationError','state === \'empty\''])
   assert.ok(list.includes(contract),`PP05 未接线：${contract}`);
 for(const contract of ['createNoticeDetailController','mockDownload','goBack','aria-live="polite"','state === \'permission-denied\''])
   assert.ok(notice.includes(contract),`PP06 未接线：${contract}`);

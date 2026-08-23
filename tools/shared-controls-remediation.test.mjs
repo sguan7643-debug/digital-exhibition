@@ -10,12 +10,24 @@ const [projectPage, projectController, peoplePage, progressPage, operationsPage]
   read('src/pages/OperationsPage.vue')
 ]);
 
+const [appsPage, favoritesPage, messagesPage, announcementsPage, appController, contentControllers] = await Promise.all([
+  read('src/pages/AppsPage.vue'), read('src/pages/FavoritesPage.vue'), read('src/pages/MessagesPage.vue'),
+  read('src/pages/AnnouncementsPage.vue'), read('src/state/interaction-controllers.js'), read('src/state/content-controllers.js')
+]);
+
 assert.doesNotMatch(projectPage, /syncDrawer\(true\)/, 'talent projects must not open a drawer on initial entry');
 assert.doesNotMatch(projectPage, /if\s*\(!value\s*&&\s*initial\)/, 'talent projects must not synthesize drawer=create');
 assert.match(projectController, /pageSize\s*:\s*10/, 'talent project pagination defaults to 10 rows');
 for (const [name, source] of [['people', peoplePage], ['projects', projectPage], ['progress', progressPage]]) {
   assert.match(source, /PaginationControl/, `${name} must use the shared PaginationControl`);
 }
+for (const [name, source] of [['apps',appsPage],['favorites',favoritesPage],['messages',messagesPage],['announcements',announcementsPage]]) {
+  assert.match(source, /PaginationControl/, `${name} must use the shared PaginationControl`);
+}
+assert.match(appController, /pageSize\s*:\s*10/, 'apps default to 10 rows');
+assert.match(appController, /get pagedResults\(\)/, 'apps expose the current page subset');
+assert.match(contentControllers, /createFavoritesController[\s\S]*?pageSize\s*:\s*10/, 'favorites default to 10 rows');
+assert.equal((contentControllers.match(/setPageSize\(value\)/g)||[]).length>=2,true,'messages and favorites expose page-size changes');
 assert.match(operationsPage, /createOperationsController/, 'operations view must use deterministic interactive data');
 assert.match(operationsPage, /aria-pressed/, 'period controls must expose their selected state');
 assert.match(operationsPage, /type="date"/, 'operations date range must use real date controls');

@@ -44,6 +44,24 @@ try{
   assert.equal(await page.locator('[role=img]').count()>=4,true,'运营图表必须完整提供文本替代');
   await page.screenshot({path:resolve(output,'operations-month.png'),animations:'disabled'});
   results.push({route:'/operations',period:'month',before,after,start:'2026-08-05',charts:await page.locator('[role=img]').count()});
+
+  for(const target of [
+    {route:'/apps',items:'.apps-grid>article',expected:8,label:'应用中心分页'},
+    {route:'/favorites',items:'.favorite-grid>article',expected:10,label:'收藏分页'},
+    {route:'/messages',items:'.message-panel li',expected:10,label:'消息分页'},
+    {route:'/announcements',items:'.notice-table tbody tr',expected:10,label:'公告分页'}
+  ]){
+    await visit(target.route);
+    const pager=page.getByRole('navigation',{name:target.label});
+    assert.equal(await pager.count(),1,`${target.route} 必须渲染共享分页导航`);
+    assert.equal(await page.locator(target.items).count(),target.expected,`${target.route} 首屏必须显示 10 条`);
+    const pageSize=page.locator('.pagination-control select').last();
+    assert.equal(await pageSize.inputValue(),'10');
+    await pageSize.selectOption('20');
+    assert.equal(await pageSize.inputValue(),'20');
+    assert.equal(await pager.getByRole('button',{name:'第 1 页'}).getAttribute('aria-current'),'page');
+    results.push({route:target.route,pageSizeBefore:10,pageSizeAfter:20,sharedPagination:true});
+  }
 }finally{await browser.close();}
 assert.deepEqual(errors,[],'真实 Edge 不得有 pageerror');assert.deepEqual(externalRequests,[],'真实 Edge 不得发起非本地请求');
 const evidence={edgeVersion:'151.0.4129.101',results,errors,externalRequests};

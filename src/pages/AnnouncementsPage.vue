@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { ANNOUNCEMENT_FIXTURES, createAnnouncementController } from '../state/announcement-controllers.js';
 import { routeSession } from '../state/session-store.js';
+import PaginationControl from '../components/PaginationControl.vue';
 
 const REFERENCE_SHA256 = '58A43229752CC4A5210A2846B88DB267A622543AA8F7F034CDA42BC2041F4F8C';
 const props=defineProps({state:{type:String,default:'normal'}});
@@ -10,7 +11,6 @@ const controller=routeSession.controller('announcements',()=>createAnnouncementC
 const localState=ref(props.state);
 const state=computed(()=>localState.value);
 const startDateInput=ref(null);
-const jumpPage=ref('1');
 const pagedAnnouncements=computed(()=>localState.value==='empty'?[]:controller.pagedResults);
 const contentVisible=computed(()=>['normal','empty','disabled'].includes(localState.value));
 const controlsDisabled=computed(()=>localState.value==='disabled');
@@ -24,7 +24,6 @@ function updateFilter(key,event){controller.setFilter(key,event.target.value);}
 function markAllRead(){controller.markAllRead();}
 function rememberDetail(item,event){if(controlsDisabled.value){event.preventDefault();return;}controller.markRead(item.id);window.history.replaceState({...window.history.state,xltRestoreFocus:`announcement-${item.id}`},'',window.location.href);}
 function resetEmpty(){controller.resetData();emit('restore');}
-function submitJump(){controller.setPage(jumpPage.value);jumpPage.value=String(controller.page);}
 
 onMounted(()=>{const id=window.history.state?.xltRestoreFocus;if(id)nextTick(()=>document.getElementById(id)?.focus());});
 watch(()=>props.state,syncState);
@@ -46,7 +45,7 @@ onBeforeUnmount(()=>window.clearTimeout(loadingTimer));
       <section class="notice-table">
         <div v-if="state === 'empty' || !pagedAnnouncements.length" class="notice-empty"><h2>暂无符合条件的公告</h2><p>请调整筛选条件后重试。</p><button type="button" @click="resetEmpty">清除筛选并恢复</button></div>
         <template v-else><table><caption class="sr-only">公告通知列表</caption><thead><tr><th scope="col">公告内容</th><th scope="col">发布时间</th><th scope="col">状态</th><th scope="col">操作</th></tr></thead><tbody><tr v-for="item in pagedAnnouncements" :key="item.id"><td><i :class="item.tone" aria-hidden="true"></i><mark :class="item.tone">{{ item.type }}</mark><div><strong>{{ item.title }}</strong><p>{{ item.copy }}</p></div></td><td><time :datetime="`${item.date}T${item.time.slice(6)}`">{{ item.time }}</time></td><td><span :class="{unread:!item.read}">{{ item.read?'已读':'未读' }}</span></td><td><a v-if="item.hasDetail" :id="`announcement-${item.id}`" href="/announcements/notice-001" :aria-disabled="controlsDisabled" @click="rememberDetail(item,$event)">查看详情　›</a><button v-else :id="`announcement-${item.id}`" type="button" :disabled="controlsDisabled" @click="controller.explain(item)">查看详情　›</button></td></tr></tbody></table>
-        <footer><span>共 {{ controller.results.length }} 条</span><select aria-label="每页条数" :value="controller.pageSize" :disabled="controlsDisabled" @change="controller.setPageSize($event.target.value)"><option value="10">10条/页</option><option value="20">20条/页</option><option value="50">50条/页</option></select><nav aria-label="公告分页"><button type="button" :disabled="controlsDisabled || controller.page===1" aria-label="上一页" @click="controller.setPage(controller.page-1)">‹</button><button v-for="pageNumber in controller.pageNumbers" :key="pageNumber" type="button" :disabled="controlsDisabled" :aria-current="pageNumber===controller.page?'page':undefined" :aria-label="`第 ${pageNumber} 页`" @click="controller.setPage(pageNumber)">{{ pageNumber }}</button><button type="button" :disabled="controlsDisabled || controller.page===controller.totalPages" aria-label="下一页" @click="controller.setPage(controller.page+1)">›</button></nav><label>前往　<input v-model="jumpPage" inputmode="numeric" aria-label="页码" :disabled="controlsDisabled" @keydown.enter.prevent="submitJump" />　页</label></footer></template>
+        <PaginationControl :total="controller.results.length" :page="controller.page" :page-size="controller.pageSize" :disabled="controlsDisabled" label="公告分页" @update:page="controller.setPage" @update:page-size="controller.setPageSize" /></template>
       </section>
     </template>
     <section v-else-if="state === 'loading'" class="notice-state" aria-live="polite"><h1>正在加载公告</h1><p>请稍候。</p></section>

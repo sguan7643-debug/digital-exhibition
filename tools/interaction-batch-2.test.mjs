@@ -31,8 +31,8 @@ assert.equal(messages.pagedResults.length, 8);
 
 const favorites = createFavoritesController(FAVORITE_FIXTURES);
 assert.equal(FAVORITE_FIXTURES.length, 28);
-assert.equal(favorites.totalPages, 4);
-assert.equal(favorites.pagedResults.length, 8);
+assert.equal(favorites.totalPages, 3);
+assert.equal(favorites.pagedResults.length, 10);
 favorites.setFilter('query', '智能采购');
 assert.deepEqual(favorites.results.map(item => item.id), ['favorite-007']);
 favorites.resetFilters();
@@ -43,8 +43,8 @@ favorites.cancel(removed);
 assert.ok(!favorites.results.some(item => item.id === removed));
 favorites.resetData();
 assert.ok(favorites.results.some(item => item.id === removed));
-favorites.setPage(4);
-assert.equal(favorites.pagedResults.length, 4);
+favorites.setPage(3);
+assert.equal(favorites.pagedResults.length, 8);
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const messageSource = read('src/pages/MessagesPage.vue');

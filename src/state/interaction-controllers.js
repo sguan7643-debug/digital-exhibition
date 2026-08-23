@@ -25,6 +25,7 @@ export function createAppsController(fixtures) {
     sort: 'default',
     view: 'grid',
     page: 1,
+    pageSize: 10,
     announcement: '',
     get results() {
       const query = normalize(this.filters.query);
@@ -41,6 +42,8 @@ export function createAppsController(fixtures) {
       if (this.sort === 'name') return [...rows].sort((a,b) => a.name.localeCompare(b.name, 'zh-CN'));
       return rows;
     },
+    get totalPages() { return Math.max(1, Math.ceil(this.results.length / this.pageSize)); },
+    get pagedResults() { const start=(this.page-1)*this.pageSize; return this.results.slice(start,start+this.pageSize); },
     setFilter(key, value) {
       if (!(key in this.filters)) throw new TypeError(`Unknown application filter: ${key}`);
       this.filters[key] = value;
@@ -49,6 +52,8 @@ export function createAppsController(fixtures) {
     },
     setSort(value) { this.sort = value; this.page = 1; this.announcement = '应用排序已更新'; },
     setView(value) { this.view = value; this.announcement = `已切换为${value === 'list' ? '列表' : '卡片'}视图`; },
+    setPage(value) { this.page=Math.min(this.totalPages,Math.max(1,Number(value)||1));this.announcement=`已切换到第 ${this.page} 页`; },
+    setPageSize(value) { this.pageSize=[10,20,50].includes(Number(value))?Number(value):10;this.page=1;this.announcement=`已切换为每页 ${this.pageSize} 条`; },
     reset() {
       Object.assign(this.filters, { category:'', query:'', tag:'', type:'', domain:'', scene:'' });
       this.queryDraft='';this.sort = 'default'; this.view = 'grid'; this.page = 1;

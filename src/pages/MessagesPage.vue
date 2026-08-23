@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { MESSAGE_FIXTURES, createMessagesController } from '../state/content-controllers.js';
 import { routeSession } from '../state/session-store.js';
+import PaginationControl from '../components/PaginationControl.vue';
 const REFERENCE_SHA256 = '8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22';
 const controller=routeSession.controller('messages',()=>createMessagesController(MESSAGE_FIXTURES));
 const stats = computed(() => [
@@ -37,7 +38,7 @@ function moveTab(event,index){if(!['ArrowLeft','ArrowRight'].includes(event.key)
           <div><strong>{{ item.title }}</strong><p>{{ item.copy }}</p></div><time :datetime="`2025-${item.time.replace(' ','T')}`">{{ item.time }}</time><em>{{ item.read?'已读':'未读' }}</em><a v-if="actionFor(item).kind==='route'" :id="`message-${item.id}`" :data-session-focus="`message-${item.id}`" :href="actionFor(item).route" @click="controller.markRead(item.id)">{{ item.action }}　›</a><button v-else :id="`message-${item.id}`" type="button" @click="activateMessage(item)">{{ item.action }}　›</button>
         </li>
       </ul>
-      <p v-if="!filteredMessages.length" class="message-empty" role="status">暂无符合条件的消息</p><footer><span>共 {{ filteredMessages.length }} 条</span><select aria-label="每页条数" disabled><option>10条/页</option></select><nav aria-label="分页"><button :disabled="controller.page===1" @click="controller.setPage(controller.page-1)">上一页</button><button v-for="page in controller.totalPages" :key="page" :aria-current="controller.page===page?'page':undefined" @click="controller.setPage(page)">{{ page }}</button><button :disabled="controller.page===controller.totalPages" @click="controller.setPage(controller.page+1)">下一页</button></nav></footer>
+      <p v-if="!filteredMessages.length" class="message-empty" role="status">暂无符合条件的消息</p><PaginationControl :total="filteredMessages.length" :page="controller.page" :page-size="controller.pageSize" label="消息分页" @update:page="controller.setPage" @update:page-size="controller.setPageSize" />
     </section>
   </div>
 </template>

@@ -20,10 +20,10 @@ assert.doesNotMatch(shell, /\.(?:standard-shell|app-detail-shell) \.topbar\s*\{/
   '逐页视觉校准不得破坏统一顶栏结构和尺寸');
 assert.match(
   controllers,
-  /page:1,pageSize:8,announcement/,
-  '收藏页首屏必须按冻结参考渲染两行共 8 张卡片'
+  /page:1,pageSize:10,announcement/,
+  '收藏页必须遵循全系统统一的默认每页 10 条合同'
 );
-assert.match(favorites, /<option>8条\/页<\/option>/, '分页可感知文案必须与实际 8 条页大小一致');
+assert.match(favorites, /PaginationControl/, '收藏页必须复用共享分页组件');
 assert.match(favorites, /class="favorite-filters"[\s\S]*@click="resetData">重置<\/button>[\s\S]*<\/form>/,
   '演示数据重置必须位于冻结筛选栏，而不是挤压分页');
 assert.doesNotMatch(favorites, /class="favorite-pagination"[\s\S]{0,220}@click="resetData"/,

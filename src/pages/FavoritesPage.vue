@@ -2,6 +2,7 @@
 import { computed, nextTick, ref } from 'vue';
 import { FAVORITE_FIXTURES, createFavoritesController } from '../state/content-controllers.js';
 import { routeSession } from '../state/session-store.js';
+import PaginationControl from '../components/PaginationControl.vue';
 const REFERENCE_SHA256 = '9B259ED9F99029ECB68A1F2FB3EB8E745FF23692BC53CFFBD5D6A46008CEAE1A';
 const stats = [['收藏总数','28','5','/assets/favorite-stat-total.png'],['本周新增','6','2','/assets/favorite-stat-new.png'],['最近使用','8','','/assets/favorite-stat-recent.png']];
 const controller=routeSession.controller('favorites',()=>createFavoritesController(FAVORITE_FIXTURES,routeSession));
@@ -26,7 +27,7 @@ function resetData(){queryDraft.value='';controller.resetData();}
     <h2 ref="resultTitleRef" class="sr-only" tabindex="-1" data-state-result-heading>收藏应用列表，共 {{ controller.activeCount }} 个</h2><section class="favorite-grid" aria-label="收藏应用列表">
       <article v-for="card in pagedCards" :key="card.id" :data-favorite-id="card.id"><header><img :src="`/assets/${card.image}`" width="48" height="48" alt="" /><div><h2>{{ card.name }}</h2><mark>{{ card.type }}</mark><mark>{{ card.domain }}</mark></div><img class="heart" src="/assets/favorite-heart.png" width="18" height="18" alt="已收藏" /></header><p>{{ card.description }}</p><dl><div><dt>使用量</dt><dd>{{ card.usage }}</dd></div><div><dt>收藏</dt><dd>{{ card.favorites }}</dd></div><div><dt>所属部门</dt><dd>{{ card.domain }}部</dd></div><div><dt>负责人</dt><dd>{{ card.owner }}</dd></div><div><dt>开发部门/单位</dt><dd>信息技术中心</dd></div><div><dt>开发者</dt><dd>{{ card.developer }}</dd></div></dl><footer><button type="button" @click="controller.announcement=`${card.name}：立即使用为本地演示操作`">立即使用</button><a :href="card.route" :data-session-focus="`favorite-detail-${card.id}`">查看详情</a><button class="cancel-favorite" type="button" @click="cancelFavorite(card)">取消收藏</button></footer></article>
     </section>
-    <p v-if="!filteredCards.length" class="favorite-empty" role="status">暂无符合条件的收藏应用</p><footer class="favorite-pagination"><span>共 {{ filteredCards.length }} 条</span><select aria-label="每页条数" disabled><option>8条/页</option></select><nav aria-label="分页"><button :disabled="controller.page===1" @click="controller.setPage(controller.page-1)">上一页</button><button v-for="page in controller.totalPages" :key="page" :aria-current="controller.page===page?'page':undefined" @click="controller.setPage(page)">{{ page }}</button><button :disabled="controller.page===controller.totalPages" @click="controller.setPage(controller.page+1)">下一页</button></nav></footer>
+    <p v-if="!filteredCards.length" class="favorite-empty" role="status">暂无符合条件的收藏应用</p><PaginationControl class="favorite-pagination" :total="filteredCards.length" :page="controller.page" :page-size="controller.pageSize" label="收藏分页" @update:page="controller.setPage" @update:page-size="controller.setPageSize" />
   </div>
 </template>
 

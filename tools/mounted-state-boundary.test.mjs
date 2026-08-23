@@ -92,6 +92,7 @@ async function compilePage(file){
   assert.deepEqual(parsed.errors,[]);
   let code=compileScript(parsed.descriptor,{id:`real-${file}`,inlineTemplate:true}).content;
   code=code.replace(/from\s+(['"])vue\1/g,`from '${vueModuleUrl}'`);
+  code=code.replace(/import\s+(\w+)\s+from\s+['"][^'"]+\.vue['"];?/g,(_match,name)=>`const ${name}={render(){return null;}};`);
   code=code.replace(/from\s+(['"])(\.\.\/[^'"]+)\1/g,(_match,_quote,relative)=>`from '${new URL(relative,fileUrl).href}'`);
   return (await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)).default;
 }
