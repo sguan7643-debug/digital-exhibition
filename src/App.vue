@@ -36,6 +36,14 @@ import TalentProgressPage from './pages/TalentProgressPage.vue';
 import { PAGE_MATRIX, resolvePage } from './fixtures/pages.js';
 import { routeSession } from './state/session-store.js';
 
+function normalizeInitialRoute() {
+  if (window.location.pathname === '/') {
+    window.history.replaceState(window.history.state, '', '/workbench' + window.location.search + window.location.hash);
+  }
+}
+
+normalizeInitialRoute();
+
 const supportedStates = new Set([
   'normal',
   'loading',

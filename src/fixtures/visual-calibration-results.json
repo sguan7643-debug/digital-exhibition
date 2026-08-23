@@ -79,13 +79,13 @@
         941
       ],
       "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\03.png",
-      "screenshotFileSha256": "FD56EC448E078DA67ED3BADCC4AFB1D5912E2FE1D9F49CC96338FDBFF4E4F391",
-      "screenshotRgbSha256": "56B05BB29C0BBFA3460723E77F5741DB94642D7E0386560F3DAF1004F557A6B4",
+      "screenshotFileSha256": "4B153566BA4B3AA0E2CABAA082A68007F279B2340968859558B1FFE723F223CF",
+      "screenshotRgbSha256": "C533D9B13F08469126EEB386C811D43715E88825E7DD505A953DD6E0AEF7609C",
       "actualSize": [
         1671,
         941
       ],
-      "rawFloatSsim": 0.6979072061109348,
+      "rawFloatSsim": 0.6979462582776111,
       "status": "failed",
       "failure": "below-threshold"
     },
@@ -163,13 +163,13 @@
         941
       ],
       "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\07.png",
-      "screenshotFileSha256": "AB152C67EFCBF5DD3983BED0769C115927D23824AA7286FE7E1D681974884E0E",
-      "screenshotRgbSha256": "BB02380D7FF21DD037D77E2BE58733F7E626E8ADC5E3B39EF098F8CB726EC04A",
+      "screenshotFileSha256": "B7EB8D1E006857B19C33AC850F8F261A79CDC3E8D08B005510E912B731E183D0",
+      "screenshotRgbSha256": "844BBF861A7214A44139C64BE60B31311F953FBA6DDC2E2AEC42F5797B88C1B5",
       "actualSize": [
         1672,
         941
       ],
-      "rawFloatSsim": 0.7067063809905773,
+      "rawFloatSsim": 0.706708121606002,
       "status": "failed",
       "failure": "below-threshold"
     },
@@ -562,13 +562,13 @@
         941
       ],
       "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\26.png",
-      "screenshotFileSha256": "4058446024D6984D44A1D8E5C8EF6F97C5AEFA74D44D892B975144FB56A33E33",
-      "screenshotRgbSha256": "5279B60DE87E31057538FF2DAE4E8C7743C3E58880FEAB95B5F2CA6E0747B9EA",
+      "screenshotFileSha256": "C845A723215A49AC701B1692A3D9CA62B4C5F7401D64967D57C8B60BB8ED9328",
+      "screenshotRgbSha256": "A08D3BFF902B86E9F34522B74762AAD8B29E0606DD606D073D442CB308F9F70A",
       "actualSize": [
         1672,
         941
       ],
-      "rawFloatSsim": 0.7195380065837095,
+      "rawFloatSsim": 0.7212609528109758,
       "status": "failed",
       "failure": "below-threshold"
     },
@@ -625,13 +625,13 @@
         941
       ],
       "implementationScreenshot": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web\\evidence\\phase-1-visual\\29.png",
-      "screenshotFileSha256": "13EEC1D380D1D505271B66490C37C0E5477AD92CA5AEB215D370E3EC838F889E",
-      "screenshotRgbSha256": "3955F5D2816BB707FA8F98CE944569FE22961AC060C28B52D8C0051AF78F1B06",
+      "screenshotFileSha256": "9A55997289EF31EFD31D29EED36BA783CAF5D2C922202F37B1EF56E5638115C4",
+      "screenshotRgbSha256": "8F1AAC3380775C730CD6CBBEF27EDE161E5A622C5D495E3F6CF2C418A1005DE7",
       "actualSize": [
         1672,
         941
       ],
-      "rawFloatSsim": 0.783708252149606,
+      "rawFloatSsim": 0.7830827381606591,
       "status": "failed",
       "failure": "below-threshold"
     },

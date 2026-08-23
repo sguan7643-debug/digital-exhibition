@@ -14,4 +14,4 @@ const fields=[['供应商编码','supplier_id','字符串'],['供应商名称','
     <form class="detail-comment" @submit.prevent><label>应用评论<input placeholder="请输入您对该应用的评论..." /></label><button type="submit">提交评论</button></form>
   </article>
 </template>
-<style scoped>.dataset-detail .detail-hero{min-height:235px}.dataset-detail .detail-logo{width:56px;height:56px}.wide{grid-column:1/-1}.dataset-training{max-width:820px}.more{display:block;padding:12px;text-align:center;color:#0870e8;font-size:10px}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #ff9f1a;outline-offset:2px}</style>
+<style scoped>.dataset-detail .detail-hero{min-height:235px}.dataset-detail .detail-logo{width:56px;height:56px}.wide{grid-column:1/-1}.dataset-training{max-width:820px}.more{display:block;padding:12px;text-align:center;color:#0870e8;font-size:10px}button:focus-visible,a:focus-visible{outline:3px solid #ff9f1a;outline-offset:2px}</style>
