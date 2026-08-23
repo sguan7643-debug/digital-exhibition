@@ -90,12 +90,18 @@ export function createTalentController(fixtures) {
       this.announcement = `已打开${this.selected.name}的人才详情`;
     },
     close() { this.selectedId = null; this.announcement = '人才详情已关闭'; },
-    setPage(value) {
+      setPage(value) {
       const next=Math.min(this.totalPages,Math.max(1,Number(value)||1));
       this.page=next;
       if(this.selectedId && !this.pagedResults.some(person=>person.id===this.selectedId)) this.selectedId=null;
       this.announcement=`已切换到第 ${this.page} 页`;
-    },
+      },
+      setPageSize(value) {
+        this.pageSize = [10,20,50].includes(Number(value)) ? Number(value) : 10;
+        this.page = 1;
+        this.selectedId = null;
+        this.announcement = `已切换为每页 ${this.pageSize} 条`;
+      },
     reset() {
       Object.assign(this.filters, { query:'', department:'', domain:'', office:'', inPool:'' });
       this.selectedId = null; this.page = 1;

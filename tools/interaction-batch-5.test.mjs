@@ -4,8 +4,8 @@ import { PROJECT_FIXTURES, createTalentProjectController } from '../src/state/ta
 
 const projects=createTalentProjectController(PROJECT_FIXTURES);
 assert.equal(PROJECT_FIXTURES.length,15);
-assert.equal(projects.totalPages,3);
-assert.equal(projects.pagedResults.length,5);
+assert.equal(projects.totalPages,2);
+assert.equal(projects.pagedResults.length,10);
 projects.setFilter('progress','进行中');
 assert.ok(projects.results.every(item=>item.progress==='进行中'));
 projects.setFilter('query','海上平台');
