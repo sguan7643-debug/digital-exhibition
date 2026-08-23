@@ -6,6 +6,7 @@ const read = path => readFileSync(new URL(path, root), 'utf8');
 const shell = read('src/components/ExhibitionShell.vue');
 const messages = read('src/pages/MessagesPage.vue');
 const announcements = read('src/pages/AnnouncementsPage.vue');
+const appAdmin = read('src/pages/AppAdminPage.vue');
 const favorites = read('src/pages/FavoritesPage.vue');
 const notice = read('src/pages/NoticeDetailPage.vue');
 const controllers = read('src/state/content-controllers.js');
@@ -47,6 +48,12 @@ assert.match(announcements, /\.announcements-page\{[^}]*padding:47px 26px 15px 3
   '公告通知主体必须按冻结参考校准顶部与左侧配准');
 assert.match(announcements, /\.announcements-page>header\{height:78px/,
   '公告通知标题区高度必须让统计卡起点匹配冻结参考');
+assert.match(appAdmin, /\.app-admin\{padding:31px 33px 20px 19px/,
+  '应用运营管理主体必须按冻结参考校准四向内容起点');
+assert.match(appAdmin, /\.app-admin-stats\{[^}]*margin:24px 0 15px/,
+  '应用运营管理统计区必须按冻结参考校准上下节奏');
+assert.match(appAdmin, /\.app-admin header>a\{[^}]*margin-top:12px/,
+  '新建应用按钮必须按冻结参考校准垂直位置');
 assert.match(favorites, /@media\(min-width:761px\)\{\.favorites-page\{padding-top:33px\}\}/,
   '统一 63px 顶栏下，收藏页必须用 33px 顶距对齐冻结内容起点，不能改变全局顶栏');
 
