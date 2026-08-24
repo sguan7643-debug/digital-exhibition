@@ -25,8 +25,8 @@ for (const staleAsset of [
     `培训课程不得继续复用其他页面或错误语义的图标：${staleAsset}`);
 }
 
-assert.match(source, /\.training-page\{padding:24px 19px 18px/,
-  '培训页主体必须按 fresh 纵向配准下移 6px，保持固定壳层不变');
+assert.match(source, /\.training-page\{padding:24px 19px 18px 49px/,
+  '培训页主体必须在固定 220px 侧栏下对齐冻结参考的 x=269 内容起点');
 assert.match(source, /\.training-hero\{[^}]*border:1px solid #f4faff/,
   '培训 Hero 外框必须使用冻结参考的低对比蓝白色');
 assert.match(source, /\.hero-stats article\{[^}]*border:1px solid #f4faff/,
