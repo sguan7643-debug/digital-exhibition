@@ -76,7 +76,8 @@ function validateErrorEnvelope(body, contract, response, traceId) {
     throw new IntegrationRequestError('安全代理错误响应不符合合同', {
       ...normalized,
       status: response.status,
-      traceId
+      traceId,
+      contractError: 'error-envelope-schema'
     });
   }
   return { ...normalized, retryAfterSeconds: body.retryAfterSeconds };
@@ -114,6 +115,22 @@ export function createSafeProxyClient(options = {}) {
       const controller = new AbortController();
       let callerCancelled = false;
       let timedOut = false;
+      const abortedRequestError = status => {
+        if (callerCancelled) return new IntegrationRequestError('请求已由调用方取消', {
+          state: 'cancelled', retryable: false, status, traceId, cause: controller.signal.reason
+        });
+        if (timedOut) return new IntegrationRequestError('请求超时', {
+          state: 'timeout', retryable: true, status, traceId, cause: controller.signal.reason
+        });
+        if (controller.signal.aborted) return new IntegrationRequestError('请求已取消', {
+          state: 'cancelled', retryable: false, status, traceId, cause: controller.signal.reason
+        });
+        return null;
+      };
+      const throwIfAborted = status => {
+        const error = abortedRequestError(status);
+        if (error) throw error;
+      };
       const abortFromCaller = () => {
         callerCancelled = true;
         controller.abort(requestOptions.signal?.reason || new DOMException('请求已取消', 'AbortError'));
@@ -130,15 +147,25 @@ export function createSafeProxyClient(options = {}) {
           headers: { 'Content-Type': 'application/json', 'X-Trace-Id': traceId },
           body: JSON.stringify({ operationId, input: payload })
         });
-        if (controller.signal.aborted) throw controller.signal.reason;
+        throwIfAborted(response.status);
+        const httpNormalized = response.ok ? null : normalizeIntegrationError({ status: response.status });
         let body;
         try {
           body = await response.json();
         } catch {
+          throwIfAborted(response.status);
+          if (!response.ok) {
+            throw new IntegrationRequestError('安全代理错误响应不是有效 JSON', {
+              ...httpNormalized, status: response.status, traceId, contractError: 'invalid-error-json'
+            });
+          }
           throw createSchemaError('安全代理响应不是有效 JSON', { status: response.status, traceId });
         }
+        await Promise.resolve();
+        throwIfAborted(response.status);
         if (!response.ok) {
           const normalized = validateErrorEnvelope(body, contract, response, traceId);
+          throwIfAborted(response.status);
           throw new IntegrationRequestError('安全代理请求失败', { ...normalized, status: response.status, traceId: body.traceId || traceId });
         }
         try {
@@ -147,6 +174,8 @@ export function createSafeProxyClient(options = {}) {
           if (/敏感字段/.test(error?.message || '')) throw error;
           throw createSchemaError('安全代理成功响应不符合合同', { status: response.status, traceId });
         }
+        await Promise.resolve();
+        throwIfAborted(response.status);
         return { ...body, traceId: body.traceId || traceId };
       } catch (error) {
         const normalized = error instanceof IntegrationRequestError
@@ -160,7 +189,8 @@ export function createSafeProxyClient(options = {}) {
           ...normalized,
           status: error?.status,
           traceId: error?.traceId || traceId,
-          retryAfterSeconds: error?.retryAfterSeconds
+          retryAfterSeconds: error?.retryAfterSeconds,
+          contractError: error?.contractError
         });
       } finally {
         if (timer) clearTimeout(timer);
