@@ -13,8 +13,8 @@ const controllers = read('src/state/content-controllers.js');
 
 assert.match(
   shell,
-  /\.topbar\{height:63px/,
-  '统一顶栏必须保持用户已验收的 63px 几何'
+  /\.topbar\{height:69px/,
+  '统一顶栏必须保持新版 69px 几何'
 );
 assert.doesNotMatch(shell, /\.(?:standard-shell|app-detail-shell) \.topbar\s*\{/,
   '逐页视觉校准不得破坏统一顶栏结构和尺寸');

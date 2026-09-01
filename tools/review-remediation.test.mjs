@@ -68,8 +68,8 @@ assert.match(shell, /main\{min-width:0;min-height:0;overflow-y:auto/,
   '只有右侧主要内容区域可以纵向滚动');
 assert.match(shell, /'certification-shell': props\.page\.id === '27'/,
   '数字化认证必须有冻结参考专属的壳层视觉几何标识');
-assert.match(shell, /\.certification-shell \.topbar\{height:90px\}/,
-  '数字化认证参考要求 90px 顶部导航高度');
+assert.doesNotMatch(shell, /\.certification-shell \.topbar/,
+  '数字化认证页不得覆盖全站统一的 69px 新版头部');
 assert.match(shell, /\.certification-shell \.page-frame\{grid-template-columns:242px minmax\(0,1fr\)\}/,
   '数字化认证参考要求 242px 左侧导航宽度');
 assert.match(certification, /\.cert-page\{padding:17px 23px 17px 15px/,
