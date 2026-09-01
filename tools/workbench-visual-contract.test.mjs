@@ -31,17 +31,18 @@ for (const content of [
   '库存周转分析报表',
   '增值税发票查验机器人',
   '电子发票录入校验',
-  '应用访问次数',
-  '应用使用次数',
+  '应用使用数',
+  '报表查看次数',
+  '数据查询次数',
   '收藏应用数'
 ]) {
   assert.ok(workbenchAuthority.includes(content), `工作台缺少权威内容：${content}`);
 }
 
-assert.match(workbench, /\/assets\/overview-dataset\.png/);
-assert.match(workbenchAuthority, /\/assets\/hot-supplier\.png/);
+assert.doesNotMatch(workbench, /\/assets\/overview-[^'"\s]+\.png/);
+assert.doesNotMatch(workbench, /\/assets\/hot-[^'"\s]+\.png/);
 assert.match(workbench, /\/assets\/training-ai\.png/);
-assert.match(workbench, /\/assets\/usage-visits\.png/);
+assert.doesNotMatch(workbench, /\/assets\/usage-[^'"\s]+\.png/);
 assert.doesNotMatch(workbench, /2026年8月19日/);
 
 console.log('首页工作台权威布局与原子资产合同测试通过');

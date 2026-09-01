@@ -12,16 +12,16 @@ const definePage = ({ empty = false, capture = 'canvas', ...page }) => ({
 });
 
 export const PAGE_MATRIX = [
-  definePage({ id: '01', reference: '01-首页工作台.png', route: '/workbench', role: '普通员工', title: '首页工作台', width: 1672, height: 941, sha256: 'B4AD50BCD55B3DCC0D3672A586D36664DAE5D886B1F5399E9396D121170B841B', empty: true }),
+  definePage({ id: '01', reference: '47025c81-207e-4bca-8a57-4f7e1b0c9a0d.png', referenceRoot: '页面UI更新', route: '/workbench', role: '普通员工', title: '首页工作台', width: 1672, height: 941, sha256: '650057191C8AF87F6CA8864EA3DC35A8863B3AC28B9683514BD2EFC8D8C25E1A', empty: true }),
   definePage({ id: '02', reference: '02-消息中心.png', route: '/messages', role: '普通员工', title: '消息中心', width: 1672, height: 941, sha256: '8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22', empty: true }),
   definePage({ id: '03', reference: '03-收藏.png', route: '/favorites', role: '普通员工', title: '我的收藏', width: 1671, height: 941, sha256: '9B259ED9F99029ECB68A1F2FB3EB8E745FF23692BC53CFFBD5D6A46008CEAE1A', empty: true }),
   definePage({ id: '04', reference: '04-个人中心.png', route: '/profile', role: '普通员工', title: '个人中心', width: 1920, height: 1080, sha256: 'F08DE51669B152D46224A0031945CFFF85969E40D7416D93849B6E1CDD35FA9A' }),
   definePage({ id: '05', reference: '05-公告通知.png', route: '/announcements', role: '普通员工', title: '公告通知', width: 1672, height: 941, sha256: '58A43229752CC4A5210A2846B88DB267A622543AA8F7F034CDA42BC2041F4F8C', empty: true }),
   definePage({ id: '06', reference: '06-公告通知-通知详情.png', route: '/announcements/notice-001', role: '普通员工', title: '通知详情', width: 1672, height: 941, sha256: 'A9827301EF6051E8B9B963B07F7073F6AB7AE4BFD21BAC97FDDA67A08FF3D78F' }),
-  definePage({ id: '07', reference: '07-应用中心.png', route: '/apps', role: '普通员工', title: '应用中心', width: 1672, height: 941, sha256: 'E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD', empty: true }),
+  definePage({ id: '07', reference: 'dc8f8714-569f-4e80-9e47-aa21900d03f7.png', referenceRoot: '页面UI更新', route: '/apps', role: '普通员工', title: '应用中心', width: 1672, height: 941, sha256: '6479C8AFB3EB22872C5CA17D58A29DC8504E8CF05E3284D5E49708B7894FF522', empty: true }),
   definePage({ id: '08', reference: '08-应用详情页-工具.png', route: '/apps/tool-001', role: '普通员工', title: '工具详情', width: 932, height: 1350, sha256: '35ACE981294AF359A243AFB1F53C29590BA124742F8EEF3BBE7152F4984F7A69', capture: 'fullPage' }),
   definePage({ id: '09', reference: '08-应用详情页-海能work应用.png', route: '/apps/haineng-work-001', role: '普通员工', title: '海能 Work 应用', width: 1548, height: 1016, sha256: '21D2FCC06638F323E7824176C53BB72DDE1050790E6B4E457D54CD2D7398431C' }),
-  definePage({ id: '10', reference: '08-应用详情页-可视化报表.png', route: '/apps/report-001', role: '普通员工', title: '可视化报表', width: 845, height: 1862, sha256: 'A7A5B61527C5A2D7C83ACD2C769AA56FD038B252EDE4D1A46A91D1396F2113B1', capture: 'fullPage' }),
+  definePage({ id: '10', reference: 'ef637f71-a1cb-4aee-b899-d73af0b9edd1.png', referenceRoot: '页面UI更新', route: '/apps/report-001', role: '普通员工', title: '经营分析可视化报表', width: 1054, height: 1492, sha256: '0750EA98D775041275D2A2308F5B33A01EEA9BB3EA37ACFADEDAA71755820887', capture: 'fullPage' }),
   definePage({ id: '11', reference: '08-应用详情页-可视化驾驶舱.png', route: '/apps/dashboard-001', role: '普通员工', title: '可视化驾驶舱', width: 869, height: 1810, sha256: '3D66270477C159EB9097CF74C904858A9158D9C9005A90C372B284AFB8980C43', capture: 'fullPage' }),
   definePage({ id: '12', reference: '08-应用详情页-数据集.png', route: '/apps/dataset-001', role: '普通员工', title: '数据集详情', width: 963, height: 1633, sha256: '7260427E1B5E85ECDFE37D52D6A88439178542503EC8E5E6FC5D679701633C97', capture: 'fullPage' }),
   definePage({ id: '13', reference: '08-应用详情页-指标.png', route: '/apps/metric-001', role: '普通员工', title: '指标详情', width: 1450, height: 1085, sha256: '48C41CBB2DF433C9680DD955A4777FA436BBFF6E094D56A3B5E6E0E48B01690B' }),

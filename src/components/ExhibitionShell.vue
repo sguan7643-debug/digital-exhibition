@@ -7,14 +7,24 @@ const shellState = createShellController();
 const sceneDraft = ref(new URLSearchParams(window.location.search).get('scene') || '');
 const selectedCategory = ref(new URLSearchParams(window.location.search).get('category') || '');
 
-const primaryNav = [
+const basePrimaryNav = [
   ['/workbench', '/assets/nav-workbench.png', '首页工作台'], ['/favorites', '/assets/nav-materials.png', '素材中心'],
   ['/talent/people', '/assets/nav-talent.png', '人才管理'], ['/apps', '/assets/nav-apps.png', '应用中心'],
   ['/training', '/assets/nav-training.png', '培训课堂'], ['/points', '/assets/nav-points.png', '积分中心'],
   ['/certification', '/assets/nav-certification.png', '数字化认证'], ['/operations', '/assets/nav-operations.png', '运营管理'],
   ['/announcements', '/assets/nav-announcements.png', '公告通知'], ['/admin', '/assets/nav-admin.png', '后台管理']
 ];
-const simpleNav = primaryNav.map(([route, icon, label]) => [route, label, icon]);
+const appsPrimaryNav = [
+  ['/workbench', '/assets/nav-workbench.png', '首页工作台'], ['/favorites', '/assets/nav-materials.png', '集中中心'],
+  ['/apps', '/assets/nav-apps.png', '应用中心'], ['/certification', '/assets/nav-certification.png', '数字化认证'],
+  ['/training', '/assets/nav-training.png', '培训课堂'], ['/announcements', '/assets/nav-announcements.png', '公告通知'],
+  ['/points', '/assets/nav-points.png', '积分中心'], ['/operations', '/assets/nav-operations.png', '运营管理'],
+  ['/admin', '/assets/nav-admin.png', '后台管理']
+];
+const reportPrimaryNav = basePrimaryNav.filter(([, , label]) => !['人才管理', '数字化认证'].includes(label));
+const shellVariant = computed(() => props.page.id === '01' ? 'ui-update-workbench' : props.page.id === '07' ? 'ui-update-apps' : props.page.id === '10' ? 'ui-update-report' : '');
+const primaryNav = computed(() => shellVariant.value === 'ui-update-apps' ? appsPrimaryNav : shellVariant.value === 'ui-update-report' ? reportPrimaryNav : basePrimaryNav);
+const simpleNav = basePrimaryNav.map(([route, icon, label]) => [route, label, icon]);
 const categories = [
   ['RPA', '/assets/category-rpa.png'], ['大屏', '/assets/category-screen.png'], ['驾驶舱', '/assets/category-cockpit.png'],
   ['可视化报表', '/assets/category-report.png'], ['指标', '/assets/category-metric.png'], ['数据集', '/assets/category-dataset.png'],
@@ -73,12 +83,11 @@ onBeforeUnmount(() => window.removeEventListener('popstate', syncShellFilters));
 </script>
 
 <template>
-  <div class="exhibition-shell" :class="{ 'standard-shell': !isCatalogue, 'certification-shell': props.page.id === '27' }">
+  <div class="exhibition-shell" :class="[{ 'standard-shell': !isCatalogue, 'certification-shell': props.page.id === '27' }, shellVariant]">
     <a class="skip-link" href="#main-content">跳到主要内容</a>
     <header class="topbar">
-      <a class="brand" href="/workbench" aria-label="中国海油数智产品展厅首页">
-        <img src="/assets/cnooc-logo.png" width="126" height="43" alt="中国海油 CNOOC" />
-        <span>数智产品展厅</span>
+      <a class="brand" href="/workbench" aria-label="数智产品展厅首页">
+        <span>{{ shellVariant === 'ui-update-workbench' ? '数智产品展厅' : '数字化认证平台' }}</span>
       </a>
       <nav class="primary-nav" aria-label="主导航">
         <a v-for="([route, icon, label]) in primaryNav" :key="route" :href="route" :aria-current="active(route) ? 'page' : undefined">
@@ -99,9 +108,15 @@ onBeforeUnmount(() => window.removeEventListener('popstate', syncShellFilters));
       <aside class="sidebar" aria-label="左侧导航">
         <p class="sr-only" aria-live="polite">{{ shellState.announcement }}</p>
         <div id="sidebar-content">
-        <template v-if="isCatalogue">
+        <template v-if="props.page.id === '10'">
+          <section class="catalogue-group report-catalogue"><div class="group-heading"><h2><img src="/assets/catalogue-materials.png" width="24" height="24" alt="" />素材中心</h2></div><nav aria-label="素材中心分类"><a v-for="label in ['PPA','大屏','驾驶舱','可视化报表','指标','数据集','AI','海能work应用']" :key="`report-material-${label}`" href="/favorites">{{ label }}</a></nav></section>
+          <section class="catalogue-group app-group report-catalogue"><div class="group-heading"><h2><img src="/assets/catalogue-apps.png" width="24" height="24" alt="" />应用中心</h2></div><nav aria-label="应用中心分类"><a v-for="label in ['PPA','大屏','资产','指标','数据开发','数据集','AI','数据中心(23)']" :key="`report-app-${label}`" href="/apps">{{ label }}</a></nav></section>
+          <section class="catalogue-group report-catalogue"><div class="group-heading"><h2>基础能力</h2></div><nav aria-label="基础能力"><a v-for="label in ['服务编排','连接器','事件流','智能生成','API','连接中心(18)']" :key="label" href="/apps">{{ label }}</a></nav></section>
+          <section class="scene-search report-scene" aria-label="场景化运营"><h2>场景化运营</h2><div><button v-for="label in ['经营分析决策大厅','安全管理','生产管理','设备管理','物资管理','HSE管理','HSE管理','人力资源','财务管理','党群管理','更多']" :key="label" type="button">{{ label }}</button></div></section>
+        </template>
+        <template v-else-if="isCatalogue">
           <section class="catalogue-group">
-            <div class="group-heading"><h2><img src="/assets/catalogue-materials.png" width="24" height="24" alt="" />素材中心</h2><button class="group-toggle" type="button" :aria-expanded="String(shellState.materialsExpanded)" aria-controls="materials-group-menu" :aria-label="shellState.materialsExpanded?'收起素材中心子菜单':'展开素材中心子菜单'" @click="shellState.toggleGroup('materials')"><span class="group-chevron" aria-hidden="true"></span></button></div>
+            <div class="group-heading"><h2><img src="/assets/catalogue-materials.png" width="24" height="24" alt="" />{{ props.page.id === '07' ? '经典中心' : '素材中心' }}</h2><button class="group-toggle" type="button" :aria-expanded="String(shellState.materialsExpanded)" aria-controls="materials-group-menu" :aria-label="shellState.materialsExpanded?'收起素材中心子菜单':'展开素材中心子菜单'" @click="shellState.toggleGroup('materials')"><span class="group-chevron" aria-hidden="true"></span></button></div>
             <nav id="materials-group-menu" v-show="shellState.materialsExpanded" aria-label="素材中心子菜单">
               <a v-for="([label, icon]) in categories" :key="`material-${label}`" href="/favorites"><img :src="icon" width="18" height="18" alt="" />{{ label }}</a>
             </nav>
@@ -149,7 +164,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', syncShellFilters));
 <style scoped>
 .exhibition-shell{height:100vh;overflow:hidden;display:grid;grid-template-rows:auto minmax(0,1fr)}
 .skip-link{position:fixed;z-index:100;left:16px;top:-60px;padding:10px 16px;color:#fff;background:#075dcc;border-radius:4px}.skip-link:focus-visible{top:10px}
-.topbar{height:63px;display:flex;align-items:center;padding:0 18px;background:#fff;border-bottom:1px solid #dce4ed}.brand{flex:0 0 277px;height:43px;display:flex;align-items:center;color:#172b4b;font-size:18px;font-weight:700;white-space:nowrap}.brand img{width:126px;height:43px;object-fit:contain;padding-right:13px;margin-right:13px;border-right:1px solid #cad4df}
+.topbar{height:63px;display:flex;align-items:center;padding:0 18px;background:#fff;border-bottom:1px solid #dce4ed}.brand{flex:0 0 160px;height:43px;display:flex;align-items:center;color:#172b4b;font-size:18px;font-weight:700;white-space:nowrap}
 .primary-nav{height:100%;display:flex;flex:1;min-width:0}.primary-nav a{min-width:82px;height:100%;position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 9px;color:#1d3152;font-size:13px;white-space:nowrap}.primary-nav a[aria-current='page']{color:#0869ee}.primary-nav a[aria-current='page']::after{content:'';position:absolute;left:15px;right:15px;bottom:0;height:3px;background:#1477ff}.nav-glyph{width:22px;height:24px;object-fit:contain}
 .top-actions{flex:0 0 218px;height:100%;display:flex;align-items:center;justify-content:flex-end;gap:15px;white-space:nowrap}.action-link{width:30px;height:44px;position:relative;display:grid;place-items:center;color:#132a4c}.action-link>img{object-fit:contain}.top-user{height:44px;display:flex;align-items:center;gap:8px;padding-left:12px;border-left:1px solid #dbe3ec}.top-user>img{width:38px;height:38px;border-radius:50%}.top-user span{display:grid;gap:2px}.top-user strong{color:#132a4c;font-size:13px}.top-user small{color:#74869a;font-size:9px}
 .page-frame{min-height:0;overflow:hidden;display:grid;grid-template-columns:220px minmax(0,1fr)}.sidebar{min-height:0;position:relative;background:#fff;border-right:1px solid #dce4ed;overflow-y:auto}.catalogue-group{padding:9px 15px 8px;border-bottom:1px solid #e7edf3}.group-heading{height:28px;display:flex;align-items:center;justify-content:space-between}.catalogue-group h2,.scene-search h2{height:28px;display:flex;align-items:center;gap:9px;margin:0;color:#203451;font-size:13px;font-weight:700}.catalogue-group h2>img{width:22px;height:24px;object-fit:contain}.group-toggle{width:28px;height:28px;display:grid;place-items:center;padding:0;color:#47617f;background:transparent;border:0;border-radius:3px}.group-chevron{width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translate(-1px,-1px)}.group-toggle[aria-expanded=false] .group-chevron{transform:rotate(-45deg)}.catalogue-group nav{display:grid}.catalogue-group nav a,.catalogue-group nav button{height:29px;display:flex;align-items:center;gap:10px;padding-left:1px;color:#223b5d;background:transparent;border:0;text-align:left;font-size:12px}.catalogue-group nav button[aria-pressed=true]{color:#086fe8;background:#eaf3ff}.catalogue-group nav a>img,.catalogue-group nav button>img{width:18px;height:18px;object-fit:contain}.app-group{padding-top:7px}
@@ -157,10 +172,15 @@ onBeforeUnmount(() => window.removeEventListener('popstate', syncShellFilters));
 .simple-nav{display:grid;padding-top:17px}.simple-nav a{height:58px;display:flex;align-items:center;gap:15px;padding:0 21px;color:#1d3353;border-left:3px solid transparent;font-size:14px;font-weight:600}.simple-nav a>img{width:22px;height:24px;object-fit:contain}.simple-nav a[aria-current='page']{color:#0869ee;background:#eaf2ff;border-left-color:#096ef0}.simple-nav a.section-current{color:#0869ee}.simple-nav a.sub{height:40px;padding-left:60px;color:#607088;font-size:12px;font-weight:400}.simple-nav a.sub[aria-current='page']{color:#0869ee;background:#eaf2ff;border-left-color:#096ef0}
 main{min-width:0;min-height:0;overflow-y:auto;background:#fff;outline:none}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}a:focus-visible,button:focus-visible,main:focus-visible{outline:3px solid #ff9f1a;outline-offset:2px}
 .standard-shell .page-frame{grid-template-columns:220px minmax(0,1fr)}
-@media(max-width:1420px){.brand{flex-basis:220px}.primary-nav{overflow-x:auto;scrollbar-width:thin}.primary-nav a{flex:0 0 auto;min-width:72px;padding-inline:5px}.top-actions{flex-basis:205px}.top-user small{display:none}}@media(max-width:1100px){.primary-nav{overflow-x:auto}.page-frame{grid-template-columns:220px minmax(0,1fr)}.sidebar{overflow-y:auto}}@media(max-width:760px){.topbar{height:auto;min-height:63px;flex-wrap:wrap;padding-block:7px}.brand{flex:1}.top-actions{flex-basis:auto}.primary-nav{order:3;width:100%;overflow-x:auto}.primary-nav a{flex:0 0 auto;height:44px}.page-frame,.standard-shell .page-frame{grid-template-columns:1fr}.sidebar{min-height:auto;border-right:0;border-bottom:1px solid #dce4ed}.simple-nav{display:flex;overflow-x:auto;padding-top:0}.simple-nav a{flex:0 0 auto;height:48px;padding:0 14px;border-left:0;border-bottom:3px solid transparent}.simple-nav a[aria-current='page']{border-bottom-color:#096ef0}.simple-nav a.sub{padding-left:14px}}
+@media(max-width:1420px){.brand{flex-basis:160px}.primary-nav{overflow-x:auto;scrollbar-width:thin}.primary-nav a{flex:0 0 auto;min-width:72px;padding-inline:5px}.top-actions{flex-basis:205px}.top-user small{display:none}}@media(max-width:1100px){.primary-nav{overflow-x:auto}.page-frame{grid-template-columns:220px minmax(0,1fr)}.sidebar{overflow-y:auto}}@media(max-width:760px){.topbar{height:auto;min-height:63px;flex-wrap:wrap;padding-block:7px}.brand{flex:1}.top-actions{flex-basis:auto}.primary-nav{order:3;width:100%;overflow-x:auto}.primary-nav a{flex:0 0 auto;height:44px}.page-frame,.standard-shell .page-frame{grid-template-columns:1fr}.sidebar{min-height:auto;border-right:0;border-bottom:1px solid #dce4ed}.simple-nav{display:flex;overflow-x:auto;padding-top:0}.simple-nav a{flex:0 0 auto;height:48px;padding:0 14px;border-left:0;border-bottom:3px solid transparent}.simple-nav a[aria-current='page']{border-bottom-color:#096ef0}.simple-nav a.sub{padding-left:14px}}
 @media(min-width:761px) and (max-width:940px){.page-frame,.standard-shell .page-frame{grid-template-columns:150px minmax(0,1fr)}.catalogue-group{padding-inline:9px}.scene-search{padding-inline:10px}}
 @media(min-width:941px) and (max-width:1600px){.page-frame,.standard-shell .page-frame{grid-template-columns:220px minmax(0,1fr)}.catalogue-group{padding-inline:11px}.scene-search{padding-inline:13px}}
-@media(min-width:761px) and (max-width:1000px){.topbar{padding-inline:4px}.brand{flex-basis:190px;font-size:12px}.brand img{width:105px;height:36px;padding-right:8px;margin-right:8px}.primary-nav{overflow:hidden}.primary-nav a{min-width:0;flex:1 1 0;gap:2px;padding-inline:1px;font-size:8px}.nav-glyph{width:14px;height:16px}.top-actions{flex-basis:105px;gap:4px}.action-link{width:20px}.action-link>img{width:18px;height:18px}.top-user{gap:4px;padding-left:4px}.top-user>img{width:26px;height:26px}.top-user strong{font-size:9px}}
+@media(min-width:761px) and (max-width:1000px){.topbar{padding-inline:4px}.brand{flex-basis:125px;font-size:12px}.primary-nav{overflow:hidden}.primary-nav a{min-width:0;flex:1 1 0;gap:2px;padding-inline:1px;font-size:8px}.nav-glyph{width:14px;height:16px}.top-actions{flex-basis:105px;gap:4px}.action-link{width:20px}.action-link>img{width:18px;height:18px}.top-user{gap:4px;padding-left:4px}.top-user>img{width:26px;height:26px}.top-user strong{font-size:9px}}
 .certification-shell .topbar{height:90px}.certification-shell .page-frame{grid-template-columns:242px minmax(0,1fr)}
 main{background:#f7f9fc}
+.ui-update-report .report-catalogue nav a{padding-left:12px}
+.ui-update-workbench .topbar,.ui-update-apps .topbar,.ui-update-report .topbar{color:#fff;background:#00396e;border-bottom:0}.ui-update-workbench .brand,.ui-update-apps .brand,.ui-update-report .brand,.ui-update-workbench .primary-nav a,.ui-update-apps .primary-nav a,.ui-update-report .primary-nav a,.ui-update-workbench .top-actions :is(a,strong,small),.ui-update-apps .top-actions :is(a,strong,small),.ui-update-report .top-actions :is(a,strong,small){color:#fff}.ui-update-workbench .primary-nav a[aria-current=page],.ui-update-apps .primary-nav a[aria-current=page],.ui-update-report .primary-nav a[aria-current=page]{color:#fff}.ui-update-workbench .primary-nav a[aria-current=page]::after,.ui-update-apps .primary-nav a[aria-current=page]::after,.ui-update-report .primary-nav a[aria-current=page]::after{height:3px;background:#fff}.ui-update-workbench .nav-glyph,.ui-update-apps .nav-glyph,.ui-update-report .nav-glyph,.ui-update-workbench .action-link>img,.ui-update-apps .action-link>img,.ui-update-report .action-link>img{filter:brightness(0) invert(1)}
+.ui-update-workbench .topbar{height:69px;padding-left:22px}.ui-update-workbench .brand{flex-basis:198px;font-size:26px}.ui-update-workbench .page-frame{grid-template-columns:220px minmax(0,1fr)}.ui-update-workbench .sidebar{border-color:#d5dee8}.ui-update-workbench main{background:#f7f9fc}
+.ui-update-apps .topbar{height:59px;padding:0 18px}.ui-update-apps .brand{flex-basis:276px;font-size:14px}.ui-update-apps .primary-nav a{min-width:91px;font-size:13px}.ui-update-apps .page-frame{grid-template-columns:220px minmax(0,1fr)}.ui-update-apps .sidebar{border-color:#d5dee8}.ui-update-apps .catalogue-group{padding-top:11px;padding-bottom:10px}.ui-update-apps .catalogue-group nav :is(a,button){height:30px}.ui-update-apps .scene-search{padding-top:12px}.ui-update-apps main{background:#fff}
+.ui-update-report{height:auto;min-height:1492px;overflow:visible}.ui-update-report .topbar{height:64px;padding:0 16px}.ui-update-report .brand{flex-basis:219px;font-size:13px}.ui-update-report .primary-nav a{min-width:74px;padding-inline:5px;font-size:10px}.ui-update-report .top-actions{flex-basis:148px;gap:6px}.ui-update-report .page-frame{min-height:1428px;grid-template-columns:166px minmax(0,1fr);overflow:visible}.ui-update-report .sidebar,.ui-update-report main{overflow:visible}.ui-update-report .catalogue-group{padding:13px 17px 9px}.ui-update-report .catalogue-group h2{font-size:11px}.ui-update-report .report-catalogue nav a{height:30px;padding-left:12px;font-size:10px}.ui-update-report .report-scene{padding:12px 17px}.ui-update-report .report-scene>div{grid-template-columns:repeat(2,1fr);gap:5px}.ui-update-report .report-scene button{height:26px;padding:0 4px;font-size:8px}.ui-update-report main{background:#fff}
 </style>
