@@ -48,8 +48,15 @@ assert.equal(resolveIntegrationRuntime({ requestedMode: 'remote', remoteEnabled:
 assert.throws(() => resolveIntegrationRuntime({ proxyBase: 'https://open.feishu.cn/open-apis' }), /安全代理/);
 
 const calls = [];
+const foundationContracts = {
+  'APP-002': {
+    requestKeys: ['filters', 'pageSize'],
+    responseKeys: ['code', 'data', 'traceId']
+  }
+};
 const client = createSafeProxyClient({
   baseUrl: '/api/v1', origin: 'http://127.0.0.1:4173', timeoutMs: 5000,
+  operationContracts: foundationContracts,
   fetchImpl: async (url, init) => {
     calls.push({ url, init });
     return { ok: true, status: 200, headers: new Map(), json: async () => ({ code: 'OK', data: { items: [] }, traceId: init.headers['X-Trace-Id'] }) };
@@ -61,7 +68,7 @@ assert.equal(calls.length, 1);
 assert.equal(calls[0].url, '/api/v1/operations/APP-002');
 assert.equal(calls[0].init.headers['X-Trace-Id'], 'trace-foundation-001');
 assert.equal(proxyResult.traceId, 'trace-foundation-001');
-assert.throws(() => client.execute('APP-002', { app_token: 'secret' }), /敏感/);
+await assert.rejects(() => client.execute('APP-002', { app_token: 'secret' }), /敏感/);
 assert.throws(() => createSafeProxyClient({ baseUrl: 'https://open.feishu.cn/open-apis', origin: 'http://127.0.0.1:4173' }), /安全代理/);
 assert.equal(normalizeIntegrationError({ status: 403 }).state, 'permission-denied');
 assert.equal(normalizeIntegrationError({ status: 429 }).state, 'rate-limited');

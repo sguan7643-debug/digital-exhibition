@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import ExhibitionShell from './components/ExhibitionShell.vue';
 import PageStateBoundary from './components/PageStateBoundary.vue';
 import AnnouncementsPage from './pages/AnnouncementsPage.vue';
@@ -37,13 +37,15 @@ import { PAGE_MATRIX, resolvePage } from './fixtures/pages.js';
 import { routeSession } from './state/session-store.js';
 import { getPageIntegrationContract } from './integration/page-integration-matrix.js';
 import { resolveIntegrationRuntime } from './integration/runtime-config.js';
+import { createPageDataSource, describeDataSourceEnvelope } from './integration/page-data-source.js';
 
 const integrationRuntime = resolveIntegrationRuntime({
   requestedMode: import.meta.env.VITE_EXHIBITION_DATA_MODE,
   proxyBase: import.meta.env.VITE_EXHIBITION_API_BASE_URL,
   remoteEnabled: import.meta.env.VITE_EXHIBITION_REMOTE_ENABLED === 'true',
   contractEvidenceComplete: import.meta.env.VITE_EXHIBITION_CONTRACT_EVIDENCE === 'complete',
-  timeoutMs: Number(import.meta.env.VITE_EXHIBITION_REQUEST_TIMEOUT_MS)
+  timeoutMs: Number(import.meta.env.VITE_EXHIBITION_REQUEST_TIMEOUT_MS),
+  origin: window.location.origin
 });
 
 function normalizeInitialRoute() {
@@ -150,18 +152,27 @@ onBeforeUnmount(() => {
 
 const page = computed(() => current.value);
 const integrationContract = computed(() => getPageIntegrationContract(page.value.route));
-const integrationSourceLabel = computed(() => integrationRuntime.mode === 'mock'
-  ? '当前页面使用本地演示数据，未连接飞书'
-  : integrationRuntime.mode === 'remote'
-    ? '当前页面使用受控代理数据'
-    : '当前页面真实数据接入未启用');
+const integrationEnvelope = ref({ mode: 'disabled', state: 'disabled', operationIds: [] });
+let integrationDataSource;
+
+async function syncIntegrationEnvelope() {
+  integrationDataSource = createPageDataSource({
+    route: page.value.route,
+    runtime: integrationRuntime,
+    mockLoader: () => ({ source: 'existing-approved-page-fixture', route: page.value.route })
+  });
+  integrationEnvelope.value = await integrationDataSource.load();
+}
+
+watch(() => page.value.route, syncIntegrationEnvelope, { immediate: true });
+const integrationSourceLabel = computed(() => describeDataSourceEnvelope(integrationEnvelope.value));
 </script>
 
 <template>
   <exhibition-shell
     :page="page"
-    :data-integration-mode="integrationRuntime.mode"
-    :data-integration-operations="integrationContract?.operationIds.join(',')"
+    :data-integration-mode="integrationEnvelope.mode"
+    :data-integration-operations="integrationContract?.readOperationIds.join(',')"
   >
     <p class="sr-only integration-source-status" data-integration-status aria-live="polite">{{ integrationSourceLabel }}</p>
     <page-state-boundary :page="page" :state="page.state" @restore="restoreNormal">

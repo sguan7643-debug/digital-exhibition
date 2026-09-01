@@ -62,3 +62,9 @@ export const OPERATION_REGISTRY = Object.freeze(batches.flatMap(([batch, ids]) =
 export function getOperation(operationId) {
   return OPERATION_REGISTRY.find(operation => operation.id === operationId);
 }
+
+const governedOperationIds = new Set(OPERATION_REGISTRY.map(operation => operation.id));
+
+export function isKnownOperationId(operationId) {
+  return governedOperationIds.has(operationId);
+}

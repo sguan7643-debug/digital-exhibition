@@ -1,7 +1,32 @@
-const define = (id, route, operationIds, fieldDomains, defaultMode = 'mock') => Object.freeze({
-  id, route, operationIds: Object.freeze(operationIds), fieldDomains: Object.freeze(fieldDomains),
-  defaultMode, remoteWhen: 'contract-evidence-complete'
-});
+import { getOperation } from './operation-registry.js';
+
+const collectionOperationIds = new Set([
+  'WB-001','MSG-002','FAV-002','ANN-002','ANN-005','APP-002','APP-009','PTS-002','PTS-004',
+  'TRN-002','CER-002','OAN-002','OAP-002','ADM-003','ADM-004','ADM-005','TAL-001','TAL-002',
+  'TAL-003','MAT-002','INT-004','INT-005'
+]);
+
+const define = (id, route, operationIds, fieldDomains, defaultMode = 'mock') => {
+  const readOperationIds = operationIds.filter(operationId => getOperation(operationId)?.readOnly);
+  const actions = operationIds.filter(operationId => getOperation(operationId)?.access === 'write').map(operationId => Object.freeze({
+    actionId: operationId,
+    operationId,
+    requiredPermission: `operation:${operationId}:execute`,
+    confirmationRequired: true,
+    idempotencyRequired: true,
+    remoteEnabled: false
+  }));
+  return Object.freeze({
+    id, route,
+    operationIds: Object.freeze(operationIds),
+    readOperationIds: Object.freeze(readOperationIds),
+    actions: Object.freeze(actions),
+    emptyOperationIds: Object.freeze(readOperationIds.filter(operationId => collectionOperationIds.has(operationId))),
+    fieldDomains: Object.freeze(fieldDomains),
+    defaultMode,
+    remoteWhen: 'contract-evidence-complete'
+  });
+};
 
 export const PAGE_INTEGRATION_MATRIX = Object.freeze([
   define('01','/workbench',['COM-001','COM-002','COM-005','WB-001'],['identity','menu','dictionary','tasks','application-summary']),

@@ -1,13 +1,23 @@
-function validateProxyBase(value) {
+export function validateSameOriginProxyBase(value, origin = globalThis.location?.origin || 'http://localhost') {
   const base = String(value || '/api/v1').trim();
-  if (!base || /(?:open\.feishu\.cn|open-apis|bitable\/v1|larkoffice)/i.test(base)) {
-    throw new Error('浏览器只能访问受控安全代理，禁止直连飞书开放平台');
-  }
-  if (/^https?:\/\//i.test(base)) {
+  if (!base || !base.startsWith('/') || base.startsWith('//') || /\\|%(?:2f|5c|2e)/i.test(base)) {
     throw new Error('安全代理必须使用同源相对路径');
   }
-  if (!base.startsWith('/')) throw new Error('安全代理路径必须从 / 开始');
-  return base.replace(/\/$/, '');
+  let decoded;
+  try {
+    decoded = decodeURIComponent(base);
+  } catch {
+    throw new Error('安全代理路径编码无效');
+  }
+  if (decoded.startsWith('//') || /(?:open\.feishu\.cn|open-apis|bitable\/v1|larkoffice)/i.test(decoded)) {
+    throw new Error('浏览器只能访问受控安全代理，禁止直连飞书开放平台');
+  }
+  const originUrl = new URL(origin);
+  const resolved = new URL(base, originUrl);
+  if (resolved.origin !== originUrl.origin || resolved.username || resolved.password || resolved.search || resolved.hash) {
+    throw new Error('安全代理必须解析为无凭据、无查询参数的同源 URL');
+  }
+  return resolved.pathname.replace(/\/$/, '') || '/';
 }
 export function resolveIntegrationRuntime(options = {}) {
   const requestedMode = ['mock', 'remote', 'disabled'].includes(options.requestedMode) ? options.requestedMode : 'mock';
@@ -23,7 +33,7 @@ export function resolveIntegrationRuntime(options = {}) {
   }
   return Object.freeze({
     mode,
-    proxyBase: validateProxyBase(options.proxyBase),
+    proxyBase: validateSameOriginProxyBase(options.proxyBase, options.origin),
     remoteEnabled,
     contractEvidenceComplete,
     timeoutMs,
