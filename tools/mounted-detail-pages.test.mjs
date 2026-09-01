@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { compileScript, parse } from '@vue/compiler-sfc';
-import { createRenderer, nextTick } from 'vue';
+import { createRenderer, h, nextTick } from 'vue';
 
 globalThis.window=globalThis;
 globalThis.Document=class Document{};
@@ -19,6 +19,7 @@ const hostOps={
   insertStaticContent:(content,parent)=>{const node={type:'#static',text:content,parent};parent.children.push(node);return [node,node];}
 };
 const renderer=createRenderer(hostOps);
+const AppIconStub={props:['name','size','label'],render(){return h('span',{'data-app-icon':this.name,'aria-label':this.label||undefined});}};
 const vueUrl=new URL('../node_modules/vue/index.mjs',import.meta.url).href;
 
 async function mountSfc(file){
@@ -29,7 +30,7 @@ async function mountSfc(file){
   code=code.replace(/from\s+(['"])vue\1/g,`from '${vueUrl}'`);
   code=code.replace(/from\s+(['"])(\.\.\/[^'"]+)\1/g,(_match,_quote,relative)=>`from '${new URL(relative,fileUrl).href}'`);
   const component=(await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)).default;
-  const root={type:'root',children:[]};renderer.createApp(component).mount(root);await nextTick();return root;
+  const root={type:'root',children:[]};renderer.createApp(component).component('AppIcon',AppIconStub).mount(root);await nextTick();return root;
 }
 
 for(const file of ['ToolDetailPage.vue','HainengWorkDetailPage.vue','ReportDetailPage.vue','DashboardDetailPage.vue']){

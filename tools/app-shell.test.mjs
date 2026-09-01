@@ -11,7 +11,9 @@ const network = read('src/runtime/network-guard.js');
 const styles = read('src/style.css');
 
 assert.match(main, /installLocalOnlyNetworkGuard\(\)/);
-assert.match(main, /createApp\(App\)\.mount\('#app'\)/);
+assert.match(main, /createApp\(App\)(?:\.component\('[^']+',\s*[^)]+\))*\.mount\('#app'\)/);
+assert.match(main, /\.component\('AppIcon', AppIcon\)/,
+  '应用壳必须全局注册统一矢量图标组件');
 assert.match(app, /resolvePage\(window\.location/);
 assert.match(app, /stateFromLocation/);
 assert.match(app, /<exhibition-shell/);

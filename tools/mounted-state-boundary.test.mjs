@@ -34,6 +34,7 @@ const hostOps={
   insertStaticContent:(content,parent)=>{const node={type:'#static',text:content,parent};parent.children.push(node);return [node,node];}
 };
 const renderer=createRenderer(hostOps);
+const AppIconStub={props:['name','size','label'],render(){return h('span',{'data-app-icon':this.name,'aria-label':this.label||undefined});}};
 const flatten=node=>[node,...(node.children||[]).flatMap(flatten)];
 const textOf=node=>[node.text||'',...(node.children||[]).map(textOf)].join('');
 async function mountState(state,{empty=true}={}){
@@ -99,7 +100,7 @@ async function compilePage(file){
 const FavoritesPage=await compilePage('FavoritesPage.vue');
 const realRoot={type:'root',children:[]};
 const realState=vueRef('error');
-renderer.createApp({render:()=>h(component,{page:{title:'我的收藏',empty:true},state:realState.value,onRestore:()=>{realState.value='normal';}},{default:()=>h(FavoritesPage)})}).mount(realRoot);
+renderer.createApp({render:()=>h(component,{page:{title:'我的收藏',empty:true},state:realState.value,onRestore:()=>{realState.value='normal';}},{default:()=>h(FavoritesPage)})}).component('AppIcon',AppIconStub).mount(realRoot);
 await nextTick();
 const realRetry=flatten(realRoot).find(node=>node.type==='button'&&textOf(node)==='重试');
 realRetry.focus();realRetry.props.onClick();await nextTick();

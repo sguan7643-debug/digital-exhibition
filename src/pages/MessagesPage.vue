@@ -24,7 +24,7 @@ function moveTab(event,index){if(!['ArrowLeft','ArrowRight'].includes(event.key)
   <div class="messages-page" :data-reference-sha="REFERENCE_SHA256"><p class="sr-only" aria-live="polite">{{ controller.announcement }}</p>
     <header><h1>消息中心</h1><p>及时获取系统动态与业务通知，助力高效协同与决策</p></header>
     <section class="message-stats" aria-label="消息数据概览">
-      <article v-for="([label,total,increase,icon]) in stats" :key="label"><img :src="icon" width="61" height="61" alt="" /><div><strong>{{ label }}</strong><b>{{ total }}</b><small>较昨日　<em>↑ {{ increase }}</em></small></div></article>
+      <article v-for="([label,total,increase,icon]) in stats" :key="label"><AppIcon :name="icon" :size="61" /><div><strong>{{ label }}</strong><b>{{ total }}</b><small>较昨日　<em>↑ {{ increase }}</em></small></div></article>
     </section>
     <form class="message-filters" aria-label="消息筛选" @submit.prevent="submit">
       <label>消息类型：<select :value="controller.filters.type" @change="controller.setFilter('type',$event.target.value)"><option value="">全部类型</option><option v-for="type in types" :key="type">{{ type }}</option></select></label><label>时间范围：<select disabled title="固定演示数据为近30天"><option>近30天</option></select></label>
@@ -34,7 +34,7 @@ function moveTab(event,index){if(!['ArrowLeft','ArrowRight'].includes(event.key)
       <div class="message-tabs"><nav role="tablist" aria-label="消息状态"><button v-for="(tab,index) in [['all','全部'],['unread','未读'],['read','已读']]" :key="tab[0]" type="button" role="tab" :aria-selected="controller.filters.status===tab[0]" @click="controller.setStatus(tab[0])" @keydown="moveTab($event,index)">{{ tab[1] }}</button></nav><button type="button" @click="refresh">刷新</button><button type="button" @click="controller.toggleSort">{{ controller.sort==='newest'?'最新优先':'最早优先' }}</button></div>
       <ul>
         <li v-for="(item,index) in pagedMessages" :key="item.id">
-          <img :src="`/assets/msg-row-${index%6+1}.png`" width="42" height="42" alt="" /><small>{{ item.type }}</small><i v-if="!item.read" aria-label="未读"></i>
+          <AppIcon :name="`msg-row-${index%6+1}`" :size="42" /><small>{{ item.type }}</small><i v-if="!item.read" aria-label="未读"></i>
           <div><strong>{{ item.title }}</strong><p>{{ item.copy }}</p></div><time :datetime="`2025-${item.time.replace(' ','T')}`">{{ item.time }}</time><em>{{ item.read?'已读':'未读' }}</em><a v-if="actionFor(item).kind==='route'" :id="`message-${item.id}`" :data-session-focus="`message-${item.id}`" :href="actionFor(item).route" @click="controller.markRead(item.id)">{{ item.action }}　›</a><button v-else :id="`message-${item.id}`" type="button" @click="activateMessage(item)">{{ item.action }}　›</button>
         </li>
       </ul>

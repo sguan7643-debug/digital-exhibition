@@ -63,7 +63,7 @@ const usage = [
         <header><h2 id="course-title">培训课堂</h2><a href="/training">查看更多　›</a></header>
         <ul>
           <li v-for="([name, description, icon, action]) in courses" :key="name">
-            <img :src="icon" width="58" height="60" alt="" /><span><strong>{{ name }}</strong><small>{{ description }}</small></span><a href="/training">{{ action }}</a>
+            <AppIcon :name="icon" :size="58" /><span><strong>{{ name }}</strong><small>{{ description }}</small></span><a href="/training">{{ action }}</a>
           </li>
         </ul>
       </section>
