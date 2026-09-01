@@ -4,14 +4,12 @@ import { OPERATION_REGISTRY, getOperation } from '../src/integration/operation-r
 import { getPageIntegrationContract } from '../src/integration/page-integration-matrix.js';
 import { resolveIntegrationRuntime } from '../src/integration/runtime-config.js';
 import { createSafeProxyClient } from '../src/integration/safe-proxy-client.js';
+import { createSyntheticOperationContracts } from '../src/integration/operation-contract-schemas.js';
 import { assertWriteActionContext, createPageDataSource } from '../src/integration/page-data-source.js';
 import { createDataState, reduceDataState } from '../src/integration/data-state.js';
 
 const origin = 'http://127.0.0.1:4173';
-const operationContracts = Object.fromEntries(OPERATION_REGISTRY.map(operation => [operation.id, {
-  requestKeys: ['filters', 'pageSize', 'query', 'idempotencyKey', 'ifMatch', 'isolatedTestRecordId', 'auditContractId', 'requestHash'],
-  responseKeys: ['code', 'data', 'traceId', 'schemaVersion', 'sourceUpdatedAt', 'dataStale', 'isComplete', 'unavailableReasonCode']
-}]));
+const operationContracts = createSyntheticOperationContracts(OPERATION_REGISTRY.map(operation => operation.id));
 
 for (const unsafeBase of [
   '/', '/api/..', '/api/%2e%2e', '/api/%252e%252e', '/api/%252f%252fevil', '/api/%255c%255cevil'
@@ -39,7 +37,7 @@ for (const [key, value] of [
   ['feishuTenantAccessToken', 'request-secret']
 ]) {
   await assert.rejects(
-    () => safeClient.execute('APP-002', { filters: [{ nested: { [key]: value } }] }),
+    () => safeClient.execute('APP-002', { filters: { [key]: value } }),
     /敏感/
   );
 }

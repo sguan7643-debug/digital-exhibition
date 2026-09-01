@@ -1,29 +1,11 @@
 export function validateSameOriginProxyBase(value, origin = globalThis.location?.origin || 'http://localhost') {
   const base = String(value || '/api/v1').trim();
-  if (!base || !base.startsWith('/') || base.startsWith('//')) {
+  const pathnameGrammar = /^\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\/?$/;
+  if (!pathnameGrammar.test(base)) {
     throw new Error('安全代理必须使用同源相对路径');
   }
-  let decoded = base;
-  try {
-    for (let depth = 0; depth < 5; depth += 1) {
-      const next = decodeURIComponent(decoded);
-      if (next === decoded) break;
-      decoded = next;
-    }
-  } catch {
-    throw new Error('安全代理路径编码无效');
-  }
-  if (
-    decoded.includes('//')
-    || decoded.includes('\\')
-    || /%(?:2f|5c|2e)/i.test(decoded)
-    || /(^|\/)\.{1,2}(?:\/|$)/.test(decoded)
-    || /(?:open\.feishu\.cn|open-apis|bitable\/v1|larkoffice)/i.test(decoded)
-  ) {
-    throw new Error('浏览器只能访问受控安全代理，禁止直连飞书开放平台');
-  }
   const originUrl = new URL(origin);
-  const resolved = new URL(decoded, originUrl);
+  const resolved = new URL(base, originUrl);
   if (resolved.origin !== originUrl.origin || resolved.username || resolved.password || resolved.search || resolved.hash) {
     throw new Error('安全代理必须解析为无凭据、无查询参数的同源 URL');
   }

@@ -11,6 +11,7 @@ import {
 import { PAGE_INTEGRATION_MATRIX, getPageIntegrationContract } from '../src/integration/page-integration-matrix.js';
 import { resolveIntegrationRuntime } from '../src/integration/runtime-config.js';
 import { createSafeProxyClient, normalizeIntegrationError } from '../src/integration/safe-proxy-client.js';
+import { createSyntheticOperationContracts } from '../src/integration/operation-contract-schemas.js';
 import { createFieldDictionary, mapRecordByFieldId, SchemaDriftError } from '../src/integration/schema-guard.js';
 import { createCursorPagination } from '../src/integration/cursor-pagination.js';
 import { createDataState, reduceDataState } from '../src/integration/data-state.js';
@@ -48,12 +49,7 @@ assert.equal(resolveIntegrationRuntime({ requestedMode: 'remote', remoteEnabled:
 assert.throws(() => resolveIntegrationRuntime({ proxyBase: 'https://open.feishu.cn/open-apis' }), /安全代理/);
 
 const calls = [];
-const foundationContracts = {
-  'APP-002': {
-    requestKeys: ['filters', 'pageSize'],
-    responseKeys: ['code', 'data', 'traceId']
-  }
-};
+const foundationContracts = createSyntheticOperationContracts(['APP-002']);
 const client = createSafeProxyClient({
   baseUrl: '/api/v1', origin: 'http://127.0.0.1:4173', timeoutMs: 5000,
   operationContracts: foundationContracts,

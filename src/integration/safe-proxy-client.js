@@ -1,5 +1,6 @@
 import { isKnownOperationId } from './operation-registry.js';
 import { validateSameOriginProxyBase } from './runtime-config.js';
+import { validateContractSchema } from './operation-contract-schemas.js';
 
 const sensitiveKeySegments = Object.freeze([
   'appsecret','apptoken','tenantaccesstoken','useraccesstoken','accesstoken',
@@ -20,19 +21,22 @@ function assertSafePayload(value, path = 'payload') {
   }
 }
 
-function enforceAllowlist(value, allowedKeys, direction) {
+function enforceSchema(value, schema, direction) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${direction} 必须为对象`);
   assertSafePayload(value, direction);
-  const allowed = new Set(allowedKeys || []);
-  const unknown = Object.keys(value).filter(key => !allowed.has(key));
-  if (unknown.length) throw new Error(`${direction} allowlist/白名单拒绝字段：${unknown.join(',')}`);
-  return value;
+  return validateContractSchema(value, schema, direction);
 }
 
 function getOperationContract(operationContracts, operationId) {
   const contract = operationContracts?.[operationId];
-  if (!contract || !Array.isArray(contract.requestKeys) || !Array.isArray(contract.responseKeys)) {
-    throw new Error(`operation ${operationId} 缺少请求/响应 allowlist 合同`);
+  if (
+    !contract
+    || contract.operationId !== operationId
+    || !contract.requestSchema
+    || !contract.successSchema
+    || !contract.errorSchema
+  ) {
+    throw new Error(`operation ${operationId} 缺少请求/成功/错误 schema 合同`);
   }
   return contract;
 }
@@ -60,6 +64,24 @@ export class IntegrationRequestError extends Error {
   }
 }
 
+function createSchemaError(message, details = {}) {
+  return new IntegrationRequestError(message, { state: 'schema-drift', retryable: false, ...details });
+}
+
+function validateErrorEnvelope(body, contract, response, traceId) {
+  const normalized = normalizeIntegrationError({ status: response.status, code: body?.code });
+  try {
+    enforceSchema(body, contract.errorSchema, 'error response');
+  } catch {
+    throw new IntegrationRequestError('安全代理错误响应不符合合同', {
+      ...normalized,
+      status: response.status,
+      traceId
+    });
+  }
+  return { ...normalized, retryAfterSeconds: body.retryAfterSeconds };
+}
+
 export function createSafeProxyClient(options = {}) {
   const origin = options.origin || globalThis.location?.origin || 'http://localhost';
   const baseUrl = validateSameOriginProxyBase(options.baseUrl, origin);
@@ -74,7 +96,7 @@ export function createSafeProxyClient(options = {}) {
     return (async () => {
       if (!isKnownOperationId(operationId)) throw new Error(`未知或无效的 operationId：${operationId}`);
       const contract = getOperationContract(operationContracts, operationId);
-      enforceAllowlist(payload, contract.requestKeys, 'request');
+      enforceSchema(payload, contract.requestSchema, 'request');
       const operationUrl = new URL(`${baseUrl}/operations/${encodeURIComponent(operationId)}`, originUrl);
       const expectedPrefix = `${baseUrl}/operations/`;
       if (
@@ -109,19 +131,37 @@ export function createSafeProxyClient(options = {}) {
           body: JSON.stringify({ operationId, input: payload })
         });
         if (controller.signal.aborted) throw controller.signal.reason;
-        const body = await response.json().catch(() => ({}));
-        enforceAllowlist(body, contract.responseKeys, 'response');
-        if (!response.ok || (body.code && body.code !== 'OK')) {
-          throw Object.assign(new Error(body.message || '安全代理请求失败'), { status: response.status, code: body.code, traceId });
+        let body;
+        try {
+          body = await response.json();
+        } catch {
+          throw createSchemaError('安全代理响应不是有效 JSON', { status: response.status, traceId });
+        }
+        if (!response.ok) {
+          const normalized = validateErrorEnvelope(body, contract, response, traceId);
+          throw new IntegrationRequestError('安全代理请求失败', { ...normalized, status: response.status, traceId: body.traceId || traceId });
+        }
+        try {
+          enforceSchema(body, contract.successSchema, 'success response');
+        } catch (error) {
+          if (/敏感字段/.test(error?.message || '')) throw error;
+          throw createSchemaError('安全代理成功响应不符合合同', { status: response.status, traceId });
         }
         return { ...body, traceId: body.traceId || traceId };
       } catch (error) {
-        const normalized = callerCancelled
+        const normalized = error instanceof IntegrationRequestError
+          ? { state: error.state, retryable: error.retryable }
+          : callerCancelled
           ? { state: 'cancelled', retryable: false }
           : timedOut
             ? { state: 'timeout', retryable: true }
           : normalizeIntegrationError(error);
-        throw new IntegrationRequestError(error?.message || '安全代理请求失败', { ...normalized, status: error?.status, traceId });
+        throw new IntegrationRequestError(error?.message || '安全代理请求失败', {
+          ...normalized,
+          status: error?.status,
+          traceId: error?.traceId || traceId,
+          retryAfterSeconds: error?.retryAfterSeconds
+        });
       } finally {
         if (timer) clearTimeout(timer);
         requestOptions.signal?.removeEventListener?.('abort', abortFromCaller);

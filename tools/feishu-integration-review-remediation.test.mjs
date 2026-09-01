@@ -5,6 +5,7 @@ import { OPERATION_REGISTRY, getOperation } from '../src/integration/operation-r
 import { PAGE_INTEGRATION_MATRIX } from '../src/integration/page-integration-matrix.js';
 import { resolveIntegrationRuntime } from '../src/integration/runtime-config.js';
 import { createSafeProxyClient } from '../src/integration/safe-proxy-client.js';
+import { createSyntheticOperationContracts } from '../src/integration/operation-contract-schemas.js';
 import { createPageDataSource, describeDataSourceEnvelope } from '../src/integration/page-data-source.js';
 
 const origin = 'http://127.0.0.1:4173';
@@ -18,10 +19,7 @@ for (const unsafeBase of [
   assert.throws(() => createSafeProxyClient({ baseUrl: unsafeBase, origin, fetchImpl: async () => ({}) }), /安全代理|同源/);
 }
 
-const operationContracts = Object.fromEntries(OPERATION_REGISTRY.map(operation => [operation.id, {
-  requestKeys: ['filters', 'pageSize', 'query', 'idempotencyKey'],
-  responseKeys: ['code', 'data', 'traceId', 'schemaVersion', 'sourceUpdatedAt', 'dataStale', 'isComplete', 'unavailableReasonCode', 'hasMore', 'nextPageToken']
-}]));
+const operationContracts = createSyntheticOperationContracts(OPERATION_REGISTRY.map(operation => operation.id));
 
 let transportCalls = 0;
 const transport = createSafeProxyClient({
@@ -37,13 +35,13 @@ assert.equal(transportCalls, 101, 'transport must accept all governed operation 
 await assert.rejects(() => transport.execute('BAD-999', {}), /未知|无效/);
 
 for (const key of ['appToken', 'AppToken', 'tenantAccessToken', 'TableId', 'viewID']) {
-  await assert.rejects(() => transport.execute('APP-002', { filters: [{ nested: { [key]: 'sensitive' } }] }), /敏感/);
+  await assert.rejects(() => transport.execute('APP-002', { filters: { [key]: 'sensitive' } }), /敏感/);
 }
-await assert.rejects(() => transport.execute('APP-002', { unexpected: true }), /allowlist|白名单/);
+await assert.rejects(() => transport.execute('APP-002', { unexpected: true }), /schema|合同/);
 
 const leakingTransport = createSafeProxyClient({
   baseUrl: '/api/v1', origin, timeoutMs: 1000, operationContracts,
-  fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ code: 'OK', data: { accessToken: 'must-not-reach-browser' } }) })
+  fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ code: 'OK', data: { items: [{ accessToken: 'must-not-reach-browser' }] } }) })
 });
 await assert.rejects(() => leakingTransport.execute('APP-002', {}), /敏感/);
 

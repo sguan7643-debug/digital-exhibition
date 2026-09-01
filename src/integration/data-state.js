@@ -35,10 +35,19 @@ export function reduceDataState(previous, event) {
   if (event.type === 'fail') {
     const state = extendedStates.has(event.code) ? event.code : 'error';
     const purge = state === 'permission-denied' || state === 'schema-drift';
-    const announcement = {
+    const announcement = state === 'rate-limited' && Number.isInteger(event.retryAfterSeconds)
+      ? `请求过于频繁，请在 ${event.retryAfterSeconds} 秒后再试`
+      : {
       'permission-denied': '无权访问当前数据',
       timeout: '数据请求超时，可稍后重试',
-      cancelled: '数据更新已取消'
+      cancelled: '数据更新已取消',
+      'rate-limited': '请求过于频繁，请稍后再试',
+      'schema-drift': '数据格式与已批准合同不一致，已停止显示该数据',
+      conflict: '数据已变更，请刷新后再处理，勿盲目重试',
+      'partial-write': '操作仅部分完成，请联系管理员核对后续处理',
+      'security-error': '安全校验失败，已阻止该请求',
+      partial: '部分数据暂不可用，已保留可用内容',
+      'data-stale': '正在显示缓存数据'
     }[state] || '数据更新失败';
     return Object.freeze({
       ...previous, state, data: purge ? null : previous.data, error: event.error || event.code,

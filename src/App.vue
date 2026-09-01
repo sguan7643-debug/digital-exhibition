@@ -38,6 +38,7 @@ import { routeSession } from './state/session-store.js';
 import { getPageIntegrationContract } from './integration/page-integration-matrix.js';
 import { resolveIntegrationRuntime } from './integration/runtime-config.js';
 import { createPageDataSource, describeDataSourceEnvelope } from './integration/page-data-source.js';
+import { resolveIntegrationLiveAnnouncement } from './integration/live-region.js';
 
 const integrationRuntime = resolveIntegrationRuntime({
   requestedMode: import.meta.env.VITE_EXHIBITION_DATA_MODE,
@@ -166,6 +167,7 @@ async function syncIntegrationEnvelope() {
 
 watch(() => page.value.route, syncIntegrationEnvelope, { immediate: true });
 const integrationSourceLabel = computed(() => describeDataSourceEnvelope(integrationEnvelope.value));
+const integrationLiveAnnouncement = computed(() => resolveIntegrationLiveAnnouncement(integrationEnvelope.value, integrationSourceLabel.value));
 </script>
 
 <template>
@@ -174,7 +176,7 @@ const integrationSourceLabel = computed(() => describeDataSourceEnvelope(integra
     :data-integration-mode="integrationEnvelope.mode"
     :data-integration-operations="integrationContract?.readOperationIds.join(',')"
   >
-    <p class="sr-only integration-source-status" data-integration-status aria-live="polite">{{ integrationSourceLabel }}</p>
+    <p class="sr-only integration-source-status" data-integration-status aria-live="polite">{{ integrationLiveAnnouncement }}</p>
     <page-state-boundary :page="page" :state="page.state" @restore="restoreNormal">
       <workbench-page v-if="page.id === '01'" />
       <messages-page v-else-if="page.id === '02'" />
