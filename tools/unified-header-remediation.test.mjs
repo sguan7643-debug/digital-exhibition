@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import './header-icon-transparency-remediation.test.mjs';
 
 const shell = readFileSync(new URL('../src/components/ExhibitionShell.vue', import.meta.url), 'utf8');
 
