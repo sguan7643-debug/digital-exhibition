@@ -73,12 +73,16 @@ const favoriteSource = createPageDataSource({
   route: '/favorites', runtime: remoteRuntime, operationResolver: enabledOperation,
   client: { execute: async operationId => ({ code: 'OK', data: { operationId } }) }
 });
-await assert.rejects(() => favoriteSource.executeAction('FAV-003', {}, { actionEnabled: true }), /权限/);
-await assert.rejects(() => favoriteSource.executeAction('FAV-003', {}, { actionEnabled: true, permissions: ['operation:FAV-003:execute'] }), /确认/);
-await assert.rejects(() => favoriteSource.executeAction('FAV-003', {}, { actionEnabled: true, permissions: ['operation:FAV-003:execute'], confirmed: true }), /幂等/);
-assert.equal((await favoriteSource.executeAction('FAV-003', {}, {
-  permissions: ['operation:FAV-003:execute'], confirmed: true, idempotencyKey: 'idem-favorite-001', actionEnabled: true
-})).data.operationId, 'FAV-003');
+for (const context of [
+  { actionEnabled: true },
+  { actionEnabled: true, permissions: ['operation:FAV-003:execute'] },
+  { actionEnabled: true, permissions: ['operation:FAV-003:execute'], confirmed: true },
+  {
+    actionEnabled: true, permissions: ['operation:FAV-003:execute'], confirmed: true,
+    idempotencyKey: 'idem-favorite-001', ifMatch: 'version-1', isolatedTestRecordId: 'isolated-1',
+    auditContractId: 'audit-1', requestHash: 'sha256:request-1'
+  }
+]) await assert.rejects(() => favoriteSource.executeAction('FAV-003', {}, context), /操作独立门禁未启用/);
 
 const emptySource = createPageDataSource({
   route: '/apps', runtime: remoteRuntime, operationResolver: enabledOperation,

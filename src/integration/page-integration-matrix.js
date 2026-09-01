@@ -14,6 +14,10 @@ const define = (id, route, operationIds, fieldDomains, defaultMode = 'mock') => 
     requiredPermission: `operation:${operationId}:execute`,
     confirmationRequired: true,
     idempotencyRequired: true,
+    versionConditionRequired: true,
+    isolatedTestRecordRequired: true,
+    auditContractRequired: true,
+    requestHashRequired: true,
     remoteEnabled: false
   }));
   return Object.freeze({

@@ -9,58 +9,86 @@ function collectionFromResponse(response) {
   return null;
 }
 
-function aggregateReadResults(contract, operationIds, settled) {
-  const sections = {};
-  const failures = [];
-  const traceIds = [];
-  const syncedTimes = [];
-  let dataStale = false;
-  let responseComplete = true;
+function aggregateReadResults(contract, operationIds, settled, previousEnvelope = null) {
+  const sectionRecords = { ...(previousEnvelope?.sectionRecords || {}) };
+  const currentFailures = [];
 
   settled.forEach((result, index) => {
     const operationId = operationIds[index];
     if (result.status === 'fulfilled') {
       const response = result.value;
-      sections[operationId] = response.data;
-      if (response.traceId) traceIds.push(response.traceId);
-      if (response.sourceUpdatedAt) syncedTimes.push(response.sourceUpdatedAt);
-      dataStale ||= response.dataStale === true;
-      responseComplete &&= response.isComplete !== false;
+      sectionRecords[operationId] = {
+        available: true,
+        data: response.data,
+        traceId: response.traceId || null,
+        sourceUpdatedAt: response.sourceUpdatedAt || null,
+        dataStale: response.dataStale === true,
+        isComplete: response.isComplete !== false,
+        errorState: null,
+        retryable: false
+      };
       return;
     }
     const error = result.reason || {};
-    failures.push({ operationId, error });
-    if (error.traceId) traceIds.push(error.traceId);
+    currentFailures.push({ operationId, error });
+    sectionRecords[operationId] = {
+      ...(sectionRecords[operationId] || {}),
+      available: false,
+      traceId: error.traceId || sectionRecords[operationId]?.traceId || null,
+      errorState: error.state || 'error',
+      retryable: error.retryable !== false && error.state !== 'cancelled'
+    };
   });
 
-  const successfulCount = settled.length - failures.length;
-  const unavailableSections = failures.map(failure => failure.operationId);
-  const retryScope = failures.filter(failure => failure.error.retryable !== false && failure.error.state !== 'cancelled').map(failure => failure.operationId);
-  const lastSyncedAt = syncedTimes.sort().at(-1) || null;
-  const isComplete = failures.length === 0 && responseComplete;
+  const sections = Object.fromEntries(Object.entries(sectionRecords)
+    .filter(([, record]) => Object.hasOwn(record, 'data'))
+    .map(([operationId, record]) => [operationId, record.data]));
+  const contractRecords = contract.readOperationIds.map(operationId => [operationId, sectionRecords[operationId]]);
+  const unavailableSections = contractRecords.filter(([, record]) => !record?.available).map(([operationId]) => operationId);
+  const retryScope = contractRecords
+    .filter(([, record]) => !record?.available && record?.retryable === true)
+    .map(([operationId]) => operationId);
+  const traceIds = contractRecords.map(([, record]) => record?.traceId).filter(Boolean);
+  const syncedTimes = contractRecords.map(([, record]) => record?.sourceUpdatedAt).filter(Boolean).sort();
+  const dataStale = contractRecords.some(([, record]) => record?.available && record.dataStale === true);
+  const lastSyncedAt = syncedTimes.at(-1) || null;
+  const isComplete = contractRecords.every(([, record]) => record?.available && record.isComplete !== false);
   const empty = isComplete && contract.emptyOperationIds.length > 0 && contract.emptyOperationIds.every(operationId => {
-    const result = settled[operationIds.indexOf(operationId)];
-    return result?.status === 'fulfilled' && collectionFromResponse(result.value)?.length === 0;
+    const record = sectionRecords[operationId];
+    return record?.available && collectionFromResponse({ data: record.data })?.length === 0;
   });
+  const allCurrentCancelled = currentFailures.length === settled.length
+    && currentFailures.length > 0
+    && currentFailures.every(item => item.error.state === 'cancelled');
 
-  if (successfulCount === 0) {
-    const error = failures.find(item => item.error.state === 'permission-denied')?.error
-      || failures.find(item => item.error.state === 'schema-drift')?.error
-      || failures[0]?.error
+  if (allCurrentCancelled && previousEnvelope) {
+    const error = currentFailures[0].error;
+    return {
+      kind: 'failure', code: 'cancelled', error: error.message, traceId: error.traceId,
+      traceIds, isComplete: false, dataStale, lastSyncedAt, unavailableSections,
+      unavailableReasonCode: 'cancelled', retryScope: previousEnvelope.retryScope,
+      sectionRecords
+    };
+  }
+
+  if (Object.keys(sections).length === 0) {
+    const error = currentFailures.find(item => item.error.state === 'permission-denied')?.error
+      || currentFailures.find(item => item.error.state === 'schema-drift')?.error
+      || currentFailures[0]?.error
       || { state: 'error', message: '读取失败' };
     return {
       kind: 'failure', code: error.state || 'error', error: error.message, traceId: error.traceId,
       traceIds, isComplete: false, dataStale, lastSyncedAt, unavailableSections,
-      unavailableReasonCode: error.state || 'error', retryScope
+      unavailableReasonCode: error.state || 'error', retryScope, sectionRecords
     };
   }
 
-  const state = failures.length ? 'partial' : dataStale ? 'data-stale' : empty ? 'empty' : 'normal';
+  const state = unavailableSections.length ? 'partial' : dataStale ? 'data-stale' : empty ? 'empty' : 'normal';
   return {
     kind: 'success', state, data: sections, traceId: traceIds.at(-1) || null, traceIds,
     isComplete, dataStale, lastSyncedAt, unavailableSections,
-    unavailableReasonCode: failures.length ? 'partial-read' : dataStale ? 'data-stale' : null,
-    retryScope
+    unavailableReasonCode: unavailableSections.length ? 'partial-read' : dataStale ? 'data-stale' : null,
+    retryScope, sectionRecords
   };
 }
 
@@ -68,6 +96,19 @@ export function describeDataSourceEnvelope(envelope) {
   if (envelope.mode === 'remote' && envelope.state !== 'disabled') return '当前页面使用受控代理数据';
   if (envelope.mode === 'mock') return '当前页面使用本地演示数据，未连接飞书';
   return '当前页面真实数据接入未启用';
+}
+
+export function assertWriteActionContext(action, operation, context = {}) {
+  if (action?.remoteEnabled !== true) throw new Error('操作独立门禁未启用');
+  if (!operation || operation.access !== 'write' || operation.remoteEnabled !== true) throw new Error('写 operation 未启用');
+  if (!context.permissions?.includes(action.requiredPermission)) throw new Error('缺少操作权限');
+  if (action.confirmationRequired && context.confirmed !== true) throw new Error('操作需要明确确认');
+  if (action.idempotencyRequired && !context.idempotencyKey) throw new Error('操作需要幂等键');
+  if (action.versionConditionRequired && !(context.ifMatch || context.version)) throw new Error('操作需要版本或 ETag 前置条件');
+  if (action.isolatedTestRecordRequired && !context.isolatedTestRecordId) throw new Error('操作仅允许使用隔离测试记录');
+  if (action.auditContractRequired && !context.auditContractId) throw new Error('操作需要审计合同');
+  if (action.requestHashRequired && !context.requestHash) throw new Error('操作需要请求哈希');
+  return true;
 }
 
 export function createPageDataSource({ route, runtime, mockLoader, client, operationResolver = getOperation }) {
@@ -88,8 +129,9 @@ export function createPageDataSource({ route, runtime, mockLoader, client, opera
   async function load(input = {}, options = {}) {
     const currentGeneration = ++generation;
     activeController?.abort(new DOMException('由更新的页面读取取代', 'AbortError'));
-    activeController = new AbortController();
-    const abortFromCaller = () => activeController.abort(options.signal?.reason || new DOMException('页面读取已取消', 'AbortError'));
+    const controller = new AbortController();
+    activeController = controller;
+    const abortFromCaller = () => controller.abort(options.signal?.reason || new DOMException('页面读取已取消', 'AbortError'));
     if (options.signal?.aborted) abortFromCaller();
     else options.signal?.addEventListener?.('abort', abortFromCaller, { once: true });
 
@@ -113,34 +155,40 @@ export function createPageDataSource({ route, runtime, mockLoader, client, opera
         return withContract(envelope);
       }
 
+      const stableEnvelope = envelope;
       envelope = reduceDataState({ ...envelope, mode: 'remote' }, { type: 'load' });
-      const settled = await Promise.allSettled(requestedOperationIds.map(operationId => client.execute(operationId, input, { signal: activeController.signal })));
+      const settled = await Promise.allSettled(requestedOperationIds.map(operationId => client.execute(operationId, input, { signal: controller.signal })));
       if (currentGeneration !== generation) return withContract(envelope);
-      const aggregate = aggregateReadResults(contract, requestedOperationIds, settled);
+      const aggregate = aggregateReadResults(contract, requestedOperationIds, settled, options.operationIds ? stableEnvelope : null);
       envelope = aggregate.kind === 'success'
         ? reduceDataState({ ...envelope, mode: 'remote' }, { type: 'success', ...aggregate })
         : reduceDataState({ ...envelope, mode: 'remote' }, { type: 'fail', ...aggregate });
       return withContract(envelope);
     } finally {
       options.signal?.removeEventListener?.('abort', abortFromCaller);
+      if (activeController === controller) activeController = null;
     }
   }
 
-  async function retry(input = {}) {
+  async function retry(input = {}, options = {}) {
     if (!envelope.retryScope.length) return withContract(envelope);
-    return load(input, { operationIds: [...envelope.retryScope] });
+    return load(input, { ...options, operationIds: [...envelope.retryScope] });
   }
 
   async function executeAction(actionId, input = {}, context = {}) {
     const action = contract.actions.find(candidate => candidate.actionId === actionId);
     if (!action) throw new Error(`页面未登记操作：${actionId}`);
-    if (runtime.mode !== 'remote' || contract.defaultMode === 'disabled' || context.actionEnabled !== true) throw new Error('操作独立门禁未启用');
-    if (!context.permissions?.includes(action.requiredPermission)) throw new Error('缺少操作权限');
-    if (action.confirmationRequired && context.confirmed !== true) throw new Error('操作需要明确确认');
-    if (action.idempotencyRequired && !context.idempotencyKey) throw new Error('操作需要幂等键');
     const operation = operationResolver(action.operationId);
-    if (!operation || operation.access !== 'write' || operation.remoteEnabled !== true) throw new Error('写 operation 未启用');
-    return client.execute(action.operationId, { ...input, idempotencyKey: context.idempotencyKey }, { signal: context.signal });
+    if (runtime.mode !== 'remote' || contract.defaultMode === 'disabled') throw new Error('操作独立门禁未启用');
+    assertWriteActionContext(action, operation, context);
+    return client.execute(action.operationId, {
+      ...input,
+      idempotencyKey: context.idempotencyKey,
+      ifMatch: context.ifMatch || context.version,
+      isolatedTestRecordId: context.isolatedTestRecordId,
+      auditContractId: context.auditContractId,
+      requestHash: context.requestHash
+    }, { signal: context.signal });
   }
 
   return Object.freeze({ load, retry, executeAction, snapshot: () => withContract(envelope), contract });

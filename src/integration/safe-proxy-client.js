@@ -1,17 +1,21 @@
 import { isKnownOperationId } from './operation-registry.js';
 import { validateSameOriginProxyBase } from './runtime-config.js';
 
-const sensitiveKeys = new Set([
+const sensitiveKeySegments = Object.freeze([
   'appsecret','apptoken','tenantaccesstoken','useraccesstoken','accesstoken',
   'tableid','viewid','tenantkey','authorization','cookie','secret','token'
 ]);
 
 const normalizeKey = key => String(key).replace(/[^a-z0-9]/gi, '').toLowerCase();
+const isSensitiveKey = key => {
+  const normalized = normalizeKey(key);
+  return sensitiveKeySegments.some(segment => normalized.includes(segment));
+};
 
 function assertSafePayload(value, path = 'payload') {
   if (!value || typeof value !== 'object') return;
   for (const [key, child] of Object.entries(value)) {
-    if (sensitiveKeys.has(normalizeKey(key))) throw new Error(`浏览器数据包含敏感字段：${path}.${key}`);
+    if (isSensitiveKey(key)) throw new Error(`浏览器数据包含敏感字段：${path}.${key}`);
     assertSafePayload(child, `${path}.${key}`);
   }
 }
@@ -57,7 +61,9 @@ export class IntegrationRequestError extends Error {
 }
 
 export function createSafeProxyClient(options = {}) {
-  const baseUrl = validateSameOriginProxyBase(options.baseUrl, options.origin);
+  const origin = options.origin || globalThis.location?.origin || 'http://localhost';
+  const baseUrl = validateSameOriginProxyBase(options.baseUrl, origin);
+  const originUrl = new URL(origin);
   const fetchImpl = options.fetchImpl || globalThis.fetch;
   if (typeof fetchImpl !== 'function') throw new Error('缺少安全代理请求实现');
   const timeoutMs = Number.isFinite(options.timeoutMs) && options.timeoutMs > 0 ? options.timeoutMs : null;
@@ -69,6 +75,16 @@ export function createSafeProxyClient(options = {}) {
       if (!isKnownOperationId(operationId)) throw new Error(`未知或无效的 operationId：${operationId}`);
       const contract = getOperationContract(operationContracts, operationId);
       enforceAllowlist(payload, contract.requestKeys, 'request');
+      const operationUrl = new URL(`${baseUrl}/operations/${encodeURIComponent(operationId)}`, originUrl);
+      const expectedPrefix = `${baseUrl}/operations/`;
+      if (
+        operationUrl.origin !== originUrl.origin
+        || operationUrl.username
+        || operationUrl.password
+        || operationUrl.search
+        || operationUrl.hash
+        || !operationUrl.pathname.startsWith(expectedPrefix)
+      ) throw new Error('最终 operation URL 未通过同源安全校验');
       const traceId = traceIdFactory();
       if (requestOptions.signal?.aborted) {
         throw new IntegrationRequestError('请求已由调用方取消', { state: 'cancelled', retryable: false, traceId, cause: requestOptions.signal.reason });
@@ -87,7 +103,7 @@ export function createSafeProxyClient(options = {}) {
         controller.abort(new DOMException('请求超时', 'TimeoutError'));
       }, timeoutMs);
       try {
-        const response = await fetchImpl(`${baseUrl}/operations/${operationId}`, {
+        const response = await fetchImpl(operationUrl.pathname, {
           method: 'POST', credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
           headers: { 'Content-Type': 'application/json', 'X-Trace-Id': traceId },
           body: JSON.stringify({ operationId, input: payload })
