@@ -923,6 +923,39 @@ export function createIdentityDetailOperationContracts() {
   });
 }
 
+const adminConnectionSchema = Object.freeze({
+  type: 'object', required: ['connectionCode', 'domainCode', 'appTokenMasked', 'tableIdMasked', 'defaultViewIdMasked', 'primaryFieldIdMasked', 'fieldSchemaVersion', 'readEnabled', 'writeEnabled', 'enabled', 'lastVerifiedAt', 'lastVerifiedStatus'],
+  properties: { connectionCode: identifier, domainCode: optionalText, appTokenMasked: optionalText, tableIdMasked: optionalText, defaultViewIdMasked: optionalText, primaryFieldIdMasked: optionalText, fieldSchemaVersion: optionalText, readEnabled: booleanValue, writeEnabled: booleanValue, enabled: booleanValue, lastVerifiedAt: optionalText, lastVerifiedStatus: optionalText }, additionalProperties: false
+});
+const auditLogSchema = Object.freeze({
+  type: 'object', required: ['auditId', 'requestId', 'operatorId', 'operatorName', 'operatorOrgId', 'operatorOrgName', 'moduleCode', 'actionCode', 'actionName', 'resourceType', 'resourceId', 'resourceName', 'httpMethod', 'path', 'ip', 'userAgent', 'resultCode', 'resultMessage', 'changedFields', 'beforeSnapshotMasked', 'afterSnapshotMasked', 'occurredAt', 'durationMs'],
+  properties: { auditId: identifier, requestId: optionalText, operatorId: optionalText, operatorName: optionalText, operatorOrgId: optionalText, operatorOrgName: optionalText, moduleCode: optionalText, actionCode: optionalText, actionName: optionalText, resourceType: optionalText, resourceId: optionalText, resourceName: optionalText, httpMethod: optionalText, path: optionalText, ip: optionalText, userAgent: optionalText, resultCode: optionalText, resultMessage: optionalText, changedFields: stringList, beforeSnapshotMasked: nullableText, afterSnapshotMasked: nullableText, occurredAt: optionalText, durationMs: countInteger }, additionalProperties: false
+});
+const integrationLogSchema = Object.freeze({
+  type: 'object', required: ['logId', 'requestId', 'integrationCode', 'integrationName', 'direction', 'operationCode', 'httpMethod', 'endpointMasked', 'businessType', 'businessId', 'status', 'httpStatus', 'errorCode', 'errorMessageMasked', 'requestSize', 'responseSize', 'startedAt', 'finishedAt', 'durationMs', 'retryCount', 'nextRetryAt', 'taskExecutionId'],
+  properties: { logId: identifier, requestId: optionalText, integrationCode: optionalText, integrationName: optionalText, direction: optionalText, operationCode: optionalText, httpMethod: optionalText, endpointMasked: optionalText, businessType: optionalText, businessId: optionalText, status: optionalText, httpStatus: countInteger, errorCode: nullableText, errorMessageMasked: nullableText, requestSize: countInteger, responseSize: countInteger, startedAt: optionalText, finishedAt: optionalText, durationMs: countInteger, retryCount: countInteger, nextRetryAt: nullableText, taskExecutionId: nullableText }, additionalProperties: false
+});
+const adminViewPageSchema = Object.freeze({
+  type: 'object', required: ['view', 'items', ...Object.keys(publicPaginationSchema)],
+  properties: { view: Object.freeze({ enum: ['JOBS', 'EXECUTIONS'] }), items: Object.freeze({ type: 'array', items: openObject, maxItems: 100 }), ...publicPaginationSchema }, additionalProperties: false
+});
+const archiveDetailSchema = Object.freeze({
+  type: 'object', required: ['archiveTaskId', 'status', 'stage', 'sourceCount', 'archivedCount', 'deletedCount', 'failedCount', 'sourceChecksum', 'archiveChecksum', 'archiveLocationMasked', 'verifiedAt', 'deletedAt', 'failureCode', 'failureMessage', 'executions'],
+  properties: { archiveTaskId: identifier, status: optionalText, stage: optionalText, sourceCount: countInteger, archivedCount: countInteger, deletedCount: countInteger, failedCount: countInteger, sourceChecksum: optionalText, archiveChecksum: optionalText, archiveLocationMasked: optionalText, verifiedAt: nullableText, deletedAt: nullableText, failureCode: nullableText, failureMessage: nullableText, executions: openObjectList }, additionalProperties: false
+});
+
+export function createAdminReadOperationContracts() {
+  const contract = (operationId, requestSchema, dataSchema) => Object.freeze({ operationId, requestSchema, successSchema: envelopeSchema(dataSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA, contractStatus: 'server-projection-verified' });
+  const pageRequest = Object.freeze({ type: 'object', properties: { page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }), pageSize: Object.freeze({ enum: [10, 20, 50, 100] }) }, additionalProperties: true });
+  return Object.freeze({
+    'INT-001': contract('INT-001', pageRequest, publicItemList(adminConnectionSchema)),
+    'ADM-003': contract('ADM-003', pageRequest, publicItemList(auditLogSchema)),
+    'ADM-004': contract('ADM-004', pageRequest, publicItemList(integrationLogSchema)),
+    'INT-004': contract('INT-004', pageRequest, adminViewPageSchema),
+    'ARC-002': contract('ARC-002', Object.freeze({ type: 'object', required: ['archiveTaskId'], properties: { archiveTaskId: identifier }, additionalProperties: false }), archiveDetailSchema)
+  });
+}
+
 export function createPublicReadOperationContracts() {
   const contract = (operationId, requestSchema, data) => Object.freeze({
     operationId, requestSchema, successSchema: envelopeSchema(data), errorSchema: SYNTHETIC_ERROR_SCHEMA,
@@ -967,6 +1000,7 @@ export function createVerifiedReadOperationContracts() {
     ...createWorkbenchSearchOperationContract(),
     ...createWorkbenchPersonalOperationContracts(),
     ...createIdentityDetailOperationContracts(),
+    ...createAdminReadOperationContracts(),
     ...createAppReadOperationContracts(),
     ...createAnnouncementReadOperationContracts(),
     ...createTalentReadOperationContracts(),

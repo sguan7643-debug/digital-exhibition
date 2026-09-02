@@ -6,8 +6,8 @@ import { mapRemoteAnnouncement } from '../src/integration/announcement-read-mode
 
 const contracts = createVerifiedReadOperationContracts();
 assert.deepEqual(Object.keys(contracts).sort(), [
-  'ANN-001', 'ANN-002', 'ANN-003', 'ANN-005', 'APP-001', 'APP-002', 'APP-003', 'APP-007', 'APP-009', 'APP-010', 'CER-001', 'CER-002', 'CER-003',
-  'COM-001', 'COM-002', 'COM-003', 'COM-004', 'COM-005', 'COM-010', 'FAV-001', 'FAV-002', 'MAT-001', 'MAT-002', 'MSG-001', 'MSG-002',
+  'ADM-003', 'ADM-004', 'ANN-001', 'ANN-002', 'ANN-003', 'ANN-005', 'APP-001', 'APP-002', 'APP-003', 'APP-007', 'APP-009', 'APP-010', 'ARC-002', 'CER-001', 'CER-002', 'CER-003',
+  'COM-001', 'COM-002', 'COM-003', 'COM-004', 'COM-005', 'COM-010', 'FAV-001', 'FAV-002', 'INT-001', 'INT-004', 'MAT-001', 'MAT-002', 'MSG-001', 'MSG-002',
   'OPS-003', 'PTS-001', 'PTS-002', 'PTS-003', 'PTS-004', 'TAL-001',
   'TAL-002', 'TAL-003', 'TAL-005', 'TRN-001', 'TRN-002', 'TRN-003', 'TRN-006', 'WB-001', 'WB-002', 'WB-003', 'WB-004'
 ]);

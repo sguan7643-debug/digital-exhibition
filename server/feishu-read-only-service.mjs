@@ -13,6 +13,11 @@ const READ_PLANS = Object.freeze({
   'TRN-006': Object.freeze({ kind: 'identity-detail' }),
   'CER-003': Object.freeze({ kind: 'identity-detail' }),
   'COM-010': Object.freeze({ kind: 'identity-detail' }),
+  'INT-001': Object.freeze({ kind: 'admin-read' }),
+  'INT-004': Object.freeze({ kind: 'admin-read' }),
+  'ADM-003': Object.freeze({ kind: 'admin-read' }),
+  'ADM-004': Object.freeze({ kind: 'admin-read' }),
+  'ARC-002': Object.freeze({ kind: 'admin-read' }),
   'APP-001': Object.freeze({ kind: 'app-facets' }),
   'ANN-001': Object.freeze({ kind: 'announcement-facets' }),
   'COM-003': Object.freeze({ kind: 'contact-organizations' }),
@@ -1054,6 +1059,14 @@ export function createFeishuReadOnlyService(options) {
     };
   }
 
+  async function requirePermission(requestContext, permissionCode) {
+    const user = await readCurrentUserProjection(requestContext);
+    if (!user.permissions.includes('*') && !user.permissions.includes(permissionCode)) {
+      throw new FeishuProxyError('PERMISSION_DENIED', '当前用户无权访问该管理接口', 403);
+    }
+    return user;
+  }
+
   const navigationCatalog = Object.freeze([
     { menuId: 'workbench', parentId: '', code: 'workbench', name: '首页工作台', path: '/workbench', permissionCode: '' },
     { menuId: 'materials', parentId: '', code: 'materials', name: '素材中心', path: '/materials', permissionCode: 'materials.view' },
@@ -1302,6 +1315,117 @@ export function createFeishuReadOnlyService(options) {
       ...base, descriptionHtml: valueToText(fields['认证说明']), requirements: valueToList(fields['适用人群']),
       syllabus: [valueToText(fields['考试规则']), valueToText(fields['通过规则'])].filter(Boolean), trainingCourseIds: [], examSites: [...sites.values()], attachments: [],
       myStatus: { registered: Boolean(valueToText(booking['预约编号'])) && bookingStatus !== 'CANCELLED', bookingId: valueToText(booking['预约编号']) || null, result: bookingStatus, certificateNo: null }
+    };
+  }
+
+  async function executeAdminRead(operationId, input, requestContext) {
+    const requiredPermission = operationId.startsWith('ADM-') ? 'admin.audit.view'
+      : operationId.startsWith('ARC-') ? 'admin.archive.view' : 'admin.integrations.view';
+    await requirePermission(requestContext, requiredPermission);
+    if (operationId === 'INT-001') {
+      assertAllowedInput(input, ['environment', 'enabled', 'page', 'pageSize']);
+      const { page, pageSize } = publicPage(input);
+      let items = (await readAll('多维表连接配置')).map(record => {
+        const fields = record?.fields || {};
+        return {
+          connectionCode: valueToText(fields['连接编码']) || String(record?.record_id || ''), domainCode: valueToText(fields['环境']),
+          appTokenMasked: valueToText(fields['Base Token掩码']), tableIdMasked: '', defaultViewIdMasked: '', primaryFieldIdMasked: '',
+          fieldSchemaVersion: String(valueToNumber(fields['版本号'])), readEnabled: valueToBoolean(fields['启用']), writeEnabled: false,
+          enabled: valueToBoolean(fields['启用']), lastVerifiedAt: valueToText(fields['最后健康检查时间']), lastVerifiedStatus: valueToText(fields['最后健康状态'])
+        };
+      }).filter(item => item.connectionCode);
+      if (input.environment) items = items.filter(item => item.domainCode === input.environment);
+      if (input.enabled !== undefined) items = items.filter(item => item.enabled === input.enabled);
+      return paginatePublic(items, page, pageSize);
+    }
+
+    if (operationId === 'ADM-003') {
+      assertAllowedInput(input, ['keyword', 'operatorId', 'operatorOrgId', 'moduleCode', 'resourceType', 'resourceId', 'actionCode', 'resultCode', 'requestId', 'ip', 'startAt', 'endAt', 'page', 'pageSize', 'sort']);
+      const { page, pageSize } = publicPage(input); const keyword = valueToText(input.keyword).toLocaleLowerCase('zh-CN');
+      const [rows, users, departments] = await Promise.all([readAll('后台操作日志'), readAll('用户字典'), readAll('部门字典')]);
+      const userLookup = createLookup(users, ['用户ID'], '姓名'); const departmentLookup = createLookup(departments, ['部门ID'], '部门名称');
+      let items = rows.map(record => {
+        const fields = record?.fields || {}; const operatorId = valueToText(fields['操作人ID']); const operatorOrgId = valueToText(fields['操作部门ID']);
+        return {
+          auditId: valueToText(fields['审计ID']) || String(record?.record_id || ''), requestId: valueToText(fields['请求ID']), operatorId,
+          operatorName: userLookup.get(operatorId) || operatorId, operatorOrgId, operatorOrgName: departmentLookup.get(operatorOrgId) || operatorOrgId,
+          moduleCode: valueToText(fields['模块编码']), actionCode: valueToText(fields['动作编码']), actionName: valueToText(fields['动作编码']),
+          resourceType: valueToText(fields['资源类型']), resourceId: valueToText(fields['资源ID']), resourceName: '', httpMethod: valueToText(fields['HTTP方法']),
+          path: valueToText(fields['路径']), ip: valueToText(fields['IP掩码']), userAgent: valueToText(fields['User Agent']), resultCode: valueToText(fields['结果编码']),
+          resultMessage: valueToText(fields['结果信息']), changedFields: valueToList(fields['变更字段']), beforeSnapshotMasked: valueToText(fields['变更前脱敏快照']) || null,
+          afterSnapshotMasked: valueToText(fields['变更后脱敏快照']) || null, occurredAt: valueToText(fields['发生时间']), durationMs: valueToNumber(fields['耗时毫秒'])
+        };
+      }).filter(item => item.auditId)
+        .filter(item => (!keyword || `${item.requestId} ${item.resourceId} ${item.resultMessage}`.toLocaleLowerCase('zh-CN').includes(keyword))
+          && (!input.operatorId || item.operatorId === input.operatorId) && (!input.operatorOrgId || item.operatorOrgId === input.operatorOrgId)
+          && (!input.moduleCode || item.moduleCode === input.moduleCode) && (!input.resourceType || item.resourceType === input.resourceType)
+          && (!input.resourceId || item.resourceId === input.resourceId) && (!input.actionCode || item.actionCode === input.actionCode)
+          && (!input.resultCode || item.resultCode === input.resultCode) && (!input.requestId || item.requestId === input.requestId)
+          && (!input.startAt || item.occurredAt >= input.startAt) && (!input.endAt || item.occurredAt <= input.endAt));
+      items.sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)); return paginatePublic(items, page, pageSize);
+    }
+
+    if (operationId === 'ADM-004') {
+      assertAllowedInput(input, ['integrationCode', 'direction', 'operationCode', 'businessType', 'businessId', 'status', 'requestId', 'externalRequestId', 'startAt', 'endAt', 'page', 'pageSize']);
+      const { page, pageSize } = publicPage(input);
+      let items = (await readAll('接口调用日志')).map(record => {
+        const fields = record?.fields || {};
+        return {
+          logId: valueToText(fields['日志ID']) || String(record?.record_id || ''), requestId: valueToText(fields['请求ID']), integrationCode: valueToText(fields['集成ID']),
+          integrationName: valueToText(fields['集成ID']), direction: valueToText(fields['方向']), operationCode: valueToText(fields['操作编码']), httpMethod: valueToText(fields['HTTP方法']),
+          endpointMasked: valueToText(fields['端点掩码']), businessType: valueToText(fields['业务类型']), businessId: valueToText(fields['业务ID']), status: valueToText(fields['状态']),
+          httpStatus: valueToNumber(fields['HTTP状态']), errorCode: valueToText(fields['错误编码']) || null, errorMessageMasked: valueToText(fields['错误信息掩码']) || null,
+          requestSize: valueToNumber(fields['请求大小']), responseSize: valueToNumber(fields['响应大小']), startedAt: valueToText(fields['开始时间']), finishedAt: valueToText(fields['结束时间']),
+          durationMs: valueToNumber(fields['耗时毫秒']), retryCount: valueToNumber(fields['重试次数']), nextRetryAt: valueToText(fields['下次重试时间']) || null,
+          taskExecutionId: valueToText(fields['任务执行ID']) || null
+        };
+      }).filter(item => item.logId)
+        .filter(item => (!input.integrationCode || item.integrationCode === input.integrationCode) && (!input.direction || item.direction === input.direction)
+          && (!input.operationCode || item.operationCode === input.operationCode) && (!input.businessType || item.businessType === input.businessType)
+          && (!input.businessId || item.businessId === input.businessId) && (!input.status || item.status === input.status)
+          && (!input.requestId || item.requestId === input.requestId) && (!input.startAt || item.startedAt >= input.startAt) && (!input.endAt || item.startedAt <= input.endAt));
+      items.sort((a, b) => b.startedAt.localeCompare(a.startedAt)); return paginatePublic(items, page, pageSize);
+    }
+
+    if (operationId === 'INT-004') {
+      assertAllowedInput(input, ['view', 'jobId', 'jobType', 'enabled', 'status', 'triggerType', 'startAt', 'endAt', 'page', 'pageSize']);
+      const { page, pageSize } = publicPage(input); const view = input.view || 'EXECUTIONS';
+      if (!['JOBS', 'EXECUTIONS'].includes(view)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', 'view 仅支持 JOBS 或 EXECUTIONS', 400);
+      let executions = (await readAll('后台任务执行记录')).map(record => {
+        const fields = record?.fields || {};
+        return {
+          executionId: valueToText(fields['执行ID']) || String(record?.record_id || ''), jobId: valueToText(fields['任务ID']), jobName: valueToText(fields['任务ID']),
+          triggerType: valueToText(fields['触发类型']), triggeredBy: valueToText(fields['触发人ID']), startedAt: valueToText(fields['开始时间']), finishedAt: valueToText(fields['结束时间']) || null,
+          status: valueToText(fields['状态']), progress: valueToNumber(fields['进度']), totalCount: valueToNumber(fields['总数']), successCount: valueToNumber(fields['成功数']),
+          failedCount: valueToNumber(fields['失败数']), skippedCount: valueToNumber(fields['跳过数']), retryOfExecutionId: valueToText(fields['重试来源执行ID']) || null,
+          errorCode: valueToText(fields['错误编码']) || null, errorMessage: valueToText(fields['错误信息']) || null
+        };
+      }).filter(item => item.executionId && (!input.jobId || item.jobId === input.jobId) && (!input.status || item.status === input.status) && (!input.triggerType || item.triggerType === input.triggerType));
+      if (view === 'EXECUTIONS') return { view, ...paginatePublic(executions, page, pageSize) };
+      const jobs = [...new Set(executions.map(item => item.jobId).filter(Boolean))].map(jobId => {
+        const recent = executions.filter(item => item.jobId === jobId).sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
+        return { jobId, jobCode: jobId, jobName: jobId, jobType: '', scheduleType: 'MANUAL', cronExpression: null, timezone: 'Asia/Shanghai', enabled: true, concurrencyPolicy: 'FORBID', timeoutSeconds: 0, lastExecutionAt: recent?.startedAt || '', lastExecutionStatus: recent?.status || '', nextExecutionAt: null, version: 0 };
+      });
+      return { view, ...paginatePublic(jobs, page, pageSize) };
+    }
+
+    assertAllowedInput(input, ['archiveTaskId']);
+    const archiveTaskId = valueToText(input.archiveTaskId);
+    if (!archiveTaskId) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '归档详情必须提供 archiveTaskId', 400);
+    const [taskRows, executionRows] = await Promise.all([readAll('归档任务'), readAll('归档执行记录')]);
+    const record = taskRows.find(item => valueToText(item?.fields?.['归档任务ID']) === archiveTaskId);
+    if (!record) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '归档任务不存在或不可见', 404);
+    const fields = record.fields || {};
+    const executions = executionRows.filter(item => valueToText(item?.fields?.['归档任务ID']) === archiveTaskId).map(item => ({
+      executionRecordId: valueToText(item?.fields?.['执行记录ID']) || String(item?.record_id || ''), action: valueToText(item?.fields?.['动作']), status: valueToText(item?.fields?.['状态']),
+      sourceRecordId: valueToText(item?.fields?.['源记录ID']), archiveRecordId: valueToText(item?.fields?.['归档记录ID']), startedAt: valueToText(item?.fields?.['开始时间']), finishedAt: valueToText(item?.fields?.['结束时间']) || null,
+      errorCode: valueToText(item?.fields?.['错误编码']) || null, errorMessage: valueToText(item?.fields?.['错误信息']) || null
+    }));
+    return {
+      archiveTaskId, status: valueToText(fields['状态']), stage: valueToText(fields['阶段']), sourceCount: valueToNumber(fields['源记录数']), archivedCount: valueToNumber(fields['已归档数']),
+      deletedCount: valueToNumber(fields['已删除数']), failedCount: valueToNumber(fields['失败数']), sourceChecksum: valueToText(fields['源校验和']), archiveChecksum: valueToText(fields['归档校验和']),
+      archiveLocationMasked: valueToText(fields['归档位置掩码']), verifiedAt: valueToText(fields['校验完成时间']) || null, deletedAt: valueToText(fields['删除完成时间']) || null,
+      failureCode: valueToText(fields['失败编码']) || null, failureMessage: valueToText(fields['失败信息']) || null, executions
     };
   }
 
@@ -1628,6 +1752,10 @@ export function createFeishuReadOnlyService(options) {
     if (plan.kind === 'identity-detail') {
       const data = await executeIdentityDetail(operationId, input, requestContext);
       return { code: 'OK', data, traceId: traceIdFactory(), schemaVersion: 'feishu-identity-detail.v1', sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false };
+    }
+    if (plan.kind === 'admin-read') {
+      const data = await executeAdminRead(operationId, input, requestContext);
+      return { code: 'OK', data, traceId: traceIdFactory(), schemaVersion: 'feishu-admin-read.v1', sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false };
     }
     if (plan.kind === 'app-facets' || plan.kind === 'app-list' || plan.kind?.startsWith('announcement') || plan.kind?.startsWith('talent') || plan.kind?.startsWith('contact') || plan.kind === 'public-read' || plan.kind === 'first-batch-detail') {
       const data = plan.kind.startsWith('announcement')
