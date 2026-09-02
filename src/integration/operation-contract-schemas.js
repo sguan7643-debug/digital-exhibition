@@ -677,6 +677,46 @@ export function createWorkbenchSearchOperationContract() {
   });
 }
 
+export function createWorkbenchPersonalOperationContracts() {
+  const todoSummarySchema = Object.freeze({
+    type: 'object', required: ['todoId', 'businessType', 'businessId', 'title', 'submittedAt', 'statusCode', 'statusName', 'detailPath'],
+    properties: { todoId: identifier, businessType: identifier, businessId: identifier, title: optionalText, submittedAt: optionalText, statusCode: optionalText, statusName: optionalText, detailPath: optionalText }, additionalProperties: false
+  });
+  const todoDetailSchema = Object.freeze({
+    type: 'object', required: ['todoId', 'businessType', 'businessId', 'title', 'applicantId', 'applicantName', 'submittedAt', 'statusCode', 'statusName', 'currentNode', 'currentAssigneeNames', 'completedAt', 'resultMessage', 'detailPath'],
+    properties: { ...todoSummarySchema.properties, applicantId: optionalText, applicantName: optionalText, currentNode: optionalText, currentAssigneeNames: stringList, completedAt: nullableText, resultMessage: nullableText }, additionalProperties: false
+  });
+  const contract = (operationId, requestSchema, dataSchema) => Object.freeze({ operationId, requestSchema, successSchema: envelopeSchema(dataSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA, contractStatus: 'authenticated-server-projection-verified' });
+  return Object.freeze({
+    'WB-001': contract('WB-001', Object.freeze({ type: 'object', properties: { statDate: optionalText, scene: optionalText, keyword: optionalText, hotLimit: Object.freeze({ type: 'integer', minimum: 1, maximum: 20 }), courseLimit: Object.freeze({ type: 'integer', minimum: 1, maximum: 20 }), noticeLimit: Object.freeze({ type: 'integer', minimum: 1, maximum: 20 }) }, additionalProperties: false }), Object.freeze({
+      type: 'object', required: ['greeting', 'profile', 'dataAsOf', 'lastUpdatedAt', 'hero', 'appTypeOverview', 'hotApps', 'courses', 'announcements', 'usage'], properties: {
+        greeting: Object.freeze({ type: 'object', required: ['period', 'name', 'text'], properties: { period: optionalText, name: optionalText, text: optionalText }, additionalProperties: false }),
+        profile: Object.freeze({ type: 'object', required: ['userId', 'displayName', 'avatarUrl', 'departmentName'], properties: { userId: identifier, displayName: optionalText, avatarUrl: nullableText, departmentName: optionalText }, additionalProperties: false }),
+        dataAsOf: optionalText, lastUpdatedAt: optionalText,
+        hero: Object.freeze({ type: 'object', required: ['title', 'subtitle', 'imageUrl'], properties: { title: optionalText, subtitle: optionalText, imageUrl: optionalText }, additionalProperties: false }),
+        appTypeOverview: Object.freeze({ type: 'array', maxItems: 100, items: Object.freeze({ type: 'object', required: ['typeCode', 'typeName', 'iconUrl', 'count', 'detailQuery'], properties: { typeCode: optionalText, typeName: optionalText, iconUrl: optionalText, count: countInteger, detailQuery: Object.freeze({ type: 'object', required: ['typeCode'], properties: { typeCode: optionalText }, additionalProperties: false }) }, additionalProperties: false }) }),
+        hotApps: Object.freeze({ type: 'array', items: appItemSchema, maxItems: 20 }), courses: Object.freeze({ type: 'array', items: courseSummarySchema, maxItems: 20 }),
+        announcements: Object.freeze({ type: 'array', maxItems: 20, items: Object.freeze({ type: 'object', required: ['announcementId', 'typeName', 'title', 'publishedAt', 'isRead', 'detailPath'], properties: { announcementId: identifier, typeName: optionalText, title: optionalText, publishedAt: optionalText, isRead: booleanValue, detailPath: optionalText }, additionalProperties: false }) }),
+        usage: Object.freeze({ type: 'object', required: ['appVisitCount', 'appUseCount', 'favoriteAppCount', 'visitChange', 'useChange', 'favoriteChange', 'comparisonPeriod'], properties: { appVisitCount: countInteger, appUseCount: countInteger, favoriteAppCount: countInteger, visitChange: signedInteger, useChange: signedInteger, favoriteChange: signedInteger, comparisonPeriod: optionalText }, additionalProperties: false })
+      }, additionalProperties: false
+    })),
+    'WB-003': contract('WB-003', Object.freeze({ type: 'object', properties: { recentMessageLimit: Object.freeze({ type: 'integer', minimum: 1, maximum: 20 }), todoLimit: Object.freeze({ type: 'integer', minimum: 1, maximum: 20 }) }, additionalProperties: false }), Object.freeze({
+      type: 'object', required: ['user', 'stats', 'quickEntries', 'recentMessages', 'todos'], properties: {
+        user: currentUserSchema,
+        stats: Object.freeze({ type: 'object', required: ['pointBalance', 'favoriteCount', 'appVisitCount', 'appUseCount', 'pointMonthIncrease'], properties: { pointBalance: signedInteger, favoriteCount: countInteger, appVisitCount: countInteger, appUseCount: countInteger, pointMonthIncrease: signedInteger }, additionalProperties: false }),
+        quickEntries: Object.freeze({ type: 'array', maxItems: 20, items: Object.freeze({ type: 'object', required: ['code', 'name', 'description', 'path', 'iconUrl', 'permissionCode', 'enabled'], properties: { code: identifier, name: optionalText, description: optionalText, path: optionalText, iconUrl: optionalText, permissionCode: identifier, enabled: booleanValue }, additionalProperties: false }) }),
+        recentMessages: Object.freeze({ type: 'array', maxItems: 20, items: Object.freeze({ type: 'object', required: ['messageId', 'typeName', 'title', 'occurredAt', 'isRead', 'targetType', 'targetId', 'targetPath'], properties: { messageId: identifier, typeName: optionalText, title: optionalText, occurredAt: optionalText, isRead: booleanValue, targetType: optionalText, targetId: nullableText, targetPath: nullableText }, additionalProperties: false }) }),
+        todos: Object.freeze({ type: 'array', items: todoSummarySchema, maxItems: 20 })
+      }, additionalProperties: false
+    })),
+    'WB-004': contract('WB-004', Object.freeze({ type: 'object', properties: { keyword: optionalText, businessType: optionalText, status: optionalText, startAt: optionalText, endAt: optionalText, page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }), pageSize: Object.freeze({ enum: [10, 20, 50, 100] }), sort: Object.freeze({ enum: ['submittedAt,desc', 'submittedAt,asc'] }) }, additionalProperties: false }), Object.freeze({
+      type: 'object', required: ['items', ...Object.keys(personalPaginationProperties), 'sort', 'filtersApplied'], properties: {
+        items: Object.freeze({ type: 'array', items: todoDetailSchema, maxItems: 100 }), ...personalPaginationProperties, sort: Object.freeze({ enum: ['submittedAt,desc', 'submittedAt,asc'] }), filtersApplied: Object.freeze({ type: 'object' })
+      }, additionalProperties: false
+    }))
+  });
+}
+
 export function createIdentityReadOperationContracts() {
   return Object.freeze({
     'COM-001': Object.freeze({
@@ -864,6 +904,7 @@ export function createVerifiedReadOperationContracts() {
     ...createDictionaryCommentReadOperationContracts(),
     ...createPersonalReadOperationContracts(),
     ...createWorkbenchSearchOperationContract(),
+    ...createWorkbenchPersonalOperationContracts(),
     ...createAppReadOperationContracts(),
     ...createAnnouncementReadOperationContracts(),
     ...createTalentReadOperationContracts(),

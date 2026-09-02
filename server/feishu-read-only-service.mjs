@@ -6,6 +6,9 @@ const READ_PLANS = Object.freeze({
   'COM-002': Object.freeze({ kind: 'current-navigation' }),
   'COM-005': Object.freeze({ kind: 'dictionary-batch' }),
   'WB-002': Object.freeze({ kind: 'workbench-search' }),
+  'WB-001': Object.freeze({ kind: 'workbench-personal' }),
+  'WB-003': Object.freeze({ kind: 'workbench-personal' }),
+  'WB-004': Object.freeze({ kind: 'workbench-personal' }),
   'APP-001': Object.freeze({ kind: 'app-facets' }),
   'ANN-001': Object.freeze({ kind: 'announcement-facets' }),
   'COM-003': Object.freeze({ kind: 'contact-organizations' }),
@@ -1076,6 +1079,109 @@ export function createFeishuReadOnlyService(options) {
     return { menus, actions, defaultPath: menus[0]?.path || '/workbench' };
   }
 
+  function todoFromRecord(record, businessType, userLookup, appLookup) {
+    const fields = record?.fields || {};
+    const applicantId = valueToText(fields['申请人ID']);
+    const businessId = valueToText(fields['主键'] || fields['申请单号'] || fields['申请编号']) || String(record?.record_id || '');
+    const appId = valueToText(fields['应用ID'] || fields['关联应用ID']);
+    const statusCode = valueToText(fields['本地状态'] || fields['状态']);
+    return {
+      todoId: `${businessType}:${businessId}`, businessType, businessId,
+      title: `${appLookup.get(appId)?.name || appId || '应用'}${businessType === 'APP_ONBOARDING' ? '上架申请' : businessType === 'APP_REUSE' ? '复用申请' : '使用申请'}`,
+      applicantId, applicantName: userLookup.get(applicantId) || applicantId,
+      submittedAt: valueToText(fields['提交时间'] || fields['申请时间']), statusCode, statusName: statusCode,
+      currentNode: valueToText(fields['当前审批节点']), currentAssigneeNames: [], completedAt: valueToText(fields['完成时间']) || null,
+      resultMessage: valueToText(fields['退回原因']) || null, detailPath: `/applications/${encodeURIComponent(businessId)}`
+    };
+  }
+
+  async function readCurrentTodos(userId) {
+    const [useRows, onboardingRows, reuseRows, userRows, projection] = await Promise.all([
+      readAll('使用申请'), readAll('上架申请'), readAll('应用复用申请'), readAll('用户字典'), getAppProjection()
+    ]);
+    const users = createLookup(userRows, ['用户ID'], '姓名');
+    const apps = new Map(projection.items.map(item => [item.appId, item]));
+    return [
+      ...useRows.map(record => todoFromRecord(record, 'APP_USE', users, apps)),
+      ...onboardingRows.map(record => todoFromRecord(record, 'APP_ONBOARDING', users, apps)),
+      ...reuseRows.map(record => todoFromRecord(record, 'APP_REUSE', users, apps))
+    ].filter(item => item.businessId && item.applicantId === userId);
+  }
+
+  async function executeWorkbenchPersonal(operationId, input, requestContext) {
+    const { userId } = requireIdentity(requestContext);
+    if (operationId === 'WB-004') {
+      assertAllowedInput(input, ['keyword', 'businessType', 'status', 'startAt', 'endAt', 'page', 'pageSize', 'sort']);
+      const { page, pageSize } = publicPage(input);
+      const keyword = valueToText(input.keyword).toLocaleLowerCase('zh-CN');
+      const sort = input.sort || 'submittedAt,desc';
+      if (!['submittedAt,desc', 'submittedAt,asc'].includes(sort)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '待办排序方式不受支持', 400);
+      let items = (await readCurrentTodos(userId)).filter(item => (!keyword || item.title.toLocaleLowerCase('zh-CN').includes(keyword))
+        && (!input.businessType || item.businessType === input.businessType) && (!input.status || item.statusCode === input.status)
+        && (!input.startAt || item.submittedAt >= input.startAt) && (!input.endAt || item.submittedAt <= input.endAt));
+      items.sort((left, right) => sort.endsWith('asc') ? left.submittedAt.localeCompare(right.submittedAt) : right.submittedAt.localeCompare(left.submittedAt));
+      return { ...paginatePublic(items, page, pageSize), sort, filtersApplied: { keyword: valueToText(input.keyword), businessType: valueToText(input.businessType), status: valueToText(input.status), startAt: valueToText(input.startAt), endAt: valueToText(input.endAt) } };
+    }
+
+    if (operationId === 'WB-003') {
+      assertAllowedInput(input, ['recentMessageLimit', 'todoLimit']);
+      const recentMessageLimit = input.recentMessageLimit == null ? 5 : Number(input.recentMessageLimit);
+      const todoLimit = input.todoLimit == null ? 5 : Number(input.todoLimit);
+      if (![recentMessageLimit, todoLimit].every(value => Number.isInteger(value) && value >= 1 && value <= 20)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '聚合条数必须是 1 至 20 的整数', 400);
+      const [user, statsRows, monthRows, messageRows, userRows, todos] = await Promise.all([
+        readCurrentUserProjection(requestContext), readAll('用户累计统计'), readAll('用户月度统计'), readAll('消息通知'), readAll('用户字典'), readCurrentTodos(userId)
+      ]);
+      const stats = statsRows.find(record => valueToText(record?.fields?.['用户ID']) === userId)?.fields || {};
+      const latestMonth = monthRows.filter(record => valueToText(record?.fields?.['用户ID']) === userId).sort((a, b) => valueToText(b?.fields?.['年月']).localeCompare(valueToText(a?.fields?.['年月'])))[0]?.fields || {};
+      const users = new Map(userRows.map(record => [valueToText(record?.fields?.['用户ID']), record?.fields || {}]));
+      const recentMessages = messageRows.filter(record => valueToText(record?.fields?.['接收人ID']) === userId).map(record => messageFromRecord(record, users))
+        .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, recentMessageLimit)
+        .map(item => ({ messageId: item.messageId, typeName: item.typeName, title: item.title, occurredAt: item.occurredAt, isRead: item.isRead, targetType: item.targetType, targetId: item.targetId, targetPath: item.targetPath }));
+      const quickEntries = [
+        ['favorites', '我的收藏', '查看已收藏应用', '/favorites', 'favorites.view'], ['points', '我的积分', '查看积分余额与明细', '/points', 'points.view'],
+        ['messages', '消息中心', '查看消息通知', '/messages', 'messages.view'], ['todos', '我的申请', '查看申请进度', '/profile/todos', 'applications.view']
+      ].map(([code, name, description, path, permissionCode]) => ({ code, name, description, path, iconUrl: '', permissionCode, enabled: user.permissions.includes(permissionCode) || user.permissions.includes('*') }));
+      return {
+        user, stats: { pointBalance: user.pointBalance, favoriteCount: user.favoriteCount, appVisitCount: valueToNumber(stats['累计访问应用次数']), appUseCount: valueToNumber(stats['累计使用应用次数']), pointMonthIncrease: valueToNumber(latestMonth['当月使用次数']) },
+        quickEntries, recentMessages,
+        todos: todos.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)).slice(0, todoLimit).map(item => ({ todoId: item.todoId, businessType: item.businessType, businessId: item.businessId, title: item.title, submittedAt: item.submittedAt, statusCode: item.statusCode, statusName: item.statusName, detailPath: item.detailPath }))
+      };
+    }
+
+    assertAllowedInput(input, ['statDate', 'scene', 'keyword', 'hotLimit', 'courseLimit', 'noticeLimit']);
+    const hotLimit = input.hotLimit == null ? 4 : Number(input.hotLimit);
+    const courseLimit = input.courseLimit == null ? 3 : Number(input.courseLimit);
+    const noticeLimit = input.noticeLimit == null ? 4 : Number(input.noticeLimit);
+    if (![hotLimit, courseLimit, noticeLimit].every(value => Number.isInteger(value) && value >= 1 && value <= 20)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '工作台聚合条数必须是 1 至 20 的整数', 400);
+    const [user, appProjection, courseRows, announcementProjection, statRows, monthRows] = await Promise.all([
+      readCurrentUserProjection(requestContext), getAppProjection(), readAll('培训课程'), getAnnouncementProjection(), readAll('用户累计统计'), readAll('用户月度统计')
+    ]);
+    const stats = statRows.find(record => valueToText(record?.fields?.['用户ID']) === userId)?.fields || {};
+    const months = monthRows.filter(record => valueToText(record?.fields?.['用户ID']) === userId).sort((a, b) => valueToText(b?.fields?.['年月']).localeCompare(valueToText(a?.fields?.['年月'])));
+    const currentMonth = months[0]?.fields || {}; const previousMonth = months[1]?.fields || {};
+    const keyword = valueToText(input.keyword).toLocaleLowerCase('zh-CN');
+    const apps = appProjection.items.filter(item => (!input.scene || item.sceneIds.includes(input.scene) || item.sceneNames.includes(input.scene))
+      && (!keyword || `${item.name} ${item.summary}`.toLocaleLowerCase('zh-CN').includes(keyword)));
+    const typeCounts = new Map();
+    for (const app of apps) typeCounts.set(app.typeCode, { typeCode: app.typeCode, typeName: app.typeName, iconUrl: '', count: (typeCounts.get(app.typeCode)?.count || 0) + 1, detailQuery: { typeCode: app.typeCode } });
+    const nowDate = now(); const hour = nowDate.getHours(); const period = hour < 6 ? '凌晨' : hour < 12 ? '上午' : hour < 18 ? '下午' : '晚上';
+    const dataAsOf = valueToText(input.statDate) || nowDate.toISOString();
+    const announcements = announcementProjection.items.slice().sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).slice(0, noticeLimit).map(item => ({ announcementId: item.announcementId, typeName: item.category, title: item.title, publishedAt: item.publishedAt, isRead: false, detailPath: `/announcements/${encodeURIComponent(item.announcementId)}` }));
+    return {
+      greeting: { period, name: user.displayName, text: `${period}好，${user.displayName}` },
+      profile: { userId, displayName: user.displayName, avatarUrl: user.avatarUrl, departmentName: user.departmentName },
+      dataAsOf, lastUpdatedAt: nowDate.toISOString(), hero: { title: '数智产品展厅', subtitle: '探索更卓越的应用，助力业务高效运营', imageUrl: '' },
+      appTypeOverview: [...typeCounts.values()], hotApps: [...apps].sort((a, b) => b.usageCount - a.usageCount).slice(0, hotLimit),
+      courses: courseRows.map(courseFromRecord).filter(item => item.courseId && item.title).slice(0, courseLimit), announcements,
+      usage: {
+        appVisitCount: valueToNumber(stats['累计访问应用次数']), appUseCount: valueToNumber(stats['累计使用应用次数']), favoriteAppCount: user.favoriteCount,
+        visitChange: valueToNumber(currentMonth['当月访问次数']) - valueToNumber(previousMonth['当月访问次数']),
+        useChange: valueToNumber(currentMonth['当月使用次数']) - valueToNumber(previousMonth['当月使用次数']),
+        favoriteChange: valueToNumber(currentMonth['当月收藏次数']) - valueToNumber(previousMonth['当月收藏次数']), comparisonPeriod: 'PREVIOUS_MONTH'
+      }
+    };
+  }
+
   function messageRead(fields) {
     return /^(?:已读|true|1|yes)$/i.test(valueToText(fields['已读状态']).trim());
   }
@@ -1387,6 +1493,10 @@ export function createFeishuReadOnlyService(options) {
     if (plan.kind === 'workbench-search') {
       const data = await executeWorkbenchSearch(input);
       return { code: 'OK', data, traceId: traceIdFactory(), schemaVersion: 'feishu-workbench-search.v1', sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false };
+    }
+    if (plan.kind === 'workbench-personal') {
+      const data = await executeWorkbenchPersonal(operationId, input, requestContext);
+      return { code: 'OK', data, traceId: traceIdFactory(), schemaVersion: 'feishu-workbench-personal.v1', sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false };
     }
     if (plan.kind === 'personal-read') {
       const data = await executePersonalRead(operationId, input, requestContext);
