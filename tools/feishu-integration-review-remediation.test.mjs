@@ -115,12 +115,13 @@ assert.equal(staleEnvelope.lastSyncedAt, '2026-09-01T00:00:00Z');
 
 const disabledSource = createPageDataSource({
   route: '/admin', runtime: remoteRuntime, operationResolver: enabledOperation,
-  client: { execute: async () => { throw new Error('disabled route must not call transport'); } }
+  client: { execute: async operationId => ({ code: 'OK', data: { items: [], operationId }, traceId: `trace-${operationId}` }) }
 });
 const disabledEnvelope = await disabledSource.load();
-assert.equal(disabledEnvelope.mode, 'disabled');
-assert.equal(disabledEnvelope.state, 'disabled');
-assert.doesNotMatch(describeDataSourceEnvelope(disabledEnvelope), /使用受控代理数据/);
+assert.equal(disabledEnvelope.mode, 'remote');
+assert.equal(disabledEnvelope.state, 'empty');
+assert.match(describeDataSourceEnvelope(disabledEnvelope), /使用受控代理数据/);
+assert.ok(disabledEnvelope.actions.every(action => action.remoteEnabled === false));
 
 let preAbortFetches = 0;
 const preAborted = new AbortController();

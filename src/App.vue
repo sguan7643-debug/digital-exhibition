@@ -43,6 +43,7 @@ import { resolveIntegrationLiveAnnouncement } from './integration/live-region.js
 import { createSafeProxyClient } from './integration/safe-proxy-client.js';
 import { createVerifiedReadOperationContracts } from './integration/operation-contract-schemas.js';
 import { resolveRemoteReadOperation } from './integration/remote-operation-capabilities.js';
+import { buildPageReadRequestPlan } from './integration/page-read-request-plan.js';
 
 const integrationRuntime = resolveIntegrationRuntime({
   requestedMode: import.meta.env.VITE_EXHIBITION_DATA_MODE,
@@ -52,11 +53,12 @@ const integrationRuntime = resolveIntegrationRuntime({
   timeoutMs: Number(import.meta.env.VITE_EXHIBITION_REQUEST_TIMEOUT_MS),
   origin: window.location.origin
 });
+const verifiedReadContracts = createVerifiedReadOperationContracts();
 const integrationClient = createSafeProxyClient({
   baseUrl: integrationRuntime.proxyBase,
   origin: window.location.origin,
   timeoutMs: integrationRuntime.timeoutMs,
-  operationContracts: createVerifiedReadOperationContracts()
+  operationContracts: verifiedReadContracts
 });
 
 async function executeReadOperation(operationId, input) {
@@ -172,48 +174,20 @@ const integrationContract = computed(() => getPageIntegrationContract(page.value
 const integrationEnvelope = ref({ mode: 'disabled', state: 'disabled', operationIds: [] });
 let integrationDataSource;
 
-const detailAppIds = Object.freeze({
-  '/apps/tool-001': 'APP004', '/apps/haineng-work-001': 'APP005', '/apps/report-001': 'APP006',
-  '/apps/dashboard-001': 'APP007', '/apps/dataset-001': 'APP008', '/apps/metric-001': 'APP009',
-  '/apps/ai-001': 'APP001', '/apps/ead-001': 'APP002', '/apps/rpa-001': 'APP003'
-});
-
-const authenticatedRouteLoads = Object.freeze({
-  '/workbench': Object.freeze({
-    operationIds: ['COM-001', 'COM-002', 'COM-005', 'WB-001'],
-    inputByOperation: Object.freeze({
-      'COM-001': {}, 'COM-002': { platform: 'WEB' },
-      'COM-005': { dictionaryCodes: ['APP_TYPE', 'BUSINESS_DOMAIN', 'SCENE'], includeDisabled: false },
-      'WB-001': { hotLimit: 4, courseLimit: 3, noticeLimit: 4 }
-    })
-  }),
-  '/messages': Object.freeze({ operationIds: ['MSG-001', 'MSG-002'], inputByOperation: Object.freeze({ 'MSG-001': {}, 'MSG-002': { page: 1, pageSize: 100 } }) }),
-  '/favorites': Object.freeze({ operationIds: ['FAV-001', 'FAV-002'], inputByOperation: Object.freeze({ 'FAV-001': { resourceType: 'APP' }, 'FAV-002': { resourceType: 'APP', page: 1, pageSize: 100 } }) }),
-  '/profile': Object.freeze({ operationIds: ['COM-001', 'WB-003'], inputByOperation: Object.freeze({ 'COM-001': {}, 'WB-003': { recentMessageLimit: 5, todoLimit: 5 } }) }),
-  '/points': Object.freeze({ operationIds: ['PTS-001', 'PTS-003', 'PTS-004'], inputByOperation: Object.freeze({ 'PTS-001': {}, 'PTS-003': { groupBy: 'SOURCE' }, 'PTS-004': {} }) }),
-  '/points/details': Object.freeze({ operationIds: ['PTS-002'], inputByOperation: Object.freeze({ 'PTS-002': { page: 1, pageSize: 100 } }) })
-});
-
 async function syncIntegrationEnvelope() {
   const route = page.value.route;
-  const remoteVerifiedRoutes=['/apps','/announcements','/talent/people', ...Object.keys(detailAppIds), ...Object.keys(authenticatedRouteLoads)];
-  const routeRuntime = remoteVerifiedRoutes.includes(route)
-    ? integrationRuntime
-    : Object.freeze({ ...integrationRuntime, mode: 'mock', reason: 'route-not-yet-remotely-verified' });
   integrationDataSource = createPageDataSource({
     route,
-    runtime: routeRuntime,
+    runtime: integrationRuntime,
     mockLoader: () => ({ source: 'existing-approved-page-fixture', route: page.value.route }),
     client: integrationClient,
     operationResolver: resolveRemoteReadOperation
   });
-  const appId = detailAppIds[route];
-  const authenticatedLoad = authenticatedRouteLoads[route];
-  const loadOptions = appId ? { inputByOperation: {
-    'APP-003': { appId, include: ['attachments', 'trainings', 'relatedMaterials'] },
-    'APP-009': { appId, page: 1, pageSize: 100, sort: 'sortOrder,asc' }
-  } } : authenticatedLoad || {};
-  const pending = integrationDataSource.load(remoteVerifiedRoutes.includes(route) && !appId && !authenticatedLoad ? { page: 1, pageSize: 100 } : {}, loadOptions);
+  const loadOptions = buildPageReadRequestPlan({
+    route, readOperationIds: integrationContract.value.readOperationIds,
+    operationContracts: verifiedReadContracts, search: window.location.search
+  });
+  const pending = integrationDataSource.load({}, loadOptions);
   integrationEnvelope.value = integrationDataSource.snapshot();
   const result = await pending;
   if (page.value.route === route) integrationEnvelope.value = result;

@@ -7,6 +7,7 @@ import { createDataState, reduceDataState } from '../src/integration/data-state.
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const appSource = await readFile(path.join(root, 'src', 'App.vue'), 'utf8');
+const requestPlanSource = await readFile(path.join(root, 'src', 'integration', 'page-read-request-plan.js'), 'utf8');
 const bannerSource = await readFile(path.join(root, 'src', 'components', 'IntegrationAuthBanner.vue'), 'utf8');
 const messagesSource = await readFile(path.join(root, 'src', 'pages', 'MessagesPage.vue'), 'utf8');
 const favoritesSource = await readFile(path.join(root, 'src', 'pages', 'FavoritesPage.vue'), 'utf8');
@@ -22,10 +23,10 @@ assert.equal(state.state, 'authentication-required');
 assert.equal(state.announcement, '需要先完成飞书登录');
 
 for (const route of ['/workbench', '/messages', '/favorites', '/profile', '/points', '/points/details']) {
-  assert.ok(appSource.includes(`'${route}'`), `${route} 必须登记真实身份接口加载配置`);
+  assert.ok(requestPlanSource.includes(`'${route}'`), `${route} 必须登记真实身份接口加载配置`);
 }
 for (const operationId of ['COM-001', 'COM-002', 'WB-001', 'MSG-001', 'MSG-002', 'FAV-001', 'FAV-002', 'WB-003', 'PTS-001', 'PTS-002', 'PTS-003']) {
-  assert.ok(appSource.includes(`'${operationId}'`), `${operationId} 必须从页面进入真实代理`);
+  assert.ok(requestPlanSource.includes(`'${operationId}'`), `${operationId} 必须从页面进入真实代理`);
 }
 assert.ok(appSource.includes('/api/v1/auth/feishu/start?returnTo='));
 assert.ok(appSource.includes('integrationAuthRequired'));

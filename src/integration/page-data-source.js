@@ -114,7 +114,7 @@ export function assertWriteActionContext(action, operation, context = {}) {
 export function createPageDataSource({ route, runtime, mockLoader, client, operationResolver = getOperation }) {
   const contract = getPageIntegrationContract(route);
   if (!contract) throw new Error(`未登记页面接入合同：${route}`);
-  const initialMode = contract.defaultMode === 'disabled' ? 'disabled' : runtime.mode;
+  const initialMode = runtime.mode;
   let envelope = createDataState({ mode: initialMode, data: null, state: initialMode === 'disabled' ? 'disabled' : undefined });
   let generation = 0;
   let activeController = null;
@@ -136,8 +136,8 @@ export function createPageDataSource({ route, runtime, mockLoader, client, opera
     else options.signal?.addEventListener?.('abort', abortFromCaller, { once: true });
 
     try {
-      if (contract.defaultMode === 'disabled' || runtime.mode === 'disabled') {
-        envelope = reduceDataState({ ...envelope, mode: 'disabled' }, { type: 'disable', reason: contract.defaultMode === 'disabled' ? 'route-contract-disabled' : runtime.reason });
+      if (runtime.mode === 'disabled') {
+        envelope = reduceDataState({ ...envelope, mode: 'disabled' }, { type: 'disable', reason: runtime.reason });
         return withContract(envelope);
       }
       if (runtime.mode === 'mock') {
