@@ -236,7 +236,7 @@ const integrationLiveAnnouncement = computed(() => resolveIntegrationLiveAnnounc
         :operation-executor="executeReadOperation"
       />
       <dashboard-detail-page v-else-if="page.id === '11'" />
-      <dataset-detail-page v-else-if="page.id === '12'" />
+      <dataset-detail-page v-else-if="page.id === '12'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <metric-detail-page v-else-if="page.id === '13'" />
       <ai-detail-page v-else-if="page.id === '14'" />
       <ead-detail-page v-else-if="page.id === '15'" />
