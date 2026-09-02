@@ -17,6 +17,7 @@ export function resolveIntegrationRuntime(options = {}) {
   const requestedMode = ['mock', 'remote', 'disabled'].includes(options.requestedMode) ? options.requestedMode : 'mock';
   const remoteEnabled = options.remoteEnabled === true;
   const contractEvidenceComplete = options.contractEvidenceComplete === true;
+  const testWritesEnabled = options.testWritesEnabled === true && requestedMode === 'remote' && remoteEnabled && contractEvidenceComplete;
   const timeoutMs = Number.isFinite(options.timeoutMs) && options.timeoutMs > 0 ? options.timeoutMs : null;
   let mode = requestedMode;
   let reason = 'explicit-mode';
@@ -30,6 +31,7 @@ export function resolveIntegrationRuntime(options = {}) {
     proxyBase: validateSameOriginProxyBase(options.proxyBase, options.origin),
     remoteEnabled,
     contractEvidenceComplete,
+    testWritesEnabled,
     timeoutMs,
     reason
   });

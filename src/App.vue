@@ -6,6 +6,7 @@ import IntegrationAuthBanner from './components/IntegrationAuthBanner.vue';
 import AppDetailLiveSections from './components/AppDetailLiveSections.vue';
 import ProfileLiveSections from './components/ProfileLiveSections.vue';
 import OperationalDetailStatus from './components/OperationalDetailStatus.vue';
+import ControlledWritePanel from './components/ControlledWritePanel.vue';
 import AnnouncementsPage from './pages/AnnouncementsPage.vue';
 import FavoritesPage from './pages/FavoritesPage.vue';
 import MessagesPage from './pages/MessagesPage.vue';
@@ -45,7 +46,7 @@ import { createPageDataSource, describeDataSourceEnvelope } from './integration/
 import { resolveIntegrationLiveAnnouncement } from './integration/live-region.js';
 import { createSafeProxyClient } from './integration/safe-proxy-client.js';
 import { createVerifiedReadOperationContracts, createVerifiedWriteOperationContracts } from './integration/operation-contract-schemas.js';
-import { OPERATION_REGISTRY } from './integration/operation-registry.js';
+import { OPERATION_REGISTRY, getOperation } from './integration/operation-registry.js';
 import { resolveRemoteReadOperation } from './integration/remote-operation-capabilities.js';
 import { buildPageReadRequestPlan } from './integration/page-read-request-plan.js';
 
@@ -54,6 +55,7 @@ const integrationRuntime = resolveIntegrationRuntime({
   proxyBase: import.meta.env.VITE_EXHIBITION_API_BASE_URL,
   remoteEnabled: import.meta.env.VITE_EXHIBITION_REMOTE_ENABLED === 'true',
   contractEvidenceComplete: import.meta.env.VITE_EXHIBITION_CONTRACT_EVIDENCE === 'complete',
+  testWritesEnabled: import.meta.env.VITE_EXHIBITION_TEST_WRITES_ENABLED === 'true',
   timeoutMs: Number(import.meta.env.VITE_EXHIBITION_REQUEST_TIMEOUT_MS),
   origin: window.location.origin
 });
@@ -66,10 +68,42 @@ const integrationClient = createSafeProxyClient({
   operationContracts: { ...verifiedReadContracts, ...verifiedWriteContracts }
 });
 
+function resolveRemoteOperation(operationId) {
+  const read = resolveRemoteReadOperation(operationId);
+  if (read) return read;
+  const operation = getOperation(operationId);
+  return operation?.access === 'write' && integrationRuntime.testWritesEnabled
+    ? Object.freeze({ ...operation, remoteEnabled: true })
+    : operation;
+}
+
 async function executeReadOperation(operationId, input) {
   const operation = resolveRemoteReadOperation(operationId);
   if (integrationRuntime.mode !== 'remote' || !operation?.remoteEnabled) throw new Error('真实接口当前未启用');
   return integrationClient.execute(operationId, input);
+}
+
+async function requestHash(value) {
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
+  const digest = await window.crypto.subtle.digest('SHA-256', bytes);
+  return `sha256:${[...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('')}`;
+}
+
+async function executePageWriteOperation(operationId, input, options = {}) {
+  if (!integrationRuntime.testWritesEnabled || !integrationDataSource) throw new Error('测试写入通道未启用');
+  if (!String(input?.businessKey || '').startsWith('TEST_') || !String(input?.idempotencyKey || '').startsWith('TEST_')) {
+    throw new Error('页面联调写入只允许 TEST_ 业务键和幂等键');
+  }
+  const currentUser = await integrationClient.execute('COM-001', {});
+  return integrationDataSource.executeAction(operationId, input, {
+    permissions: currentUser.data.permissions,
+    confirmed: options.confirmed === true,
+    idempotencyKey: input.idempotencyKey,
+    ifMatch: input.ifMatch,
+    isolatedTestRecordId: input.businessKey,
+    auditContractId: 'feishu-test-write.v1',
+    requestHash: await requestHash({ operationId, input })
+  });
 }
 
 function normalizeInitialRoute() {
@@ -186,7 +220,7 @@ async function syncIntegrationEnvelope() {
     runtime: integrationRuntime,
     mockLoader: () => ({ source: 'existing-approved-page-fixture', route: page.value.route }),
     client: integrationClient,
-    operationResolver: resolveRemoteReadOperation
+    operationResolver: resolveRemoteOperation
   });
   const loadOptions = buildPageReadRequestPlan({
     route, readOperationIds: integrationContract.value.readOperationIds,
@@ -260,9 +294,20 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
       <talent-projects-page v-else-if="page.id === '29'" />
       <talent-progress-page v-else-if="page.id === '30'" />
       <portal-page v-else :page="page" />
-      <app-detail-live-sections v-if="Number(page.id) >= 8 && Number(page.id) <= 16" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
+      <app-detail-live-sections v-if="Number(page.id) >= 8 && Number(page.id) <= 16"
+        :integration-data="integrationEnvelope.data"
+        :integration-state="integrationEnvelope.state"
+        :operation-executor="executeReadOperation"
+        :action-executor="executePageWriteOperation"
+        :test-writes-enabled="integrationRuntime.testWritesEnabled && integrationContract.actions.some(action => ['APP-005','APP-006','APP-008'].includes(action.operationId))"
+      />
       <profile-live-sections v-if="page.id === '04'" :integration-data="integrationEnvelope.data" />
       <operational-detail-status v-if="page.id === '26'" :operation-executor="executeReadOperation" />
+      <controlled-write-panel
+        :actions="integrationContract.actions"
+        :executor="executePageWriteOperation"
+        :enabled="integrationRuntime.testWritesEnabled"
+      />
     </page-state-boundary>
   </exhibition-shell>
 </template>

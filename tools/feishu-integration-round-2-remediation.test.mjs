@@ -58,6 +58,12 @@ const remoteRuntime = resolveIntegrationRuntime({
   requestedMode: 'remote', remoteEnabled: true, contractEvidenceComplete: true,
   timeoutMs: 1000, origin
 });
+assert.equal(remoteRuntime.testWritesEnabled, false);
+const testWriteRuntime = resolveIntegrationRuntime({
+  requestedMode: 'remote', remoteEnabled: true, contractEvidenceComplete: true, testWritesEnabled: true,
+  timeoutMs: 1000, origin
+});
+assert.equal(testWriteRuntime.testWritesEnabled, true);
 const enabledOperation = operationId => Object.freeze({ ...getOperation(operationId), remoteEnabled: true });
 
 let writeTransportCalls = 0;

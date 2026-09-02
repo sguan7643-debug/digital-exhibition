@@ -183,8 +183,9 @@ export function createPageDataSource({ route, runtime, mockLoader, client, opera
     const action = contract.actions.find(candidate => candidate.actionId === actionId);
     if (!action) throw new Error(`页面未登记操作：${actionId}`);
     const operation = operationResolver(action.operationId);
-    if (runtime.mode !== 'remote' || contract.defaultMode === 'disabled') throw new Error('操作独立门禁未启用');
-    assertWriteActionContext(action, operation, context);
+    const effectiveAction = Object.freeze({ ...action, remoteEnabled: runtime.testWritesEnabled === true });
+    if (runtime.mode !== 'remote' || runtime.testWritesEnabled !== true) throw new Error('操作独立门禁未启用');
+    assertWriteActionContext(effectiveAction, operation, context);
     return client.execute(action.operationId, {
       ...input,
       idempotencyKey: context.idempotencyKey,

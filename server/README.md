@@ -10,6 +10,9 @@ Base token、tableId、viewId 或 fieldId。
 - `FEISHU_APP_SECRET`：对应 App Secret，仅允许存在于服务端环境变量或密钥管理系统。
 - `FEISHU_BASE_TOKEN`：目标多维表格的 app token，仅允许存在于服务端。
 - `FEISHU_APP_LAUNCH_ALLOWED_HOSTS`：允许应用启动的 HTTPS 主机名，多个值用逗号分隔。未配置时默认拒绝外部启动，禁止自动信任多维表格中的任意 URL。
+- `FEISHU_BROWSER_TEST_WRITE_ENABLED=1`：仅在本地联调时允许浏览器进入 TEST_ 写代理；默认关闭。
+
+客户端还必须同时设置 `VITE_EXHIBITION_TEST_WRITES_ENABLED=true` 才会显示受控写入面板。两个开关必须同时开启，任一未开启时页面不显示测试写入口，服务端也拒绝写请求。
 
 缺少任意一项时，代理明确返回 HTTP 503 和 `SERVICE_CREDENTIALS_MISSING`，
 不会回退到伪造成功或浏览器直连。
@@ -37,6 +40,21 @@ Base token、tableId、viewId 或 fieldId。
 - 12 个当前用户接口需要飞书应用登记 OAuth 回调并完成真实用户登录证据；没有用户会话时统一返回 401。
 - 36 个写接口只允许双重服务端开关下操作 `TEST_` 记录，常规运行不会自动写入。
 - Vite 中间件只服务本地开发与 preview；生产环境必须由后端或网关挂载同一分发器。
+
+## 浏览器 TEST_ 写入门禁
+
+36 个写接口只面向获准的测试 Base 和 `TEST_` 前缀记录。每次浏览器写入还必须同时满足：
+
+- 请求来自同源页面，并通过服务端 Origin/Host 校验；
+- 已完成飞书 OAuth，服务端能够取得当前用户身份；
+- `COM-001` 返回当前用户具备 `operation:{operationId}:execute` 或通配执行权限；
+- 页面提供明确确认、唯一幂等键、审计合同与请求哈希；更新、删除和命令类操作提供当前版本；
+- 业务键和幂等键均以 `TEST_` 开头，服务端字段白名单和写操作服务再次校验。
+
+页面不会自动执行写入。关闭任一测试开关后，受控面板从 30 个页面全部隐藏；生产运行不得配置这两个开关。
+
+真实浏览器 OAuth 当前仍需在飞书开发者后台登记回调白名单：
+`http://127.0.0.1:4173/api/v1/auth/feishu/callback`。未登记时飞书返回错误码 20029，无法完成真实账号登录与授权写入验收。
 
 运行 `pnpm test:integration:server` 可验证 36 表/271 字段标识契约、服务端令牌缓存、
 默认分页、同源路由、错误脱敏和只读门禁。

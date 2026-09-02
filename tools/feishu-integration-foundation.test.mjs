@@ -42,7 +42,7 @@ assert.deepEqual(getPageIntegrationContract('/apps/report-001').operationIds, ['
 
 assert.deepEqual(resolveIntegrationRuntime({}), {
   mode: 'mock', proxyBase: '/api/v1', remoteEnabled: false,
-  contractEvidenceComplete: false, timeoutMs: null, reason: 'remote-disabled-by-default'
+  contractEvidenceComplete: false, testWritesEnabled: false, timeoutMs: null, reason: 'remote-disabled-by-default'
 });
 assert.equal(resolveIntegrationRuntime({ requestedMode: 'remote', remoteEnabled: true, contractEvidenceComplete: false }).mode, 'disabled');
 assert.equal(resolveIntegrationRuntime({ requestedMode: 'remote', remoteEnabled: true, contractEvidenceComplete: true, timeoutMs: 8000 }).mode, 'remote');
