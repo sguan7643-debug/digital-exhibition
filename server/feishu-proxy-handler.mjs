@@ -18,6 +18,7 @@ export function createFeishuOperationDispatcher(options = {}) {
   const service = options.service;
   if (!service?.execute) throw new Error('接口分发器缺少只读服务');
   const traceIdFactory = options.traceIdFactory || (() => `trace-${globalThis.crypto?.randomUUID?.() || Date.now()}`);
+  const resolveRequestContext = options.resolveRequestContext || (() => ({}));
 
   return async function dispatch(request = {}) {
     const pathname = new URL(request.url || '/', 'http://localhost').pathname;
@@ -46,7 +47,8 @@ export function createFeishuOperationDispatcher(options = {}) {
       return { status: 400, body: { code: 'INVALID_OPERATION_INPUT', message: 'input 必须是对象', traceId } };
     }
     try {
-      const response = await service.execute(operationId, body.input || {});
+      const requestContext = await resolveRequestContext(request);
+      const response = await service.execute(operationId, body.input || {}, requestContext || {});
       return { status: 200, body: response };
     } catch (error) {
       return errorResult(error, traceId);

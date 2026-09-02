@@ -183,14 +183,12 @@ assert.equal(envelope.data.hasMore, false);
 assert.equal(Object.hasOwn(envelope.data.items[0], 'fields'), false, '代理不得把整行飞书字段原样透传到浏览器');
 assert.ok(calls.some(call => call.url.includes(`/tables/${contract.byName.get('应用索引').tableId}/records`)));
 
-for (const [operationId, tableName, expectedLabel] of [
-  ['MAT-002', '素材中心', '操作手册']
-]) {
-  const mapped = await service.execute(operationId, {});
-  assert.equal(mapped.data.pageSize, 10);
-  assert.equal(mapped.data.items[0].label, expectedLabel);
-  assert.ok(calls.some(call => call.url.includes(`/tables/${contract.byName.get(tableName).tableId}/records`)));
-}
+const materials = await service.execute('MAT-002', {});
+assert.equal(materials.data.pageSize, 10);
+assert.equal(materials.data.items[0].name, '操作手册');
+assert.equal(materials.data.items[0].permissions.canDownload, false);
+assert.equal(materials.data.items[0].primaryFile.downloadUrl, '');
+assert.ok(calls.some(call => call.url.includes(`/tables/${contract.byName.get('素材中心').tableId}/records`)));
 
 const organizationTree = await service.execute('COM-003', { includeUsers: true, maxDepth: 5 });
 assert.equal(organizationTree.data.items[0].orgId, 'od-dept-001');

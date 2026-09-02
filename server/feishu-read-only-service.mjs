@@ -2,12 +2,17 @@ import { FeishuProxyError } from './feishu-open-api-client.mjs';
 import { getOperation } from '../src/integration/operation-registry.js';
 
 const READ_PLANS = Object.freeze({
+  'COM-001': Object.freeze({ kind: 'current-user' }),
   'APP-001': Object.freeze({ kind: 'app-facets' }),
   'ANN-001': Object.freeze({ kind: 'announcement-facets' }),
   'COM-003': Object.freeze({ kind: 'contact-organizations' }),
   'COM-004': Object.freeze({ kind: 'contact-users' }),
   'ANN-002': Object.freeze({ kind: 'announcement-list' }),
+  'ANN-003': Object.freeze({ kind: 'first-batch-detail' }),
+  'ANN-005': Object.freeze({ kind: 'first-batch-detail' }),
   'APP-002': Object.freeze({ kind: 'app-list' }),
+  'APP-003': Object.freeze({ kind: 'first-batch-detail' }),
+  'APP-009': Object.freeze({ kind: 'first-batch-detail' }),
   'TAL-001': Object.freeze({ kind: 'talent-people' }),
   'TAL-002': Object.freeze({ kind: 'talent-projects' }),
   'TAL-003': Object.freeze({ kind: 'talent-progress' }),
@@ -20,7 +25,7 @@ const READ_PLANS = Object.freeze({
   'CER-002': Object.freeze({ kind: 'public-read' }),
   'OPS-003': Object.freeze({ kind: 'public-read' }),
   'MAT-001': Object.freeze({ kind: 'public-read' }),
-  'MAT-002': Object.freeze({ tableName: '素材中心', labelField: '素材名称', typeField: '素材文件' })
+  'MAT-002': Object.freeze({ kind: 'first-batch-detail' })
 });
 
 function valueToText(value) {
@@ -700,6 +705,152 @@ export function createFeishuReadOnlyService(options) {
     };
   }
 
+  function safeFileSummary(value, fallbackName = '') {
+    const file = Array.isArray(value) ? value[0] : value;
+    const object = file && typeof file === 'object' ? file : {};
+    return {
+      fileId: '', fileName: valueToText(object.name) || fallbackName, extension: '', mimeType: '',
+      sizeBytes: valueToNumber(object.size), sha256: '', downloadUrl: '', previewUrl: '', thumbnailUrl: '',
+      uploadedBy: '', uploadedAt: '', scanStatus: 'UNAVAILABLE', businessType: '', businessId: '', expiresAt: '', version: 0
+    };
+  }
+
+  function materialFromRecord(record) {
+    const fields = record?.fields || {};
+    const materialId = valueToText(fields['素材ID']) || String(record?.record_id || '');
+    const relatedAppIds = valueToList(fields['关联应用ID']);
+    return {
+      materialId, materialCode: valueToText(fields['素材编码']), name: valueToText(fields['素材名称']),
+      summary: valueToText(fields['素材摘要']), materialType: valueToText(fields['素材类型']),
+      categoryIds: valueToList(fields['分类ID']), appTypeCodes: [], domainIds: [], relatedAppIds,
+      coverFileId: '', coverUrl: '', primaryFile: safeFileSummary(fields['素材文件']), versionName: valueToText(fields['版本名称']),
+      publisherId: valueToText(fields['发布人ID']), publisherName: valueToText(fields['发布人姓名']), publishedAt: valueToText(fields['发布时间']),
+      viewCount: valueToNumber(fields['浏览量']), downloadCount: valueToNumber(fields['下载次数']), isFavorite: false,
+      permissions: { canView: true, canDownload: false, canMaintain: false },
+      descriptionHtml: valueToText(fields['素材描述']), files: [], relatedApps: [], tags: [],
+      createdAt: valueToText(fields['创建时间']), updatedAt: valueToText(fields['更新时间']), version: valueToNumber(fields['版本'])
+    };
+  }
+
+  async function executeFirstBatchDetail(operationId, input) {
+    if (operationId === 'MAT-002') {
+      assertAllowedInput(input, ['query', 'keyword', 'materialType', 'categoryId', 'appTypeCode', 'domainId', 'relatedAppId', 'status', 'page', 'pageSize', 'sort']);
+      const { page, pageSize } = publicPage(input);
+      const keyword = valueToText(input.query || input.keyword).toLocaleLowerCase('zh-CN');
+      let items = (await readAll('素材中心')).map(materialFromRecord).filter(item => item.materialId && item.name);
+      items = items.filter(item => (!keyword || `${item.name} ${item.summary}`.toLocaleLowerCase('zh-CN').includes(keyword))
+        && (!input.materialType || item.materialType === input.materialType)
+        && (!input.categoryId || item.categoryIds.includes(input.categoryId))
+        && (!input.relatedAppId || item.relatedAppIds.includes(input.relatedAppId)));
+      return { ...paginatePublic(items, page, pageSize), sort: input.sort || 'updatedAt,desc', filtersApplied: {
+        keyword: valueToText(input.query || input.keyword), materialType: valueToText(input.materialType), categoryId: valueToText(input.categoryId),
+        appTypeCode: valueToText(input.appTypeCode), domainId: valueToText(input.domainId), relatedAppId: valueToText(input.relatedAppId), status: valueToText(input.status || 'ONLINE')
+      } };
+    }
+
+    if (operationId.startsWith('APP-')) {
+      assertAllowedInput(input, operationId === 'APP-003'
+        ? ['appId', 'include']
+        : ['appId', 'relationType', 'page', 'pageSize', 'sort']);
+      const appId = valueToText(input.appId);
+      if (!appId) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '应用接口必须提供 appId', 400);
+      const projection = await getAppProjection();
+      const app = projection.items.find(item => item.appId === appId);
+      if (!app) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '应用不存在或不可见', 404);
+      const [attachmentRows, previewRows, trainingRows, materialRelationRows, materialRows, relationRows] = await Promise.all([
+        readAll('附件资料'), readAll('演示截图录屏'), readAll('相关培训'), readAll('应用素材关联'), readAll('素材中心'), readAll('应用关联')
+      ]);
+      const materials = materialRows.map(materialFromRecord);
+      if (operationId === 'APP-003') {
+        const relatedMaterialIds = new Set(materialRelationRows.filter(record => valueToText(record?.fields?.['应用ID']) === appId).map(record => valueToText(record?.fields?.['素材ID'])));
+        return {
+          appId: app.appId, appCode: app.appId, name: app.name, shortName: app.name, logoFileId: '', logoUrl: '', coverFileId: '', coverUrl: '',
+          typeCode: app.typeCode, typeName: app.typeName, summary: app.summary, description: app.summary, versionName: '', accessMode: '',
+          externalSystemCode: '', externalUrl: '', openMode: '', applicableUsers: '', businessScope: '', features: [], metrics: [], fieldDefinitions: [], processSteps: [],
+          previews: previewRows.filter(record => valueToText(record?.fields?.['应用ID']) === appId).map(record => ({
+            previewId: valueToText(record?.fields?.['主键']) || String(record?.record_id || ''), mediaType: valueToText(record?.fields?.['媒体类型']),
+            title: valueToText(record?.fields?.['说明文字']), url: '', thumbnailUrl: ''
+          })),
+          videos: [],
+          attachments: attachmentRows.filter(record => valueToText(record?.fields?.['应用ID']) === appId).map(record => ({
+            attachmentId: valueToText(record?.fields?.['主键']) || String(record?.record_id || ''), name: valueToText(record?.fields?.['文件名称']),
+            sizeBytes: valueToNumber(record?.fields?.['文件大小']), uploadedAt: valueToText(record?.fields?.['上传时间']), uploadedBy: valueToText(record?.fields?.['上传人ID']), downloadUrl: ''
+          })),
+          guides: [],
+          trainings: trainingRows.filter(record => valueToText(record?.fields?.['应用ID']) === appId).map(record => ({
+            trainingId: valueToText(record?.fields?.['主键']) || String(record?.record_id || ''), title: valueToText(record?.fields?.['培训标题']),
+            category: valueToText(record?.fields?.['培训分类']), lecturerName: valueToText(record?.fields?.['讲师姓名']), durationMinutes: valueToNumber(record?.fields?.['时长(分钟)']), targetPath: ''
+          })),
+          relatedApps: [], relatedMaterials: materials.filter(item => relatedMaterialIds.has(item.materialId)), latestNotice: null, typeExtension: {}, dataSourceSummary: '',
+          createdAt: app.createdAt || '', updatedAt: app.updatedAt || '', version: 0
+        };
+      }
+      const { page, pageSize } = publicPage(input);
+      let relations = relationRows.filter(record => valueToText(record?.fields?.['应用ID']) === appId).map(record => {
+        const fields = record?.fields || {};
+        const relationType = valueToText(fields['关联类型']).toLocaleUpperCase('zh-CN');
+        const resourceId = valueToText(fields['关联资源ID']);
+        const material = materials.find(item => item.materialId === resourceId);
+        return {
+          relationId: valueToText(fields['关联编码']) || String(record?.record_id || ''), relationType, resourceId,
+          title: material?.name || resourceId, summary: material?.summary || '', logoUrl: '', coverUrl: material?.coverUrl || '',
+          typeCode: material?.materialType || '', typeName: material?.materialType || '', durationMinutes: null,
+          fileSizeBytes: material?.primaryFile?.sizeBytes || null, downloadCount: material?.downloadCount || null,
+          viewCount: material?.viewCount || null, targetPath: material ? `/materials/${encodeURIComponent(resourceId)}` : '', sortOrder: valueToNumber(fields['排序'])
+        };
+      }).filter(item => item.relationId && item.resourceId);
+      if (input.relationType) relations = relations.filter(item => item.relationType === String(input.relationType).toLocaleUpperCase('zh-CN'));
+      return { ...paginatePublic(relations, page, pageSize), sort: input.sort || 'sortOrder,asc', filtersApplied: { appId, relationType: valueToText(input.relationType) } };
+    }
+
+    assertAllowedInput(input, operationId === 'ANN-003'
+      ? ['announcementId', 'markRead']
+      : ['announcementId', 'relationType', 'page', 'pageSize']);
+    const announcementId = valueToText(input.announcementId);
+    if (!announcementId) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '公告接口必须提供 announcementId', 400);
+    if (operationId === 'ANN-003' && input.markRead === true) {
+      throw new FeishuProxyError('READ_SIDE_EFFECT_FORBIDDEN', '只读详情接口不会自动写入已读状态', 403);
+    }
+    const [announcementRows, relationRows, appProjection, userRows, departmentRows] = await Promise.all([
+      readAll('公告通知'), readAll('公告关联对象'), getAppProjection(), readAll('用户字典'), readAll('部门字典')
+    ]);
+    const announcementRecord = announcementRows.find(record => valueToText(record?.fields?.['公告ID']) === announcementId);
+    if (!announcementRecord) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '公告不存在或不可见', 404);
+    const relations = relationRows.filter(record => valueToText(record?.fields?.['公告ID']) === announcementId);
+    const userLookup = createLookup(userRows, ['用户ID'], '姓名');
+    const departmentLookup = createLookup(departmentRows, ['部门ID'], '部门名称');
+    const relationItems = relations.map(record => {
+      const fields = record?.fields || {};
+      const relationType = valueToText(fields['关联类型']).toLocaleUpperCase('zh-CN');
+      const resourceId = valueToText(fields['资源ID']);
+      const relatedApp = appProjection.items.find(item => item.appId === resourceId);
+      return {
+        relationId: valueToText(fields['关联编码']) || String(record?.record_id || ''), relationType, resourceId,
+        title: relatedApp?.name || resourceId, summary: relatedApp?.summary || '', logoUrl: '', startAt: null, endAt: null,
+        usageCount: relatedApp?.usageCount ?? null, registeredCount: null, statusCode: relatedApp?.status || '', statusName: relatedApp?.status || '',
+        targetPath: relatedApp?.detailPath || '', actionLabel: relatedApp ? '查看详情' : ''
+      };
+    }).filter(item => item.relationId && item.resourceId);
+    if (operationId === 'ANN-005') {
+      const { page, pageSize } = publicPage(input);
+      const filtered = input.relationType ? relationItems.filter(item => item.relationType === String(input.relationType).toLocaleUpperCase('zh-CN')) : relationItems;
+      return { ...paginatePublic(filtered, page, pageSize), sort: 'sortOrder,asc', filtersApplied: { announcementId, relationType: valueToText(input.relationType) } };
+    }
+    const fields = announcementRecord.fields || {};
+    const publisherId = valueToText(fields['发布人ID']);
+    const publisherOrgId = valueToText(fields['发布部门ID']);
+    const textContent = valueToText(fields['公告正文']).replace(/<[^>]*>/g, '').trim();
+    return {
+      announcementId, title: valueToText(fields['公告标题']), typeCode: valueToText(fields['分类']), typeName: valueToText(fields['分类']),
+      summary: valueToText(fields['公告摘要']), contentHtml: '', contentText: textContent, publisherId, publisherName: userLookup.get(publisherId) || '',
+      publisherOrgId, publisherOrgName: departmentLookup.get(publisherOrgId) || '', publishAt: valueToText(fields['发布时间']), validFrom: valueToText(fields['有效期开始']),
+      validTo: valueToText(fields['有效期结束']), status: valueToText(fields['状态']), scopeType: valueToText(fields['范围类型']), scopeUserIds: [], scopeOrgIds: [],
+      isTop: valueToBoolean(fields['是否置顶']), topUntil: valueToText(fields['置顶结束时间']), viewCount: valueToNumber(fields['浏览量']), readCount: 0, isRead: false,
+      attachments: [], relatedApps: relationItems.filter(item => item.relationType === 'APP').map(item => appProjection.items.find(app => app.appId === item.resourceId)).filter(Boolean),
+      createdAt: valueToText(fields['创建时间']), updatedAt: valueToText(fields['更新时间']), version: valueToNumber(fields['版本']), previous: null, next: null, associatedActivities: []
+    };
+  }
+
   function courseFromRecord(record) {
     const fields = record?.fields || {};
     return {
@@ -844,7 +995,7 @@ export function createFeishuReadOnlyService(options) {
     };
   }
 
-  async function execute(operationId, input = {}) {
+  async function execute(operationId, input = {}, requestContext = {}) {
     const operation = getOperation(operationId);
     if (!operation) throw new FeishuProxyError('UNKNOWN_OPERATION', '接口不在受控操作清单中', 404);
     if (operation.access === 'write') {
@@ -852,15 +1003,25 @@ export function createFeishuReadOnlyService(options) {
     }
     const plan = READ_PLANS[operationId];
     if (!plan) throw new FeishuProxyError('READ_OPERATION_NOT_ENABLED', '该只读接口尚未完成字段合同核验', 503);
-    if (plan.kind === 'app-facets' || plan.kind === 'app-list' || plan.kind?.startsWith('announcement') || plan.kind?.startsWith('talent') || plan.kind?.startsWith('contact') || plan.kind === 'public-read') {
+    if (plan.kind === 'current-user') {
+      if (Object.keys(input).length) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '当前用户接口不接受浏览器提供的身份字段', 400);
+      const identity = requestContext?.identity;
+      if (!identity?.userId && !identity?.openId) throw new FeishuProxyError('USER_AUTH_REQUIRED', '需要先完成飞书用户授权', 401);
+      return {
+        code: 'OK', data: identity, traceId: traceIdFactory(), schemaVersion: 'feishu-user-context.v1',
+        sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false
+      };
+    }
+    if (plan.kind === 'app-facets' || plan.kind === 'app-list' || plan.kind?.startsWith('announcement') || plan.kind?.startsWith('talent') || plan.kind?.startsWith('contact') || plan.kind === 'public-read' || plan.kind === 'first-batch-detail') {
       const data = plan.kind.startsWith('announcement')
         ? await executeAnnouncement(operationId, input)
         : plan.kind.startsWith('talent') ? await executeTalent(operationId, input)
         : plan.kind.startsWith('contact') ? await executeContact(operationId, input)
         : plan.kind === 'public-read' ? await executePublicRead(operationId, input)
+        : plan.kind === 'first-batch-detail' ? await executeFirstBatchDetail(operationId, input)
         : await executeApp(operationId, input);
       return {
-        code: 'OK', data, traceId: traceIdFactory(), schemaVersion: plan.kind === 'public-read' ? 'feishu-public-read.v1' : 'feishu-read-only.v1',
+        code: 'OK', data, traceId: traceIdFactory(), schemaVersion: plan.kind === 'public-read' ? 'feishu-public-read.v1' : plan.kind === 'first-batch-detail' ? 'feishu-first-batch-detail.v1' : 'feishu-read-only.v1',
         sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false
       };
     }

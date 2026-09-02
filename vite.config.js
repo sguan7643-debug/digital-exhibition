@@ -9,6 +9,8 @@ export default defineConfig(({ mode }) => {
     appId: serverEnv.FEISHU_APP_ID,
     appSecret: serverEnv.FEISHU_APP_SECRET,
     baseToken: serverEnv.FEISHU_BASE_TOKEN,
+    redirectUri: serverEnv.FEISHU_OAUTH_REDIRECT_URI,
+    scopes: serverEnv.FEISHU_OAUTH_SCOPES,
     recordWriteEnabled: serverEnv.FEISHU_TEST_WRITE_ENABLED === '1'
   })],
   esbuild: false,

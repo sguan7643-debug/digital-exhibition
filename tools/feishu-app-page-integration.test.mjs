@@ -6,8 +6,8 @@ import { mapRemoteAnnouncement } from '../src/integration/announcement-read-mode
 
 const contracts = createVerifiedReadOperationContracts();
 assert.deepEqual(Object.keys(contracts).sort(), [
-  'ANN-001', 'ANN-002', 'APP-001', 'APP-002', 'CER-001', 'CER-002',
-  'COM-003', 'COM-004', 'MAT-001', 'OPS-003', 'PTS-004', 'TAL-001',
+  'ANN-001', 'ANN-002', 'ANN-003', 'ANN-005', 'APP-001', 'APP-002', 'APP-003', 'APP-009', 'CER-001', 'CER-002',
+  'COM-001', 'COM-003', 'COM-004', 'MAT-001', 'MAT-002', 'OPS-003', 'PTS-004', 'TAL-001',
   'TAL-002', 'TAL-003', 'TAL-005', 'TRN-001', 'TRN-002', 'TRN-003'
 ]);
 assert.equal(resolveRemoteReadOperation('APP-001').remoteEnabled, true);

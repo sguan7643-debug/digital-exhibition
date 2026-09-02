@@ -446,7 +446,86 @@ export function createContactReadOperationContracts() {
   });
 }
 
+const currentUserSchema = Object.freeze({
+  type: 'object',
+  required: ['userId', 'openId', 'unionId', 'displayName', 'avatarUrl', 'employeeNo', 'tenantKey', 'identityType'],
+  properties: {
+    userId: optionalText, openId: optionalText, unionId: optionalText, displayName: optionalText,
+    avatarUrl: optionalText, employeeNo: optionalText, tenantKey: optionalText,
+    identityType: Object.freeze({ enum: ['user_id', 'open_id'] })
+  },
+  additionalProperties: false
+});
+
+export function createIdentityReadOperationContracts() {
+  return Object.freeze({
+    'COM-001': Object.freeze({
+      operationId: 'COM-001', requestSchema: emptyRequestSchema,
+      successSchema: envelopeSchema(currentUserSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA,
+      contractStatus: 'official-oauth-v3-verified'
+    })
+  });
+}
+
 const openObject = Object.freeze({ type: 'object' });
+const openObjectList = Object.freeze({ type: 'array', items: openObject, maxItems: 100 });
+const detailedPageSchema = Object.freeze({
+  type: 'object',
+  required: ['items', 'total', 'page', 'pageSize', 'totalPages', 'hasPrevious', 'hasNext', 'hasMore', 'sort', 'filtersApplied'],
+  properties: {
+    items: openObjectList, total: countInteger, page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
+    pageSize: Object.freeze({ enum: [10, 20, 50, 100] }), totalPages: countInteger,
+    hasPrevious: booleanValue, hasNext: booleanValue, hasMore: booleanValue, sort: optionalText, filtersApplied: openObject
+  },
+  additionalProperties: false
+});
+const appDetailSchema = Object.freeze({
+  type: 'object',
+  required: ['appId', 'appCode', 'name', 'shortName', 'logoFileId', 'logoUrl', 'coverFileId', 'coverUrl', 'typeCode', 'typeName', 'summary', 'description', 'versionName', 'accessMode', 'externalSystemCode', 'externalUrl', 'openMode', 'applicableUsers', 'businessScope', 'features', 'metrics', 'fieldDefinitions', 'processSteps', 'previews', 'videos', 'attachments', 'guides', 'trainings', 'relatedApps', 'relatedMaterials', 'latestNotice', 'typeExtension', 'dataSourceSummary', 'createdAt', 'updatedAt', 'version'],
+  properties: {
+    appId: identifier, appCode: optionalText, name: text, shortName: optionalText, logoFileId: optionalText, logoUrl: optionalText,
+    coverFileId: optionalText, coverUrl: optionalText, typeCode: optionalText, typeName: optionalText,
+    summary: Object.freeze({ type: 'string', maxLength: 2048 }), description: Object.freeze({ type: 'string', maxLength: 10000 }),
+    versionName: optionalText, accessMode: optionalText, externalSystemCode: optionalText, externalUrl: optionalText,
+    openMode: optionalText, applicableUsers: optionalText, businessScope: optionalText,
+    features: openObjectList, metrics: openObjectList, fieldDefinitions: openObjectList, processSteps: openObjectList,
+    previews: openObjectList, videos: openObjectList, attachments: openObjectList, guides: openObjectList,
+    trainings: openObjectList, relatedApps: openObjectList, relatedMaterials: openObjectList,
+    latestNotice: Object.freeze({ anyOf: [openObject, Object.freeze({ type: 'null' })] }), typeExtension: openObject,
+    dataSourceSummary: optionalText, createdAt: optionalText, updatedAt: optionalText, version: countInteger
+  },
+  additionalProperties: false
+});
+const announcementDetailSchema = Object.freeze({
+  type: 'object',
+  required: ['announcementId', 'title', 'typeCode', 'typeName', 'summary', 'contentHtml', 'contentText', 'publisherId', 'publisherName', 'publisherOrgId', 'publisherOrgName', 'publishAt', 'validFrom', 'validTo', 'status', 'scopeType', 'scopeUserIds', 'scopeOrgIds', 'isTop', 'topUntil', 'viewCount', 'readCount', 'isRead', 'attachments', 'relatedApps', 'createdAt', 'updatedAt', 'version', 'previous', 'next', 'associatedActivities'],
+  properties: {
+    announcementId: identifier, title: text, typeCode: optionalText, typeName: optionalText,
+    summary: Object.freeze({ type: 'string', maxLength: 2048 }), contentHtml: Object.freeze({ type: 'string', maxLength: 20000 }),
+    contentText: Object.freeze({ type: 'string', maxLength: 20000 }), publisherId: optionalText, publisherName: optionalText,
+    publisherOrgId: optionalText, publisherOrgName: optionalText, publishAt: optionalText, validFrom: optionalText, validTo: optionalText,
+    status: optionalText, scopeType: optionalText, scopeUserIds: stringList, scopeOrgIds: stringList,
+    isTop: booleanValue, topUntil: optionalText, viewCount: countInteger, readCount: countInteger, isRead: booleanValue,
+    attachments: openObjectList, relatedApps: openObjectList, createdAt: optionalText, updatedAt: optionalText, version: countInteger,
+    previous: Object.freeze({ anyOf: [openObject, Object.freeze({ type: 'null' })] }), next: Object.freeze({ anyOf: [openObject, Object.freeze({ type: 'null' })] }),
+    associatedActivities: openObjectList
+  },
+  additionalProperties: false
+});
+
+export function createFirstBatchDetailOperationContracts() {
+  const contract = (operationId, requestSchema, dataSchema) => Object.freeze({
+    operationId, requestSchema, successSchema: envelopeSchema(dataSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA,
+    contractStatus: 'server-projection-verified'
+  });
+  return Object.freeze({
+    'APP-003': contract('APP-003', Object.freeze({ type: 'object', required: ['appId'], properties: { appId: identifier, include: optionalText }, additionalProperties: false }), appDetailSchema),
+    'APP-009': contract('APP-009', Object.freeze({ type: 'object', required: ['appId'], properties: { appId: identifier, relationType: optionalText, page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }), pageSize: Object.freeze({ enum: [10, 20, 50, 100] }), sort: optionalText }, additionalProperties: false }), detailedPageSchema),
+    'ANN-003': contract('ANN-003', Object.freeze({ type: 'object', required: ['announcementId'], properties: { announcementId: identifier, markRead: booleanValue }, additionalProperties: false }), announcementDetailSchema),
+    'ANN-005': contract('ANN-005', Object.freeze({ type: 'object', required: ['announcementId'], properties: { announcementId: identifier, relationType: optionalText, page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }), pageSize: Object.freeze({ enum: [10, 20, 50, 100] }) }, additionalProperties: false }), detailedPageSchema),
+    'MAT-002': contract('MAT-002', publicListRequestSchema, detailedPageSchema)
+  });
+}
 const publicListRequestSchema = Object.freeze({
   type: 'object',
   properties: {
@@ -456,7 +535,7 @@ const publicListRequestSchema = Object.freeze({
     lecturerId: optionalText, registrationStatus: optionalText, liveStatus: optionalText, startAt: optionalText,
     endAt: optionalText, sort: optionalText, directionCode: optionalText, sceneCode: optionalText,
     level: optionalText, status: optionalText, domain: optionalText, materialType: optionalText,
-    appTypeCode: optionalText, domainId: optionalText, categoryId: optionalText
+    appTypeCode: optionalText, domainId: optionalText, categoryId: optionalText, relatedAppId: optionalText
   },
   additionalProperties: false
 });
@@ -556,10 +635,12 @@ export function createPublicReadOperationContracts() {
 
 export function createVerifiedReadOperationContracts() {
   return Object.freeze({
+    ...createIdentityReadOperationContracts(),
     ...createAppReadOperationContracts(),
     ...createAnnouncementReadOperationContracts(),
     ...createTalentReadOperationContracts(),
     ...createContactReadOperationContracts(),
+    ...createFirstBatchDetailOperationContracts(),
     ...createPublicReadOperationContracts()
   });
 }
