@@ -171,9 +171,15 @@ const integrationContract = computed(() => getPageIntegrationContract(page.value
 const integrationEnvelope = ref({ mode: 'disabled', state: 'disabled', operationIds: [] });
 let integrationDataSource;
 
+const detailAppIds = Object.freeze({
+  '/apps/tool-001': 'APP004', '/apps/haineng-work-001': 'APP005', '/apps/report-001': 'APP006',
+  '/apps/dashboard-001': 'APP007', '/apps/dataset-001': 'APP008', '/apps/metric-001': 'APP009',
+  '/apps/ai-001': 'APP001', '/apps/ead-001': 'APP002', '/apps/rpa-001': 'APP003'
+});
+
 async function syncIntegrationEnvelope() {
   const route = page.value.route;
-  const remoteVerifiedRoutes=['/apps','/announcements','/talent/people'];
+  const remoteVerifiedRoutes=['/apps','/announcements','/talent/people', ...Object.keys(detailAppIds)];
   const routeRuntime = remoteVerifiedRoutes.includes(route)
     ? integrationRuntime
     : Object.freeze({ ...integrationRuntime, mode: 'mock', reason: 'route-not-yet-remotely-verified' });
@@ -184,7 +190,12 @@ async function syncIntegrationEnvelope() {
     client: integrationClient,
     operationResolver: resolveRemoteReadOperation
   });
-  const pending = integrationDataSource.load(remoteVerifiedRoutes.includes(route) ? { page: 1, pageSize: 100 } : {});
+  const appId = detailAppIds[route];
+  const loadOptions = appId ? { inputByOperation: {
+    'APP-003': { appId, include: ['attachments', 'trainings', 'relatedMaterials'] },
+    'APP-009': { appId, page: 1, pageSize: 100, sort: 'sortOrder,asc' }
+  } } : {};
+  const pending = integrationDataSource.load(remoteVerifiedRoutes.includes(route) && !appId ? { page: 1, pageSize: 100 } : {}, loadOptions);
   integrationEnvelope.value = integrationDataSource.snapshot();
   const result = await pending;
   if (page.value.route === route) integrationEnvelope.value = result;
@@ -219,7 +230,11 @@ const integrationLiveAnnouncement = computed(() => resolveIntegrationLiveAnnounc
       />
       <tool-detail-page v-else-if="page.id === '08'" />
       <haineng-work-detail-page v-else-if="page.id === '09'" />
-      <report-detail-page v-else-if="page.id === '10'" />
+      <report-detail-page v-else-if="page.id === '10'"
+        :integration-data="integrationEnvelope.data"
+        :integration-state="integrationEnvelope.state"
+        :operation-executor="executeReadOperation"
+      />
       <dashboard-detail-page v-else-if="page.id === '11'" />
       <dataset-detail-page v-else-if="page.id === '12'" />
       <metric-detail-page v-else-if="page.id === '13'" />

@@ -1,16 +1,29 @@
 <script setup>
 // Reference SHA-256: 0750EA98D775041275D2A2308F5B33A01EEA9BB3EA37ACFADEDAA71755820887
-import { nextTick, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { createDetailController } from '../state/detail-controller.js';
 import { routeSession } from '../state/session-store.js';
 const metrics=[['应用评分/分数','4.9/5.0 ☆'],['应用类型','可视化报表'],['专业领域','经营分析'],['最近更新时间','2025-05-16'],['开发部门/单位','数智运营部'],['开发者','李四强'],['使用部门','各经营单位'],['开通范围','全部']];
 const features=[['数据查询','按时间维度、经营维度、生产维度、区域维度、统计维度分析'],['经营指标看板','经营 EVA 仪表盘'],['指标趋势分析','支持同比/环比、趋势对比、历史走势及预测趋势分析'],['图表可视化','柱状图、折线图、饼图、地图等多种可视化图表'],['数据导出与分享','支持导出 PDF/Excel 图片/分享链接等多种方式'],['权限与安全','支持数据权限控制与操作日志审计']];
-const attachments=['用户操作手册.pdf','快速使用指南.pdf','经营指标口径说明.xlsx','报表数据接口规范.docx'];
+const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});
+const fallbackAttachments=['用户操作手册.pdf','快速使用指南.pdf','经营指标口径说明.xlsx','报表数据接口规范.docx'];
+const attachments=computed(()=>props.integrationData?.['APP-003']?.attachments?.length?props.integrationData['APP-003'].attachments:fallbackAttachments.map((name,index)=>({attachmentId:'',name,sizeBytes:Math.round((2.8-index*.4)*1024*1024),uploadedAt:`2025-05-${String(10-index*2).padStart(2,'0')} 09:20`,uploadedBy:'李四强'})));
 const training=['可视化报表功能介绍','图表配置与数据筛选','多维分析与联动钻取','报表导出与分享'];
 const related=[['经营分析报表模板','/apps/tool-001','/assets/report-logo.png'],['经营指标数据集','/apps/dataset-001','/assets/app-dataset.png'],['月度经营分析指标','/apps/metric-001','/assets/app-metric.png']];
 const detail=routeSession.controller('detail-report',()=>createDetailController('/apps/report-001',routeSession,{name:'经营分析可视化报表'}));
 const commentInput=ref(null);
 async function submitComment(){if(detail.submitComment()){await nextTick();commentInput.value?.focus();}}
+async function downloadAttachment(file){
+  if(!file.attachmentId||!props.operationExecutor||props.integrationState==='mock'){detail.mockDownload(file.name);return;}
+  detail.announcement=`${file.name}：正在准备下载`;
+  try{
+    const response=await props.operationExecutor('COM-008',{fileId:file.attachmentId,mode:'DOWNLOAD',disposition:'ATTACHMENT',fileNameOverride:file.name});
+    window.location.assign(response.data.url);
+  }catch(error){
+    if(error?.status===401){window.location.assign(`/api/v1/auth/feishu/start?returnTo=${encodeURIComponent(window.location.pathname)}`);return;}
+    detail.announcement=`${file.name}：下载失败，请稍后重试`;
+  }
+}
 </script>
 <template>
   <article class="product-detail report-detail" data-visual-baseline="ui-update-0831-report" aria-labelledby="report-title"><p class="sr-only" aria-live="polite">{{ detail.announcement }}</p><nav class="detail-crumb" aria-label="面包屑"><span><a href="/apps" data-detail-return>应用中心</a>　›　专业应用　›　经营分析　›　经营分析可视化报表</span><button type="button" @click="detail.apply('浏览量统计')">浏览量统计</button></nav>
@@ -20,7 +33,7 @@ async function submitComment(){if(detail.submitComment()){await nextTick();comme
     <section class="detail-panel"><h2>核心功能</h2><div class="feature-list"><article v-for="([name,text]) in features" :key="name"><strong>{{ name }}</strong><p>{{ text }}</p></article></div></section></div>
     <section class="detail-panel"><h2>演示截图</h2><figure><img class="preview-wide" src="/assets/report-previews.png" width="640" height="195" alt="" /><figcaption>经营指标总览、趋势分析与结构分布三项只读报表预览；当前演示不连接真实经营数据。</figcaption></figure></section>
     <div class="detail-two-column lower"><section class="detail-panel usage-panel"><h2>使用说明 <a href="/apps">查看使用手册</a></h2><div class="related-row"><article><b>PDF</b><div><h3>经营分析可视化报表-用户操作手册.pdf</h3><p>2.4 MB　2025-04-20</p></div></article><article><b>PDF</b><div><h3>经营分析可视化报表-数据说明文档.pdf</h3><p>2.1 MB　2025-04-18</p></div></article></div></section>
-    <section class="detail-panel"><h2>附件资料 <span>查看全部(5)</span></h2><table class="file-list"><caption class="sr-only">经营分析可视化报表附件资料</caption><thead><tr><th scope="col">文件名称</th><th scope="col">大小(MB)</th><th scope="col">上传时间</th><th scope="col">上传人</th><th scope="col">操作</th></tr></thead><tbody><tr v-for="(name,index) in attachments" :key="name"><td>{{ name }}</td><td>{{ 2.8-index*.4 }} MB</td><td>2025-05-{{ String(10-index*2).padStart(2,'0') }} 09:20</td><td>李四强</td><td><button class="text-action" type="button" @click="detail.mockDownload(name)">下载</button></td></tr></tbody></table></section></div>
+    <section class="detail-panel"><h2>附件资料 <span>查看全部({{ attachments.length }})</span></h2><table class="file-list"><caption class="sr-only">经营分析可视化报表附件资料</caption><thead><tr><th scope="col">文件名称</th><th scope="col">大小(MB)</th><th scope="col">上传时间</th><th scope="col">上传人</th><th scope="col">操作</th></tr></thead><tbody><tr v-for="file in attachments" :key="file.attachmentId||file.name"><td>{{ file.name }}</td><td>{{ (file.sizeBytes/1024/1024).toFixed(2) }} MB</td><td>{{ file.uploadedAt }}</td><td>{{ file.uploadedBy }}</td><td><button class="text-action" type="button" @click="downloadAttachment(file)">下载</button></td></tr></tbody></table></section></div>
     <div class="detail-two-column bottom"><section class="detail-panel"><h2>相关培训内容 <a href="/training">查看全部(4)</a></h2><div class="training-row"><article v-for="(name,index) in training.slice(0,3)" :key="name"><div><h3>{{ name }}</h3><p>时长：{{ 14+index*2 }}:30</p><a href="/training" :aria-label="`学习：${name}`">观看视频</a></div></article></div></section>
     <section class="detail-panel"><h2>关联素材 <span>查看全部(4)</span></h2><div class="related-row"><article v-for="([name,route,image],index) in related" :key="name"><AppIcon :name="image" :size="48" /><div><h3><a :href="route">{{ name }}</a></h3><p>{{ 2.6+index*1.2 }} MB</p><a :href="route">查看素材</a></div></article></div></section></div>
     <form class="detail-comment" @submit.prevent="submitComment"><label>应用评论<input ref="commentInput" v-model="detail.commentDraft" placeholder="请输入您对该应用的评论..." /></label><button type="submit" :disabled="!detail.commentDraft.trim()">提交评论</button><ul v-if="detail.comments.length" aria-label="本地评论"><li v-for="comment in detail.comments" :key="comment.id" :data-comment-id="comment.id">{{ comment.text }}</li></ul></form>

@@ -157,7 +157,11 @@ export function createPageDataSource({ route, runtime, mockLoader, client, opera
 
       const stableEnvelope = envelope;
       envelope = reduceDataState({ ...envelope, mode: 'remote' }, { type: 'load' });
-      const settled = await Promise.allSettled(requestedOperationIds.map(operationId => client.execute(operationId, input, { signal: controller.signal })));
+      const settled = await Promise.allSettled(requestedOperationIds.map(operationId => client.execute(
+        operationId,
+        options.inputByOperation?.[operationId] || input,
+        { signal: controller.signal }
+      )));
       if (currentGeneration !== generation) return withContract(envelope);
       const aggregate = aggregateReadResults(contract, requestedOperationIds, settled, options.operationIds ? stableEnvelope : null);
       envelope = aggregate.kind === 'success'
