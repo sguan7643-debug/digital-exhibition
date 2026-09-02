@@ -8,7 +8,8 @@ export default defineConfig(({ mode }) => {
   plugins: [vue(), feishuReadOnlyProxy({
     appId: serverEnv.FEISHU_APP_ID,
     appSecret: serverEnv.FEISHU_APP_SECRET,
-    baseToken: serverEnv.FEISHU_BASE_TOKEN
+    baseToken: serverEnv.FEISHU_BASE_TOKEN,
+    recordWriteEnabled: serverEnv.FEISHU_TEST_WRITE_ENABLED === '1'
   })],
   esbuild: false,
   resolve: {

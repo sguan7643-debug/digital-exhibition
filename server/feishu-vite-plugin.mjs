@@ -3,18 +3,26 @@ import { loadFeishuIdentifierContract } from './feishu-identifier-contract.mjs';
 import { createFeishuOpenApiClient } from './feishu-open-api-client.mjs';
 import { createFeishuReadOnlyService } from './feishu-read-only-service.mjs';
 import { createFeishuNodeMiddleware } from './feishu-proxy-handler.mjs';
+import { createFeishuSchemaAdminClient } from './feishu-schema-admin-client.mjs';
+import { createFeishuSafeTestRecordService } from './feishu-safe-test-record-service.mjs';
+import { createFeishuWriteOperationService } from './feishu-write-operation-service.mjs';
+import { createFeishuCompositeOperationService } from './feishu-composite-operation-service.mjs';
 
 export function feishuReadOnlyProxy(options = {}) {
   const contractPath = fileURLToPath(new URL('./contracts/feishu-base-identifiers.json', import.meta.url));
   const identifierContract = loadFeishuIdentifierContract(contractPath);
   const client = createFeishuOpenApiClient(options);
-  const service = createFeishuReadOnlyService({ client, identifierContract });
+  const readService = createFeishuReadOnlyService({ client, identifierContract });
+  const adminClient = createFeishuSchemaAdminClient(options);
+  const safeRecordService = createFeishuSafeTestRecordService({ client: adminClient });
+  const writeService = createFeishuWriteOperationService({ safeRecordService });
+  const service = createFeishuCompositeOperationService({ readService, writeService });
   const middleware = createFeishuNodeMiddleware({ service });
   const install = server => {
     server.middlewares.use(middleware);
   };
   return {
-    name: 'feishu-read-only-proxy',
+    name: 'feishu-secure-operation-proxy',
     configureServer: install,
     configurePreviewServer: install
   };

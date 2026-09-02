@@ -119,6 +119,38 @@ export const EXISTING_TABLE_FIELD_COMPLETIONS = Object.freeze([
     text('版本名称', 'version_name'), text('发布人ID', 'publisher_id'), text('发布人姓名', 'publisher_name'), date('发布时间', 'published_at'),
     number('浏览量', 'view_count'), number('收藏数', 'favorite_count'), text('权限范围', 'permission_scope'), text('状态', 'status'),
     ...auditCompletion()
+  ]),
+  completion('消息通知', 'message_delivery', [
+    text('消息类型编码', 'type_code'), text('消息摘要', 'summary'), text('优先级', 'priority'), text('发送人ID', 'sender_id'),
+    text('目标类型', 'target_type'), text('目标ID', 'target_id'), text('目标路径', 'target_path'), date('过期时间', 'expires_at'),
+    date('阅读时间', 'read_at'), text('防重键', 'deduplication_key'), ...auditCompletion()
+  ]),
+  completion('应用收藏', 'app_favorite', [
+    text('资源类型', 'resource_type'), text('资源ID', 'resource_id'), checkbox('有效', 'active'),
+    date('取消收藏时间', 'unfavorited_at'), text('最后事件ID', 'last_event_id'), ...auditCompletion()
+  ]),
+  completion('使用申请', 'app_use_request_legacy', [
+    text('申请编号', 'request_no'), text('申请部门ID', 'applicant_org_id'), text('目标部门ID', 'target_org_id'),
+    text('业务场景', 'business_scenario'), text('期望用户数', 'expected_users'), text('幂等键', 'idempotency_key'),
+    date('提交时间', 'submitted_at'), date('完成时间', 'completed_at'), ...auditCompletion()
+  ]),
+  completion('应用评论', 'app_comment', [
+    number('评分', 'rating'), checkbox('匿名', 'anonymous'), text('状态', 'status'), text('回复内容脱敏值', 'reply_content_masked'),
+    text('回复人ID', 'replied_by'), date('回复时间', 'replied_at'), ...auditCompletion()
+  ]),
+  completion('用户权限', 'resource_permission', [
+    text('资源类型', 'resource_type'), text('资源ID', 'resource_id'), text('主体类型', 'subject_type'), text('主体ID', 'subject_id'),
+    text('权限编码', 'permission_code'), text('数据范围', 'data_scope'), date('生效时间', 'effective_from'), date('失效时间', 'effective_to'),
+    checkbox('启用', 'enabled'), ...auditCompletion()
+  ]),
+  completion('应用类型配置', 'app_type', [
+    text('颜色令牌', 'color_token'), text('详情模板编码', 'detail_template_code'), text('已发布结构版本', 'published_schema_version'),
+    ...auditCompletion()
+  ]),
+  completion('业务域字典', 'app_domain', [
+    text('业务域编码', 'domain_code'), text('父级ID', 'parent_id'), text('路径ID', 'path_ids'), text('路径名称', 'path_names'),
+    text('描述', 'description'), attachment('图标', 'icon_file'), text('颜色令牌', 'color_token'), checkbox('启用', 'enabled'), number('排序', 'sort_order'),
+    ...auditCompletion()
   ])
 ]);
 
