@@ -33,6 +33,14 @@ await assert.rejects(() => missingCredentials.listRecords('tbl-safe', { pageSize
 });
 assert.doesNotMatch(JSON.stringify(missingCredentials), /appSecret|tenant_access_token|authorization/i);
 
+const emptyTableClient = createFeishuOpenApiClient({
+  appId: 'app-test', appSecret: 'secret-test', baseToken: 'base-test',
+  fetchImpl: async url => String(url).endsWith('/auth/v3/tenant_access_token/internal')
+    ? Response.json({ code: 0, tenant_access_token: 'server-only-token', expire: 7200 })
+    : Response.json({ code: 0, msg: 'success', data: { has_more: false, total: 0 } })
+});
+assert.deepEqual(await emptyTableClient.listRecords('tblEmpty', { pageSize: 10 }), { items: [], total: 0, hasMore: false, nextPageToken: '' });
+
 const calls = [];
 const fakeRowsByTableId = new Map([
   [contract.byName.get('数字化认证').tableId, { record_id: 'rec-cert', fields: { 主键: 'CERT-001', 认证类型: 'RPA', 状态: '有效' } }],
@@ -248,7 +256,7 @@ for (const operation of OPERATION_REGISTRY.filter(item => item.access === 'write
     return true;
   });
 }
-await assert.rejects(() => service.execute('CER-002', {}), error => {
+await assert.rejects(() => service.execute('CER-003', {}), error => {
   assert.equal(error.code, 'READ_OPERATION_NOT_ENABLED');
   assert.equal(error.status, 503);
   return true;

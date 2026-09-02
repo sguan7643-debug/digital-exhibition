@@ -446,12 +446,121 @@ export function createContactReadOperationContracts() {
   });
 }
 
+const openObject = Object.freeze({ type: 'object' });
+const publicListRequestSchema = Object.freeze({
+  type: 'object',
+  properties: {
+    page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
+    pageSize: Object.freeze({ enum: [10, 20, 50, 100] }), query: optionalText, keyword: optionalText,
+    sourceCode: optionalText, enabled: booleanValue, categoryCode: optionalText, deliveryMode: optionalText,
+    lecturerId: optionalText, registrationStatus: optionalText, liveStatus: optionalText, startAt: optionalText,
+    endAt: optionalText, sort: optionalText, directionCode: optionalText, sceneCode: optionalText,
+    level: optionalText, status: optionalText, domain: optionalText, materialType: optionalText,
+    appTypeCode: optionalText, domainId: optionalText, categoryId: optionalText
+  },
+  additionalProperties: false
+});
+const publicPaginationSchema = Object.freeze({
+  total: countInteger, page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
+  pageSize: Object.freeze({ enum: [10, 20, 50, 100] }), totalPages: countInteger,
+  hasPrevious: booleanValue, hasNext: booleanValue, hasMore: booleanValue
+});
+const publicItemList = itemSchema => Object.freeze({
+  type: 'object', required: ['items', ...Object.keys(publicPaginationSchema)],
+  properties: { items: Object.freeze({ type: 'array', items: itemSchema, maxItems: 100 }), ...publicPaginationSchema },
+  additionalProperties: false
+});
+const pointRuleSchema = Object.freeze({
+  type: 'object', required: ['ruleId', 'ruleCode', 'ruleName', 'sourceCode', 'sourceName', 'triggerEvent', 'points', 'direction', 'frequencyType', 'frequencyLimit', 'cycleLimit', 'validFrom', 'validTo', 'enabled', 'description', 'conditions', 'version'],
+  properties: {
+    ruleId: identifier, ruleCode: optionalText, ruleName: optionalText, sourceCode: optionalText, sourceName: optionalText,
+    triggerEvent: optionalText, points: countInteger, direction: optionalText, frequencyType: optionalText,
+    frequencyLimit: countInteger, cycleLimit: countInteger, validFrom: optionalText, validTo: optionalText,
+    enabled: booleanValue, description: optionalText, conditions: openObject, version: countInteger
+  }, additionalProperties: false
+});
+const courseSummarySchema = Object.freeze({
+  type: 'object', required: ['courseId', 'title', 'categoryCode', 'categoryName', 'lecturerName', 'startAt', 'deliveryMode', 'summary', 'statusCode', 'statusName', 'registeredCount', 'detailPath'],
+  properties: {
+    courseId: identifier, title: text, categoryCode: optionalText, categoryName: optionalText, lecturerName: optionalText,
+    startAt: optionalText, deliveryMode: optionalText, summary: optionalText, statusCode: optionalText,
+    statusName: optionalText, registeredCount: countInteger, detailPath: optionalText
+  }, additionalProperties: false
+});
+const namedCountSchema = Object.freeze({
+  type: 'object', required: ['code', 'name', 'count', 'iconUrl'],
+  properties: { code: optionalText, name: optionalText, count: countInteger, iconUrl: optionalText }, additionalProperties: false
+});
+const namedCountListSchema = Object.freeze({ type: 'array', items: namedCountSchema, maxItems: 100 });
+const certificationSchema = Object.freeze({
+  type: 'object', required: ['certificationId', 'code', 'name', 'directionCode', 'directionName', 'sceneCodes', 'level', 'provider', 'coverUrl', 'summary', 'registrationStartAt', 'registrationEndAt', 'examAt', 'statusCode', 'statusName', 'certifiedCount', 'detailPath'],
+  properties: {
+    certificationId: identifier, code: identifier, name: text, directionCode: optionalText, directionName: optionalText,
+    sceneCodes: stringList, level: optionalText, provider: optionalText, coverUrl: optionalText, summary: optionalText,
+    registrationStartAt: optionalText, registrationEndAt: optionalText, examAt: optionalText, statusCode: optionalText,
+    statusName: optionalText, certifiedCount: countInteger, detailPath: optionalText
+  }, additionalProperties: false
+});
+const metricSchema = Object.freeze({
+  type: 'object', required: ['metricCode', 'metricName', 'description', 'domain', 'aggregation', 'expression', 'unit', 'dimensions', 'definitionVersion', 'enabled', 'effectiveAt'],
+  properties: {
+    metricCode: identifier, metricName: optionalText, description: optionalText, domain: optionalText,
+    aggregation: optionalText, expression: optionalText, unit: optionalText, dimensions: stringList,
+    definitionVersion: optionalText, enabled: booleanValue, effectiveAt: optionalText
+  }, additionalProperties: false
+});
+const materialFacetItemSchema = Object.freeze({
+  type: 'object', required: ['code', 'name', 'count'],
+  properties: { code: identifier, name: optionalText, count: countInteger }, additionalProperties: false
+});
+const materialCategorySchema = Object.freeze({
+  type: 'object', required: ['categoryId', 'categoryCode', 'categoryName', 'parentId', 'sortOrder', 'count'],
+  properties: { categoryId: identifier, categoryCode: identifier, categoryName: optionalText, parentId: optionalText, sortOrder: countInteger, count: countInteger }, additionalProperties: false
+});
+
+export function createPublicReadOperationContracts() {
+  const contract = (operationId, requestSchema, data) => Object.freeze({
+    operationId, requestSchema, successSchema: envelopeSchema(data), errorSchema: SYNTHETIC_ERROR_SCHEMA,
+    contractStatus: 'server-projection-verified'
+  });
+  const courseDetailData = Object.freeze({
+    ...courseSummarySchema,
+    required: [...courseSummarySchema.required, 'descriptionHtml', 'agenda', 'materials', 'relatedApps', 'registrationStartAt', 'registrationEndAt', 'attendanceRule', 'pointRule', 'permissions'],
+    properties: {
+      ...courseSummarySchema.properties, descriptionHtml: optionalText,
+      agenda: Object.freeze({ type: 'array', items: openObject, maxItems: 100 }), materials: Object.freeze({ type: 'array', items: openObject, maxItems: 100 }),
+      relatedApps: Object.freeze({ type: 'array', items: openObject, maxItems: 100 }), registrationStartAt: optionalText,
+      registrationEndAt: optionalText, attendanceRule: optionalText, pointRule: openObject, permissions: openObject
+    }
+  });
+  return Object.freeze({
+    'PTS-004': contract('PTS-004', publicListRequestSchema, publicItemList(pointRuleSchema)),
+    'TRN-001': contract('TRN-001', Object.freeze({ type: 'object', properties: { month: optionalText, categoryCode: optionalText, limit: Object.freeze({ type: 'integer', minimum: 1, maximum: 20 }) }, additionalProperties: false }), Object.freeze({
+      type: 'object', required: ['stats', 'featuredCourses', 'categories', 'upcomingCourses'],
+      properties: { stats: openObject, featuredCourses: Object.freeze({ type: 'array', items: courseSummarySchema, maxItems: 20 }), categories: namedCountListSchema, upcomingCourses: Object.freeze({ type: 'array', items: courseSummarySchema, maxItems: 20 }) }, additionalProperties: false
+    })),
+    'TRN-002': contract('TRN-002', publicListRequestSchema, publicItemList(courseSummarySchema)),
+    'TRN-003': contract('TRN-003', Object.freeze({ type: 'object', required: ['courseId'], properties: { courseId: identifier }, additionalProperties: false }), courseDetailData),
+    'CER-001': contract('CER-001', Object.freeze({ type: 'object', properties: { newsLimit: Object.freeze({ type: 'integer', minimum: 1, maximum: 20 }), projectLimit: Object.freeze({ type: 'integer', minimum: 1, maximum: 50 }) }, additionalProperties: false }), Object.freeze({
+      type: 'object', required: ['hero', 'stats', 'directions', 'sceneTags', 'news', 'projects', 'contact'],
+      properties: { hero: openObject, stats: openObject, directions: namedCountListSchema, sceneTags: namedCountListSchema, news: Object.freeze({ type: 'array', items: openObject, maxItems: 20 }), projects: Object.freeze({ type: 'array', items: certificationSchema, maxItems: 50 }), contact: openObject }, additionalProperties: false
+    })),
+    'CER-002': contract('CER-002', publicListRequestSchema, publicItemList(certificationSchema)),
+    'OPS-003': contract('OPS-003', publicListRequestSchema, publicItemList(metricSchema)),
+    'MAT-001': contract('MAT-001', publicListRequestSchema, Object.freeze({
+      type: 'object', required: ['materialTypes', 'categories', 'appTypes', 'domains', 'total'],
+      properties: { materialTypes: Object.freeze({ type: 'array', items: materialFacetItemSchema, maxItems: 100 }), categories: Object.freeze({ type: 'array', items: materialCategorySchema, maxItems: 100 }), appTypes: Object.freeze({ type: 'array', items: openObject, maxItems: 100 }), domains: Object.freeze({ type: 'array', items: openObject, maxItems: 100 }), total: countInteger }, additionalProperties: false
+    }))
+  });
+}
+
 export function createVerifiedReadOperationContracts() {
   return Object.freeze({
     ...createAppReadOperationContracts(),
     ...createAnnouncementReadOperationContracts(),
     ...createTalentReadOperationContracts(),
-    ...createContactReadOperationContracts()
+    ...createContactReadOperationContracts(),
+    ...createPublicReadOperationContracts()
   });
 }
 

@@ -77,13 +77,15 @@ export function createFeishuOpenApiClient(options = {}) {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
     });
     const body = await safeJson(response);
-    if (!response.ok || body.code !== 0 || !body.data || !Array.isArray(body.data.items)) {
+    const emptySuccess = body.code === 0 && body.data && body.data.items == null && Number(body.data.total || 0) === 0;
+    if (!response.ok || body.code !== 0 || !body.data || (!Array.isArray(body.data.items) && !emptySuccess)) {
       const status = response.status === 429 ? 429 : response.status === 403 ? 403 : 502;
       throw new FeishuProxyError('FEISHU_RECORDS_FAILED', '飞书记录读取失败', status);
     }
+    const items = Array.isArray(body.data.items) ? body.data.items : [];
     return {
-      items: body.data.items,
-      total: Number(body.data.total || body.data.items.length),
+      items,
+      total: Number(body.data.total || items.length),
       hasMore: Boolean(body.data.has_more),
       nextPageToken: body.data.page_token || ''
     };

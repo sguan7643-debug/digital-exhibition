@@ -12,6 +12,14 @@ const READ_PLANS = Object.freeze({
   'TAL-002': Object.freeze({ kind: 'talent-projects' }),
   'TAL-003': Object.freeze({ kind: 'talent-progress' }),
   'TAL-005': Object.freeze({ kind: 'talent-facets' }),
+  'PTS-004': Object.freeze({ kind: 'public-read' }),
+  'TRN-001': Object.freeze({ kind: 'public-read' }),
+  'TRN-002': Object.freeze({ kind: 'public-read' }),
+  'TRN-003': Object.freeze({ kind: 'public-read' }),
+  'CER-001': Object.freeze({ kind: 'public-read' }),
+  'CER-002': Object.freeze({ kind: 'public-read' }),
+  'OPS-003': Object.freeze({ kind: 'public-read' }),
+  'MAT-001': Object.freeze({ kind: 'public-read' }),
   'MAT-002': Object.freeze({ tableName: '素材中心', labelField: '素材名称', typeField: '素材文件' })
 });
 
@@ -35,6 +43,17 @@ function valueToList(value) {
 function valueToBoolean(value) {
   const text = valueToText(value).trim().toLocaleLowerCase('zh-CN');
   return ['是', 'true', '1', 'yes', '置顶'].includes(text);
+}
+
+function valueToJsonObject(value) {
+  const text = valueToText(value).trim();
+  if (!text) return {};
+  try {
+    const parsed = JSON.parse(text);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
 function createLookup(records, idFields, labelField, { fallbackToKey = true } = {}) {
@@ -658,6 +677,173 @@ export function createFeishuReadOnlyService(options) {
     };
   }
 
+  function assertAllowedInput(input, allowedKeys) {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '请求参数必须是对象', 400);
+    if (Object.keys(input).some(key => !allowedKeys.includes(key))) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '请求包含未允许的输入字段', 400);
+  }
+
+  function publicPage(input, defaultPageSize = 10) {
+    const page = input.page == null ? 1 : Number(input.page);
+    const pageSize = input.pageSize == null ? defaultPageSize : Number(input.pageSize);
+    if (!Number.isInteger(page) || page < 1 || page > 100) throw new FeishuProxyError('INVALID_PAGE', '页码必须是 1 至 100 的整数', 400);
+    if (![10, 20, 50, 100].includes(pageSize)) throw new FeishuProxyError('INVALID_PAGE_SIZE', '页容量必须是 10、20、50 或 100', 400);
+    return { page, pageSize };
+  }
+
+  function paginatePublic(items, page, pageSize) {
+    const total = items.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.min(page, totalPages);
+    return {
+      items: items.slice((safePage - 1) * pageSize, safePage * pageSize), total, page: safePage, pageSize,
+      totalPages, hasPrevious: safePage > 1, hasNext: safePage < totalPages, hasMore: safePage < totalPages
+    };
+  }
+
+  function courseFromRecord(record) {
+    const fields = record?.fields || {};
+    return {
+      courseId: valueToText(fields['课程ID']) || String(record?.record_id || ''),
+      title: valueToText(fields['培训标题']), categoryCode: valueToText(fields['分类']), categoryName: valueToText(fields['分类']),
+      lecturerName: valueToText(fields['讲师姓名']), startAt: valueToText(fields['开始时间']), deliveryMode: valueToText(fields['格式']),
+      summary: valueToText(fields['培训简介']), statusCode: valueToText(fields['状态']), statusName: valueToText(fields['状态']),
+      registeredCount: valueToNumber(fields['已报名人数']), detailPath: `/training/${encodeURIComponent(valueToText(fields['课程ID']) || String(record?.record_id || ''))}`
+    };
+  }
+
+  function certificationFromRecord(record) {
+    const fields = record?.fields || {};
+    const certificationId = valueToText(fields['认证编码']) || String(record?.record_id || '');
+    const enabled = valueToBoolean(fields['启用']);
+    return {
+      certificationId, code: certificationId, name: valueToText(fields['认证名称']),
+      directionCode: valueToText(fields['认证类型']), directionName: valueToText(fields['认证类型']), sceneCodes: [],
+      level: '', provider: valueToText(fields['主办单位']), coverUrl: '', summary: valueToText(fields['认证说明']),
+      registrationStartAt: '', registrationEndAt: '', examAt: '', statusCode: enabled ? 'ENABLED' : 'DISABLED',
+      statusName: enabled ? '启用' : '停用', certifiedCount: 0, detailPath: `/certifications/${encodeURIComponent(certificationId)}`
+    };
+  }
+
+  async function executePublicRead(operationId, input) {
+    if (operationId === 'PTS-004') {
+      assertAllowedInput(input, ['sourceCode', 'enabled', 'page', 'pageSize']);
+      const { page, pageSize } = publicPage(input, 50);
+      let rows = (await readAll('积分规则')).map(record => {
+        const fields = record?.fields || {};
+        return {
+          ruleId: valueToText(fields['规则ID']) || String(record?.record_id || ''), ruleCode: valueToText(fields['规则编码']),
+          ruleName: valueToText(fields['规则名称']), sourceCode: valueToText(fields['来源编码']), sourceName: valueToText(fields['来源编码']),
+          triggerEvent: valueToText(fields['触发事件']), points: valueToNumber(fields['积分值']), direction: valueToText(fields['方向']),
+          frequencyType: valueToText(fields['频率类型']), frequencyLimit: valueToNumber(fields['频率上限']), cycleLimit: valueToNumber(fields['周期上限']),
+          validFrom: valueToText(fields['有效期开始']), validTo: valueToText(fields['有效期结束']), enabled: valueToBoolean(fields['启用']),
+          description: '', conditions: valueToJsonObject(fields['条件JSON']), version: valueToNumber(fields['当前版本'])
+        };
+      }).filter(item => item.ruleId);
+      if (input.sourceCode) rows = rows.filter(item => item.sourceCode === input.sourceCode);
+      if (input.enabled !== undefined) rows = rows.filter(item => item.enabled === input.enabled);
+      return paginatePublic(rows, page, pageSize);
+    }
+
+    if (operationId.startsWith('TRN-')) {
+      const rows = (await readAll('培训课程')).map(courseFromRecord).filter(item => item.courseId && item.title);
+      if (operationId === 'TRN-001') {
+        assertAllowedInput(input, ['month', 'categoryCode', 'limit']);
+        const limit = input.limit == null ? 6 : Number(input.limit);
+        if (!Number.isInteger(limit) || limit < 1 || limit > 20) throw new FeishuProxyError('INVALID_OPERATION_INPUT', 'limit 必须是 1 至 20 的整数', 400);
+        const filtered = input.categoryCode ? rows.filter(item => item.categoryCode === input.categoryCode) : rows;
+        const counts = new Map();
+        for (const item of filtered) counts.set(item.categoryCode, (counts.get(item.categoryCode) || 0) + 1);
+        return {
+          stats: { courseCount: filtered.length, learnerCount: 0, monthNewCount: 0, registeredCount: filtered.reduce((sum, item) => sum + item.registeredCount, 0), completedCount: filtered.filter(item => /完成|结束/.test(item.statusCode)).length },
+          featuredCourses: filtered.slice(0, limit), categories: [...counts].map(([code, count]) => ({ code, name: code, count, iconUrl: '' })),
+          upcomingCourses: filtered.slice(0, limit)
+        };
+      }
+      if (operationId === 'TRN-002') {
+        assertAllowedInput(input, ['query', 'keyword', 'categoryCode', 'deliveryMode', 'lecturerId', 'registrationStatus', 'liveStatus', 'startAt', 'endAt', 'page', 'pageSize', 'sort']);
+        const { page, pageSize } = publicPage(input);
+        const keyword = valueToText(input.query || input.keyword).toLocaleLowerCase('zh-CN');
+        const filtered = rows.filter(item => (!keyword || `${item.title} ${item.summary} ${item.lecturerName}`.toLocaleLowerCase('zh-CN').includes(keyword))
+          && (!input.categoryCode || item.categoryCode === input.categoryCode)
+          && (!input.deliveryMode || item.deliveryMode === input.deliveryMode));
+        return paginatePublic(filtered, page, pageSize);
+      }
+      assertAllowedInput(input, ['courseId']);
+      const courseId = valueToText(input.courseId);
+      if (!courseId) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '课程详情必须提供 courseId', 400);
+      const course = rows.find(item => item.courseId === courseId);
+      if (!course) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '课程不存在或不可见', 404);
+      return { ...course, descriptionHtml: course.summary, agenda: [], materials: [], relatedApps: [], registrationStartAt: '', registrationEndAt: '', attendanceRule: '', pointRule: { enabled: false, points: 0, trigger: '' }, permissions: { canRegister: false, canCancel: false, canEnterLive: false, canDownload: false } };
+    }
+
+    if (operationId.startsWith('CER-')) {
+      const rows = (await readAll('认证项目')).map(certificationFromRecord).filter(item => item.certificationId && item.name);
+      if (operationId === 'CER-001') {
+        assertAllowedInput(input, ['newsLimit', 'projectLimit']);
+        const projectLimit = input.projectLimit == null ? 12 : Number(input.projectLimit);
+        if (!Number.isInteger(projectLimit) || projectLimit < 1 || projectLimit > 50) throw new FeishuProxyError('INVALID_OPERATION_INPUT', 'projectLimit 必须是 1 至 50 的整数', 400);
+        const counts = new Map();
+        for (const item of rows) counts.set(item.directionCode, (counts.get(item.directionCode) || 0) + 1);
+        return {
+          hero: { title: '数字化认证', subtitle: '', imageUrl: '', primaryAction: '', secondaryAction: '' },
+          stats: { projectCount: rows.length, certifiedCount: 0, lecturerCount: 0 },
+          directions: [...counts].map(([code, count]) => ({ code, name: code, iconUrl: '', count })), sceneTags: [], news: [],
+          projects: rows.slice(0, projectLimit), contact: { email: '', phone: '', serviceHours: '' }
+        };
+      }
+      assertAllowedInput(input, ['query', 'keyword', 'directionCode', 'sceneCode', 'level', 'status', 'page', 'pageSize']);
+      const { page, pageSize } = publicPage(input);
+      const keyword = valueToText(input.query || input.keyword).toLocaleLowerCase('zh-CN');
+      const filtered = rows.filter(item => (!keyword || `${item.name} ${item.summary}`.toLocaleLowerCase('zh-CN').includes(keyword))
+        && (!input.directionCode || item.directionCode === input.directionCode)
+        && (!input.status || item.statusCode === input.status));
+      return paginatePublic(filtered, page, pageSize);
+    }
+
+    if (operationId === 'OPS-003') {
+      assertAllowedInput(input, ['domain', 'enabled', 'page', 'pageSize']);
+      const { page, pageSize } = publicPage(input);
+      let rows = (await readAll('统计指标定义')).map(record => {
+        const fields = record?.fields || {};
+        return {
+          metricCode: valueToText(fields['指标编码']) || String(record?.record_id || ''), metricName: valueToText(fields['指标名称']),
+          description: valueToText(fields['指标说明']), domain: valueToText(fields['指标域']), aggregation: valueToText(fields['聚合方式']),
+          expression: valueToText(fields['计算表达式']), unit: valueToText(fields['单位']), dimensions: valueToList(fields['支持维度']),
+          definitionVersion: valueToText(fields['口径版本']), enabled: valueToBoolean(fields['启用']), effectiveAt: valueToText(fields['生效时间'])
+        };
+      }).filter(item => item.metricCode);
+      if (input.domain) rows = rows.filter(item => item.domain === input.domain);
+      if (input.enabled !== undefined) rows = rows.filter(item => item.enabled === input.enabled);
+      return paginatePublic(rows, page, pageSize);
+    }
+
+    assertAllowedInput(input, ['query', 'keyword', 'materialType', 'appTypeCode', 'domainId', 'categoryId']);
+    const [categoryRows, materialRows] = await Promise.all([readAll('素材分类'), readAll('素材中心')]);
+    const keyword = valueToText(input.query || input.keyword).toLocaleLowerCase('zh-CN');
+    const visibleMaterials = materialRows.map(record => record?.fields || {}).filter(fields => (!keyword || `${valueToText(fields['素材名称'])} ${valueToText(fields['素材摘要'])}`.toLocaleLowerCase('zh-CN').includes(keyword))
+      && (!input.materialType || valueToText(fields['素材类型']) === input.materialType)
+      && (!input.categoryId || valueToText(fields['分类ID']) === input.categoryId));
+    const typeCounts = new Map();
+    for (const fields of visibleMaterials) {
+      const type = valueToText(fields['素材类型']);
+      if (type) typeCounts.set(type, (typeCounts.get(type) || 0) + 1);
+    }
+    const categoryCounts = new Map();
+    for (const fields of visibleMaterials) {
+      const categoryId = valueToText(fields['分类ID']);
+      if (categoryId) categoryCounts.set(categoryId, (categoryCounts.get(categoryId) || 0) + 1);
+    }
+    return {
+      materialTypes: [...typeCounts].map(([code, count]) => ({ code, name: code, count })),
+      categories: categoryRows.map(record => {
+        const fields = record?.fields || {};
+        const categoryId = valueToText(fields['分类编码']) || String(record?.record_id || '');
+        return { categoryId, categoryCode: categoryId, categoryName: valueToText(fields['分类名称']), parentId: valueToText(fields['父级ID']), sortOrder: valueToNumber(fields['排序']), count: categoryCounts.get(categoryId) || 0 };
+      }).filter(item => item.categoryId),
+      appTypes: [], domains: [], total: visibleMaterials.length
+    };
+  }
+
   async function execute(operationId, input = {}) {
     const operation = getOperation(operationId);
     if (!operation) throw new FeishuProxyError('UNKNOWN_OPERATION', '接口不在受控操作清单中', 404);
@@ -666,14 +852,15 @@ export function createFeishuReadOnlyService(options) {
     }
     const plan = READ_PLANS[operationId];
     if (!plan) throw new FeishuProxyError('READ_OPERATION_NOT_ENABLED', '该只读接口尚未完成字段合同核验', 503);
-    if (plan.kind === 'app-facets' || plan.kind === 'app-list' || plan.kind?.startsWith('announcement') || plan.kind?.startsWith('talent') || plan.kind?.startsWith('contact')) {
+    if (plan.kind === 'app-facets' || plan.kind === 'app-list' || plan.kind?.startsWith('announcement') || plan.kind?.startsWith('talent') || plan.kind?.startsWith('contact') || plan.kind === 'public-read') {
       const data = plan.kind.startsWith('announcement')
         ? await executeAnnouncement(operationId, input)
         : plan.kind.startsWith('talent') ? await executeTalent(operationId, input)
         : plan.kind.startsWith('contact') ? await executeContact(operationId, input)
+        : plan.kind === 'public-read' ? await executePublicRead(operationId, input)
         : await executeApp(operationId, input);
       return {
-        code: 'OK', data, traceId: traceIdFactory(), schemaVersion: 'feishu-read-only.v1',
+        code: 'OK', data, traceId: traceIdFactory(), schemaVersion: plan.kind === 'public-read' ? 'feishu-public-read.v1' : 'feishu-read-only.v1',
         sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false
       };
     }
