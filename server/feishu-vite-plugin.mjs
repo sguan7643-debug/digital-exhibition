@@ -20,13 +20,28 @@ export function feishuReadOnlyProxy(options = {}) {
   const adminClient = createFeishuSchemaAdminClient(options);
   const safeRecordService = createFeishuSafeTestRecordService({ client: adminClient });
   const writeService = createFeishuWriteOperationService({ safeRecordService });
-  const service = createFeishuCompositeOperationService({ readService, writeService });
+  const service = createFeishuCompositeOperationService({
+    readService,
+    writeService,
+    browserWriteEnabled: options.browserWriteEnabled ?? process.env.FEISHU_BROWSER_TEST_WRITE_ENABLED === '1'
+  });
   const authService = createFeishuUserAuthService(options);
   const authMiddleware = createFeishuAuthNodeMiddleware({ authService });
   const fileMiddleware = createFeishuFileNodeMiddleware({ fileAccessService, resolveIdentity: cookie => authService.resolveIdentity(cookie) });
   const middleware = createFeishuNodeMiddleware({
     service,
-    resolveRequestContext: request => ({ identity: authService.resolveIdentity(request.headers?.cookie || '') })
+    resolveRequestContext: request => {
+      const origin = String(request.headers?.origin || '');
+      const host = String(request.headers?.host || '');
+      let sameOriginRequest = false;
+      try {
+        const parsed = new URL(origin);
+        sameOriginRequest = ['http:', 'https:'].includes(parsed.protocol) && parsed.host === host;
+      } catch {
+        sameOriginRequest = false;
+      }
+      return { identity: authService.resolveIdentity(request.headers?.cookie || ''), sameOriginRequest };
+    }
   });
   const install = server => {
     server.middlewares.use(authMiddleware);

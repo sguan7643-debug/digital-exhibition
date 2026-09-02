@@ -188,10 +188,7 @@ export function createPageDataSource({ route, runtime, mockLoader, client, opera
     return client.execute(action.operationId, {
       ...input,
       idempotencyKey: context.idempotencyKey,
-      ifMatch: context.ifMatch || context.version,
-      isolatedTestRecordId: context.isolatedTestRecordId,
-      auditContractId: context.auditContractId,
-      requestHash: context.requestHash
+      ...(action.versionConditionRequired ? { ifMatch: context.ifMatch || context.version } : {})
     }, { signal: context.signal });
   }
 

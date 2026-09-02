@@ -20,7 +20,16 @@ const updated = await service.execute('OAN-005', { businessKey: 'TEST_NOTICE_001
 assert.equal(updated.data.version, 2);
 const deleted = await service.execute('FAV-004', { businessKey: 'TEST_FAV_001', idempotencyKey: 'TEST_IDEM_003', ifMatch: 1, fields: {} });
 assert.equal(deleted.data.deleted, true);
-const composite = createFeishuCompositeOperationService({ readService: { execute: async id => ({ id, kind: 'read' }) }, writeService: service });
+const identity = { userId: 'TEST_USER' };
+const readService = { execute: async id => id === 'COM-001'
+  ? { code: 'OK', data: { permissions: ['operation:APP-006:execute'] } }
+  : { id, kind: 'read' } };
+const composite = createFeishuCompositeOperationService({ readService, writeService: service, browserWriteEnabled: true });
 assert.equal((await composite.execute('APP-001', {})).kind, 'read');
-assert.equal((await composite.execute('APP-006', { businessKey: 'TEST_REUSE_002', idempotencyKey: 'TEST_IDEM_004', fields: {} })).code, 'OK');
+const browserInput = { businessKey: 'TEST_REUSE_002', idempotencyKey: 'TEST_IDEM_004', fields: {} };
+await assert.rejects(() => createFeishuCompositeOperationService({ readService, writeService: service }).execute('APP-006', browserInput, { identity, sameOriginRequest: true }), error => error.code === 'BROWSER_TEST_WRITE_DISABLED');
+await assert.rejects(() => composite.execute('APP-006', browserInput, { identity }), error => error.code === 'WRITE_ORIGIN_DENIED');
+await assert.rejects(() => composite.execute('APP-006', browserInput, { sameOriginRequest: true }), error => error.code === 'USER_AUTH_REQUIRED');
+await assert.rejects(() => composite.execute('FAV-003', { businessKey: 'TEST_FAV_002', idempotencyKey: 'TEST_IDEM_005', fields: {} }, { identity, sameOriginRequest: true }), error => error.code === 'PERMISSION_DENIED');
+assert.equal((await composite.execute('APP-006', browserInput, { identity, sameOriginRequest: true })).code, 'OK');
 console.log('36-operation write mapping, field whitelist, composite routing and write envelopes passed');

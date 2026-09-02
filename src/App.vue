@@ -44,7 +44,8 @@ import { resolveIntegrationRuntime } from './integration/runtime-config.js';
 import { createPageDataSource, describeDataSourceEnvelope } from './integration/page-data-source.js';
 import { resolveIntegrationLiveAnnouncement } from './integration/live-region.js';
 import { createSafeProxyClient } from './integration/safe-proxy-client.js';
-import { createVerifiedReadOperationContracts } from './integration/operation-contract-schemas.js';
+import { createVerifiedReadOperationContracts, createVerifiedWriteOperationContracts } from './integration/operation-contract-schemas.js';
+import { OPERATION_REGISTRY } from './integration/operation-registry.js';
 import { resolveRemoteReadOperation } from './integration/remote-operation-capabilities.js';
 import { buildPageReadRequestPlan } from './integration/page-read-request-plan.js';
 
@@ -57,11 +58,12 @@ const integrationRuntime = resolveIntegrationRuntime({
   origin: window.location.origin
 });
 const verifiedReadContracts = createVerifiedReadOperationContracts();
+const verifiedWriteContracts = createVerifiedWriteOperationContracts(OPERATION_REGISTRY.filter(operation => operation.access === 'write').map(operation => operation.id));
 const integrationClient = createSafeProxyClient({
   baseUrl: integrationRuntime.proxyBase,
   origin: window.location.origin,
   timeoutMs: integrationRuntime.timeoutMs,
-  operationContracts: verifiedReadContracts
+  operationContracts: { ...verifiedReadContracts, ...verifiedWriteContracts }
 });
 
 async function executeReadOperation(operationId, input) {

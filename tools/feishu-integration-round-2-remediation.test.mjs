@@ -67,7 +67,7 @@ const favoriteSource = createPageDataSource({
 });
 const favoriteAction = favoriteSource.contract.actions.find(action => action.actionId === 'FAV-003');
 assert.equal(favoriteAction.remoteEnabled, false);
-assert.equal(favoriteAction.versionConditionRequired, true);
+assert.equal(favoriteAction.versionConditionRequired, false);
 assert.equal(favoriteAction.isolatedTestRecordRequired, true);
 assert.equal(favoriteAction.auditContractRequired, true);
 assert.equal(favoriteAction.requestHashRequired, true);
@@ -76,7 +76,6 @@ await assert.rejects(() => favoriteSource.executeAction('FAV-003', {}, {
   permissions: ['operation:FAV-003:execute'],
   confirmed: true,
   idempotencyKey: 'idem-favorite-001',
-  ifMatch: 'version-1',
   isolatedTestRecordId: 'isolated-record-001',
   auditContractId: 'audit-contract-001',
   requestHash: 'sha256:request-001'
@@ -103,7 +102,6 @@ for (const [field, expected] of [
   ['permissions', /权限/],
   ['confirmed', /确认/],
   ['idempotencyKey', /幂等/],
-  ['ifMatch', /版本|ETag/],
   ['isolatedTestRecordId', /隔离测试记录/],
   ['auditContractId', /审计合同/],
   ['requestHash', /请求哈希/]
@@ -113,6 +111,12 @@ for (const [field, expected] of [
   assert.throws(() => assertWriteActionContext(enabledAction, enabledWriteOperation, incomplete), expected);
 }
 assert.equal(assertWriteActionContext(enabledAction, enabledWriteOperation, completeWriteContext), true);
+const deleteAction = favoriteSource.contract.actions.find(action => action.actionId === 'FAV-004');
+assert.equal(deleteAction.versionConditionRequired, true);
+const enabledDeleteAction = Object.freeze({ ...deleteAction, remoteEnabled: true });
+const incompleteDeleteContext = { ...completeWriteContext, permissions: ['operation:FAV-004:execute'] };
+delete incompleteDeleteContext.ifMatch;
+assert.throws(() => assertWriteActionContext(enabledDeleteAction, Object.freeze({ ...getOperation('FAV-004'), remoteEnabled: true }), incompleteDeleteContext), /版本|ETag/);
 
 const makeError = (state, traceId, retryable) => Object.assign(new Error(state), { state, traceId, retryable });
 

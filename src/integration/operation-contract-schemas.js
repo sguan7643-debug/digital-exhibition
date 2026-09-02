@@ -100,6 +100,35 @@ export function createSyntheticOperationContracts(operationIds = []) {
   })])));
 }
 
+export function createVerifiedWriteOperationContracts(operationIds = []) {
+  const writeRequestSchema = Object.freeze({
+    type: 'object', required: ['businessKey', 'idempotencyKey', 'fields'],
+    properties: {
+      businessKey: identifier,
+      idempotencyKey: identifier,
+      ifMatch: Object.freeze({ type: 'integer', minimum: 1, maximum: 1000000000 }),
+      fields: Object.freeze({ type: 'object', additionalProperties: true })
+    },
+    additionalProperties: false
+  });
+  const writeDataSchema = Object.freeze({
+    type: 'object',
+    required: ['operationId', 'tableName', 'businessKey', 'recordId', 'version', 'replayed', 'deleted', 'alreadyAbsent'],
+    properties: {
+      operationId: identifier, tableName: text, businessKey: identifier, recordId: optionalText,
+      version: nonNegativeInteger, replayed: booleanValue, deleted: booleanValue, alreadyAbsent: booleanValue
+    },
+    additionalProperties: false
+  });
+  return Object.freeze(Object.fromEntries(operationIds.map(operationId => [operationId, Object.freeze({
+    operationId,
+    requestSchema: writeRequestSchema,
+    successSchema: envelopeSchema(writeDataSchema),
+    errorSchema: SYNTHETIC_ERROR_SCHEMA,
+    contractStatus: 'test-write-server-projection-verified'
+  })])));
+}
+
 const appFilterSchema = Object.freeze({
   type: 'object',
   properties: {
