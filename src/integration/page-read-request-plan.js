@@ -20,6 +20,7 @@ const routeSpecificInputs = Object.freeze({
     'ANN-005': { announcementId: 'AN004', page: 1, pageSize: 100 }
   })
 });
+const interactionReadOperationIds = new Set(['OAN-008', 'APP-004', 'MAT-003', 'COM-008', 'COM-010']);
 
 function defaultInput(schema = {}) {
   const properties = schema.properties || {};
@@ -54,6 +55,10 @@ export function buildPageReadRequestPlan({ route, readOperationIds, operationCon
   const deferredOperationIds = [];
   for (const operationId of readOperationIds) {
     const contract = operationContracts[operationId];
+    if (interactionReadOperationIds.has(operationId) && !Object.prototype.hasOwnProperty.call(inputByOperation, operationId)) {
+      deferredOperationIds.push(operationId);
+      continue;
+    }
     const input = inputByOperation[operationId] || defaultInput(contract?.requestSchema);
     const missingRequired = (contract?.requestSchema?.required || []).filter(name => input[name] == null || input[name] === '');
     if (missingRequired.length) {

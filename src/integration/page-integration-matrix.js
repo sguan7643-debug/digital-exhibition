@@ -55,7 +55,7 @@ export const PAGE_INTEGRATION_MATRIX = Object.freeze([
   define('20','/training',['TRN-001','TRN-002','TRN-003','TRN-004','TRN-005','TRN-006'],['course','registration','learning-entry']),
   define('21','/operations',['OPS-001','OPS-003'],['operation-metric','metric-definition']),
   define('22','/operations/announcements',['OAN-001','OAN-002'],['announcement-admin','publish-state']),
-  define('23','/operations/announcements/notice-001/edit',['OAN-003','OAN-004','OAN-005','OAN-006','OAN-007'],['announcement-draft','attachment','publish-control'],'disabled'),
+  define('23','/operations/announcements/notice-001/edit',['OAN-003','OAN-008','OAN-004','OAN-005','OAN-006','OAN-007'],['announcement-draft','announcement-preview','attachment','publish-control'],'disabled'),
   define('24','/operations/apps',['OAP-001','OAP-002','OAP-011'],['application-operation','type-form-definition']),
   define('25','/operations/apps/app-001/edit',['OAP-003','OAP-006','OAP-004','OAP-005','OAP-009'],['application-draft','type-form','publish-control'],'disabled'),
   define('26','/admin',['ADM-001','ADM-002','ADM-003','ADM-004','ADM-005','ADM-006','ADM-007','INT-001','INT-003','INT-004','INT-005'],['application-type','topic-domain','audit-log','integration-health'],'disabled'),

@@ -4,7 +4,7 @@ import { buildPageReadRequestPlan } from '../src/integration/page-read-request-p
 import { createVerifiedReadOperationContracts, validateContractSchema } from '../src/integration/operation-contract-schemas.js';
 
 const contracts = createVerifiedReadOperationContracts();
-const deferredExpected = new Set(['APP-010', 'TRN-003', 'TRN-006', 'CER-003']);
+const deferredExpected = new Set(['APP-010', 'TRN-003', 'TRN-006', 'CER-003', 'OAN-008']);
 const planned = new Set();
 const deferred = new Set();
 
@@ -26,4 +26,4 @@ for (const plan of [onboarding, training, certification]) {
   for (const operationId of plan.operationIds) assert.doesNotThrow(() => validateContractSchema(plan.inputByOperation[operationId], contracts[operationId].requestSchema, operationId));
 }
 assert.ok(planned.size >= 45, `页面自动加载应覆盖主要读接口，实际 ${planned.size}`);
-console.log(`page read plans validate ${planned.size} immediate operations; 4 identity/detail operations defer until a selected resource id exists`);
+console.log(`page read plans validate ${planned.size} immediate operations; 5 detail/interaction operations defer until a resource or user action exists`);

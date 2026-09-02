@@ -243,7 +243,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
       <training-page v-else-if="page.id === '20'" />
       <operations-page v-else-if="page.id === '21'" />
       <announcement-admin-page v-else-if="page.id === '22'" />
-      <announcement-editor-page v-else-if="page.id === '23'" />
+      <announcement-editor-page v-else-if="page.id === '23'" :operation-executor="executeReadOperation" />
       <app-admin-page v-else-if="page.id === '24'" />
       <app-editor-page v-else-if="page.id === '25'" />
       <admin-page v-else-if="page.id === '26'" />
