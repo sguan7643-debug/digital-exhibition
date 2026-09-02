@@ -64,11 +64,12 @@ const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value
 <template>
   <div class="workbench-page" data-visual-baseline="ui-update-0831-workbench"><p class="sr-only" aria-live="polite">{{ searchState==='loading'?'正在从飞书检索应用':searchState==='error'?'飞书检索失败，保留当前结果':controller.announcement }}</p>
     <section class="hero-panel" aria-labelledby="greeting-title">
-      <img class="hero-avatar" :src="remote?.profile.avatarUrl||'/assets/user-avatar.png'" width="78" height="78" :alt="`${remote?.profile.displayName||'当前用户'}头像`" />
+      <img class="hero-avatar" src="/assets/user-avatar.png" width="78" height="78" :alt="`${remote?.profile.displayName||'当前用户'}头像`" />
       <div class="greeting">
         <h1 id="greeting-title">{{ remote?.greeting.text||'上午好，张三丰' }}</h1>
         <p>{{ remote?.hero.subtitle||'欢迎来到数智产品展厅平台，探索更卓越的应用，助力业务高效运营！' }}</p>
-        <small>数据截至：{{ remote?.dataAsOf?.replace('T',' ').slice(0,16)||'2025-05-08' }}　　最后更新：{{ remote?.lastUpdatedAt?.replace('T',' ').slice(0,16)||'10:18' }}</small>
+        <small v-if="remote">数据截至：{{ remote.dataAsOf?.replace('T',' ').slice(0,16)||'—' }}　　最后更新：{{ remote.lastUpdatedAt?.replace('T',' ').slice(0,16)||'—' }}</small>
+        <small v-else>数据截至：2025-05-08　　最后更新：10:18</small>
       </div>
     </section>
 

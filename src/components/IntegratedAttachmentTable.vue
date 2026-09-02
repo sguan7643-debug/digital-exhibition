@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { startFeishuLogin, startSameOriginDownload } from '../integration/secure-download.js';
 
 const props=defineProps({
   attachments:{type:Array,default:()=>[]}, fallback:{type:Array,default:()=>[]},
@@ -15,9 +16,9 @@ async function download(file){
   announcement.value=`${file.name}：正在准备下载`;
   try{
     const response=await props.operationExecutor('COM-008',{fileId:file.attachmentId,mode:'DOWNLOAD',disposition:'ATTACHMENT',fileNameOverride:file.name});
-    window.location.assign(response.data.url);
+    startSameOriginDownload(response.data.url,file.name);
   }catch(error){
-    if(error?.status===401){window.location.assign(`/api/v1/auth/feishu/start?returnTo=${encodeURIComponent(window.location.pathname)}`);return;}
+    if(error?.status===401){startFeishuLogin();return;}
     announcement.value=`${file.name}：下载失败，请稍后重试`;
   }
 }

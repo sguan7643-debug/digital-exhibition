@@ -35,8 +35,8 @@ function refresh(){queryDraft.value='';if(remoteMode.value){controller.setFilter
 function actionFor(item){return remoteMode.value&&item.route?{kind:'route',route:item.route}:controller.actionFor(item);}
 function activateMessage(item){if(remoteMode.value){controller.announcement='该真实消息没有可用的安全目标路径';return;}controller.activate(item);}
 function openMessage(item){if(!remoteMode.value)controller.markRead(item.id);}
-function changePage(value){const pages=Math.max(1,Math.ceil(filteredMessages.value.length/controller.pageSize));controller.page=Math.min(pages,Math.max(1,Number(value)||1));}
-function changePageSize(value){controller.pageSize=[10,20,50].includes(Number(value))?Number(value):10;controller.page=1;}
+function changePage(value){const pages=Math.max(1,Math.ceil(filteredMessages.value.length/controller.pageSize));controller.setPage(Math.min(pages,Math.max(1,Number(value)||1)));}
+function changePageSize(value){controller.setPageSize([10,20,50].includes(Number(value))?Number(value):10);}
 function moveTab(event,index){if(!['ArrowLeft','ArrowRight'].includes(event.key))return;event.preventDefault();const tabs=['all','unread','read'];const next=(index+(event.key==='ArrowRight'?1:2))%3;controller.setStatus(tabs[next]);event.currentTarget.parentElement.children[next].focus();}
 </script>
 

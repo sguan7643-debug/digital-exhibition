@@ -3,6 +3,7 @@
 import { computed, nextTick, ref } from 'vue';
 import { createDetailController } from '../state/detail-controller.js';
 import { routeSession } from '../state/session-store.js';
+import { startFeishuLogin, startSameOriginDownload } from '../integration/secure-download.js';
 const metrics=[['应用评分/分数','4.9/5.0 ☆'],['应用类型','可视化报表'],['专业领域','经营分析'],['最近更新时间','2025-05-16'],['开发部门/单位','数智运营部'],['开发者','李四强'],['使用部门','各经营单位'],['开通范围','全部']];
 const features=[['数据查询','按时间维度、经营维度、生产维度、区域维度、统计维度分析'],['经营指标看板','经营 EVA 仪表盘'],['指标趋势分析','支持同比/环比、趋势对比、历史走势及预测趋势分析'],['图表可视化','柱状图、折线图、饼图、地图等多种可视化图表'],['数据导出与分享','支持导出 PDF/Excel 图片/分享链接等多种方式'],['权限与安全','支持数据权限控制与操作日志审计']];
 const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});
@@ -18,9 +19,9 @@ async function downloadAttachment(file){
   detail.announcement=`${file.name}：正在准备下载`;
   try{
     const response=await props.operationExecutor('COM-008',{fileId:file.attachmentId,mode:'DOWNLOAD',disposition:'ATTACHMENT',fileNameOverride:file.name});
-    window.location.assign(response.data.url);
+    startSameOriginDownload(response.data.url,file.name);
   }catch(error){
-    if(error?.status===401){window.location.assign(`/api/v1/auth/feishu/start?returnTo=${encodeURIComponent(window.location.pathname)}`);return;}
+    if(error?.status===401){startFeishuLogin();return;}
     detail.announcement=`${file.name}：下载失败，请稍后重试`;
   }
 }

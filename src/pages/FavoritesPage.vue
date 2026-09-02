@@ -30,12 +30,12 @@ const resultTitleRef=ref(null);
 async function cancelFavorite(card){if(liveMode.value){controller.announcement='真实收藏取消写操作尚未开放';return;}const rows=[...controller.pagedResults];const index=rows.findIndex(item=>item.id===card.id);const fallback=rows[index+1]?.id||rows[index-1]?.id;controller.cancel(card.id);await nextTick();restoreFavoriteFocus(fallback);}
 function restoreFavoriteFocus(id){const target=id&&document.querySelector(`[data-favorite-id="${id}"] .cancel-favorite`);(target||document.querySelector('.favorite-grid .cancel-favorite')||resultTitleRef.value)?.focus();}
 function resetData(){queryDraft.value='';controller.resetData();}
-function changePage(value){const pages=Math.max(1,Math.ceil(filteredCards.value.length/controller.pageSize));controller.page=Math.min(pages,Math.max(1,Number(value)||1));}
-function changePageSize(value){controller.pageSize=[10,20,50].includes(Number(value))?Number(value):10;controller.page=1;}
+function changePage(value){const pages=Math.max(1,Math.ceil(filteredCards.value.length/controller.pageSize));controller.setPage(Math.min(pages,Math.max(1,Number(value)||1)));}
+function changePageSize(value){controller.setPageSize([10,20,50].includes(Number(value))?Number(value):10);}
 async function launch(card){
   if(!props.operationExecutor||!remoteMode.value){controller.announcement=`${card.name}：当前为本地展示`;return;}
   try{
-    const response=await props.operationExecutor('APP-004',{appId:card.appId||card.id,launchMode:'NEW_TAB',sourcePage:'/favorites',requestedAt:new Date().toISOString()});
+    const response=await props.operationExecutor('APP-004',{appId:card.appId||card.id,launchMode:'NEW_TAB',sourcePage:'/favorites',requestedAt:'2026-09-03T00:00:00.000Z'});
     if(response.data.allowed&&response.data.launchUrl)window.open(response.data.launchUrl,'_blank','noopener,noreferrer');
     else controller.announcement=response.data.reasonMessage||'当前应用不可启动';
   }catch(error){controller.announcement=error.status===401?'请先登录飞书':error.message||'应用启动失败';}

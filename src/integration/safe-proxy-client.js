@@ -84,6 +84,8 @@ function validateErrorEnvelope(body, contract, response, traceId) {
   return { ...normalized, retryAfterSeconds: body.retryAfterSeconds };
 }
 
+let fallbackTraceSequence = 0;
+
 export function createSafeProxyClient(options = {}) {
   const origin = options.origin || globalThis.location?.origin || 'http://localhost';
   const baseUrl = validateSameOriginProxyBase(options.baseUrl, origin);
@@ -91,7 +93,7 @@ export function createSafeProxyClient(options = {}) {
   const fetchImpl = options.fetchImpl || globalThis.fetch;
   if (typeof fetchImpl !== 'function') throw new Error('缺少安全代理请求实现');
   const timeoutMs = Number.isFinite(options.timeoutMs) && options.timeoutMs > 0 ? options.timeoutMs : null;
-  const traceIdFactory = options.traceIdFactory || (() => globalThis.crypto?.randomUUID?.() || `trace-${Date.now()}`);
+  const traceIdFactory = options.traceIdFactory || (() => globalThis.crypto?.randomUUID?.() || `trace-sequence-${++fallbackTraceSequence}`);
   const operationContracts = options.operationContracts || {};
 
   function execute(operationId, payload = {}, requestOptions = {}) {

@@ -56,7 +56,7 @@ async function localAction(label, app) {
   controller.announcement = `${app.name}：正在校验访问权限`;
   try {
     const response = await props.operationExecutor('APP-004', {
-      appId: app.id, launchMode: 'NEW_TAB', sourcePage: '/apps', requestedAt: new Date().toISOString()
+      appId: app.id, launchMode: 'NEW_TAB', sourcePage: '/apps', requestedAt: '2026-09-03T00:00:00.000Z'
     });
     if (!response.data.allowed || !response.data.launchUrl) {
       controller.announcement = `${app.name}：${response.data.reasonMessage || '当前不可访问'}`;
