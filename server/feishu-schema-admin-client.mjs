@@ -25,6 +25,7 @@ export function createFeishuSchemaAdminClient(options = {}) {
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   const now = options.now ?? Date.now;
   const schemaWriteEnabled = options.schemaWriteEnabled ?? process.env.FEISHU_SCHEMA_WRITE_ENABLED === '1';
+  const recordWriteEnabled = options.recordWriteEnabled ?? process.env.FEISHU_TEST_WRITE_ENABLED === '1';
   let cachedToken = '';
   let tokenExpiresAt = 0;
 
@@ -48,9 +49,10 @@ export function createFeishuSchemaAdminClient(options = {}) {
     return cachedToken;
   }
 
-  async function call(pathname, { method = 'GET', body, write = false } = {}) {
+  async function call(pathname, { method = 'GET', body, writeGate = '' } = {}) {
     requireCredentials();
-    if (write && !schemaWriteEnabled) throw new FeishuProxyError('SCHEMA_WRITE_DISABLED', '表结构写入门禁未开启', 403);
+    if (writeGate === 'schema' && !schemaWriteEnabled) throw new FeishuProxyError('SCHEMA_WRITE_DISABLED', '表结构写入门禁未开启', 403);
+    if (writeGate === 'record' && !recordWriteEnabled) throw new FeishuProxyError('TEST_RECORD_WRITE_DISABLED', '测试记录写入门禁未开启', 403);
     const token = await tenantToken();
     const response = await fetchImpl(`${API_ROOT}${pathname}`, {
       method,
@@ -95,7 +97,7 @@ export function createFeishuSchemaAdminClient(options = {}) {
 
   async function createTable(schema) {
     const data = await call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables`, {
-      method: 'POST', write: true,
+      method: 'POST', writeGate: 'schema',
       body: { table: { name: schema.table_name, default_view_name: schema.default_view_name, fields: schema.fields.map(toFeishuFieldDefinition) } }
     });
     return { tableId: data.table_id, viewId: data.default_view_id || '', fieldIds: data.field_id_list || [] };
@@ -103,10 +105,43 @@ export function createFeishuSchemaAdminClient(options = {}) {
 
   async function createField(tableId, field) {
     const data = await call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables/${encodeURIComponent(tableId)}/fields`, {
-      method: 'POST', write: true, body: toFeishuFieldDefinition(field)
+      method: 'POST', writeGate: 'schema', body: toFeishuFieldDefinition(field)
     });
     return data.field || data;
   }
 
-  return Object.freeze({ schemaWriteEnabled, listTables, listFields, createTable, createField });
+  async function searchRecords(tableId, fieldName, value, { pageSize = 100 } = {}) {
+    const query = new URLSearchParams({ page_size: String(pageSize), automatic_fields: 'true' });
+    const data = await call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables/${encodeURIComponent(tableId)}/records/search?${query}`, {
+      method: 'POST', body: {
+        filter: { conjunction: 'and', conditions: [{ field_name: fieldName, operator: 'is', value: [value] }] }
+      }
+    });
+    return { items: data.items || [], total: Number(data.total || data.items?.length || 0), hasMore: Boolean(data.has_more), pageToken: data.page_token || '' };
+  }
+
+  async function createRecord(tableId, fields) {
+    const data = await call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables/${encodeURIComponent(tableId)}/records`, {
+      method: 'POST', writeGate: 'record', body: { fields }
+    });
+    return data.record || data;
+  }
+
+  async function updateRecord(tableId, recordId, fields) {
+    const data = await call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables/${encodeURIComponent(tableId)}/records/${encodeURIComponent(recordId)}`, {
+      method: 'PUT', writeGate: 'record', body: { fields }
+    });
+    return data.record || data;
+  }
+
+  async function deleteRecord(tableId, recordId) {
+    return call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables/${encodeURIComponent(tableId)}/records/${encodeURIComponent(recordId)}`, {
+      method: 'DELETE', writeGate: 'record'
+    });
+  }
+
+  return Object.freeze({
+    schemaWriteEnabled, recordWriteEnabled, listTables, listFields, createTable, createField,
+    searchRecords, createRecord, updateRecord, deleteRecord
+  });
 }
