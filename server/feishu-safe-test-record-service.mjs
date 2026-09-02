@@ -16,6 +16,16 @@ function recordVersion(record, versionField = '版本') {
   return Number.isInteger(value) && value >= 0 ? value : 0;
 }
 
+function textFieldValue(value) {
+  if (Array.isArray(value)) {
+    return value.map(item => {
+      if (item && typeof item === 'object' && 'text' in item) return String(item.text || '');
+      return String(item ?? '');
+    }).join('');
+  }
+  return String(value ?? '');
+}
+
 export function createFeishuSafeTestRecordService({ client, wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)) }) {
   if (!client) throw new Error('缺少飞书记录客户端');
 
@@ -41,7 +51,7 @@ export function createFeishuSafeTestRecordService({ client, wait = milliseconds 
     const sourceField = governance.sourceField === undefined ? '来源系统' : governance.sourceField;
     const deletedField = governance.deletedField === undefined ? '已删除' : governance.deletedField;
     if (existing) {
-      if (traceField && String(existing.fields?.[traceField] || '') !== idempotency) {
+      if (traceField && textFieldValue(existing.fields?.[traceField]) !== idempotency) {
         throw new FeishuProxyError('TEST_KEY_CONFLICT', 'TEST_ 业务键已被其他幂等请求占用', 409);
       }
       return { record: existing, replayed: true, version: recordVersion(existing, versionField) };

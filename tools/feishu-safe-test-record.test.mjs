@@ -13,7 +13,12 @@ assert.ok(FEISHU_WRITE_OPERATION_MANIFEST.every(item => item.requiresTestPrefix 
 let record = null;
 const client = {
   async listTables() { return [{ name: '完整性差异记录', table_id: 'tbl-test' }]; },
-  async searchRecords(tableId, fieldName, value) { return { items: record && record.fields[fieldName] === value ? [record] : [] }; },
+  async searchRecords(tableId, fieldName, value) {
+    if (!record || record.fields[fieldName] !== value) return { items: [] };
+    const fields = { ...record.fields };
+    if (typeof fields.追踪ID === 'string') fields.追踪ID = [{ type: 'text', text: fields.追踪ID }];
+    return { items: [{ ...record, fields }] };
+  },
   async createRecord(tableId, fields) { record = { record_id: 'rec-test', fields: { ...fields } }; return record; },
   async updateRecord(tableId, recordId, fields) { record = { ...record, fields: { ...record.fields, ...fields } }; return record; },
   async deleteRecord() { record = null; return {}; }
