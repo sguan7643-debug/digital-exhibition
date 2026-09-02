@@ -3,6 +3,7 @@ import { getOperation } from '../src/integration/operation-registry.js';
 
 const READ_PLANS = Object.freeze({
   'COM-001': Object.freeze({ kind: 'current-user' }),
+  'COM-002': Object.freeze({ kind: 'current-navigation' }),
   'COM-005': Object.freeze({ kind: 'dictionary-batch' }),
   'WB-002': Object.freeze({ kind: 'workbench-search' }),
   'APP-001': Object.freeze({ kind: 'app-facets' }),
@@ -1004,6 +1005,77 @@ export function createFeishuReadOnlyService(options) {
     return { identity, userId };
   }
 
+  function permissionRecordActive(fields) {
+    if (!dictionaryEnabled(fields, '启用')) return false;
+    if (/^(?:禁用|失效|REVOKED|DISABLED)$/i.test(valueToText(fields['状态']))) return false;
+    const timestamp = now().toISOString();
+    const starts = valueToText(fields['生效时间']);
+    const ends = valueToText(fields['失效时间']);
+    return (!starts || starts <= timestamp) && (!ends || ends >= timestamp);
+  }
+
+  async function readCurrentUserProjection(requestContext) {
+    const { identity, userId } = requireIdentity(requestContext);
+    const [userRows, permissionRows, messageRows, favoriteRows, balanceRows] = await Promise.all([
+      readAll('用户字典'), readAll('用户权限'), readAll('消息通知'), readAll('应用收藏'), readAll('积分余额')
+    ]);
+    const user = userRows.find(record => {
+      const fields = record?.fields || {};
+      return [fields['用户ID'], fields['工号']].map(valueToText).includes(userId)
+        || valueToText(fields['用户ID']) === valueToText(identity.openId);
+    })?.fields || {};
+    const permissions = permissionRows.filter(record => {
+      const fields = record?.fields || {};
+      return valueToText(fields['用户ID'] || fields['主体ID']) === userId && permissionRecordActive(fields);
+    });
+    const permissionCodes = [...new Set(permissions.map(record => valueToText(record?.fields?.['权限编码'])).filter(Boolean))];
+    const availableOrgIds = [...new Set([
+      valueToText(user['组织ID']),
+      ...permissions.flatMap(record => valueToList(record?.fields?.['数据范围']))
+    ].filter(Boolean))];
+    const messageItems = messageRows.filter(record => valueToText(record?.fields?.['接收人ID']) === userId);
+    const favorites = favoriteRows.filter(record => valueToText(record?.fields?.['用户ID']) === userId && dictionaryEnabled(record?.fields || {}, '有效'));
+    const balance = balanceRows.find(record => valueToText(record?.fields?.['用户ID']) === userId)?.fields || {};
+    return {
+      userId, employeeNo: valueToText(user['工号']) || valueToText(identity.employeeNo), displayName: valueToText(user['姓名']) || valueToText(identity.displayName),
+      avatarFileId: null, avatarUrl: valueToText(identity.avatarUrl) || null,
+      mobileMasked: valueToText(user['手机号脱敏值']) || null, emailMasked: valueToText(user['邮箱脱敏值']) || null,
+      tenantId: valueToText(identity.tenantKey), tenantName: valueToText(user['组织名称']), orgId: valueToText(user['组织ID']), orgName: valueToText(user['组织名称']),
+      departmentId: valueToText(user['所属部门ID']), departmentName: valueToText(user['所属部门名称']), roles: [], permissions: permissionCodes,
+      availableOrgIds, unreadMessageCount: messageItems.filter(record => !messageRead(record?.fields || {})).length,
+      favoriteCount: favorites.length, pointBalance: valueToNumber(balance['当前总积分']), lastLoginAt: '', locale: 'zh-CN', timezone: 'Asia/Shanghai'
+    };
+  }
+
+  const navigationCatalog = Object.freeze([
+    { menuId: 'workbench', parentId: '', code: 'workbench', name: '首页工作台', path: '/workbench', permissionCode: '' },
+    { menuId: 'materials', parentId: '', code: 'materials', name: '素材中心', path: '/materials', permissionCode: 'materials.view' },
+    { menuId: 'talent', parentId: '', code: 'talent', name: '人才管理', path: '/talent/people', permissionCode: 'talent.view' },
+    { menuId: 'apps', parentId: '', code: 'apps', name: '应用中心', path: '/apps', permissionCode: 'apps.view' },
+    { menuId: 'training', parentId: '', code: 'training', name: '培训课堂', path: '/training', permissionCode: 'training.view' },
+    { menuId: 'points', parentId: '', code: 'points', name: '积分中心', path: '/points', permissionCode: 'points.view' },
+    { menuId: 'certification', parentId: '', code: 'certification', name: '数字化认证', path: '/certification', permissionCode: 'certification.view' },
+    { menuId: 'operations', parentId: '', code: 'operations', name: '运营管理', path: '/operations', permissionCode: 'operations.dashboard.view' },
+    { menuId: 'announcements', parentId: '', code: 'announcements', name: '公告通知', path: '/announcements', permissionCode: 'announcements.view' },
+    { menuId: 'admin', parentId: '', code: 'admin', name: '后台管理', path: '/admin', permissionCode: 'admin.view' },
+    { menuId: 'profile', parentId: '', code: 'profile', name: '个人中心', path: '/profile', permissionCode: '' }
+  ]);
+
+  async function executeCurrentNavigation(input, requestContext) {
+    assertAllowedInput(input, ['platform']);
+    if (input.platform != null && input.platform !== 'WEB') throw new FeishuProxyError('INVALID_OPERATION_INPUT', '当前导航接口仅支持 WEB', 400);
+    const user = await readCurrentUserProjection(requestContext);
+    const permissions = new Set(user.permissions);
+    const wildcard = permissions.has('*') || permissions.has('admin.*');
+    const allowed = code => !code || wildcard || permissions.has(code) || [...permissions].some(item => item.endsWith('.*') && code.startsWith(item.slice(0, -1)));
+    const menus = navigationCatalog.filter(item => allowed(item.permissionCode)).map((item, index) => ({
+      menuId: item.menuId, parentId: item.parentId, code: item.code, name: item.name, path: item.path,
+      iconFileId: '', iconUrl: '', sortOrder: index + 1, visible: true, enabled: true, children: []
+    }));
+    const actions = user.permissions.map(permissionCode => ({ permissionCode, resourceType: 'ACTION', resourceId: null, allowed: true, reason: null }));
+    return { menus, actions, defaultPath: menus[0]?.path || '/workbench' };
+  }
+
   function messageRead(fields) {
     return /^(?:已读|true|1|yes)$/i.test(valueToText(fields['已读状态']).trim());
   }
@@ -1295,12 +1367,15 @@ export function createFeishuReadOnlyService(options) {
     if (!plan) throw new FeishuProxyError('READ_OPERATION_NOT_ENABLED', '该只读接口尚未完成字段合同核验', 503);
     if (plan.kind === 'current-user') {
       if (Object.keys(input).length) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '当前用户接口不接受浏览器提供的身份字段', 400);
-      const identity = requestContext?.identity;
-      if (!identity?.userId && !identity?.openId) throw new FeishuProxyError('USER_AUTH_REQUIRED', '需要先完成飞书用户授权', 401);
+      const data = await readCurrentUserProjection(requestContext);
       return {
-        code: 'OK', data: identity, traceId: traceIdFactory(), schemaVersion: 'feishu-user-context.v1',
+        code: 'OK', data, traceId: traceIdFactory(), schemaVersion: 'feishu-user-context.v2',
         sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false
       };
+    }
+    if (plan.kind === 'current-navigation') {
+      const data = await executeCurrentNavigation(input, requestContext);
+      return { code: 'OK', data, traceId: traceIdFactory(), schemaVersion: 'feishu-navigation.v1', sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false };
     }
     if (plan.kind === 'dictionary-batch' || plan.kind === 'app-comments') {
       const data = plan.kind === 'dictionary-batch' ? await executeDictionaryBatch(input) : await executeAppComments(input);

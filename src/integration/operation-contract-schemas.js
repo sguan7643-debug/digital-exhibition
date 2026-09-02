@@ -3,8 +3,12 @@ const optionalText = Object.freeze({ type: 'string', maxLength: 256 });
 const identifier = Object.freeze({ type: 'string', minLength: 1, maxLength: 128 });
 const nonNegativeInteger = Object.freeze({ type: 'integer', minimum: 0, maximum: 100000 });
 const countInteger = Object.freeze({ type: 'integer', minimum: 0, maximum: 1000000000 });
+const signedInteger = Object.freeze({ type: 'integer', minimum: -1000000000, maximum: 1000000000 });
 const booleanValue = Object.freeze({ type: 'boolean' });
 const stringList = Object.freeze({ type: 'array', items: optionalText, maxItems: 100 });
+const nullableText = Object.freeze({ anyOf: [optionalText, Object.freeze({ type: 'null' })] });
+const nullableInteger = Object.freeze({ anyOf: [Object.freeze({ type: 'integer', minimum: 1, maximum: 5 }), Object.freeze({ type: 'null' })] });
+const nullableBoolean = Object.freeze({ anyOf: [booleanValue, Object.freeze({ type: 'null' })] });
 
 const filterSchema = Object.freeze({
   type: 'object',
@@ -448,18 +452,37 @@ export function createContactReadOperationContracts() {
 
 const currentUserSchema = Object.freeze({
   type: 'object',
-  required: ['userId', 'openId', 'unionId', 'displayName', 'avatarUrl', 'employeeNo', 'tenantKey', 'identityType'],
+  required: ['userId', 'employeeNo', 'displayName', 'avatarFileId', 'avatarUrl', 'mobileMasked', 'emailMasked', 'tenantId', 'tenantName', 'orgId', 'orgName', 'departmentId', 'departmentName', 'roles', 'permissions', 'availableOrgIds', 'unreadMessageCount', 'favoriteCount', 'pointBalance', 'lastLoginAt', 'locale', 'timezone'],
   properties: {
-    userId: optionalText, openId: optionalText, unionId: optionalText, displayName: optionalText,
-    avatarUrl: optionalText, employeeNo: optionalText, tenantKey: optionalText,
-    identityType: Object.freeze({ enum: ['user_id', 'open_id'] })
+    userId: identifier, employeeNo: optionalText, displayName: optionalText, avatarFileId: nullableText, avatarUrl: nullableText,
+    mobileMasked: nullableText, emailMasked: nullableText, tenantId: optionalText, tenantName: optionalText,
+    orgId: optionalText, orgName: optionalText, departmentId: optionalText, departmentName: optionalText,
+    roles: Object.freeze({ type: 'array', maxItems: 100, items: Object.freeze({
+      type: 'object', required: ['roleId', 'roleCode', 'roleName'], properties: { roleId: identifier, roleCode: identifier, roleName: optionalText }, additionalProperties: false
+    }) }), permissions: stringList, availableOrgIds: stringList, unreadMessageCount: countInteger,
+    favoriteCount: countInteger, pointBalance: signedInteger, lastLoginAt: optionalText, locale: optionalText, timezone: optionalText
   },
   additionalProperties: false
 });
 
-const nullableText = Object.freeze({ anyOf: [optionalText, Object.freeze({ type: 'null' })] });
-const nullableInteger = Object.freeze({ anyOf: [Object.freeze({ type: 'integer', minimum: 1, maximum: 5 }), Object.freeze({ type: 'null' })] });
-const nullableBoolean = Object.freeze({ anyOf: [booleanValue, Object.freeze({ type: 'null' })] });
+const menuSchema = Object.freeze({
+  type: 'object', required: ['menuId', 'parentId', 'code', 'name', 'path', 'iconFileId', 'iconUrl', 'sortOrder', 'visible', 'enabled', 'children'],
+  properties: {
+    menuId: identifier, parentId: optionalText, code: identifier, name: optionalText, path: optionalText, iconFileId: optionalText,
+    iconUrl: optionalText, sortOrder: countInteger, visible: booleanValue, enabled: booleanValue,
+    children: Object.freeze({ type: 'array', items: Object.freeze({ type: 'object' }), maxItems: 100 })
+  }, additionalProperties: false
+});
+const navigationDataSchema = Object.freeze({
+  type: 'object', required: ['menus', 'actions', 'defaultPath'], properties: {
+    menus: Object.freeze({ type: 'array', items: menuSchema, maxItems: 100 }),
+    actions: Object.freeze({ type: 'array', maxItems: 500, items: Object.freeze({
+      type: 'object', required: ['permissionCode', 'resourceType', 'resourceId', 'allowed', 'reason'],
+      properties: { permissionCode: identifier, resourceType: optionalText, resourceId: nullableText, allowed: booleanValue, reason: nullableText }, additionalProperties: false
+    }) }), defaultPath: optionalText
+  }, additionalProperties: false
+});
+
 const dictionaryItemSchema = Object.freeze({
   type: 'object',
   required: ['dictType', 'value', 'label', 'description', 'colorToken', 'iconFileId', 'sortOrder', 'enabled', 'parentValue', 'extra'],
@@ -530,7 +553,6 @@ export function createDictionaryCommentReadOperationContracts() {
   });
 }
 
-const signedInteger = Object.freeze({ type: 'integer', minimum: -1000000000, maximum: 1000000000 });
 const numberValue = Object.freeze({ type: 'number', minimum: 0, maximum: 1000000000 });
 const messageItemSchema = Object.freeze({
   type: 'object', required: ['messageId', 'typeCode', 'typeName', 'title', 'summary', 'occurredAt', 'isRead', 'readAt', 'isToday', 'priority', 'senderId', 'senderName', 'targetType', 'targetId', 'targetPath', 'actionLabel', 'downloadFileId', 'expiresAt'],
@@ -661,6 +683,11 @@ export function createIdentityReadOperationContracts() {
       operationId: 'COM-001', requestSchema: emptyRequestSchema,
       successSchema: envelopeSchema(currentUserSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA,
       contractStatus: 'official-oauth-v3-verified'
+    }),
+    'COM-002': Object.freeze({
+      operationId: 'COM-002', requestSchema: Object.freeze({ type: 'object', properties: { platform: Object.freeze({ enum: ['WEB'] }) }, additionalProperties: false }),
+      successSchema: envelopeSchema(navigationDataSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA,
+      contractStatus: 'authenticated-permission-projection-verified'
     })
   });
 }
