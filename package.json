@@ -13,6 +13,7 @@
     "feishu:schema:verify": "node --env-file=.env.local tools/feishu-schema-migrate.mjs --verify",
     "feishu:test-record:verify": "node --env-file=.env.local tools/verify-live-test-record-crud.mjs",
     "feishu:write-operations:verify": "node --env-file=.env.local tools/verify-live-write-operations.mjs",
+    "feishu:test-attachment:verify": "node --env-file=.env.local tools/verify-live-test-attachment.mjs",
     "test:integration:server": "node tools/feishu-server-proxy.test.mjs",
     "test:integration:live-page": "node tools/verify-live-app-page.mjs && node tools/verify-live-announcement-page.mjs",
     "test:integration:bundle": "node tools/feishu-browser-bundle-contract.test.mjs",

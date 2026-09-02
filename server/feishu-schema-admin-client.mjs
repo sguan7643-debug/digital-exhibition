@@ -69,6 +69,24 @@ export function createFeishuSchemaAdminClient(options = {}) {
     return payload.data || {};
   }
 
+  async function callMultipart(pathname, form, { writeGate = '' } = {}) {
+    requireCredentials();
+    if (writeGate === 'record' && !recordWriteEnabled) throw new FeishuProxyError('TEST_RECORD_WRITE_DISABLED', '测试记录写入门禁未开启', 403);
+    const token = await tenantToken();
+    const response = await fetchImpl(`${API_ROOT}${pathname}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      body: form
+    });
+    const payload = await readJson(response);
+    if (!response.ok || payload.code !== 0) {
+      throw new FeishuProxyError('FEISHU_MEDIA_UPLOAD_FAILED', '飞书测试附件上传失败', response.status === 403 ? 403 : 502, {
+        upstreamCode: payload.code, upstreamMessage: String(payload.msg || '').slice(0, 200)
+      });
+    }
+    return payload.data || {};
+  }
+
   async function listTables() {
     const items = [];
     let pageToken = '';
@@ -140,8 +158,26 @@ export function createFeishuSchemaAdminClient(options = {}) {
     });
   }
 
+  async function uploadMedia({ fileName, bytes, mimeType = 'application/octet-stream', parentType = 'bitable_file', parentNode = baseToken }) {
+    const safeName = String(fileName || '').trim();
+    if (!safeName.startsWith('TEST_')) throw new FeishuProxyError('TEST_PREFIX_REQUIRED', '测试附件文件名必须使用 TEST_ 前缀', 403);
+    const content = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+    if (content.byteLength < 1 || content.byteLength > 20 * 1024 * 1024) throw new FeishuProxyError('INVALID_TEST_FILE_SIZE', '测试附件大小必须在 1 字节到 20MB 之间', 422);
+    if (!parentNode) throw new FeishuProxyError('PARENT_NODE_REQUIRED', '测试附件缺少父节点', 422);
+    const form = new FormData();
+    form.append('file_name', safeName);
+    form.append('parent_type', parentType);
+    form.append('parent_node', parentNode);
+    form.append('size', String(content.byteLength));
+    form.append('file', new Blob([content], { type: mimeType }), safeName);
+    const data = await callMultipart('/drive/v1/medias/upload_all', form, { writeGate: 'record' });
+    const fileToken = String(data.file_token || '');
+    if (!fileToken) throw new FeishuProxyError('FEISHU_MEDIA_TOKEN_MISSING', '飞书未返回测试附件令牌', 502);
+    return { fileToken };
+  }
+
   return Object.freeze({
     schemaWriteEnabled, recordWriteEnabled, listTables, listFields, createTable, createField,
-    searchRecords, createRecord, updateRecord, deleteRecord
+    searchRecords, createRecord, updateRecord, deleteRecord, uploadMedia
   });
 }
