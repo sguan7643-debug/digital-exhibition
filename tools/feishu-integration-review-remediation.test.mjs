@@ -7,6 +7,7 @@ import { resolveIntegrationRuntime } from '../src/integration/runtime-config.js'
 import { createSafeProxyClient } from '../src/integration/safe-proxy-client.js';
 import { createSyntheticOperationContracts } from '../src/integration/operation-contract-schemas.js';
 import { createPageDataSource, describeDataSourceEnvelope } from '../src/integration/page-data-source.js';
+import { FEISHU_WRITE_OPERATION_MANIFEST } from '../server/contracts/feishu-write-operation-manifest.mjs';
 
 const origin = 'http://127.0.0.1:4173';
 for (const unsafeBase of [
@@ -50,6 +51,13 @@ for (const page of PAGE_INTEGRATION_MATRIX) {
   assert.ok(page.actions.every(action => getOperation(action.operationId).access === 'write'), `${page.route} action contract must contain writes only`);
   assert.deepEqual(new Set([...page.readOperationIds, ...page.interactionOperationIds, ...page.actions.map(action => action.operationId)]), new Set(page.operationIds));
 }
+const mappedWriteIds = new Set(PAGE_INTEGRATION_MATRIX.flatMap(page => page.actions.map(action => action.operationId)));
+assert.equal(FEISHU_WRITE_OPERATION_MANIFEST.length, 36);
+assert.deepEqual(
+  FEISHU_WRITE_OPERATION_MANIFEST.filter(item => !mappedWriteIds.has(item.operationId)).map(item => item.operationId),
+  [],
+  '全部 36 个写接口必须登记到对应页面动作合同'
+);
 
 const remoteRuntime = resolveIntegrationRuntime({
   requestedMode: 'remote', remoteEnabled: true, contractEvidenceComplete: true,
