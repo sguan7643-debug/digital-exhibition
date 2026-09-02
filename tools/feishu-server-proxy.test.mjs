@@ -255,8 +255,8 @@ for (const operation of OPERATION_REGISTRY.filter(item => item.access === 'write
   });
 }
 await assert.rejects(() => service.execute('COM-008', {}), error => {
-  assert.equal(error.code, 'READ_OPERATION_NOT_ENABLED');
-  assert.equal(error.status, 503);
+  assert.equal(error.code, 'USER_AUTH_REQUIRED');
+  assert.equal(error.status, 401);
   return true;
 });
 await assert.rejects(() => service.execute('UNKNOWN-999', {}), error => {

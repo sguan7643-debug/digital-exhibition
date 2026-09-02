@@ -91,6 +91,24 @@ export function createFeishuOpenApiClient(options = {}) {
     };
   }
 
+  async function downloadMedia(fileToken) {
+    requireCredentials();
+    const normalized = String(fileToken || '');
+    if (!/^[A-Za-z0-9_-]{1,256}$/.test(normalized)) {
+      throw new FeishuProxyError('INVALID_FILE_TOKEN', '飞书文件标识非法', 400);
+    }
+    const token = await getTenantToken();
+    const response = await fetchImpl(`${API_ROOT}/drive/v1/medias/${encodeURIComponent(normalized)}/download`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/octet-stream' }
+    });
+    if (!response.ok) {
+      const status = response.status === 403 ? 403 : response.status === 404 ? 404 : response.status === 429 ? 429 : 502;
+      throw new FeishuProxyError('FEISHU_MEDIA_DOWNLOAD_FAILED', '飞书文件下载失败', status);
+    }
+    return response;
+  }
+
   async function contactList(pathname, query = {}) {
     requireCredentials();
     const pageSize = query.pageSize == null ? 50 : Number(query.pageSize);
@@ -154,5 +172,5 @@ export function createFeishuOpenApiClient(options = {}) {
     return { items: body.data?.items || [], hasMore: Boolean(body.data?.has_more), nextPageToken: body.data?.page_token || '' };
   };
 
-  return Object.freeze({ credentialsReady, listRecords, listDepartmentChildren, listUsersByDepartment: listUsersByDepartmentWithId });
+  return Object.freeze({ credentialsReady, listRecords, downloadMedia, listDepartmentChildren, listUsersByDepartment: listUsersByDepartmentWithId });
 }

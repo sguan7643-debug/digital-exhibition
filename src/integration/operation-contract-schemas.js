@@ -1007,6 +1007,30 @@ export function createPublicReadOperationContracts() {
   });
 }
 
+export function createSecureResourceOperationContracts() {
+  const contract = (operationId, requestSchema, data) => Object.freeze({
+    operationId, requestSchema, successSchema: envelopeSchema(data), errorSchema: SYNTHETIC_ERROR_SCHEMA,
+    contractStatus: 'server-projection-verified'
+  });
+  const fileAccessData = Object.freeze({
+    type: 'object', required: ['fileId', 'url', 'expiresAt', 'fileName', 'mimeType', 'sizeBytes', 'watermarkApplied'],
+    properties: { fileId: identifier, url: text, expiresAt: text, fileName: text, mimeType: text, sizeBytes: countInteger, watermarkApplied: booleanValue }, additionalProperties: false
+  });
+  const appLaunchData = Object.freeze({
+    type: 'object', required: ['appId', 'allowed', 'reasonCode', 'reasonMessage', 'launchUrl', 'openMode', 'expiresAt', 'ssoMode', 'auditId'],
+    properties: { appId: identifier, allowed: booleanValue, reasonCode: nullableText, reasonMessage: nullableText, launchUrl: nullableText, openMode: Object.freeze({ enum: ['CURRENT_TAB', 'NEW_TAB'] }), expiresAt: nullableText, ssoMode: optionalText, auditId: identifier }, additionalProperties: false
+  });
+  const materialDownloadData = Object.freeze({
+    type: 'object', required: ['downloadId', 'fileId', 'accessUrl', 'expiresAt', 'downloadCount', 'pointAward'],
+    properties: { downloadId: identifier, fileId: identifier, accessUrl: text, expiresAt: text, downloadCount: countInteger, pointAward: Object.freeze({ anyOf: [openObject, Object.freeze({ type: 'null' })] }) }, additionalProperties: false
+  });
+  return Object.freeze({
+    'COM-008': contract('COM-008', Object.freeze({ type: 'object', required: ['fileId', 'mode'], properties: { fileId: identifier, mode: Object.freeze({ enum: ['DOWNLOAD', 'PREVIEW'] }), disposition: Object.freeze({ enum: ['INLINE', 'ATTACHMENT'] }), fileNameOverride: optionalText }, additionalProperties: false }), fileAccessData),
+    'APP-004': contract('APP-004', Object.freeze({ type: 'object', required: ['appId', 'launchMode', 'sourcePage', 'requestedAt'], properties: { appId: identifier, launchMode: Object.freeze({ enum: ['CURRENT_TAB', 'NEW_TAB'] }), sourcePage: identifier, requestedAt: text }, additionalProperties: false }), appLaunchData),
+    'MAT-003': contract('MAT-003', Object.freeze({ type: 'object', required: ['materialId', 'fileId', 'purpose', 'sourcePage', 'clientOccurredAt'], properties: { materialId: identifier, fileId: identifier, purpose: text, sourcePage: identifier, clientOccurredAt: text }, additionalProperties: false }), materialDownloadData)
+  });
+}
+
 export function createVerifiedReadOperationContracts() {
   return Object.freeze({
     ...createIdentityReadOperationContracts(),
@@ -1022,6 +1046,7 @@ export function createVerifiedReadOperationContracts() {
     ...createContactReadOperationContracts(),
     ...createFirstBatchDetailOperationContracts(),
     ...createPublicReadOperationContracts()
+    ,...createSecureResourceOperationContracts()
   });
 }
 

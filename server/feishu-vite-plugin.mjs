@@ -9,24 +9,28 @@ import { createFeishuWriteOperationService } from './feishu-write-operation-serv
 import { createFeishuCompositeOperationService } from './feishu-composite-operation-service.mjs';
 import { createFeishuUserAuthService } from './feishu-user-auth-service.mjs';
 import { createFeishuAuthNodeMiddleware } from './feishu-auth-middleware.mjs';
+import { createFeishuFileAccessService, createFeishuFileNodeMiddleware } from './feishu-file-access-service.mjs';
 
 export function feishuReadOnlyProxy(options = {}) {
   const contractPath = fileURLToPath(new URL('./contracts/feishu-base-identifiers.json', import.meta.url));
   const identifierContract = loadFeishuIdentifierContract(contractPath);
   const client = createFeishuOpenApiClient(options);
-  const readService = createFeishuReadOnlyService({ client, identifierContract });
+  const fileAccessService = createFeishuFileAccessService({ client });
+  const readService = createFeishuReadOnlyService({ client, identifierContract, fileAccessService, allowedAppLaunchHosts: options.allowedAppLaunchHosts });
   const adminClient = createFeishuSchemaAdminClient(options);
   const safeRecordService = createFeishuSafeTestRecordService({ client: adminClient });
   const writeService = createFeishuWriteOperationService({ safeRecordService });
   const service = createFeishuCompositeOperationService({ readService, writeService });
   const authService = createFeishuUserAuthService(options);
   const authMiddleware = createFeishuAuthNodeMiddleware({ authService });
+  const fileMiddleware = createFeishuFileNodeMiddleware({ fileAccessService, resolveIdentity: cookie => authService.resolveIdentity(cookie) });
   const middleware = createFeishuNodeMiddleware({
     service,
     resolveRequestContext: request => ({ identity: authService.resolveIdentity(request.headers?.cookie || '') })
   });
   const install = server => {
     server.middlewares.use(authMiddleware);
+    server.middlewares.use(fileMiddleware);
     server.middlewares.use(middleware);
   };
   return {

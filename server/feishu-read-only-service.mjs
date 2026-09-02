@@ -5,6 +5,7 @@ const READ_PLANS = Object.freeze({
   'COM-001': Object.freeze({ kind: 'current-user' }),
   'COM-002': Object.freeze({ kind: 'current-navigation' }),
   'COM-005': Object.freeze({ kind: 'dictionary-batch' }),
+  'COM-008': Object.freeze({ kind: 'secure-resource' }),
   'WB-002': Object.freeze({ kind: 'workbench-search' }),
   'WB-001': Object.freeze({ kind: 'workbench-personal' }),
   'WB-003': Object.freeze({ kind: 'workbench-personal' }),
@@ -42,6 +43,7 @@ const READ_PLANS = Object.freeze({
   'ANN-005': Object.freeze({ kind: 'first-batch-detail' }),
   'APP-002': Object.freeze({ kind: 'app-list' }),
   'APP-003': Object.freeze({ kind: 'first-batch-detail' }),
+  'APP-004': Object.freeze({ kind: 'secure-resource' }),
   'APP-007': Object.freeze({ kind: 'app-comments' }),
   'APP-009': Object.freeze({ kind: 'first-batch-detail' }),
   'MSG-001': Object.freeze({ kind: 'personal-read' }),
@@ -63,7 +65,8 @@ const READ_PLANS = Object.freeze({
   'CER-002': Object.freeze({ kind: 'public-read' }),
   'OPS-003': Object.freeze({ kind: 'public-read' }),
   'MAT-001': Object.freeze({ kind: 'public-read' }),
-  'MAT-002': Object.freeze({ kind: 'first-batch-detail' })
+  'MAT-002': Object.freeze({ kind: 'first-batch-detail' }),
+  'MAT-003': Object.freeze({ kind: 'secure-resource' })
 });
 
 function valueToText(value) {
@@ -158,6 +161,11 @@ export function createFeishuReadOnlyService(options) {
   const traceIdFactory = options.traceIdFactory || (() => `trace-${globalThis.crypto?.randomUUID?.() || Date.now()}`);
   const now = options.now || (() => new Date());
   const appProjectionCacheMs = options.appProjectionCacheMs ?? 30_000;
+  const fileAccessService = options.fileAccessService;
+  const allowedAppLaunchHosts = new Set((Array.isArray(options.allowedAppLaunchHosts)
+    ? options.allowedAppLaunchHosts
+    : String(options.allowedAppLaunchHosts || '').split(','))
+    .map(item => String(item).trim().toLocaleLowerCase('en-US')).filter(Boolean));
   let appProjectionCache = null;
   let appProjectionExpiresAt = 0;
   let appProjectionPending = null;
@@ -750,6 +758,17 @@ export function createFeishuReadOnlyService(options) {
       fileId: '', fileName: valueToText(object.name) || fallbackName, extension: '', mimeType: '',
       sizeBytes: valueToNumber(object.size), sha256: '', downloadUrl: '', previewUrl: '', thumbnailUrl: '',
       uploadedBy: '', uploadedAt: '', scanStatus: 'UNAVAILABLE', businessType: '', businessId: '', expiresAt: '', version: 0
+    };
+  }
+
+  function attachmentValue(value, fallbackName = '') {
+    const file = Array.isArray(value) ? value[0] : value;
+    const object = file && typeof file === 'object' ? file : {};
+    return {
+      fileToken: typeof file === 'string' ? file : valueToText(object.file_token || object.fileToken || object.token),
+      fileName: valueToText(object.name) || fallbackName || 'download',
+      mimeType: valueToText(object.mime_type || object.mimeType) || 'application/octet-stream',
+      sizeBytes: valueToNumber(object.size)
     };
   }
 
@@ -1874,6 +1893,70 @@ export function createFeishuReadOnlyService(options) {
     };
   }
 
+  async function executeSecureResourceRead(operationId, input, requestContext) {
+    const { identity, userId } = requireIdentity(requestContext);
+    if (operationId === 'APP-004') {
+      assertAllowedInput(input, ['appId', 'launchMode', 'sourcePage', 'requestedAt']);
+      const appId = valueToText(input.appId);
+      if (!appId) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '应用启动必须提供 appId', 400);
+      const [appRows, permissionRows] = await Promise.all([readAll('应用索引'), readAll('用户权限')]);
+      const app = appRows.find(record => valueToText(record?.fields?.['应用ID']) === appId)?.fields;
+      if (!app) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '应用不存在或不可见', 404);
+      const appPermissions = permissionRows.filter(record => valueToText(record?.fields?.['应用ID']) === appId && permissionRecordActive(record?.fields || {}));
+      const allowedByPermission = !appPermissions.length || appPermissions.some(record => valueToText(record?.fields?.['用户ID'] || record?.fields?.['主体ID']) === userId);
+      const status = valueToText(app['状态']);
+      const online = /^(?:ONLINE|已上架|启用|正常)$/i.test(status);
+      const rawUrl = Array.isArray(app['应用URL地址']) ? app['应用URL地址'][0]?.link || app['应用URL地址'][0]?.text : app['应用URL地址'];
+      let launchUrl;
+      try { launchUrl = new URL(String(rawUrl || '')); } catch { launchUrl = null; }
+      const hostAllowed = Boolean(launchUrl && launchUrl.protocol === 'https:' && allowedAppLaunchHosts.has(launchUrl.hostname.toLocaleLowerCase('en-US')));
+      const allowed = online && allowedByPermission && hostAllowed;
+      const reasonCode = !online ? 'APP_NOT_ONLINE' : !allowedByPermission ? 'APP_PERMISSION_DENIED' : !hostAllowed ? 'APP_HOST_NOT_ALLOWED' : null;
+      return {
+        appId, allowed, reasonCode,
+        reasonMessage: reasonCode === 'APP_NOT_ONLINE' ? '应用当前未上架' : reasonCode === 'APP_PERMISSION_DENIED' ? '当前用户没有应用访问权限' : reasonCode === 'APP_HOST_NOT_ALLOWED' ? '应用地址未进入服务端允许域名清单' : null,
+        launchUrl: allowed ? launchUrl.toString() : null,
+        openMode: input.launchMode === 'CURRENT_TAB' ? 'CURRENT_TAB' : valueToText(app['打开方式']) === 'CURRENT_TAB' ? 'CURRENT_TAB' : 'NEW_TAB',
+        expiresAt: null, ssoMode: valueToText(app['SSO模式']) || 'NONE', auditId: traceIdFactory()
+      };
+    }
+
+    if (!fileAccessService?.createGrant) throw new FeishuProxyError('FILE_ACCESS_SERVICE_UNAVAILABLE', '文件访问服务尚未配置', 503);
+    if (operationId === 'COM-008') {
+      assertAllowedInput(input, ['fileId', 'mode', 'disposition', 'fileNameOverride']);
+      const fileId = valueToText(input.fileId);
+      if (!fileId) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '文件访问必须提供 fileId', 400);
+      const [uploadRows, attachmentRows, materialRows] = await Promise.all([readAll('文件上传会话'), readAll('附件资料'), readAll('素材中心')]);
+      let file;
+      const upload = uploadRows.find(record => valueToText(record?.fields?.['文件ID']) === fileId)?.fields;
+      if (upload) file = { fileToken: valueToText(upload['飞书文件令牌']), fileName: valueToText(upload['文件名']), mimeType: valueToText(upload['MIME类型']), sizeBytes: valueToNumber(upload['大小字节']) };
+      if (!file?.fileToken) {
+        const row = attachmentRows.find(record => valueToText(record?.fields?.['主键']) === fileId);
+        if (row) file = attachmentValue(row.fields?.['附件文件'], valueToText(row.fields?.['文件名称']));
+      }
+      if (!file?.fileToken) {
+        const row = materialRows.find(record => valueToText(record?.fields?.['素材ID']) === fileId);
+        if (row) file = attachmentValue(row.fields?.['素材文件'], valueToText(row.fields?.['素材名称']));
+      }
+      if (!file?.fileToken) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '文件不存在或不可访问', 404);
+      const mode = input.mode === 'PREVIEW' ? 'PREVIEW' : 'DOWNLOAD';
+      const disposition = input.disposition === 'INLINE' ? 'INLINE' : 'ATTACHMENT';
+      const grant = fileAccessService.createGrant({ ...file, fileName: valueToText(input.fileNameOverride) || file.fileName, mode, disposition, identity });
+      return { fileId, url: grant.url, expiresAt: grant.expiresAt, fileName: valueToText(input.fileNameOverride) || file.fileName, mimeType: file.mimeType, sizeBytes: file.sizeBytes, watermarkApplied: false };
+    }
+
+    assertAllowedInput(input, ['materialId', 'fileId', 'purpose', 'sourcePage', 'clientOccurredAt']);
+    const materialId = valueToText(input.materialId);
+    const fileId = valueToText(input.fileId);
+    if (!materialId || !fileId) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '素材下载必须提供 materialId 和 fileId', 400);
+    const material = (await readAll('素材中心')).find(record => valueToText(record?.fields?.['素材ID']) === materialId)?.fields;
+    if (!material || /^(?:OFFLINE|下架|禁用|删除)$/i.test(valueToText(material['状态']))) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '素材不存在或不可下载', 404);
+    const file = attachmentValue(material['素材文件'], valueToText(material['素材名称']));
+    if (!file.fileToken || ![materialId, file.fileToken].includes(fileId)) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '素材文件不存在或不匹配', 404);
+    const grant = fileAccessService.createGrant({ ...file, mode: 'DOWNLOAD', disposition: 'ATTACHMENT', identity });
+    return { downloadId: traceIdFactory(), fileId, accessUrl: grant.url, expiresAt: grant.expiresAt, downloadCount: valueToNumber(material['下载次数']), pointAward: null };
+  }
+
   async function execute(operationId, input = {}, requestContext = {}) {
     const operation = getOperation(operationId);
     if (!operation) throw new FeishuProxyError('UNKNOWN_OPERATION', '接口不在受控操作清单中', 404);
@@ -1920,6 +2003,10 @@ export function createFeishuReadOnlyService(options) {
     if (plan.kind === 'admin-read') {
       const data = await executeAdminRead(operationId, input, requestContext);
       return { code: 'OK', data, traceId: traceIdFactory(), schemaVersion: 'feishu-admin-read.v1', sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false };
+    }
+    if (plan.kind === 'secure-resource') {
+      const data = await executeSecureResourceRead(operationId, input, requestContext);
+      return { code: 'OK', data, traceId: traceIdFactory(), schemaVersion: 'feishu-secure-resource.v1', sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false };
     }
     if (plan.kind === 'app-facets' || plan.kind === 'app-list' || plan.kind?.startsWith('announcement') || plan.kind?.startsWith('talent') || plan.kind?.startsWith('contact') || plan.kind === 'public-read' || plan.kind === 'first-batch-detail') {
       const data = plan.kind.startsWith('announcement')

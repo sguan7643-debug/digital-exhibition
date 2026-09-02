@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
     baseToken: serverEnv.FEISHU_BASE_TOKEN,
     redirectUri: serverEnv.FEISHU_OAUTH_REDIRECT_URI || 'http://127.0.0.1:4173/api/v1/auth/feishu/callback',
     scopes: serverEnv.FEISHU_OAUTH_SCOPES,
+    allowedAppLaunchHosts: serverEnv.FEISHU_APP_LAUNCH_ALLOWED_HOSTS,
     recordWriteEnabled: serverEnv.FEISHU_TEST_WRITE_ENABLED === '1'
   })],
   esbuild: false,
