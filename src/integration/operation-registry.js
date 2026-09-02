@@ -1,5 +1,3 @@
-import { getFeishuOperationSourceContract } from './feishu-source-contract.js';
-
 const expand = (prefix, numbers) => numbers.map(number => `${prefix}-${String(number).padStart(3, '0')}`);
 
 export const FIRST_BATCH_OPERATION_IDS = Object.freeze([
@@ -51,19 +49,18 @@ const batches = [
 ];
 
 export const OPERATION_REGISTRY = Object.freeze(batches.flatMap(([batch, ids]) => ids.map(id => {
-  const sourceContract = getFeishuOperationSourceContract(id);
   return Object.freeze({
     id,
     batch,
     access: writeIds.has(id) ? 'write' : 'read',
     readOnly: !writeIds.has(id),
     risk: riskyIds.has(id) ? 'high' : writeIds.has(id) ? 'controlled' : 'read-only',
-    contractStatus: sourceContract.schemaCoverage === 'verified' ? 'source-name-schema-verified' : 'source-name-schema-partial',
-    verifiedSourceTables: sourceContract.verifiedTables,
-    missingSourceTables: sourceContract.missingTables,
+    contractStatus: 'source-contract-incomplete',
+    sourceFieldNamesVerified: false,
+    apiIdentifiersVerified: false,
     apiReady: false,
     remoteEnabled: false,
-    disabledReason: sourceContract.disabledReason
+    disabledReason: '真实接口未启用：安全代理、服务端鉴权和 API 标识合同尚未全部验证'
   });
 })));
 

@@ -1,0 +1,4464 @@
+{
+  "COM-001": {
+    "requiredCommon": [
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      },
+      {
+        "table": "部门字典",
+        "fields": [
+          "部门ID",
+          "部门名称"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "场景字典",
+        "fields": [
+          "场景ID",
+          "场景名称"
+        ]
+      },
+      {
+        "table": "消息通知",
+        "fields": [
+          "消息ID",
+          "接收人ID",
+          "消息标题",
+          "消息内容",
+          "分类",
+          "已读状态",
+          "消息时间"
+        ]
+      },
+      {
+        "table": "应用收藏",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "收藏时间"
+        ]
+      },
+      {
+        "table": "积分余额",
+        "fields": [
+          "主键",
+          "用户ID",
+          "当前总积分",
+          "基础活跃累计",
+          "应用互动累计",
+          "应用使用累计",
+          "应用建设累计",
+          "团队推广累计",
+          "持续建设累计",
+          "培训学习累计",
+          "本月积分",
+          "上月积分",
+          "最后更新时间"
+        ]
+      },
+      {
+        "table": "应用类型配置",
+        "fields": [
+          "类型ID",
+          "类型名称",
+          "类型编码",
+          "类型图标",
+          "排序",
+          "状态",
+          "是否系统内置",
+          "类型描述",
+          "创建时间",
+          "更新时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "COM-002": {
+    "requiredCommon": [
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      },
+      {
+        "table": "部门字典",
+        "fields": [
+          "部门ID",
+          "部门名称"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "场景字典",
+        "fields": [
+          "场景ID",
+          "场景名称"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "COM-003": {
+    "requiredCommon": [
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      },
+      {
+        "table": "部门字典",
+        "fields": [
+          "部门ID",
+          "部门名称"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "场景字典",
+        "fields": [
+          "场景ID",
+          "场景名称"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "COM-004": {
+    "requiredCommon": [
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      },
+      {
+        "table": "部门字典",
+        "fields": [
+          "部门ID",
+          "部门名称"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "场景字典",
+        "fields": [
+          "场景ID",
+          "场景名称"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "COM-005": {
+    "requiredCommon": [
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      },
+      {
+        "table": "部门字典",
+        "fields": [
+          "部门ID",
+          "部门名称"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "场景字典",
+        "fields": [
+          "场景ID",
+          "场景名称"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "WB-001": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      },
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      },
+      {
+        "table": "消息通知",
+        "fields": [
+          "消息ID",
+          "接收人ID",
+          "消息标题",
+          "消息内容",
+          "分类",
+          "已读状态",
+          "消息时间"
+        ]
+      },
+      {
+        "table": "用户累计统计",
+        "fields": [
+          "主键",
+          "用户ID",
+          "累计访问应用次数",
+          "累计使用应用次数",
+          "累计收藏次数",
+          "累计评论次数",
+          "累计培训报名次数"
+        ]
+      },
+      {
+        "table": "用户月度统计",
+        "fields": [
+          "主键",
+          "用户ID",
+          "年月",
+          "当月访问次数",
+          "当月使用次数",
+          "当月收藏次数",
+          "当月评论次数",
+          "当月培训报名次数"
+        ]
+      },
+      {
+        "table": "培训课程",
+        "fields": [
+          "课程ID",
+          "培训标题",
+          "分类",
+          "讲师姓名",
+          "开始时间",
+          "格式",
+          "培训简介",
+          "状态",
+          "已报名人数"
+        ]
+      },
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      },
+      {
+        "table": "应用类型配置",
+        "fields": [
+          "类型ID",
+          "类型名称",
+          "类型编码",
+          "类型图标",
+          "排序",
+          "状态",
+          "是否系统内置",
+          "类型描述",
+          "创建时间",
+          "更新时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "WB-002": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      },
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      },
+      {
+        "table": "消息通知",
+        "fields": [
+          "消息ID",
+          "接收人ID",
+          "消息标题",
+          "消息内容",
+          "分类",
+          "已读状态",
+          "消息时间"
+        ]
+      },
+      {
+        "table": "用户累计统计",
+        "fields": [
+          "主键",
+          "用户ID",
+          "累计访问应用次数",
+          "累计使用应用次数",
+          "累计收藏次数",
+          "累计评论次数",
+          "累计培训报名次数"
+        ]
+      },
+      {
+        "table": "用户月度统计",
+        "fields": [
+          "主键",
+          "用户ID",
+          "年月",
+          "当月访问次数",
+          "当月使用次数",
+          "当月收藏次数",
+          "当月评论次数",
+          "当月培训报名次数"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "WB-003": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      },
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      },
+      {
+        "table": "消息通知",
+        "fields": [
+          "消息ID",
+          "接收人ID",
+          "消息标题",
+          "消息内容",
+          "分类",
+          "已读状态",
+          "消息时间"
+        ]
+      },
+      {
+        "table": "用户累计统计",
+        "fields": [
+          "主键",
+          "用户ID",
+          "累计访问应用次数",
+          "累计使用应用次数",
+          "累计收藏次数",
+          "累计评论次数",
+          "累计培训报名次数"
+        ]
+      },
+      {
+        "table": "用户月度统计",
+        "fields": [
+          "主键",
+          "用户ID",
+          "年月",
+          "当月访问次数",
+          "当月使用次数",
+          "当月收藏次数",
+          "当月评论次数",
+          "当月培训报名次数"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "ANN-001": {
+    "requiredCommon": [
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "ANN-002": {
+    "requiredCommon": [
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "ANN-003": {
+    "requiredCommon": [
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "ANN-005": {
+    "requiredCommon": [
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "公告关联对象",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "APP-001": {
+    "requiredCommon": [
+      {
+        "table": "应用类型配置",
+        "fields": [
+          "类型ID",
+          "类型名称",
+          "类型编码",
+          "类型图标",
+          "排序",
+          "状态",
+          "是否系统内置",
+          "类型描述",
+          "创建时间",
+          "更新时间"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "场景字典",
+        "fields": [
+          "场景ID",
+          "场景名称"
+        ]
+      },
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "APP-002": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      },
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      },
+      {
+        "table": "部门字典",
+        "fields": [
+          "部门ID",
+          "部门名称"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "场景字典",
+        "fields": [
+          "场景ID",
+          "场景名称"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "APP-003": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      },
+      {
+        "table": "附件资料",
+        "fields": [
+          "主键",
+          "应用ID",
+          "文件名称",
+          "附件文件",
+          "文件大小",
+          "上传时间",
+          "上传人ID"
+        ]
+      },
+      {
+        "table": "演示截图录屏",
+        "fields": [
+          "主键",
+          "应用ID",
+          "媒体类型",
+          "文件",
+          "说明文字"
+        ]
+      },
+      {
+        "table": "应用评论",
+        "fields": [
+          "主键",
+          "应用ID",
+          "评论人ID",
+          "评论内容",
+          "评论时间"
+        ]
+      },
+      {
+        "table": "相关培训",
+        "fields": [
+          "主键",
+          "应用ID",
+          "培训标题",
+          "培训分类",
+          "讲师姓名",
+          "时长(分钟)",
+          "培训链接",
+          "排序"
+        ]
+      },
+      {
+        "table": "应用素材关联",
+        "fields": [
+          "主键",
+          "应用ID",
+          "素材ID"
+        ]
+      },
+      {
+        "table": "素材中心",
+        "fields": [
+          "素材ID",
+          "素材名称",
+          "素材文件",
+          "下载次数"
+        ]
+      },
+      {
+        "table": "应用收藏",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "收藏时间"
+        ]
+      },
+      {
+        "table": "用户权限",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "授权时间",
+          "授权人ID",
+          "状态"
+        ]
+      },
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      },
+      {
+        "table": "部门字典",
+        "fields": [
+          "部门ID",
+          "部门名称"
+        ]
+      }
+    ],
+    "conditionalOneOf": [
+      {
+        "discriminator": "applicationType",
+        "options": [
+          {
+            "table": "可视化驾驶舱详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "集成数据",
+              "数据更新频率",
+              "权限控制要求",
+              "核心功能",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "可视化报表详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "集成数据",
+              "数据更新频率",
+              "权限控制要求",
+              "核心功能",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "海能work应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "应用图片或视频",
+              "使用指南",
+              "使用功能",
+              "使用说明文档链接",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "工具应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "使用说明",
+              "核心功能",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "RPA应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "RPA所属平台",
+              "操作流程步骤",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "EAD应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "应用内容",
+              "使用流程步骤",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "AI应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "所属数据源",
+              "应用描述",
+              "核心功能"
+            ]
+          },
+          {
+            "table": "数据集应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "数据来源",
+              "更新频率",
+              "数据字段列表",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "指标应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "主要领域",
+              "指标应用场景",
+              "指标级别",
+              "业务解释部门",
+              "成果来源系统",
+              "指标定义",
+              "业务获取逻辑",
+              "业务计算公式",
+              "计算单位",
+              "采集方式",
+              "维度",
+              "统计粒度",
+              "关键值",
+              "权限控制要求",
+              "使用说明",
+              "列20"
+            ]
+          }
+        ]
+      }
+    ],
+    "optional": [
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      }
+    ],
+    "knownMissing": [
+      "operation-specific-required-field-contract",
+      "应用关联",
+      "公告关联对象"
+    ]
+  },
+  "APP-009": {
+    "requiredCommon": [
+      {
+        "table": "相关培训",
+        "fields": [
+          "主键",
+          "应用ID",
+          "培训标题",
+          "培训分类",
+          "讲师姓名",
+          "时长(分钟)",
+          "培训链接",
+          "排序"
+        ]
+      },
+      {
+        "table": "应用素材关联",
+        "fields": [
+          "主键",
+          "应用ID",
+          "素材ID"
+        ]
+      },
+      {
+        "table": "素材中心",
+        "fields": [
+          "素材ID",
+          "素材名称",
+          "素材文件",
+          "下载次数"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "TAL-001": {
+    "requiredCommon": [
+      {
+        "table": "人才库",
+        "fields": [
+          "主键",
+          "用户ID",
+          "人才类型",
+          "人才等级",
+          "擅长领域",
+          "状态"
+        ]
+      },
+      {
+        "table": "人才项目",
+        "fields": [
+          "主键",
+          "项目名称",
+          "项目类型",
+          "负责人ID",
+          "状态",
+          "开始日期",
+          "结束日期"
+        ]
+      },
+      {
+        "table": "项目进度",
+        "fields": [
+          "主键",
+          "项目ID",
+          "阶段名称",
+          "状态",
+          "更新时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "TAL-002": {
+    "requiredCommon": [
+      {
+        "table": "人才库",
+        "fields": [
+          "主键",
+          "用户ID",
+          "人才类型",
+          "人才等级",
+          "擅长领域",
+          "状态"
+        ]
+      },
+      {
+        "table": "人才项目",
+        "fields": [
+          "主键",
+          "项目名称",
+          "项目类型",
+          "负责人ID",
+          "状态",
+          "开始日期",
+          "结束日期"
+        ]
+      },
+      {
+        "table": "项目进度",
+        "fields": [
+          "主键",
+          "项目ID",
+          "阶段名称",
+          "状态",
+          "更新时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "TAL-003": {
+    "requiredCommon": [
+      {
+        "table": "人才库",
+        "fields": [
+          "主键",
+          "用户ID",
+          "人才类型",
+          "人才等级",
+          "擅长领域",
+          "状态"
+        ]
+      },
+      {
+        "table": "人才项目",
+        "fields": [
+          "主键",
+          "项目名称",
+          "项目类型",
+          "负责人ID",
+          "状态",
+          "开始日期",
+          "结束日期"
+        ]
+      },
+      {
+        "table": "项目进度",
+        "fields": [
+          "主键",
+          "项目ID",
+          "阶段名称",
+          "状态",
+          "更新时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "TAL-005": {
+    "requiredCommon": [
+      {
+        "table": "人才库",
+        "fields": [
+          "主键",
+          "用户ID",
+          "人才类型",
+          "人才等级",
+          "擅长领域",
+          "状态"
+        ]
+      },
+      {
+        "table": "人才项目",
+        "fields": [
+          "主键",
+          "项目名称",
+          "项目类型",
+          "负责人ID",
+          "状态",
+          "开始日期",
+          "结束日期"
+        ]
+      },
+      {
+        "table": "项目进度",
+        "fields": [
+          "主键",
+          "项目ID",
+          "阶段名称",
+          "状态",
+          "更新时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "MAT-001": {
+    "requiredCommon": [
+      {
+        "table": "素材中心",
+        "fields": [
+          "素材ID",
+          "素材名称",
+          "素材文件",
+          "下载次数"
+        ]
+      },
+      {
+        "table": "应用素材关联",
+        "fields": [
+          "主键",
+          "应用ID",
+          "素材ID"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "素材分类",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "MAT-002": {
+    "requiredCommon": [
+      {
+        "table": "素材中心",
+        "fields": [
+          "素材ID",
+          "素材名称",
+          "素材文件",
+          "下载次数"
+        ]
+      },
+      {
+        "table": "应用素材关联",
+        "fields": [
+          "主键",
+          "应用ID",
+          "素材ID"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "INT-001": {
+    "requiredCommon": [],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "多维表连接配置",
+      "字段字典",
+      "后台任务执行记录",
+      "完整性差异记录",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "INT-003": {
+    "requiredCommon": [],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "多维表连接配置",
+      "字段字典",
+      "后台任务执行记录",
+      "完整性差异记录",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "INT-005": {
+    "requiredCommon": [],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "多维表连接配置",
+      "字段字典",
+      "后台任务执行记录",
+      "完整性差异记录",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "COM-006": {
+    "requiredCommon": [
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      },
+      {
+        "table": "部门字典",
+        "fields": [
+          "部门ID",
+          "部门名称"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "场景字典",
+        "fields": [
+          "场景ID",
+          "场景名称"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "文件上传会话",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "COM-007": {
+    "requiredCommon": [
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      },
+      {
+        "table": "部门字典",
+        "fields": [
+          "部门ID",
+          "部门名称"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "场景字典",
+        "fields": [
+          "场景ID",
+          "场景名称"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "文件上传会话",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "COM-008": {
+    "requiredCommon": [
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      },
+      {
+        "table": "部门字典",
+        "fields": [
+          "部门ID",
+          "部门名称"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "场景字典",
+        "fields": [
+          "场景ID",
+          "场景名称"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "文件访问授权",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "COM-011": {
+    "requiredCommon": [
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      },
+      {
+        "table": "部门字典",
+        "fields": [
+          "部门ID",
+          "部门名称"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "场景字典",
+        "fields": [
+          "场景ID",
+          "场景名称"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "用户行为流水",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "WB-004": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      },
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      },
+      {
+        "table": "消息通知",
+        "fields": [
+          "消息ID",
+          "接收人ID",
+          "消息标题",
+          "消息内容",
+          "分类",
+          "已读状态",
+          "消息时间"
+        ]
+      },
+      {
+        "table": "用户累计统计",
+        "fields": [
+          "主键",
+          "用户ID",
+          "累计访问应用次数",
+          "累计使用应用次数",
+          "累计收藏次数",
+          "累计评论次数",
+          "累计培训报名次数"
+        ]
+      },
+      {
+        "table": "用户月度统计",
+        "fields": [
+          "主键",
+          "用户ID",
+          "年月",
+          "当月访问次数",
+          "当月使用次数",
+          "当月收藏次数",
+          "当月评论次数",
+          "当月培训报名次数"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "MSG-001": {
+    "requiredCommon": [
+      {
+        "table": "消息通知",
+        "fields": [
+          "消息ID",
+          "接收人ID",
+          "消息标题",
+          "消息内容",
+          "分类",
+          "已读状态",
+          "消息时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "MSG-002": {
+    "requiredCommon": [
+      {
+        "table": "消息通知",
+        "fields": [
+          "消息ID",
+          "接收人ID",
+          "消息标题",
+          "消息内容",
+          "分类",
+          "已读状态",
+          "消息时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "MSG-003": {
+    "requiredCommon": [
+      {
+        "table": "消息通知",
+        "fields": [
+          "消息ID",
+          "接收人ID",
+          "消息标题",
+          "消息内容",
+          "分类",
+          "已读状态",
+          "消息时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "MSG-004": {
+    "requiredCommon": [
+      {
+        "table": "消息通知",
+        "fields": [
+          "消息ID",
+          "接收人ID",
+          "消息标题",
+          "消息内容",
+          "分类",
+          "已读状态",
+          "消息时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "MSG-005": {
+    "requiredCommon": [
+      {
+        "table": "消息通知",
+        "fields": [
+          "消息ID",
+          "接收人ID",
+          "消息标题",
+          "消息内容",
+          "分类",
+          "已读状态",
+          "消息时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "ANN-004": {
+    "requiredCommon": [
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "公告已读明细",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "FAV-001": {
+    "requiredCommon": [
+      {
+        "table": "应用收藏",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "收藏时间"
+        ]
+      },
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      },
+      {
+        "table": "应用类型配置",
+        "fields": [
+          "类型ID",
+          "类型名称",
+          "类型编码",
+          "类型图标",
+          "排序",
+          "状态",
+          "是否系统内置",
+          "类型描述",
+          "创建时间",
+          "更新时间"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "FAV-002": {
+    "requiredCommon": [
+      {
+        "table": "应用收藏",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "收藏时间"
+        ]
+      },
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "FAV-003": {
+    "requiredCommon": [
+      {
+        "table": "应用收藏",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "收藏时间"
+        ]
+      },
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "FAV-004": {
+    "requiredCommon": [
+      {
+        "table": "应用收藏",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "收藏时间"
+        ]
+      },
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "APP-004": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      },
+      {
+        "table": "用户权限",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "授权时间",
+          "授权人ID",
+          "状态"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "APP-005": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      },
+      {
+        "table": "使用申请",
+        "fields": [
+          "主键",
+          "应用ID",
+          "申请人ID",
+          "申请理由",
+          "状态",
+          "申请时间"
+        ]
+      },
+      {
+        "table": "消息通知",
+        "fields": [
+          "消息ID",
+          "接收人ID",
+          "消息标题",
+          "消息内容",
+          "分类",
+          "已读状态",
+          "消息时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "APP-006": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "应用复用申请",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "APP-007": {
+    "requiredCommon": [
+      {
+        "table": "应用评论",
+        "fields": [
+          "主键",
+          "应用ID",
+          "评论人ID",
+          "评论内容",
+          "评论时间"
+        ]
+      },
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "APP-008": {
+    "requiredCommon": [
+      {
+        "table": "应用评论",
+        "fields": [
+          "主键",
+          "应用ID",
+          "评论人ID",
+          "评论内容",
+          "评论时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "APP-010": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      },
+      {
+        "table": "使用申请",
+        "fields": [
+          "主键",
+          "应用ID",
+          "申请人ID",
+          "申请理由",
+          "状态",
+          "申请时间"
+        ]
+      },
+      {
+        "table": "上架申请",
+        "fields": [
+          "申请单号",
+          "关联应用ID",
+          "应用类型ID",
+          "申请人ID",
+          "表单数据",
+          "状态",
+          "当前审批节点",
+          "提交时间",
+          "退回原因"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "PTS-001": {
+    "requiredCommon": [
+      {
+        "table": "积分余额",
+        "fields": [
+          "主键",
+          "用户ID",
+          "当前总积分",
+          "基础活跃累计",
+          "应用互动累计",
+          "应用使用累计",
+          "应用建设累计",
+          "团队推广累计",
+          "持续建设累计",
+          "培训学习累计",
+          "本月积分",
+          "上月积分",
+          "最后更新时间"
+        ]
+      },
+      {
+        "table": "积分月度汇总",
+        "fields": [
+          "主键",
+          "用户ID",
+          "年月",
+          "月度总积分",
+          "基础活跃月度合计",
+          "应用互动月度合计",
+          "应用使用月度合计",
+          "应用建设月度合计",
+          "培训学习月度合计"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "PTS-002": {
+    "requiredCommon": [
+      {
+        "table": "积分余额",
+        "fields": [
+          "主键",
+          "用户ID",
+          "当前总积分",
+          "基础活跃累计",
+          "应用互动累计",
+          "应用使用累计",
+          "应用建设累计",
+          "团队推广累计",
+          "持续建设累计",
+          "培训学习累计",
+          "本月积分",
+          "上月积分",
+          "最后更新时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "积分流水",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "PTS-003": {
+    "requiredCommon": [
+      {
+        "table": "积分余额",
+        "fields": [
+          "主键",
+          "用户ID",
+          "当前总积分",
+          "基础活跃累计",
+          "应用互动累计",
+          "应用使用累计",
+          "应用建设累计",
+          "团队推广累计",
+          "持续建设累计",
+          "培训学习累计",
+          "本月积分",
+          "上月积分",
+          "最后更新时间"
+        ]
+      },
+      {
+        "table": "积分月度汇总",
+        "fields": [
+          "主键",
+          "用户ID",
+          "年月",
+          "月度总积分",
+          "基础活跃月度合计",
+          "应用互动月度合计",
+          "应用使用月度合计",
+          "应用建设月度合计",
+          "培训学习月度合计"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "积分流水",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "PTS-004": {
+    "requiredCommon": [],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "积分规则",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "TRN-001": {
+    "requiredCommon": [
+      {
+        "table": "培训课程",
+        "fields": [
+          "课程ID",
+          "培训标题",
+          "分类",
+          "讲师姓名",
+          "开始时间",
+          "格式",
+          "培训简介",
+          "状态",
+          "已报名人数"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "TRN-002": {
+    "requiredCommon": [
+      {
+        "table": "培训课程",
+        "fields": [
+          "课程ID",
+          "培训标题",
+          "分类",
+          "讲师姓名",
+          "开始时间",
+          "格式",
+          "培训简介",
+          "状态",
+          "已报名人数"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "TRN-003": {
+    "requiredCommon": [
+      {
+        "table": "培训课程",
+        "fields": [
+          "课程ID",
+          "培训标题",
+          "分类",
+          "讲师姓名",
+          "开始时间",
+          "格式",
+          "培训简介",
+          "状态",
+          "已报名人数"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "TRN-004": {
+    "requiredCommon": [
+      {
+        "table": "培训课程",
+        "fields": [
+          "课程ID",
+          "培训标题",
+          "分类",
+          "讲师姓名",
+          "开始时间",
+          "格式",
+          "培训简介",
+          "状态",
+          "已报名人数"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "培训报名",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "TRN-005": {
+    "requiredCommon": [
+      {
+        "table": "培训课程",
+        "fields": [
+          "课程ID",
+          "培训标题",
+          "分类",
+          "讲师姓名",
+          "开始时间",
+          "格式",
+          "培训简介",
+          "状态",
+          "已报名人数"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "培训报名",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "TRN-006": {
+    "requiredCommon": [
+      {
+        "table": "培训课程",
+        "fields": [
+          "课程ID",
+          "培训标题",
+          "分类",
+          "讲师姓名",
+          "开始时间",
+          "格式",
+          "培训简介",
+          "状态",
+          "已报名人数"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "CER-001": {
+    "requiredCommon": [
+      {
+        "table": "数字化认证",
+        "fields": [
+          "主键",
+          "用户ID",
+          "认证类型",
+          "状态",
+          "认证时间",
+          "过期时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "认证项目",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "CER-002": {
+    "requiredCommon": [
+      {
+        "table": "数字化认证",
+        "fields": [
+          "主键",
+          "用户ID",
+          "认证类型",
+          "状态",
+          "认证时间",
+          "过期时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "认证项目",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "CER-003": {
+    "requiredCommon": [
+      {
+        "table": "数字化认证",
+        "fields": [
+          "主键",
+          "用户ID",
+          "认证类型",
+          "状态",
+          "认证时间",
+          "过期时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "认证项目",
+      "考试场次",
+      "考试预约",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "CER-004": {
+    "requiredCommon": [
+      {
+        "table": "数字化认证",
+        "fields": [
+          "主键",
+          "用户ID",
+          "认证类型",
+          "状态",
+          "认证时间",
+          "过期时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "考试预约",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OPS-001": {
+    "requiredCommon": [],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "用户行为流水",
+      "统计指标定义",
+      "日统计汇总",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OPS-003": {
+    "requiredCommon": [],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "用户行为流水",
+      "统计指标定义",
+      "日统计汇总",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAN-001": {
+    "requiredCommon": [
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "公告已读明细",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAN-002": {
+    "requiredCommon": [
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "公告已读明细",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAN-003": {
+    "requiredCommon": [
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "公告关联对象",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAN-008": {
+    "requiredCommon": [
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "公告关联对象",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAP-001": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      },
+      {
+        "table": "用户累计统计",
+        "fields": [
+          "主键",
+          "用户ID",
+          "累计访问应用次数",
+          "累计使用应用次数",
+          "累计收藏次数",
+          "累计评论次数",
+          "累计培训报名次数"
+        ]
+      },
+      {
+        "table": "用户月度统计",
+        "fields": [
+          "主键",
+          "用户ID",
+          "年月",
+          "当月访问次数",
+          "当月使用次数",
+          "当月收藏次数",
+          "当月评论次数",
+          "当月培训报名次数"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAP-002": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      },
+      {
+        "table": "应用类型配置",
+        "fields": [
+          "类型ID",
+          "类型名称",
+          "类型编码",
+          "类型图标",
+          "排序",
+          "状态",
+          "是否系统内置",
+          "类型描述",
+          "创建时间",
+          "更新时间"
+        ]
+      },
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      },
+      {
+        "table": "部门字典",
+        "fields": [
+          "部门ID",
+          "部门名称"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAP-003": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      },
+      {
+        "table": "附件资料",
+        "fields": [
+          "主键",
+          "应用ID",
+          "文件名称",
+          "附件文件",
+          "文件大小",
+          "上传时间",
+          "上传人ID"
+        ]
+      },
+      {
+        "table": "演示截图录屏",
+        "fields": [
+          "主键",
+          "应用ID",
+          "媒体类型",
+          "文件",
+          "说明文字"
+        ]
+      },
+      {
+        "table": "上架申请",
+        "fields": [
+          "申请单号",
+          "关联应用ID",
+          "应用类型ID",
+          "申请人ID",
+          "表单数据",
+          "状态",
+          "当前审批节点",
+          "提交时间",
+          "退回原因"
+        ]
+      }
+    ],
+    "conditionalOneOf": [
+      {
+        "discriminator": "applicationType",
+        "options": [
+          {
+            "table": "可视化驾驶舱详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "集成数据",
+              "数据更新频率",
+              "权限控制要求",
+              "核心功能",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "可视化报表详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "集成数据",
+              "数据更新频率",
+              "权限控制要求",
+              "核心功能",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "海能work应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "应用图片或视频",
+              "使用指南",
+              "使用功能",
+              "使用说明文档链接",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "工具应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "使用说明",
+              "核心功能",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "RPA应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "RPA所属平台",
+              "操作流程步骤",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "EAD应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "应用内容",
+              "使用流程步骤",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "AI应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "所属数据源",
+              "应用描述",
+              "核心功能"
+            ]
+          },
+          {
+            "table": "数据集应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "数据来源",
+              "更新频率",
+              "数据字段列表",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "指标应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "主要领域",
+              "指标应用场景",
+              "指标级别",
+              "业务解释部门",
+              "成果来源系统",
+              "指标定义",
+              "业务获取逻辑",
+              "业务计算公式",
+              "计算单位",
+              "采集方式",
+              "维度",
+              "统计粒度",
+              "关键值",
+              "权限控制要求",
+              "使用说明",
+              "列20"
+            ]
+          }
+        ]
+      }
+    ],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract",
+      "外部成果提交记录"
+    ]
+  },
+  "OAP-006": {
+    "requiredCommon": [
+      {
+        "table": "应用类型配置",
+        "fields": [
+          "类型ID",
+          "类型名称",
+          "类型编码",
+          "类型图标",
+          "排序",
+          "状态",
+          "是否系统内置",
+          "类型描述",
+          "创建时间",
+          "更新时间"
+        ]
+      },
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      }
+    ],
+    "conditionalOneOf": [
+      {
+        "discriminator": "applicationType",
+        "options": [
+          {
+            "table": "可视化驾驶舱详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "集成数据",
+              "数据更新频率",
+              "权限控制要求",
+              "核心功能",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "可视化报表详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "集成数据",
+              "数据更新频率",
+              "权限控制要求",
+              "核心功能",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "海能work应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "应用图片或视频",
+              "使用指南",
+              "使用功能",
+              "使用说明文档链接",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "工具应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "使用说明",
+              "核心功能",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "RPA应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "RPA所属平台",
+              "操作流程步骤",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "EAD应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "应用内容",
+              "使用流程步骤",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "AI应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "所属数据源",
+              "应用描述",
+              "核心功能"
+            ]
+          },
+          {
+            "table": "数据集应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "数据来源",
+              "更新频率",
+              "数据字段列表",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "指标应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "主要领域",
+              "指标应用场景",
+              "指标级别",
+              "业务解释部门",
+              "成果来源系统",
+              "指标定义",
+              "业务获取逻辑",
+              "业务计算公式",
+              "计算单位",
+              "采集方式",
+              "维度",
+              "统计粒度",
+              "关键值",
+              "权限控制要求",
+              "使用说明",
+              "列20"
+            ]
+          }
+        ]
+      }
+    ],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAP-008": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "外部成果提交记录",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAP-010": {
+    "requiredCommon": [
+      {
+        "table": "上架申请",
+        "fields": [
+          "申请单号",
+          "关联应用ID",
+          "应用类型ID",
+          "申请人ID",
+          "表单数据",
+          "状态",
+          "当前审批节点",
+          "提交时间",
+          "退回原因"
+        ]
+      },
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAP-011": {
+    "requiredCommon": [
+      {
+        "table": "应用类型配置",
+        "fields": [
+          "类型ID",
+          "类型名称",
+          "类型编码",
+          "类型图标",
+          "排序",
+          "状态",
+          "是否系统内置",
+          "类型描述",
+          "创建时间",
+          "更新时间"
+        ]
+      },
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "ADM-001": {
+    "requiredCommon": [
+      {
+        "table": "应用类型配置",
+        "fields": [
+          "类型ID",
+          "类型名称",
+          "类型编码",
+          "类型图标",
+          "排序",
+          "状态",
+          "是否系统内置",
+          "类型描述",
+          "创建时间",
+          "更新时间"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "用户权限",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "授权时间",
+          "授权人ID",
+          "状态"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "ADM-002": {
+    "requiredCommon": [
+      {
+        "table": "应用类型配置",
+        "fields": [
+          "类型ID",
+          "类型名称",
+          "类型编码",
+          "类型图标",
+          "排序",
+          "状态",
+          "是否系统内置",
+          "类型描述",
+          "创建时间",
+          "更新时间"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "用户权限",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "授权时间",
+          "授权人ID",
+          "状态"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "ADM-003": {
+    "requiredCommon": [
+      {
+        "table": "应用类型配置",
+        "fields": [
+          "类型ID",
+          "类型名称",
+          "类型编码",
+          "类型图标",
+          "排序",
+          "状态",
+          "是否系统内置",
+          "类型描述",
+          "创建时间",
+          "更新时间"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "用户权限",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "授权时间",
+          "授权人ID",
+          "状态"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "后台操作日志",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "ADM-004": {
+    "requiredCommon": [
+      {
+        "table": "应用类型配置",
+        "fields": [
+          "类型ID",
+          "类型名称",
+          "类型编码",
+          "类型图标",
+          "排序",
+          "状态",
+          "是否系统内置",
+          "类型描述",
+          "创建时间",
+          "更新时间"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "用户权限",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "授权时间",
+          "授权人ID",
+          "状态"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "接口调用日志",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "ADM-005": {
+    "requiredCommon": [
+      {
+        "table": "应用类型配置",
+        "fields": [
+          "类型ID",
+          "类型名称",
+          "类型编码",
+          "类型图标",
+          "排序",
+          "状态",
+          "是否系统内置",
+          "类型描述",
+          "创建时间",
+          "更新时间"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "用户权限",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "授权时间",
+          "授权人ID",
+          "状态"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "异常处理记录",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "ADM-006": {
+    "requiredCommon": [
+      {
+        "table": "应用类型配置",
+        "fields": [
+          "类型ID",
+          "类型名称",
+          "类型编码",
+          "类型图标",
+          "排序",
+          "状态",
+          "是否系统内置",
+          "类型描述",
+          "创建时间",
+          "更新时间"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "用户权限",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "授权时间",
+          "授权人ID",
+          "状态"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "接口调用日志",
+      "后台任务执行记录",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "ADM-007": {
+    "requiredCommon": [
+      {
+        "table": "应用类型配置",
+        "fields": [
+          "类型ID",
+          "类型名称",
+          "类型编码",
+          "类型图标",
+          "排序",
+          "状态",
+          "是否系统内置",
+          "类型描述",
+          "创建时间",
+          "更新时间"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "用户权限",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "授权时间",
+          "授权人ID",
+          "状态"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "TAL-004": {
+    "requiredCommon": [
+      {
+        "table": "人才库",
+        "fields": [
+          "主键",
+          "用户ID",
+          "人才类型",
+          "人才等级",
+          "擅长领域",
+          "状态"
+        ]
+      },
+      {
+        "table": "人才项目",
+        "fields": [
+          "主键",
+          "项目名称",
+          "项目类型",
+          "负责人ID",
+          "状态",
+          "开始日期",
+          "结束日期"
+        ]
+      },
+      {
+        "table": "项目进度",
+        "fields": [
+          "主键",
+          "项目ID",
+          "阶段名称",
+          "状态",
+          "更新时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "MAT-003": {
+    "requiredCommon": [
+      {
+        "table": "素材中心",
+        "fields": [
+          "素材ID",
+          "素材名称",
+          "素材文件",
+          "下载次数"
+        ]
+      },
+      {
+        "table": "应用素材关联",
+        "fields": [
+          "主键",
+          "应用ID",
+          "素材ID"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "INT-002": {
+    "requiredCommon": [],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "多维表连接配置",
+      "字段字典",
+      "后台任务执行记录",
+      "完整性差异记录",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "INT-004": {
+    "requiredCommon": [],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "多维表连接配置",
+      "字段字典",
+      "后台任务执行记录",
+      "完整性差异记录",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "COM-009": {
+    "requiredCommon": [
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      },
+      {
+        "table": "部门字典",
+        "fields": [
+          "部门ID",
+          "部门名称"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "场景字典",
+        "fields": [
+          "场景ID",
+          "场景名称"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "导出任务",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "COM-010": {
+    "requiredCommon": [
+      {
+        "table": "用户字典",
+        "fields": [
+          "用户ID",
+          "姓名",
+          "工号",
+          "所属部门ID",
+          "岗位",
+          "邮箱",
+          "手机号"
+        ]
+      },
+      {
+        "table": "部门字典",
+        "fields": [
+          "部门ID",
+          "部门名称"
+        ]
+      },
+      {
+        "table": "业务域字典",
+        "fields": [
+          "业务域ID",
+          "业务域名称"
+        ]
+      },
+      {
+        "table": "场景字典",
+        "fields": [
+          "场景ID",
+          "场景名称"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "导出任务",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "PTS-005": {
+    "requiredCommon": [
+      {
+        "table": "积分余额",
+        "fields": [
+          "主键",
+          "用户ID",
+          "当前总积分",
+          "基础活跃累计",
+          "应用互动累计",
+          "应用使用累计",
+          "应用建设累计",
+          "团队推广累计",
+          "持续建设累计",
+          "培训学习累计",
+          "本月积分",
+          "上月积分",
+          "最后更新时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "积分流水",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OPS-002": {
+    "requiredCommon": [],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "用户行为流水",
+      "统计指标定义",
+      "日统计汇总",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OPS-004": {
+    "requiredCommon": [],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "用户行为流水",
+      "统计指标定义",
+      "日统计汇总",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAN-004": {
+    "requiredCommon": [
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "公告关联对象",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAN-005": {
+    "requiredCommon": [
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "公告关联对象",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAN-006": {
+    "requiredCommon": [
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "公告关联对象",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAN-007": {
+    "requiredCommon": [
+      {
+        "table": "公告通知",
+        "fields": [
+          "公告ID",
+          "公告标题",
+          "分类",
+          "公告正文",
+          "发布部门ID",
+          "发布人ID",
+          "状态",
+          "是否置顶",
+          "发布时间"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "公告关联对象",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAP-004": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      }
+    ],
+    "conditionalOneOf": [
+      {
+        "discriminator": "applicationType",
+        "options": [
+          {
+            "table": "可视化驾驶舱详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "集成数据",
+              "数据更新频率",
+              "权限控制要求",
+              "核心功能",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "可视化报表详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "集成数据",
+              "数据更新频率",
+              "权限控制要求",
+              "核心功能",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "海能work应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "应用图片或视频",
+              "使用指南",
+              "使用功能",
+              "使用说明文档链接",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "工具应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "使用说明",
+              "核心功能",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "RPA应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "RPA所属平台",
+              "操作流程步骤",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "EAD应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "应用内容",
+              "使用流程步骤",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "AI应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "所属数据源",
+              "应用描述",
+              "核心功能"
+            ]
+          },
+          {
+            "table": "数据集应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "数据来源",
+              "更新频率",
+              "数据字段列表",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "指标应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "主要领域",
+              "指标应用场景",
+              "指标级别",
+              "业务解释部门",
+              "成果来源系统",
+              "指标定义",
+              "业务获取逻辑",
+              "业务计算公式",
+              "计算单位",
+              "采集方式",
+              "维度",
+              "统计粒度",
+              "关键值",
+              "权限控制要求",
+              "使用说明",
+              "列20"
+            ]
+          }
+        ]
+      }
+    ],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAP-005": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      }
+    ],
+    "conditionalOneOf": [
+      {
+        "discriminator": "applicationType",
+        "options": [
+          {
+            "table": "可视化驾驶舱详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "集成数据",
+              "数据更新频率",
+              "权限控制要求",
+              "核心功能",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "可视化报表详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "集成数据",
+              "数据更新频率",
+              "权限控制要求",
+              "核心功能",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "海能work应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "应用图片或视频",
+              "使用指南",
+              "使用功能",
+              "使用说明文档链接",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "工具应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "使用说明",
+              "核心功能",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "RPA应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "RPA所属平台",
+              "操作流程步骤",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "EAD应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "应用内容",
+              "使用流程步骤",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "AI应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "所属数据源",
+              "应用描述",
+              "核心功能"
+            ]
+          },
+          {
+            "table": "数据集应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "数据来源",
+              "更新频率",
+              "数据字段列表",
+              "应用描述"
+            ]
+          },
+          {
+            "table": "指标应用详情",
+            "fields": [
+              "主键",
+              "应用ID",
+              "应用编码",
+              "版本号",
+              "主要领域",
+              "指标应用场景",
+              "指标级别",
+              "业务解释部门",
+              "成果来源系统",
+              "指标定义",
+              "业务获取逻辑",
+              "业务计算公式",
+              "计算单位",
+              "采集方式",
+              "维度",
+              "统计粒度",
+              "关键值",
+              "权限控制要求",
+              "使用说明",
+              "列20"
+            ]
+          }
+        ]
+      }
+    ],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAP-007": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "外部成果提交记录",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAP-009": {
+    "requiredCommon": [
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "OAP-012": {
+    "requiredCommon": [
+      {
+        "table": "用户权限",
+        "fields": [
+          "主键",
+          "应用ID",
+          "用户ID",
+          "授权时间",
+          "授权人ID",
+          "状态"
+        ]
+      },
+      {
+        "table": "应用索引",
+        "fields": [
+          "应用ID",
+          "应用名称",
+          "应用类型",
+          "子类型",
+          "应用简介",
+          "应用关键字",
+          "应用URL地址",
+          "状态",
+          "访问次数",
+          "使用次数",
+          "收藏数",
+          "发布时间",
+          "创建日期",
+          "最近更新日期",
+          "负责人ID",
+          "所属部门ID",
+          "开发者ID",
+          "开发部门ID",
+          "运营人员ID",
+          "所属业务域ID",
+          "所属场景ID",
+          "适用对象"
+        ]
+      }
+    ],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "ARC-001": {
+    "requiredCommon": [],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "归档任务",
+      "恢复任务",
+      "归档执行记录",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "ARC-002": {
+    "requiredCommon": [],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "归档任务",
+      "恢复任务",
+      "归档执行记录",
+      "operation-specific-required-field-contract"
+    ]
+  },
+  "ARC-003": {
+    "requiredCommon": [],
+    "conditionalOneOf": [],
+    "optional": [],
+    "knownMissing": [
+      "归档任务",
+      "恢复任务",
+      "归档执行记录",
+      "operation-specific-required-field-contract"
+    ]
+  }
+}

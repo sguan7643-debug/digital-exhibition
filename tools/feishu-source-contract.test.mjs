@@ -1,67 +1,81 @@
 import assert from 'node:assert/strict';
-import {
-  FEISHU_BASE_TABLES,
-  FEISHU_SCHEMA_SOURCE,
-  FEISHU_SCHEMA_WARNINGS,
-  getFeishuOperationSourceContract
-} from '../src/integration/feishu-source-contract.js';
-import { OPERATION_REGISTRY } from '../src/integration/operation-registry.js';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { OPERATION_REGISTRY, getOperation, isKnownOperationId } from '../src/integration/operation-registry.js';
 
-assert.equal(FEISHU_SCHEMA_SOURCE.tableCount, 36);
-assert.equal(Object.keys(FEISHU_BASE_TABLES).length, 36);
-assert.equal(FEISHU_SCHEMA_SOURCE.containsRecordValues, false);
-assert.equal(FEISHU_SCHEMA_SOURCE.containsCredentials, false);
-assert.equal(FEISHU_SCHEMA_SOURCE.containsTableIds, false);
-assert.equal(FEISHU_SCHEMA_SOURCE.containsViewIds, false);
-assert.equal(FEISHU_SCHEMA_SOURCE.containsFieldIds, false);
-assert.equal(FEISHU_SCHEMA_SOURCE.mappingScope, 'table-and-field-names-only');
+const here = path.dirname(fileURLToPath(import.meta.url));
+const expectedOperations = JSON.parse(fs.readFileSync(
+  path.join(here, 'fixtures', 'feishu-operation-sources.fixture.json'),
+  'utf8'
+));
+const snapshotPath = path.join(here, 'fixtures', 'feishu-base-schema-snapshot.fixture.json');
+const snapshotBytes = fs.readFileSync(snapshotPath);
+const snapshot = JSON.parse(snapshotBytes);
+const governedSnapshotSha256 = fs.readFileSync(
+  path.join(here, 'fixtures', 'feishu-base-schema-snapshot.fixture.sha256'),
+  'utf8'
+).trim();
+const canonicalSchema = JSON.stringify(snapshot.sheets.map(sheet => ({ name: sheet.name, headers: sheet.headers })));
+const canonicalSchemaSha256 = crypto.createHash('sha256').update(canonicalSchema).digest('hex').toUpperCase();
 
-for (const [tableName, schema] of Object.entries(FEISHU_BASE_TABLES)) {
-  assert.ok(tableName.length > 0);
-  assert.ok(schema.fields.length > 0, `${tableName} 必须包含字段`);
-  assert.equal(new Set(schema.fields).size, schema.fields.length, `${tableName} 字段名必须唯一`);
+assert.equal(governedSnapshotSha256, '430CE3E588B3BA6985C4124044D38C5E17B7998E7E79729D0DDE4D860CC83EF9');
+assert.equal(canonicalSchemaSha256, '175E87BF259C461553EA79DA5DD84D84922967515097BFB4425CFF95244D2131');
+assert.equal(snapshot.sheetCount, 36);
+assert.equal(snapshot.sheets.length, 36);
+
+const tables = new Map(snapshot.sheets.map(sheet => [sheet.name, new Set(sheet.headers)]));
+const expectedIds = Object.keys(expectedOperations);
+assert.equal(expectedIds.length, 101, '独立 operation fixture 必须逐项覆盖 101 个操作');
+assert.deepEqual([...OPERATION_REGISTRY.map(operation => operation.id)].sort(), [...expectedIds].sort());
+
+function requirementSatisfied(requirement) {
+  const actualFields = tables.get(requirement.table);
+  return Boolean(actualFields) && requirement.fields.every(field => actualFields.has(field));
 }
 
-assert.deepEqual(FEISHU_BASE_TABLES['RPA应用详情'].fields, [
-  '主键', '应用ID', '应用编码', '版本号', 'RPA所属平台', '操作流程步骤', '应用描述'
-]);
-assert.ok(FEISHU_BASE_TABLES['应用索引'].fields.includes('应用类型'));
-assert.ok(FEISHU_BASE_TABLES['用户月度统计'].fields.includes('当月使用次数'));
-assert.equal(FEISHU_SCHEMA_WARNINGS.length, 1);
-assert.equal(FEISHU_SCHEMA_WARNINGS[0].field, '列20');
+function expectedSourceVerification(contract) {
+  const commonSatisfied = contract.requiredCommon.every(requirementSatisfied);
+  const oneOfSatisfied = contract.conditionalOneOf.length === 0
+    || contract.conditionalOneOf.every(group => group.options.length > 0 && group.options.some(requirementSatisfied));
+  return commonSatisfied && oneOfSatisfied && contract.knownMissing.length === 0;
+}
 
-for (const operation of OPERATION_REGISTRY) {
-  const source = getFeishuOperationSourceContract(operation.id);
-  assert.equal(source.operationId, operation.id);
-  assert.equal(operation.remoteEnabled, false);
+for (const operationId of expectedIds) {
+  const expected = expectedOperations[operationId];
+  const operation = getOperation(operationId);
+  assert.ok(operation, `${operationId} 必须在运行时 registry 中存在`);
+  assert.equal(operation.sourceFieldNamesVerified, expectedSourceVerification(expected), `${operationId} 来源字段门禁错误`);
+  assert.equal(operation.apiIdentifiersVerified, false);
   assert.equal(operation.apiReady, false);
-  assert.equal(source.apiReady, false);
-  assert.equal(source.identifierCoverage, 'missing-table-view-field-ids');
-  assert.equal(operation.contractStatus, source.schemaCoverage === 'verified' ? 'source-name-schema-verified' : 'source-name-schema-partial');
-  assert.deepEqual(operation.verifiedSourceTables, source.verifiedTables);
-  assert.deepEqual(operation.missingSourceTables, source.missingTables);
-  assert.ok(source.verifiedTables.every(tableName => Object.hasOwn(FEISHU_BASE_TABLES, tableName)));
-  assert.equal(new Set(source.verifiedTables).size, source.verifiedTables.length);
-  assert.equal(new Set(source.missingTables).size, source.missingTables.length);
-  assert.ok(source.verifiedTables.every(tableName => !source.missingTables.includes(tableName)));
-  assert.match(source.disabledReason, /同源安全代理/);
-  assert.match(source.disabledReason, /table_id\/view_id\/field_id/);
+  assert.equal(operation.remoteEnabled, false);
+  assert.equal(Object.hasOwn(operation, 'verifiedSourceTables'), false, '浏览器 registry 不得携带完整表目录');
+  assert.equal(Object.hasOwn(operation, 'missingSourceTables'), false, '浏览器 registry 不得携带缺失表目录');
+  assert.match(operation.disabledReason, /安全代理/);
 }
 
-assert.equal(getFeishuOperationSourceContract('APP-003').schemaCoverage, 'verified');
-assert.ok(getFeishuOperationSourceContract('APP-003').verifiedTables.includes('RPA应用详情'));
-assert.ok(getFeishuOperationSourceContract('APP-003').verifiedTables.includes('指标应用详情'));
-assert.ok(getFeishuOperationSourceContract('APP-003').verifiedTables.includes('附件资料'));
-assert.ok(getFeishuOperationSourceContract('APP-003').verifiedTables.includes('应用评论'));
-assert.equal(getFeishuOperationSourceContract('APP-003').verifiedTables.filter(tableName => tableName.endsWith('详情')).length, 9);
-assert.deepEqual(getFeishuOperationSourceContract('APP-007').verifiedTables, ['应用评论', '用户字典']);
-assert.deepEqual(getFeishuOperationSourceContract('PTS-002').missingTables, ['积分流水']);
-assert.deepEqual(getFeishuOperationSourceContract('TRN-004').missingTables, ['培训报名']);
-assert.ok(getFeishuOperationSourceContract('OAP-003').verifiedTables.includes('可视化报表详情'));
-assert.ok(getFeishuOperationSourceContract('OPS-001').missingTables.includes('用户行为流水'));
-assert.ok(getFeishuOperationSourceContract('ARC-001').missingTables.includes('归档任务'));
+for (const operationId of ['COM-001', 'WB-001', 'FAV-001', 'OAP-003', 'APP-003']) {
+  assert.equal(getOperation(operationId).sourceFieldNamesVerified, false, `${operationId} 不得假完整`);
+}
 
-const serialized = JSON.stringify({ FEISHU_BASE_TABLES, FEISHU_SCHEMA_WARNINGS });
-assert.doesNotMatch(serialized, /app[_-]?token|table[_-]?id|view[_-]?id|cookie|secret|access[_-]?token/i);
+assert.ok(expectedOperations['COM-001'].requiredCommon.some(item => item.table === '消息通知'));
+assert.ok(expectedOperations['COM-001'].requiredCommon.some(item => item.table === '应用收藏'));
+assert.ok(expectedOperations['COM-001'].requiredCommon.some(item => item.table === '积分余额'));
+assert.ok(expectedOperations['WB-001'].requiredCommon.some(item => item.table === '培训课程'));
+assert.ok(expectedOperations['WB-001'].requiredCommon.some(item => item.table === '应用类型配置'));
+assert.ok(expectedOperations['FAV-001'].requiredCommon.some(item => item.table === '应用索引'));
+assert.ok(expectedOperations['FAV-001'].requiredCommon.some(item => item.table === '业务域字典'));
+assert.ok(expectedOperations['OAP-003'].requiredCommon.some(item => item.table === '上架申请'));
+assert.ok(expectedOperations['OAP-003'].knownMissing.includes('外部成果提交记录'));
 
-console.log(`feishu source contract passed (${Object.keys(FEISHU_BASE_TABLES).length} tables, ${OPERATION_REGISTRY.length} operations)`);
+const appDetail = expectedOperations['APP-003'];
+assert.equal(appDetail.conditionalOneOf.length, 1);
+assert.equal(appDetail.conditionalOneOf[0].options.length, 9);
+assert.equal(appDetail.requiredCommon.some(item => item.table.endsWith('详情')), false);
+assert.ok(appDetail.optional.some(item => item.table === '公告通知'));
+
+assert.equal(getOperation('UNKNOWN-999'), undefined);
+assert.equal(isKnownOperationId('UNKNOWN-999'), false);
+
+console.log(`feishu source contract passed (${snapshot.sheets.length} governed tables, ${expectedIds.length} explicit operations)`);
