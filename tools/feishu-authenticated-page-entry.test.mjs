@@ -9,6 +9,7 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const appSource = await readFile(path.join(root, 'src', 'App.vue'), 'utf8');
 const bannerSource = await readFile(path.join(root, 'src', 'components', 'IntegrationAuthBanner.vue'), 'utf8');
 const messagesSource = await readFile(path.join(root, 'src', 'pages', 'MessagesPage.vue'), 'utf8');
+const favoritesSource = await readFile(path.join(root, 'src', 'pages', 'FavoritesPage.vue'), 'utf8');
 
 assert.deepEqual(normalizeIntegrationError({ status: 401 }), { state: 'authentication-required', retryable: false });
 const state = reduceDataState(createDataState({ mode: 'remote' }), {
@@ -29,5 +30,9 @@ assert.ok(bannerSource.includes('登录飞书并读取本人数据'));
 assert.ok(messagesSource.includes("integrationData?.['MSG-001']"));
 assert.ok(messagesSource.includes("integrationData?.['MSG-002']"));
 assert.ok(messagesSource.includes('真实消息写操作尚未开放'));
+assert.ok(favoritesSource.includes("integrationData?.['FAV-001']"));
+assert.ok(favoritesSource.includes("integrationData?.['FAV-002']"));
+assert.ok(favoritesSource.includes("operationExecutor('APP-004'"));
+assert.ok(favoritesSource.includes('真实收藏取消写操作尚未开放'));
 
 console.log('authenticated pages enter real proxy reads and expose an explicit same-origin Feishu login path');
