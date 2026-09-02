@@ -236,7 +236,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
     <p class="sr-only integration-source-status" data-integration-status aria-live="polite">{{ integrationLiveAnnouncement }}</p>
     <integration-auth-banner v-if="integrationAuthRequired" :href="feishuAuthUrl" />
     <page-state-boundary :page="page" :state="page.state" @restore="restoreNormal">
-      <workbench-page v-if="page.id === '01'" />
+      <workbench-page v-if="page.id === '01'" :integration-data="integrationEnvelope.data" />
       <messages-page v-else-if="page.id === '02'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <favorites-page v-else-if="page.id === '03'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <profile-page v-else-if="page.id === '04'" />

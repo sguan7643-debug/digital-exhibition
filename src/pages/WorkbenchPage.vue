@@ -1,40 +1,52 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { HOT_APP_FIXTURES, createWorkbenchController } from '../state/workbench-profile-controllers.js';
+import { mapRemoteApp } from '../integration/app-read-model.js';
+const props=defineProps({integrationData:{type:Object,default:null}});
 const controller=createWorkbenchController(HOT_APP_FIXTURES);
-const filteredHotApps=computed(()=>controller.results);
+const remote=computed(()=>props.integrationData?.['WB-001']);
+const remoteApps=computed(()=>remote.value?.hotApps?.map(item=>{const app=mapRemoteApp(item);return{id:app.id,name:app.name,type:app.category,scene:app.scene,description:app.description,count:Number(app.usage||0).toLocaleString('zh-CN'),route:app.route};})||null);
+const filteredHotApps=computed(()=>{
+  if(!remoteApps.value)return controller.results;
+  const query=String(controller.query||'').toLocaleLowerCase('zh-CN');
+  return remoteApps.value.filter(item=>(!query||`${item.name} ${item.description}`.toLocaleLowerCase('zh-CN').includes(query))&&(!controller.scene||item.scene===controller.scene));
+});
 function receiveWorkbenchFilter(event){const {key,value}=event.detail;if(key==='reset')controller.reset();else if(key==='query')controller.setQuery(value);else if(key==='scene')controller.setScene(value);}
 function overviewHref(label){const categories={'数据集':'数据集','帆软报表':'可视化报表','RPA机器人':'RPA','AI智能体':'AI'};return categories[label]?`/apps?category=${encodeURIComponent(categories[label])}`:'/apps';}
 onMounted(()=>window.addEventListener('xlt:workbench-filter',receiveWorkbenchFilter));
 onBeforeUnmount(()=>window.removeEventListener('xlt:workbench-filter',receiveWorkbenchFilter));
-const overview = [
+const fallbackOverview = [
   ['数据集', '186'], ['帆软报表', '92'], ['RPA机器人', '64'],
   ['EAD应用', '18'], ['AI智能体', '27'], ['其他应用', '35']
 ];
-const courses = [
+const overview=computed(()=>remote.value?.appTypeOverview?.length?remote.value.appTypeOverview.map(item=>[item.typeName||item.typeCode,Number(item.count||0).toLocaleString('zh-CN')]):fallbackOverview);
+const fallbackCourses = [
   ['数说心智 · 数智应用案例分享', '分享最新应用实践与创新案例', '/assets/training-ai.png', '立即参加'],
   ['取经会 · 采购合规效率交流会', '交流采购合规与提效经验', '/assets/training-procurement.png', '立即参加'],
   ['AI社区 · 大模型在采购场景的应用', '探讨AI赋能采购业务实践', '/assets/training-community.png', '进入活动']
 ];
-const notices = [
+const courses=computed(()=>remote.value?.courses?.length?remote.value.courses.map(item=>[item.title,item.summary||`${item.category} · ${item.instructorName}`,item.coverUrl||'/assets/training-ai.png','查看课程',`/training?courseId=${encodeURIComponent(item.courseId)}`]):fallbackCourses.map(item=>[...item,'/training']));
+const fallbackNotices = [
   ['系统上线', '【新应用上线】供应商风险预警应用已发布上线', '05-08 09:32', 'blue'],
   ['系统更新', '【功能更新】库存分析看板新增多维度筛选功能', '05-07 16:20', 'blue'],
   ['功能更新', '【系统维护】系统将于本周六凌晨进行维护升级', '05-06 18:15', 'blue']
 ];
-const usage = [
+const notices=computed(()=>remote.value?.announcements?.length?remote.value.announcements.map(item=>[item.typeName,item.title,item.publishedAt?.replace('T',' ').slice(5,16)||'','blue',item.detailPath]):fallbackNotices.map((item,index)=>[...item,index===0?'/announcements/notice-001':'/announcements']));
+const fallbackUsage = [
   ['应用使用数', '18', '12', 'up'], ['报表查看次数', '236', '8', 'up'],
   ['数据查询次数', '326', '3', 'down'], ['收藏应用数', '12', '5', 'up']
 ];
+const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value.usage.appVisitCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.visitChange||0),remote.value.usage.visitChange<0?'down':'up'],['应用使用次数',Number(remote.value.usage.appUseCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.useChange||0),remote.value.usage.useChange<0?'down':'up'],['收藏应用数',Number(remote.value.usage.favoriteAppCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.favoriteChange||0),remote.value.usage.favoriteChange<0?'down':'up'],['数据更新时间',remote.value.lastUpdatedAt?.replace('T',' ').slice(5,16)||'—','0','up']]:fallbackUsage);
 </script>
 
 <template>
   <div class="workbench-page" data-visual-baseline="ui-update-0831-workbench"><p class="sr-only" aria-live="polite">{{ controller.announcement }}</p>
     <section class="hero-panel" aria-labelledby="greeting-title">
-      <img class="hero-avatar" src="/assets/user-avatar.png" width="78" height="78" alt="张三丰头像" />
+      <img class="hero-avatar" :src="remote?.profile.avatarUrl||'/assets/user-avatar.png'" width="78" height="78" :alt="`${remote?.profile.displayName||'当前用户'}头像`" />
       <div class="greeting">
-        <h1 id="greeting-title">上午好，张三丰</h1>
-        <p>欢迎来到数智产品展厅平台，探索更卓越的应用，助力业务高效运营！</p>
-        <small>数据截至：2025-05-08　　最后更新：10:18</small>
+        <h1 id="greeting-title">{{ remote?.greeting.text||'上午好，张三丰' }}</h1>
+        <p>{{ remote?.hero.subtitle||'欢迎来到数智产品展厅平台，探索更卓越的应用，助力业务高效运营！' }}</p>
+        <small>数据截至：{{ remote?.dataAsOf?.replace('T',' ').slice(0,16)||'2025-05-08' }}　　最后更新：{{ remote?.lastUpdatedAt?.replace('T',' ').slice(0,16)||'10:18' }}</small>
       </div>
     </section>
 
@@ -62,8 +74,8 @@ const usage = [
       <section class="panel course-panel" aria-labelledby="course-title">
         <header><h2 id="course-title">培训课堂</h2><a href="/training">查看更多　›</a></header>
         <ul>
-          <li v-for="([name, description, icon, action]) in courses" :key="name">
-            <AppIcon :name="icon" :size="58" /><span><strong>{{ name }}</strong><small>{{ description }}</small></span><a href="/training">{{ action }}</a>
+          <li v-for="([name, description, icon, action, route]) in courses" :key="name">
+            <AppIcon :name="icon" :size="58" /><span><strong>{{ name }}</strong><small>{{ description }}</small></span><a :href="route">{{ action }}</a>
           </li>
         </ul>
       </section>
@@ -71,8 +83,8 @@ const usage = [
       <section class="panel notice-panel" aria-labelledby="notice-title">
         <header><h2 id="notice-title">公告通知</h2><a href="/announcements">查看更多　›</a></header>
         <ul>
-          <li v-for="([type, title, time, tone], index) in notices" :key="title">
-            <a :href="index === 0 ? '/announcements/notice-001' : '/announcements'">
+          <li v-for="([type, title, time, tone, route]) in notices" :key="title">
+            <a :href="route">
               <mark :class="tone">{{ type }}</mark><span>{{ title }}</span><time :datetime="`2025-${time.replace(' ', 'T')}`">{{ time }}</time>
             </a>
           </li>

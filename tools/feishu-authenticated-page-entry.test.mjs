@@ -12,6 +12,7 @@ const messagesSource = await readFile(path.join(root, 'src', 'pages', 'MessagesP
 const favoritesSource = await readFile(path.join(root, 'src', 'pages', 'FavoritesPage.vue'), 'utf8');
 const pointsSource = await readFile(path.join(root, 'src', 'pages', 'PointsPage.vue'), 'utf8');
 const pointDetailsSource = await readFile(path.join(root, 'src', 'pages', 'PointsDetailsPage.vue'), 'utf8');
+const workbenchSource = await readFile(path.join(root, 'src', 'pages', 'WorkbenchPage.vue'), 'utf8');
 
 assert.deepEqual(normalizeIntegrationError({ status: 401 }), { state: 'authentication-required', retryable: false });
 const state = reduceDataState(createDataState({ mode: 'remote' }), {
@@ -41,5 +42,8 @@ assert.ok(pointsSource.includes("integrationData?.['PTS-003']"));
 assert.ok(pointDetailsSource.includes("integrationData?.['PTS-002']"));
 assert.ok(pointDetailsSource.includes('PaginationControl'));
 assert.ok(pointDetailsSource.includes('真实导出写操作尚未开放'));
+assert.ok(workbenchSource.includes("integrationData?.['WB-001']"));
+assert.ok(workbenchSource.includes('appTypeOverview'));
+assert.ok(workbenchSource.includes('lastUpdatedAt'));
 
 console.log('authenticated pages enter real proxy reads and expose an explicit same-origin Feishu login path');
