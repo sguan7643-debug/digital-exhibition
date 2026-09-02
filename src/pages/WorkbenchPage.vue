@@ -1,17 +1,39 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { HOT_APP_FIXTURES, createWorkbenchController } from '../state/workbench-profile-controllers.js';
 import { mapRemoteApp } from '../integration/app-read-model.js';
-const props=defineProps({integrationData:{type:Object,default:null}});
+const props=defineProps({integrationData:{type:Object,default:null},operationExecutor:{type:Function,default:null}});
 const controller=createWorkbenchController(HOT_APP_FIXTURES);
 const remote=computed(()=>props.integrationData?.['WB-001']);
+const remoteSearch=ref(null);
+const searchState=ref('idle');
+let searchRevision=0;
 const remoteApps=computed(()=>remote.value?.hotApps?.map(item=>{const app=mapRemoteApp(item);return{id:app.id,name:app.name,type:app.category,scene:app.scene,description:app.description,count:Number(app.usage||0).toLocaleString('zh-CN'),route:app.route};})||null);
 const filteredHotApps=computed(()=>{
+  if(remoteSearch.value)return remoteSearch.value.map(item=>{const app=mapRemoteApp(item);return{id:app.id,name:app.name,type:app.category,scene:app.scene,description:app.description,count:Number(app.usage||0).toLocaleString('zh-CN'),route:app.route};});
   if(!remoteApps.value)return controller.results;
   const query=String(controller.query||'').toLocaleLowerCase('zh-CN');
   return remoteApps.value.filter(item=>(!query||`${item.name} ${item.description}`.toLocaleLowerCase('zh-CN').includes(query))&&(!controller.scene||item.scene===controller.scene));
 });
-function receiveWorkbenchFilter(event){const {key,value}=event.detail;if(key==='reset')controller.reset();else if(key==='query')controller.setQuery(value);else if(key==='scene')controller.setScene(value);}
+async function runRemoteSearch(){
+  if(!props.operationExecutor)return;
+  const revision=++searchRevision;
+  searchState.value='loading';
+  try{
+    const response=await props.operationExecutor('WB-002',{keyword:controller.query||'',scene:controller.scene||'',page:1,pageSize:20,sort:'RELEVANCE'});
+    if(revision!==searchRevision)return;
+    remoteSearch.value=response?.data?.items||[];
+    searchState.value='normal';
+  }catch(error){
+    if(revision!==searchRevision)return;
+    searchState.value=error?.code==='AUTHENTICATION_REQUIRED'?'authentication-required':'error';
+  }
+}
+function receiveWorkbenchFilter(event){
+  const {key,value}=event.detail;
+  if(key==='reset')controller.reset();else if(key==='query')controller.setQuery(value);else if(key==='scene')controller.setScene(value);
+  void runRemoteSearch();
+}
 function overviewHref(label){const categories={'数据集':'数据集','帆软报表':'可视化报表','RPA机器人':'RPA','AI智能体':'AI'};return categories[label]?`/apps?category=${encodeURIComponent(categories[label])}`:'/apps';}
 onMounted(()=>window.addEventListener('xlt:workbench-filter',receiveWorkbenchFilter));
 onBeforeUnmount(()=>window.removeEventListener('xlt:workbench-filter',receiveWorkbenchFilter));
@@ -40,7 +62,7 @@ const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value
 </script>
 
 <template>
-  <div class="workbench-page" data-visual-baseline="ui-update-0831-workbench"><p class="sr-only" aria-live="polite">{{ controller.announcement }}</p>
+  <div class="workbench-page" data-visual-baseline="ui-update-0831-workbench"><p class="sr-only" aria-live="polite">{{ searchState==='loading'?'正在从飞书检索应用':searchState==='error'?'飞书检索失败，保留当前结果':controller.announcement }}</p>
     <section class="hero-panel" aria-labelledby="greeting-title">
       <img class="hero-avatar" :src="remote?.profile.avatarUrl||'/assets/user-avatar.png'" width="78" height="78" :alt="`${remote?.profile.displayName||'当前用户'}头像`" />
       <div class="greeting">
@@ -67,7 +89,8 @@ const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value
             <h3>{{ app.name }}</h3><mark>{{ app.type }}</mark><p>{{ app.description }}</p><small>使用量　{{ app.count }}</small>
             <a :href="app.route" :aria-label="`立即使用 ${app.name}`">立即使用</a>
           </article>
-          <p v-if="!filteredHotApps.length" class="hot-empty" role="status">暂无符合条件的热门应用</p>
+          <p v-if="searchState==='loading'" class="hot-empty" role="status">正在检索应用…</p>
+          <p v-else-if="!filteredHotApps.length" class="hot-empty" role="status">暂无符合条件的热门应用</p>
         </div>
       </section>
 
