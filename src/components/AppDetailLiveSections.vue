@@ -7,6 +7,7 @@ const props=defineProps({
 const announcement=ref('');
 const comments=computed(()=>props.integrationData?.['APP-007']?.items||[]);
 const materials=computed(()=>props.integrationData?.['MAT-002']?.items||[]);
+const attachments=computed(()=>props.integrationData?.['APP-003']?.attachments||[]);
 const materialFacets=computed(()=>props.integrationData?.['MAT-001']);
 const categoryLabel=material=>material.materialType||materialFacets.value?.materialTypes?.find(item=>item.value===material.materialType)?.label||'素材';
 const sizeLabel=material=>material.primaryFile?.sizeBytes?`${(material.primaryFile.sizeBytes/1024/1024).toFixed(2)} MB`:'—';
@@ -20,6 +21,14 @@ async function download(material){
     if(error?.status===401){window.location.assign(`/api/v1/auth/feishu/start?returnTo=${encodeURIComponent(window.location.pathname)}`);return;}
     announcement.value=`${material.name} 下载失败，请稍后重试`;
   }
+}
+async function downloadAttachment(file){
+  if(!props.operationExecutor||props.integrationState==='mock'){announcement.value='当前附件只有展示数据，无法下载';return;}
+  announcement.value=`正在准备下载 ${file.name}`;
+  try{
+    const response=await props.operationExecutor('COM-008',{fileId:file.attachmentId,mode:'DOWNLOAD',disposition:'ATTACHMENT',fileNameOverride:file.name});
+    window.location.assign(response.data.url);
+  }catch(error){announcement.value=`${file.name} 下载失败，请稍后重试`;}
 }
 </script>
 
@@ -35,6 +44,9 @@ async function download(material){
         </article>
       </div>
       <p v-else class="empty-copy">暂无关联素材</p>
+      <ul v-if="attachments.length" class="attachment-list" aria-label="飞书附件">
+        <li v-for="file in attachments" :key="file.attachmentId"><span>{{ file.name }}</span><small>{{ file.sizeBytes?`${(file.sizeBytes/1024/1024).toFixed(2)} MB`:'—' }}</small><button type="button" @click="downloadAttachment(file)">下载附件</button></li>
+      </ul>
     </section>
     <section class="live-panel" aria-labelledby="live-comments-title">
       <header><h2 id="live-comments-title">应用评论</h2><small>{{ comments.length }} 条真实评论</small></header>
@@ -48,4 +60,5 @@ async function download(material){
 
 <style scoped>
 .live-detail-sections{display:grid;grid-template-columns:1.2fr .8fr;gap:12px;margin:12px 22px 24px;color:#17385f}.live-panel{padding:18px;background:#fff;border:1px solid #dce5ef;border-radius:7px}.live-panel>header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.live-panel h2{margin:0;font-size:15px}.live-panel header small{color:#70839d;font-size:10px}.material-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.material-grid article{padding:13px;border:1px solid #e0e7ef;border-radius:6px}.material-grid mark{padding:3px 8px;color:#1461a9;background:#eaf3fb;border-radius:9px;font-size:9px}.material-grid h3{margin:10px 0 6px;font-size:12px}.material-grid p{min-height:34px;margin:0;color:#647892;font-size:10px;line-height:1.7}.material-grid footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px;color:#71849d;font-size:9px}.material-grid button{padding:0;border:0;color:#075fc0;background:transparent}.comment-list{list-style:none;margin:0;padding:0}.comment-list li{padding:10px 0;border-bottom:1px solid #e5ebf1}.comment-list li:last-child{border-bottom:0}.comment-list strong{font-size:11px}.comment-list span{float:right;color:#0d68c7;font-size:10px}.comment-list p{margin:6px 0;color:#435b78;font-size:10px;line-height:1.6}.comment-list small,.empty-copy{color:#71849d;font-size:9px}.empty-copy{min-height:80px;display:grid;place-items:center}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}button:focus-visible{outline:3px solid #1b77d2;outline-offset:2px}@media(max-width:900px){.live-detail-sections{grid-template-columns:1fr}.material-grid{grid-template-columns:1fr}}
+.attachment-list{list-style:none;margin:12px 0 0;padding:0;border-top:1px solid #e5ebf1}.attachment-list li{display:grid;grid-template-columns:1fr 80px 70px;gap:8px;padding:9px 0;border-bottom:1px solid #e5ebf1;font-size:9px}.attachment-list small{color:#71849d}.attachment-list button{padding:0;border:0;color:#075fc0;background:transparent;font-size:9px}
 </style>

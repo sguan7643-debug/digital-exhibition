@@ -48,7 +48,7 @@ await assert.rejects(() => leakingTransport.execute('APP-002', {}), /敏感/);
 for (const page of PAGE_INTEGRATION_MATRIX) {
   assert.ok(page.readOperationIds.every(id => getOperation(id).readOnly), `${page.route} load contract contains a write`);
   assert.ok(page.actions.every(action => getOperation(action.operationId).access === 'write'), `${page.route} action contract must contain writes only`);
-  assert.deepEqual(new Set([...page.readOperationIds, ...page.actions.map(action => action.operationId)]), new Set(page.operationIds));
+  assert.deepEqual(new Set([...page.readOperationIds, ...page.interactionOperationIds, ...page.actions.map(action => action.operationId)]), new Set(page.operationIds));
 }
 
 const remoteRuntime = resolveIntegrationRuntime({

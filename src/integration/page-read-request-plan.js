@@ -8,11 +8,12 @@ const routeSpecificInputs = Object.freeze({
   '/workbench': Object.freeze({
     'COM-001': {}, 'COM-002': { platform: 'WEB' },
     'COM-005': { dictTypes: ['APP_TYPE', 'BUSINESS_DOMAIN', 'SCENE'], includeDisabled: false },
-    'WB-001': { hotLimit: 4, courseLimit: 3, noticeLimit: 4 }
+    'WB-001': { hotLimit: 4, courseLimit: 3, noticeLimit: 4 },
+    'WB-002': { page: 1, pageSize: 20, sort: 'RELEVANCE' }
   }),
   '/messages': Object.freeze({ 'MSG-001': {}, 'MSG-002': { page: 1, pageSize: 100 } }),
   '/favorites': Object.freeze({ 'FAV-001': { resourceType: 'APP' }, 'FAV-002': { resourceType: 'APP', page: 1, pageSize: 100 } }),
-  '/profile': Object.freeze({ 'COM-001': {}, 'WB-003': { recentMessageLimit: 5, todoLimit: 5 } }),
+  '/profile': Object.freeze({ 'COM-001': {}, 'COM-003': { includeUsers: false, maxDepth: 5 }, 'COM-004': { page: 1, pageSize: 20, sort: 'name,asc' }, 'WB-003': { recentMessageLimit: 5, todoLimit: 5 }, 'WB-004': { page: 1, pageSize: 20, sort: 'submittedAt,desc' } }),
   '/points': Object.freeze({ 'PTS-001': {}, 'PTS-003': { groupBy: 'SOURCE' }, 'PTS-004': { page: 1, pageSize: 100 } }),
   '/points/details': Object.freeze({ 'PTS-002': { page: 1, pageSize: 100 } }),
   '/announcements/notice-001': Object.freeze({
@@ -47,12 +48,16 @@ export function buildPageReadRequestPlan({ route, readOperationIds, operationCon
   const applicationId = queryIdentifier(searchParams, 'applicationId');
   const courseId = queryIdentifier(searchParams, 'courseId');
   const certificationId = queryIdentifier(searchParams, 'certificationId');
+  const archiveTaskId = queryIdentifier(searchParams, 'archiveTaskId');
+  const exportId = queryIdentifier(searchParams, 'exportId');
   if (applicationId) inputByOperation['APP-010'] = { applicationId, includeHistory: true };
   if (courseId) {
     inputByOperation['TRN-003'] = { courseId };
     inputByOperation['TRN-006'] = { courseId, sourcePage: '/training' };
   }
   if (certificationId) inputByOperation['CER-003'] = { certificationId };
+  if (archiveTaskId) inputByOperation['ARC-002'] = { archiveTaskId };
+  if (exportId) inputByOperation['COM-010'] = { exportId };
 
   const operationIds = [];
   const deferredOperationIds = [];

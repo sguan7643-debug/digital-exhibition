@@ -4,7 +4,7 @@ import { buildPageReadRequestPlan } from '../src/integration/page-read-request-p
 import { createVerifiedReadOperationContracts, validateContractSchema } from '../src/integration/operation-contract-schemas.js';
 
 const contracts = createVerifiedReadOperationContracts();
-const deferredExpected = new Set(['APP-010', 'TRN-003', 'TRN-006', 'CER-003', 'OAN-008', 'MAT-003']);
+const deferredExpected = new Set(['APP-010', 'TRN-003', 'TRN-006', 'CER-003']);
 const planned = new Set();
 const deferred = new Set();
 
@@ -21,9 +21,10 @@ assert.deepEqual(deferred, deferredExpected);
 const onboarding = buildPageReadRequestPlan({ route: '/apps/onboarding/status', readOperationIds: ['APP-010'], operationContracts: contracts, search: '?applicationId=TEST_APPLICATION_001' });
 const training = buildPageReadRequestPlan({ route: '/training', readOperationIds: ['TRN-003', 'TRN-006'], operationContracts: contracts, search: '?courseId=TEST_COURSE_001' });
 const certification = buildPageReadRequestPlan({ route: '/certification', readOperationIds: ['CER-003'], operationContracts: contracts, search: '?certificationId=TEST_CERTIFICATION_001' });
-for (const plan of [onboarding, training, certification]) {
+const adminDetail = buildPageReadRequestPlan({ route: '/admin', readOperationIds: ['ARC-002', 'COM-010'], operationContracts: contracts, search: '?archiveTaskId=TEST_ARCHIVE_001&exportId=TEST_EXPORT_001' });
+for (const plan of [onboarding, training, certification, adminDetail]) {
   assert.equal(plan.deferredOperationIds.length, 0);
   for (const operationId of plan.operationIds) assert.doesNotThrow(() => validateContractSchema(plan.inputByOperation[operationId], contracts[operationId].requestSchema, operationId));
 }
 assert.ok(planned.size >= 45, `页面自动加载应覆盖主要读接口，实际 ${planned.size}`);
-console.log(`page read plans validate ${planned.size} immediate operations; 6 detail/interaction operations defer until a resource or user action exists`);
+console.log(`page read plans validate ${planned.size} immediate operations; 4 resource detail operations defer until a selected id exists; interaction reads never auto-run`);
