@@ -39,6 +39,9 @@ export function buildPageReadRequestPlan({ route, readOperationIds, operationCon
   if (appId) {
     inputByOperation['APP-003'] = { appId, include: 'attachments,trainings,relatedMaterials' };
     inputByOperation['APP-009'] = { appId, page: 1, pageSize: 100, sort: 'sortOrder,asc' };
+    inputByOperation['APP-007'] = { appId, page: 1, pageSize: 20, sort: 'createdAt,desc' };
+    inputByOperation['MAT-001'] = { page: 1, pageSize: 100 };
+    inputByOperation['MAT-002'] = { relatedAppId: appId, page: 1, pageSize: 20, sort: 'updatedAt,desc' };
   }
 
   const applicationId = queryIdentifier(searchParams, 'applicationId');

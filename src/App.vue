@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import ExhibitionShell from './components/ExhibitionShell.vue';
 import PageStateBoundary from './components/PageStateBoundary.vue';
 import IntegrationAuthBanner from './components/IntegrationAuthBanner.vue';
+import AppDetailLiveSections from './components/AppDetailLiveSections.vue';
 import AnnouncementsPage from './pages/AnnouncementsPage.vue';
 import FavoritesPage from './pages/FavoritesPage.vue';
 import MessagesPage from './pages/MessagesPage.vue';
@@ -255,6 +256,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
       <talent-projects-page v-else-if="page.id === '29'" />
       <talent-progress-page v-else-if="page.id === '30'" />
       <portal-page v-else :page="page" />
+      <app-detail-live-sections v-if="Number(page.id) >= 8 && Number(page.id) <= 16" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
     </page-state-boundary>
   </exhibition-shell>
 </template>

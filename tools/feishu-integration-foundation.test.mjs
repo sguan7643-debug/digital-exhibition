@@ -38,7 +38,7 @@ for (const page of PAGE_INTEGRATION_MATRIX) {
 }
 assert.deepEqual(getPageIntegrationContract('/workbench').operationIds, ['COM-001', 'COM-002', 'COM-005', 'WB-001']);
 assert.deepEqual(getPageIntegrationContract('/apps').operationIds, ['APP-001', 'APP-002']);
-assert.deepEqual(getPageIntegrationContract('/apps/report-001').operationIds, ['APP-003', 'APP-009']);
+assert.deepEqual(getPageIntegrationContract('/apps/report-001').operationIds, ['APP-003', 'APP-009', 'APP-007', 'MAT-001', 'MAT-002', 'MAT-003']);
 
 assert.deepEqual(resolveIntegrationRuntime({}), {
   mode: 'mock', proxyBase: '/api/v1', remoteEnabled: false,
