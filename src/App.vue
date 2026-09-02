@@ -265,7 +265,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
       <rpa-detail-page v-else-if="page.id === '16'" />
       <onboarding-page v-else-if="page.id === '17'" />
       <points-page v-else-if="page.id === '18'" :integration-data="integrationEnvelope.data" />
-      <points-details-page v-else-if="page.id === '19'" />
+      <points-details-page v-else-if="page.id === '19'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <training-page v-else-if="page.id === '20'" />
       <operations-page v-else-if="page.id === '21'" />
       <announcement-admin-page v-else-if="page.id === '22'" />
