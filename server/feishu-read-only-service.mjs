@@ -3,6 +3,7 @@ import { getOperation } from '../src/integration/operation-registry.js';
 
 const READ_PLANS = Object.freeze({
   'COM-001': Object.freeze({ kind: 'current-user' }),
+  'COM-005': Object.freeze({ kind: 'dictionary-batch' }),
   'APP-001': Object.freeze({ kind: 'app-facets' }),
   'ANN-001': Object.freeze({ kind: 'announcement-facets' }),
   'COM-003': Object.freeze({ kind: 'contact-organizations' }),
@@ -12,7 +13,15 @@ const READ_PLANS = Object.freeze({
   'ANN-005': Object.freeze({ kind: 'first-batch-detail' }),
   'APP-002': Object.freeze({ kind: 'app-list' }),
   'APP-003': Object.freeze({ kind: 'first-batch-detail' }),
+  'APP-007': Object.freeze({ kind: 'app-comments' }),
   'APP-009': Object.freeze({ kind: 'first-batch-detail' }),
+  'MSG-001': Object.freeze({ kind: 'personal-read' }),
+  'MSG-002': Object.freeze({ kind: 'personal-read' }),
+  'FAV-001': Object.freeze({ kind: 'personal-read' }),
+  'FAV-002': Object.freeze({ kind: 'personal-read' }),
+  'PTS-001': Object.freeze({ kind: 'personal-read' }),
+  'PTS-002': Object.freeze({ kind: 'personal-read' }),
+  'PTS-003': Object.freeze({ kind: 'personal-read' }),
   'TAL-001': Object.freeze({ kind: 'talent-people' }),
   'TAL-002': Object.freeze({ kind: 'talent-projects' }),
   'TAL-003': Object.freeze({ kind: 'talent-progress' }),
@@ -875,6 +884,262 @@ export function createFeishuReadOnlyService(options) {
     };
   }
 
+  function dictionaryEnabled(fields, fieldName = '启用') {
+    const value = valueToText(fields[fieldName] ?? fields['状态']).trim().toLocaleLowerCase('zh-CN');
+    if (!value) return true;
+    return !['否', 'false', '0', 'no', '停用', '禁用', 'disabled', 'offline'].includes(value);
+  }
+
+  async function executeDictionaryBatch(input) {
+    assertAllowedInput(input, ['dictTypes', 'parentValues', 'includeDisabled']);
+    if (!Array.isArray(input.dictTypes) || input.dictTypes.length < 1 || input.dictTypes.length > 50
+      || input.dictTypes.some(type => typeof type !== 'string' || !type.trim() || type.length > 128)) {
+      throw new FeishuProxyError('INVALID_OPERATION_INPUT', 'dictTypes 必须是 1 至 50 个非空字典编码', 400);
+    }
+    if (input.parentValues != null && (typeof input.parentValues !== 'object' || Array.isArray(input.parentValues))) {
+      throw new FeishuProxyError('INVALID_OPERATION_INPUT', 'parentValues 必须是字典编码到父值的对象', 400);
+    }
+    const definitions = Object.freeze({
+      APPLICATION_TYPE: { table: '应用类型配置', value: ['类型编码', '类型ID'], label: '类型名称', description: '类型描述', color: '颜色令牌', icon: '类型图标', sort: '排序', enabled: '状态', parent: '' },
+      BUSINESS_DOMAIN: { table: '业务域字典', value: ['业务域编码', '业务域ID'], label: '业务域名称', description: '描述', color: '颜色令牌', icon: '图标', sort: '排序', enabled: '启用', parent: '父级ID' },
+      SCENE: { table: '场景字典', value: ['场景ID'], label: '场景名称', description: '', color: '', icon: '', sort: '', enabled: '', parent: '' },
+      MATERIAL_CATEGORY: { table: '素材分类', value: ['分类编码'], label: '分类名称', description: '', color: '', icon: '', sort: '排序', enabled: '启用', parent: '父级ID' }
+    });
+    const uniqueTypes = [...new Set(input.dictTypes.map(type => type.trim()))];
+    const itemsByType = Object.fromEntries(uniqueTypes.map(type => [type, []]));
+    let latestUpdatedAt = '';
+    let highestVersion = 0;
+    await Promise.all(uniqueTypes.map(async dictType => {
+      const definition = definitions[dictType];
+      if (!definition) return;
+      const rows = await readAll(definition.table);
+      itemsByType[dictType] = rows.map(record => {
+        const fields = record?.fields || {};
+        const value = definition.value.map(name => valueToText(fields[name])).find(Boolean) || String(record?.record_id || '');
+        const updatedAt = valueToText(fields['更新时间']);
+        latestUpdatedAt = latestUpdatedAt > updatedAt ? latestUpdatedAt : updatedAt;
+        highestVersion = Math.max(highestVersion, valueToNumber(fields['版本']));
+        return {
+          dictType, value, label: valueToText(fields[definition.label]),
+          description: definition.description ? valueToText(fields[definition.description]) || null : null,
+          colorToken: definition.color ? valueToText(fields[definition.color]) || null : null,
+          iconFileId: null, sortOrder: definition.sort ? valueToNumber(fields[definition.sort]) : 0,
+          enabled: definition.enabled ? dictionaryEnabled(fields, definition.enabled) : true,
+          parentValue: definition.parent ? valueToText(fields[definition.parent]) || null : null, extra: null
+        };
+      }).filter(item => item.value && item.label)
+        .filter(item => input.includeDisabled === true || item.enabled)
+        .filter(item => !input.parentValues?.[dictType] || item.parentValue === input.parentValues[dictType])
+        .sort((left, right) => left.sortOrder - right.sortOrder || left.label.localeCompare(right.label, 'zh-CN'));
+    }));
+    return { itemsByType, version: `feishu-dictionaries.v${highestVersion}`, updatedAt: latestUpdatedAt || now().toISOString() };
+  }
+
+  async function executeAppComments(input) {
+    assertAllowedInput(input, ['appId', 'rating', 'hasReply', 'page', 'pageSize', 'sort']);
+    const appId = valueToText(input.appId);
+    if (!appId) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '评论列表必须提供 appId', 400);
+    if (input.rating != null && (!Number.isInteger(Number(input.rating)) || Number(input.rating) < 1 || Number(input.rating) > 5)) {
+      throw new FeishuProxyError('INVALID_OPERATION_INPUT', 'rating 必须是 1 至 5 的整数', 400);
+    }
+    if (input.hasReply != null && typeof input.hasReply !== 'boolean') throw new FeishuProxyError('INVALID_OPERATION_INPUT', 'hasReply 必须是布尔值', 400);
+    const sort = input.sort || 'createdAt,desc';
+    if (!['createdAt,desc', 'createdAt,asc'].includes(sort)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '评论排序方式不受支持', 400);
+    const { page, pageSize } = publicPage(input);
+    const [commentRows, userRows] = await Promise.all([readAll('应用评论'), readAll('用户字典')]);
+    const users = new Map(userRows.map(record => [valueToText(record?.fields?.['用户ID']), record?.fields || {}]));
+    let items = commentRows.map(record => {
+      const fields = record?.fields || {};
+      const commentAppId = valueToText(fields['应用ID']);
+      const userId = valueToText(fields['评论人ID']);
+      const user = users.get(userId) || {};
+      const replyContent = valueToText(fields['回复内容脱敏值']);
+      const replyUserId = valueToText(fields['回复人ID']);
+      const ratingValue = valueToNumber(fields['评分']);
+      const rawStatus = valueToText(fields['状态']).toLocaleUpperCase('zh-CN');
+      const status = /BLOCK|屏蔽|驳回/.test(rawStatus) ? 'BLOCKED' : /PEND|待审/.test(rawStatus) ? 'PENDING' : 'PUBLISHED';
+      return {
+        commentId: valueToText(fields['主键']) || String(record?.record_id || ''), appId: commentAppId,
+        user: { userId, displayName: valueToText(user['姓名']), avatarUrl: '', departmentName: valueToText(user['所属部门名称']) },
+        content: valueToText(fields['评论内容']), rating: ratingValue >= 1 && ratingValue <= 5 ? ratingValue : null,
+        likeCount: 0, isLiked: false, status, createdAt: valueToText(fields['评论时间']), updatedAt: valueToText(fields['更新时间']),
+        reply: replyContent ? { replyId: `${valueToText(fields['主键']) || record?.record_id || ''}:reply`, content: replyContent, repliedBy: valueToText(users.get(replyUserId)?.['姓名']) || replyUserId, repliedAt: valueToText(fields['回复时间']) } : null
+      };
+    }).filter(item => item.commentId && item.appId === appId);
+    if (input.rating != null) items = items.filter(item => item.rating === Number(input.rating));
+    if (input.hasReply != null) items = items.filter(item => Boolean(item.reply) === input.hasReply);
+    items.sort((left, right) => sort.endsWith('asc') ? left.createdAt.localeCompare(right.createdAt) : right.createdAt.localeCompare(left.createdAt));
+    return { ...paginatePublic(items, page, pageSize), sort, filtersApplied: { appId, rating: input.rating ?? null, hasReply: input.hasReply ?? null } };
+  }
+
+  function requireIdentity(requestContext) {
+    const identity = requestContext?.identity;
+    const userId = valueToText(identity?.userId || identity?.openId);
+    if (!userId) throw new FeishuProxyError('USER_AUTH_REQUIRED', '需要先完成飞书用户授权', 401);
+    return { identity, userId };
+  }
+
+  function messageRead(fields) {
+    return /^(?:已读|true|1|yes)$/i.test(valueToText(fields['已读状态']).trim());
+  }
+
+  function messageFromRecord(record, users) {
+    const fields = record?.fields || {};
+    const senderId = valueToText(fields['发送人ID']) || null;
+    const targetRaw = valueToText(fields['目标类型']).toLocaleUpperCase('zh-CN');
+    const targetType = ['ANNOUNCEMENT', 'APP', 'APPLICATION', 'COURSE', 'EXPORT', 'URL'].includes(targetRaw) ? targetRaw : 'NONE';
+    const priorityRaw = valueToText(fields['优先级']).toLocaleUpperCase('zh-CN');
+    const priority = ['HIGH', 'URGENT'].includes(priorityRaw) ? priorityRaw : 'NORMAL';
+    const occurredAt = valueToText(fields['消息时间']);
+    const isRead = messageRead(fields);
+    return {
+      messageId: valueToText(fields['消息ID']) || String(record?.record_id || ''), typeCode: valueToText(fields['消息类型编码'] || fields['分类']),
+      typeName: valueToText(fields['分类'] || fields['消息类型编码']), title: valueToText(fields['消息标题']), summary: valueToText(fields['消息摘要'] || fields['消息内容']),
+      occurredAt, isRead, readAt: isRead ? valueToText(fields['阅读时间']) || null : null,
+      isToday: occurredAt.slice(0, 10) === now().toISOString().slice(0, 10), priority,
+      senderId, senderName: senderId ? valueToText(users.get(senderId)?.['姓名']) || null : null,
+      targetType, targetId: valueToText(fields['目标ID']) || null, targetPath: valueToText(fields['目标路径']) || null,
+      actionLabel: targetType === 'NONE' ? '' : '查看详情', downloadFileId: null, expiresAt: valueToText(fields['过期时间']) || null
+    };
+  }
+
+  function ledgerFromRecord(record) {
+    const fields = record?.fields || {};
+    const changed = valueToNumber(fields['变动积分']);
+    const directionRaw = valueToText(fields['方向']).toLocaleUpperCase('zh-CN');
+    const direction = /EXPENSE|支出|扣减/.test(directionRaw) || changed < 0 ? 'EXPENSE' : 'INCOME';
+    return {
+      ledgerId: valueToText(fields['流水ID']) || String(record?.record_id || ''), serialNo: valueToText(fields['流水号']),
+      pointTypeCode: valueToText(fields['积分类型编码']), pointTypeName: valueToText(fields['积分类型编码']), sourceCode: valueToText(fields['来源编码']),
+      sourceName: valueToText(fields['来源编码']), businessType: valueToText(fields['业务类型']), businessId: valueToText(fields['业务ID']) || null,
+      businessName: null, changePoints: direction === 'EXPENSE' ? -Math.abs(changed) : Math.abs(changed), balanceAfter: valueToNumber(fields['变动后余额']),
+      statusCode: valueToText(fields['状态']), statusName: valueToText(fields['状态']), occurredAt: valueToText(fields['发生时间']),
+      effectiveAt: valueToText(fields['生效时间']) || null, expiresAt: valueToText(fields['过期时间']) || null, remark: valueToText(fields['备注']),
+      ruleId: valueToText(fields['规则ID']) || null, ruleName: null, idempotencyKey: valueToText(fields['幂等键']) || null, direction
+    };
+  }
+
+  async function executePersonalRead(operationId, input, requestContext) {
+    const { userId } = requireIdentity(requestContext);
+    if (operationId.startsWith('MSG-')) {
+      const allowed = operationId === 'MSG-001' ? ['timezone'] : ['keyword', 'typeCode', 'readStatus', 'startAt', 'endAt', 'page', 'pageSize', 'sort'];
+      assertAllowedInput(input, allowed);
+      const [messageRows, userRows] = await Promise.all([readAll('消息通知'), readAll('用户字典')]);
+      const users = new Map(userRows.map(record => [valueToText(record?.fields?.['用户ID']), record?.fields || {}]));
+      let items = messageRows.filter(record => valueToText(record?.fields?.['接收人ID']) === userId).map(record => messageFromRecord(record, users)).filter(item => item.messageId);
+      if (operationId === 'MSG-001') {
+        const byType = new Map();
+        for (const item of items) {
+          const current = byType.get(item.typeCode) || { typeCode: item.typeCode, typeName: item.typeName, total: 0, unread: 0 };
+          current.total += 1; if (!item.isRead) current.unread += 1; byType.set(item.typeCode, current);
+        }
+        const unreadCount = items.filter(item => !item.isRead).length;
+        return { totalCount: items.length, unreadCount, readCount: items.length - unreadCount, todayCount: items.filter(item => item.isToday).length, byType: [...byType.values()], generatedAt: now().toISOString() };
+      }
+      const { page, pageSize } = publicPage(input);
+      const keyword = valueToText(input.keyword).toLocaleLowerCase('zh-CN');
+      const readStatus = input.readStatus || 'ALL';
+      if (!['ALL', 'READ', 'UNREAD'].includes(readStatus)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', 'readStatus 不受支持', 400);
+      items = items.filter(item => (!keyword || `${item.title} ${item.summary}`.toLocaleLowerCase('zh-CN').includes(keyword))
+        && (!input.typeCode || item.typeCode === input.typeCode) && (readStatus === 'ALL' || item.isRead === (readStatus === 'READ'))
+        && (!input.startAt || item.occurredAt >= input.startAt) && (!input.endAt || item.occurredAt <= input.endAt));
+      const sort = input.sort || 'occurredAt,desc';
+      if (!['occurredAt,desc', 'occurredAt,asc'].includes(sort)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '消息排序方式不受支持', 400);
+      items.sort((left, right) => sort.endsWith('asc') ? left.occurredAt.localeCompare(right.occurredAt) : right.occurredAt.localeCompare(left.occurredAt));
+      return { ...paginatePublic(items, page, pageSize), sort, filtersApplied: { keyword: valueToText(input.keyword), typeCode: valueToText(input.typeCode), readStatus, startAt: valueToText(input.startAt), endAt: valueToText(input.endAt) } };
+    }
+
+    if (operationId.startsWith('FAV-')) {
+      const allowed = operationId === 'FAV-001' ? ['resourceType'] : ['resourceType', 'keyword', 'typeCode', 'domainId', 'tagCode', 'recentlyUsed', 'page', 'pageSize', 'sort'];
+      assertAllowedInput(input, allowed);
+      const resourceType = input.resourceType || 'APP';
+      if (resourceType !== 'APP') throw new FeishuProxyError('INVALID_OPERATION_INPUT', '当前收藏读接口仅支持 APP', 400);
+      const [favoriteRows, projection] = await Promise.all([readAll('应用收藏'), getAppProjection()]);
+      let items = favoriteRows.filter(record => valueToText(record?.fields?.['用户ID']) === userId && dictionaryEnabled(record?.fields || {}, '有效')).map(record => {
+        const fields = record?.fields || {};
+        const resourceId = valueToText(fields['资源ID'] || fields['应用ID']);
+        const resource = projection.items.find(app => app.appId === resourceId);
+        return { favoriteId: valueToText(fields['主键']) || String(record?.record_id || ''), resourceType: valueToText(fields['资源类型']) || 'APP', resourceId, favoritedAt: valueToText(fields['收藏时间']), lastUsedAt: null, resource };
+      }).filter(item => item.favoriteId && item.resource);
+      if (operationId === 'FAV-001') {
+        const weekStart = new Date(now().getTime() - 7 * 86400000).toISOString();
+        const byType = new Map(); const byDomain = new Map();
+        for (const item of items) {
+          const type = item.resource.typeCode; const domain = item.resource.domainId;
+          byType.set(type, { typeCode: type, typeName: item.resource.typeName, count: (byType.get(type)?.count || 0) + 1 });
+          if (domain) byDomain.set(domain, { domainId: domain, domainName: item.resource.domainName, count: (byDomain.get(domain)?.count || 0) + 1 });
+        }
+        return { totalCount: items.length, weekAddedCount: items.filter(item => item.favoritedAt >= weekStart).length, recentUsedCount: items.filter(item => item.lastUsedAt).length, byType: [...byType.values()], byDomain: [...byDomain.values()] };
+      }
+      const { page, pageSize } = publicPage(input);
+      const keyword = valueToText(input.keyword).toLocaleLowerCase('zh-CN');
+      items = items.filter(item => (!keyword || `${item.resource.name} ${item.resource.summary}`.toLocaleLowerCase('zh-CN').includes(keyword))
+        && (!input.typeCode || item.resource.typeCode === input.typeCode) && (!input.domainId || item.resource.domainId === input.domainId)
+        && (!input.recentlyUsed || Boolean(item.lastUsedAt)));
+      const sort = input.sort || 'favoritedAt,desc';
+      if (!['favoritedAt,desc', 'favoritedAt,asc'].includes(sort)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '收藏排序方式不受支持', 400);
+      items.sort((left, right) => sort.endsWith('asc') ? left.favoritedAt.localeCompare(right.favoritedAt) : right.favoritedAt.localeCompare(left.favoritedAt));
+      return { ...paginatePublic(items, page, pageSize), sort, filtersApplied: { resourceType, keyword: valueToText(input.keyword), typeCode: valueToText(input.typeCode), domainId: valueToText(input.domainId), tagCode: valueToText(input.tagCode), recentlyUsed: input.recentlyUsed ?? false } };
+    }
+
+    const allowed = operationId === 'PTS-001' ? ['month'] : operationId === 'PTS-002'
+      ? ['pointTypeCode', 'sourceCode', 'direction', 'statusCode', 'keyword', 'startAt', 'endAt', 'page', 'pageSize', 'sort']
+      : ['startAt', 'endAt', 'groupBy'];
+    assertAllowedInput(input, allowed);
+    const [balanceRows, ledgerRows, monthRows, ruleRows] = await Promise.all([readAll('积分余额'), readAll('积分流水'), readAll('积分月度汇总'), readAll('积分规则')]);
+    const balanceFields = balanceRows.find(record => valueToText(record?.fields?.['用户ID']) === userId)?.fields || {};
+    let ledgers = ledgerRows.filter(record => valueToText(record?.fields?.['用户ID']) === userId).map(ledgerFromRecord).filter(item => item.ledgerId);
+    if (operationId === 'PTS-001') {
+      const month = input.month || now().toISOString().slice(0, 7);
+      const monthly = monthRows.find(record => valueToText(record?.fields?.['用户ID']) === userId && valueToText(record?.fields?.['年月']) === month)?.fields || {};
+      const monthLedgers = ledgers.filter(item => item.occurredAt.startsWith(month));
+      const earned = monthLedgers.filter(item => item.direction === 'INCOME').reduce((sum, item) => sum + item.changePoints, 0);
+      const spent = monthLedgers.filter(item => item.direction === 'EXPENSE').reduce((sum, item) => sum + Math.abs(item.changePoints), 0);
+      const sourceTotals = new Map();
+      for (const item of monthLedgers) if (item.direction === 'INCOME') sourceTotals.set(item.sourceCode, (sourceTotals.get(item.sourceCode) || 0) + item.changePoints);
+      const sourceTotal = [...sourceTotals.values()].reduce((sum, value) => sum + value, 0);
+      const totalEarned = ledgers.filter(item => item.direction === 'INCOME').reduce((sum, item) => sum + item.changePoints, 0);
+      const totalSpent = ledgers.filter(item => item.direction === 'EXPENSE').reduce((sum, item) => sum + Math.abs(item.changePoints), 0);
+      return {
+        account: { accountId: valueToText(balanceFields['主键']) || `POINTS:${userId}`, userId, balance: valueToNumber(balanceFields['当前总积分']), totalEarned, totalSpent, totalExpired: 0, availableBalance: valueToNumber(balanceFields['当前总积分']), pendingBalance: 0, updatedAt: valueToText(balanceFields['最后更新时间']) },
+        month: { month, earned: valueToNumber(monthly['月度总积分']) || earned, spent, appUsePoints: valueToNumber(monthly['应用使用月度合计']) },
+        sources: [...sourceTotals].map(([sourceCode, points]) => ({ sourceCode, sourceName: sourceCode, points, percentage: sourceTotal ? Number((points * 100 / sourceTotal).toFixed(2)) : 0, colorToken: '', iconUrl: '' })),
+        recentLedgers: [...ledgers].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, 10).map(({ direction, ...item }) => item),
+        rulesVersion: Math.max(0, ...ruleRows.map(record => valueToNumber(record?.fields?.['当前版本'] || record?.fields?.['版本'])))
+      };
+    }
+    ledgers = ledgers.filter(item => (!input.pointTypeCode || item.pointTypeCode === input.pointTypeCode) && (!input.sourceCode || item.sourceCode === input.sourceCode)
+      && (!input.statusCode || item.statusCode === input.statusCode) && (!input.startAt || item.occurredAt >= input.startAt) && (!input.endAt || item.occurredAt <= input.endAt));
+    if (operationId === 'PTS-002') {
+      const direction = input.direction || 'ALL';
+      if (!['ALL', 'INCOME', 'EXPENSE'].includes(direction)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '积分方向不受支持', 400);
+      const keyword = valueToText(input.keyword).toLocaleLowerCase('zh-CN');
+      ledgers = ledgers.filter(item => (direction === 'ALL' || item.direction === direction) && (!keyword || `${item.serialNo} ${item.remark}`.toLocaleLowerCase('zh-CN').includes(keyword)));
+      const income = ledgers.filter(item => item.direction === 'INCOME').reduce((sum, item) => sum + item.changePoints, 0);
+      const expense = ledgers.filter(item => item.direction === 'EXPENSE').reduce((sum, item) => sum + Math.abs(item.changePoints), 0);
+      const { page, pageSize } = publicPage(input);
+      const sort = input.sort || 'occurredAt,desc';
+      if (!['occurredAt,desc', 'occurredAt,asc'].includes(sort)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '积分排序方式不受支持', 400);
+      ledgers.sort((left, right) => sort.endsWith('asc') ? left.occurredAt.localeCompare(right.occurredAt) : right.occurredAt.localeCompare(left.occurredAt));
+      const pageData = paginatePublic(ledgers.map(({ direction: ignored, ...item }) => item), page, pageSize);
+      return { ...pageData, sort, filtersApplied: { pointTypeCode: valueToText(input.pointTypeCode), sourceCode: valueToText(input.sourceCode), direction, statusCode: valueToText(input.statusCode), keyword: valueToText(input.keyword), startAt: valueToText(input.startAt), endAt: valueToText(input.endAt) }, summary: { income, expense, netChange: income - expense } };
+    }
+    const groupBy = input.groupBy || 'SOURCE';
+    if (!['TYPE', 'SOURCE', 'DAY', 'MONTH'].includes(groupBy)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '积分分组方式不受支持', 400);
+    const groups = new Map();
+    for (const item of ledgers) {
+      const key = groupBy === 'TYPE' ? item.pointTypeCode : groupBy === 'SOURCE' ? item.sourceCode : groupBy === 'DAY' ? item.occurredAt.slice(0, 10) : item.occurredAt.slice(0, 7);
+      const group = groups.get(key) || { key, label: key, income: 0, expense: 0, netChange: 0, count: 0, percentage: 0 };
+      if (item.direction === 'INCOME') group.income += item.changePoints; else group.expense += Math.abs(item.changePoints);
+      group.netChange = group.income - group.expense; group.count += 1; groups.set(key, group);
+    }
+    const totalIncome = ledgers.filter(item => item.direction === 'INCOME').reduce((sum, item) => sum + item.changePoints, 0);
+    const totalExpense = ledgers.filter(item => item.direction === 'EXPENSE').reduce((sum, item) => sum + Math.abs(item.changePoints), 0);
+    const totalMagnitude = totalIncome + totalExpense;
+    const groupItems = [...groups.values()].map(group => ({ ...group, percentage: totalMagnitude ? Number(((group.income + group.expense) * 100 / totalMagnitude).toFixed(2)) : 0 }));
+    return { totalIncome, totalExpense, groups: groupItems, period: { startAt: valueToText(input.startAt), endAt: valueToText(input.endAt) } };
+  }
+
   async function executePublicRead(operationId, input) {
     if (operationId === 'PTS-004') {
       assertAllowedInput(input, ['sourceCode', 'enabled', 'page', 'pageSize']);
@@ -1011,6 +1276,17 @@ export function createFeishuReadOnlyService(options) {
         code: 'OK', data: identity, traceId: traceIdFactory(), schemaVersion: 'feishu-user-context.v1',
         sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false
       };
+    }
+    if (plan.kind === 'dictionary-batch' || plan.kind === 'app-comments') {
+      const data = plan.kind === 'dictionary-batch' ? await executeDictionaryBatch(input) : await executeAppComments(input);
+      return {
+        code: 'OK', data, traceId: traceIdFactory(), schemaVersion: plan.kind === 'dictionary-batch' ? 'feishu-dictionaries.v1' : 'feishu-app-comments.v1',
+        sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false
+      };
+    }
+    if (plan.kind === 'personal-read') {
+      const data = await executePersonalRead(operationId, input, requestContext);
+      return { code: 'OK', data, traceId: traceIdFactory(), schemaVersion: 'feishu-personal-read.v1', sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false };
     }
     if (plan.kind === 'app-facets' || plan.kind === 'app-list' || plan.kind?.startsWith('announcement') || plan.kind?.startsWith('talent') || plan.kind?.startsWith('contact') || plan.kind === 'public-read' || plan.kind === 'first-batch-detail') {
       const data = plan.kind.startsWith('announcement')

@@ -457,6 +457,180 @@ const currentUserSchema = Object.freeze({
   additionalProperties: false
 });
 
+const nullableText = Object.freeze({ anyOf: [optionalText, Object.freeze({ type: 'null' })] });
+const nullableInteger = Object.freeze({ anyOf: [Object.freeze({ type: 'integer', minimum: 1, maximum: 5 }), Object.freeze({ type: 'null' })] });
+const nullableBoolean = Object.freeze({ anyOf: [booleanValue, Object.freeze({ type: 'null' })] });
+const dictionaryItemSchema = Object.freeze({
+  type: 'object',
+  required: ['dictType', 'value', 'label', 'description', 'colorToken', 'iconFileId', 'sortOrder', 'enabled', 'parentValue', 'extra'],
+  properties: {
+    dictType: identifier, value: identifier, label: text, description: nullableText, colorToken: nullableText,
+    iconFileId: nullableText, sortOrder: countInteger, enabled: booleanValue, parentValue: nullableText,
+    extra: Object.freeze({ anyOf: [Object.freeze({ type: 'object' }), Object.freeze({ type: 'null' })] })
+  }, additionalProperties: false
+});
+const appCommentUserSchema = Object.freeze({
+  type: 'object', required: ['userId', 'displayName', 'avatarUrl', 'departmentName'],
+  properties: { userId: optionalText, displayName: optionalText, avatarUrl: optionalText, departmentName: optionalText }, additionalProperties: false
+});
+const appCommentReplySchema = Object.freeze({
+  type: 'object', required: ['replyId', 'content', 'repliedBy', 'repliedAt'],
+  properties: { replyId: identifier, content: optionalText, repliedBy: optionalText, repliedAt: optionalText }, additionalProperties: false
+});
+const appCommentSchema = Object.freeze({
+  type: 'object',
+  required: ['commentId', 'appId', 'user', 'content', 'rating', 'likeCount', 'isLiked', 'status', 'createdAt', 'updatedAt', 'reply'],
+  properties: {
+    commentId: identifier, appId: identifier, user: appCommentUserSchema, content: Object.freeze({ type: 'string', maxLength: 500 }),
+    rating: nullableInteger, likeCount: countInteger, isLiked: booleanValue, status: Object.freeze({ enum: ['PUBLISHED', 'PENDING', 'BLOCKED'] }),
+    createdAt: optionalText, updatedAt: optionalText, reply: Object.freeze({ anyOf: [appCommentReplySchema, Object.freeze({ type: 'null' })] })
+  }, additionalProperties: false
+});
+
+export function createDictionaryCommentReadOperationContracts() {
+  return Object.freeze({
+    'COM-005': Object.freeze({
+      operationId: 'COM-005',
+      requestSchema: Object.freeze({
+        type: 'object', required: ['dictTypes'], properties: {
+          dictTypes: Object.freeze({ type: 'array', items: identifier, maxItems: 50 }),
+          parentValues: Object.freeze({ type: 'object', additionalProperties: optionalText }), includeDisabled: booleanValue
+        }, additionalProperties: false
+      }),
+      successSchema: envelopeSchema(Object.freeze({
+        type: 'object', required: ['itemsByType', 'version', 'updatedAt'],
+        properties: {
+          itemsByType: Object.freeze({ type: 'object', additionalProperties: Object.freeze({ type: 'array', items: dictionaryItemSchema, maxItems: 100 }) }),
+          version: optionalText, updatedAt: optionalText
+        }, additionalProperties: false
+      })), errorSchema: SYNTHETIC_ERROR_SCHEMA, contractStatus: 'server-projection-verified'
+    }),
+    'APP-007': Object.freeze({
+      operationId: 'APP-007',
+      requestSchema: Object.freeze({
+        type: 'object', required: ['appId'], properties: {
+          appId: identifier, rating: Object.freeze({ type: 'integer', minimum: 1, maximum: 5 }), hasReply: booleanValue,
+          page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }), pageSize: Object.freeze({ enum: [10, 20, 50, 100] }),
+          sort: Object.freeze({ enum: ['createdAt,desc', 'createdAt,asc'] })
+        }, additionalProperties: false
+      }),
+      successSchema: envelopeSchema(Object.freeze({
+        type: 'object', required: ['items', 'total', 'page', 'pageSize', 'totalPages', 'hasPrevious', 'hasNext', 'hasMore', 'sort', 'filtersApplied'],
+        properties: {
+          items: Object.freeze({ type: 'array', items: appCommentSchema, maxItems: 100 }), total: countInteger,
+          page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }), pageSize: Object.freeze({ enum: [10, 20, 50, 100] }),
+          totalPages: countInteger, hasPrevious: booleanValue, hasNext: booleanValue, hasMore: booleanValue,
+          sort: optionalText, filtersApplied: Object.freeze({
+            type: 'object', required: ['appId', 'rating', 'hasReply'],
+            properties: { appId: identifier, rating: nullableInteger, hasReply: nullableBoolean }, additionalProperties: false
+          })
+        }, additionalProperties: false
+      })), errorSchema: SYNTHETIC_ERROR_SCHEMA, contractStatus: 'server-projection-verified'
+    })
+  });
+}
+
+const signedInteger = Object.freeze({ type: 'integer', minimum: -1000000000, maximum: 1000000000 });
+const numberValue = Object.freeze({ type: 'number', minimum: 0, maximum: 1000000000 });
+const messageItemSchema = Object.freeze({
+  type: 'object', required: ['messageId', 'typeCode', 'typeName', 'title', 'summary', 'occurredAt', 'isRead', 'readAt', 'isToday', 'priority', 'senderId', 'senderName', 'targetType', 'targetId', 'targetPath', 'actionLabel', 'downloadFileId', 'expiresAt'],
+  properties: {
+    messageId: identifier, typeCode: optionalText, typeName: optionalText, title: optionalText, summary: Object.freeze({ type: 'string', maxLength: 2048 }),
+    occurredAt: optionalText, isRead: booleanValue, readAt: nullableText, isToday: booleanValue,
+    priority: Object.freeze({ enum: ['NORMAL', 'HIGH', 'URGENT'] }), senderId: nullableText, senderName: nullableText,
+    targetType: Object.freeze({ enum: ['ANNOUNCEMENT', 'APP', 'APPLICATION', 'COURSE', 'EXPORT', 'URL', 'NONE'] }),
+    targetId: nullableText, targetPath: nullableText, actionLabel: optionalText, downloadFileId: nullableText, expiresAt: nullableText
+  }, additionalProperties: false
+});
+const ledgerItemSchema = Object.freeze({
+  type: 'object', required: ['ledgerId', 'serialNo', 'pointTypeCode', 'pointTypeName', 'sourceCode', 'sourceName', 'businessType', 'businessId', 'businessName', 'changePoints', 'balanceAfter', 'statusCode', 'statusName', 'occurredAt', 'effectiveAt', 'expiresAt', 'remark', 'ruleId', 'ruleName', 'idempotencyKey'],
+  properties: {
+    ledgerId: identifier, serialNo: optionalText, pointTypeCode: optionalText, pointTypeName: optionalText, sourceCode: optionalText, sourceName: optionalText,
+    businessType: optionalText, businessId: nullableText, businessName: nullableText, changePoints: signedInteger, balanceAfter: signedInteger,
+    statusCode: optionalText, statusName: optionalText, occurredAt: optionalText, effectiveAt: nullableText, expiresAt: nullableText,
+    remark: Object.freeze({ type: 'string', maxLength: 2048 }), ruleId: nullableText, ruleName: nullableText, idempotencyKey: nullableText
+  }, additionalProperties: false
+});
+const personalPaginationProperties = Object.freeze({
+  total: countInteger, page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }), pageSize: Object.freeze({ enum: [10, 20, 50, 100] }),
+  totalPages: countInteger, hasPrevious: booleanValue, hasNext: booleanValue, hasMore: booleanValue
+});
+
+export function createPersonalReadOperationContracts() {
+  const contract = (operationId, requestSchema, dataSchema) => Object.freeze({
+    operationId, requestSchema, successSchema: envelopeSchema(dataSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA, contractStatus: 'authenticated-server-projection-verified'
+  });
+  const messageFilters = Object.freeze({
+    type: 'object', required: ['keyword', 'typeCode', 'readStatus', 'startAt', 'endAt'],
+    properties: { keyword: optionalText, typeCode: optionalText, readStatus: Object.freeze({ enum: ['ALL', 'READ', 'UNREAD'] }), startAt: optionalText, endAt: optionalText }, additionalProperties: false
+  });
+  const messageList = Object.freeze({
+    type: 'object', required: ['items', ...Object.keys(personalPaginationProperties), 'sort', 'filtersApplied'],
+    properties: { items: Object.freeze({ type: 'array', items: messageItemSchema, maxItems: 100 }), ...personalPaginationProperties, sort: Object.freeze({ enum: ['occurredAt,desc', 'occurredAt,asc'] }), filtersApplied: messageFilters }, additionalProperties: false
+  });
+  const favoriteList = Object.freeze({
+    type: 'object', required: ['items', ...Object.keys(personalPaginationProperties), 'sort', 'filtersApplied'],
+    properties: {
+      items: Object.freeze({ type: 'array', maxItems: 100, items: Object.freeze({
+        type: 'object', required: ['favoriteId', 'resourceType', 'resourceId', 'favoritedAt', 'lastUsedAt', 'resource'],
+        properties: { favoriteId: identifier, resourceType: Object.freeze({ enum: ['APP'] }), resourceId: identifier, favoritedAt: optionalText, lastUsedAt: nullableText, resource: appItemSchema }, additionalProperties: false
+      }) }), ...personalPaginationProperties, sort: Object.freeze({ enum: ['favoritedAt,desc', 'favoritedAt,asc'] }),
+      filtersApplied: Object.freeze({
+        type: 'object', required: ['resourceType', 'keyword', 'typeCode', 'domainId', 'tagCode', 'recentlyUsed'],
+        properties: { resourceType: Object.freeze({ enum: ['APP'] }), keyword: optionalText, typeCode: optionalText, domainId: optionalText, tagCode: optionalText, recentlyUsed: booleanValue }, additionalProperties: false
+      })
+    }, additionalProperties: false
+  });
+  const ledgerRequest = Object.freeze({
+    type: 'object', properties: {
+      pointTypeCode: optionalText, sourceCode: optionalText, direction: Object.freeze({ enum: ['ALL', 'INCOME', 'EXPENSE'] }), statusCode: optionalText,
+      keyword: optionalText, startAt: optionalText, endAt: optionalText, page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
+      pageSize: Object.freeze({ enum: [10, 20, 50, 100] }), sort: Object.freeze({ enum: ['occurredAt,desc', 'occurredAt,asc'] })
+    }, additionalProperties: false
+  });
+  return Object.freeze({
+    'MSG-001': contract('MSG-001', Object.freeze({ type: 'object', properties: { timezone: optionalText }, additionalProperties: false }), Object.freeze({
+      type: 'object', required: ['totalCount', 'unreadCount', 'readCount', 'todayCount', 'byType', 'generatedAt'],
+      properties: {
+        totalCount: countInteger, unreadCount: countInteger, readCount: countInteger, todayCount: countInteger,
+        byType: Object.freeze({ type: 'array', maxItems: 100, items: Object.freeze({ type: 'object', required: ['typeCode', 'typeName', 'total', 'unread'], properties: { typeCode: optionalText, typeName: optionalText, total: countInteger, unread: countInteger }, additionalProperties: false }) }), generatedAt: optionalText
+      }, additionalProperties: false
+    })),
+    'MSG-002': contract('MSG-002', Object.freeze({ type: 'object', properties: { keyword: optionalText, typeCode: optionalText, readStatus: Object.freeze({ enum: ['ALL', 'READ', 'UNREAD'] }), startAt: optionalText, endAt: optionalText, page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }), pageSize: Object.freeze({ enum: [10, 20, 50, 100] }), sort: Object.freeze({ enum: ['occurredAt,desc', 'occurredAt,asc'] }) }, additionalProperties: false }), messageList),
+    'FAV-001': contract('FAV-001', Object.freeze({ type: 'object', properties: { resourceType: Object.freeze({ enum: ['APP'] }) }, additionalProperties: false }), Object.freeze({
+      type: 'object', required: ['totalCount', 'weekAddedCount', 'recentUsedCount', 'byType', 'byDomain'],
+      properties: {
+        totalCount: countInteger, weekAddedCount: countInteger, recentUsedCount: countInteger,
+        byType: Object.freeze({ type: 'array', maxItems: 100, items: Object.freeze({ type: 'object', required: ['typeCode', 'typeName', 'count'], properties: { typeCode: optionalText, typeName: optionalText, count: countInteger }, additionalProperties: false }) }),
+        byDomain: Object.freeze({ type: 'array', maxItems: 100, items: Object.freeze({ type: 'object', required: ['domainId', 'domainName', 'count'], properties: { domainId: optionalText, domainName: optionalText, count: countInteger }, additionalProperties: false }) })
+      }, additionalProperties: false
+    })),
+    'FAV-002': contract('FAV-002', Object.freeze({ type: 'object', properties: { resourceType: Object.freeze({ enum: ['APP'] }), keyword: optionalText, typeCode: optionalText, domainId: optionalText, tagCode: optionalText, recentlyUsed: booleanValue, page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }), pageSize: Object.freeze({ enum: [10, 20, 50, 100] }), sort: Object.freeze({ enum: ['favoritedAt,desc', 'favoritedAt,asc'] }) }, additionalProperties: false }), favoriteList),
+    'PTS-001': contract('PTS-001', Object.freeze({ type: 'object', properties: { month: optionalText }, additionalProperties: false }), Object.freeze({
+      type: 'object', required: ['account', 'month', 'sources', 'recentLedgers', 'rulesVersion'], properties: {
+        account: Object.freeze({ type: 'object', required: ['accountId', 'userId', 'balance', 'totalEarned', 'totalSpent', 'totalExpired', 'availableBalance', 'pendingBalance', 'updatedAt'], properties: { accountId: identifier, userId: identifier, balance: signedInteger, totalEarned: countInteger, totalSpent: countInteger, totalExpired: countInteger, availableBalance: signedInteger, pendingBalance: signedInteger, updatedAt: optionalText }, additionalProperties: false }),
+        month: Object.freeze({ type: 'object', required: ['month', 'earned', 'spent', 'appUsePoints'], properties: { month: optionalText, earned: countInteger, spent: countInteger, appUsePoints: countInteger }, additionalProperties: false }),
+        sources: Object.freeze({ type: 'array', maxItems: 100, items: Object.freeze({ type: 'object', required: ['sourceCode', 'sourceName', 'points', 'percentage', 'colorToken', 'iconUrl'], properties: { sourceCode: optionalText, sourceName: optionalText, points: countInteger, percentage: numberValue, colorToken: optionalText, iconUrl: optionalText }, additionalProperties: false }) }),
+        recentLedgers: Object.freeze({ type: 'array', items: ledgerItemSchema, maxItems: 10 }), rulesVersion: countInteger
+      }, additionalProperties: false
+    })),
+    'PTS-002': contract('PTS-002', ledgerRequest, Object.freeze({
+      type: 'object', required: ['items', ...Object.keys(personalPaginationProperties), 'sort', 'filtersApplied', 'summary'], properties: {
+        items: Object.freeze({ type: 'array', items: ledgerItemSchema, maxItems: 100 }), ...personalPaginationProperties,
+        sort: Object.freeze({ enum: ['occurredAt,desc', 'occurredAt,asc'] }), filtersApplied: Object.freeze({ type: 'object' }),
+        summary: Object.freeze({ type: 'object', required: ['income', 'expense', 'netChange'], properties: { income: countInteger, expense: countInteger, netChange: signedInteger }, additionalProperties: false })
+      }, additionalProperties: false
+    })),
+    'PTS-003': contract('PTS-003', Object.freeze({ type: 'object', properties: { startAt: optionalText, endAt: optionalText, groupBy: Object.freeze({ enum: ['TYPE', 'SOURCE', 'DAY', 'MONTH'] }) }, additionalProperties: false }), Object.freeze({
+      type: 'object', required: ['totalIncome', 'totalExpense', 'groups', 'period'], properties: {
+        totalIncome: countInteger, totalExpense: countInteger,
+        groups: Object.freeze({ type: 'array', maxItems: 100, items: Object.freeze({ type: 'object', required: ['key', 'label', 'income', 'expense', 'netChange', 'count', 'percentage'], properties: { key: optionalText, label: optionalText, income: countInteger, expense: countInteger, netChange: signedInteger, count: countInteger, percentage: numberValue }, additionalProperties: false }) }),
+        period: Object.freeze({ type: 'object', required: ['startAt', 'endAt'], properties: { startAt: optionalText, endAt: optionalText }, additionalProperties: false })
+      }, additionalProperties: false
+    }))
+  });
+}
+
 export function createIdentityReadOperationContracts() {
   return Object.freeze({
     'COM-001': Object.freeze({
@@ -636,6 +810,8 @@ export function createPublicReadOperationContracts() {
 export function createVerifiedReadOperationContracts() {
   return Object.freeze({
     ...createIdentityReadOperationContracts(),
+    ...createDictionaryCommentReadOperationContracts(),
+    ...createPersonalReadOperationContracts(),
     ...createAppReadOperationContracts(),
     ...createAnnouncementReadOperationContracts(),
     ...createTalentReadOperationContracts(),
