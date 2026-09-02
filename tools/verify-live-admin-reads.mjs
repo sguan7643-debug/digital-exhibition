@@ -37,7 +37,7 @@ async function cleanup() {
 }
 
 try {
-  for (const permissionCode of ['admin.integrations.view', 'admin.audit.view', 'admin.archive.view']) {
+  for (const permissionCode of ['admin.integrations.view', 'admin.audit.view', 'admin.archive.view', 'operations.dashboard.view', 'operations.announcements.manage', 'operations.apps.manage']) {
     await create('用户权限', { 主键: marker(`PERMISSION_${permissionCode}`), 用户ID: userId, 权限编码: permissionCode, 启用: true });
   }
   await create('多维表连接配置', { 连接编码: marker('CONNECTION'), 连接名称: 'TEST_ 联调连接', 'Base Token掩码': 'TEST_bas***', 环境: 'TEST', 启用: true, 最后健康状态: 'HEALTHY', 版本号: 1 });
@@ -52,7 +52,10 @@ try {
     ['ADM-003', { operatorId: userId, page: 1, pageSize: 10 }],
     ['ADM-004', { integrationCode: 'TEST_FEISHU', page: 1, pageSize: 10 }],
     ['INT-004', { view: 'EXECUTIONS', page: 1, pageSize: 10 }],
-    ['ARC-002', { archiveTaskId }]
+    ['ARC-002', { archiveTaskId }],
+    ['OPS-001', { period: 'WEEK', timezone: 'Asia/Shanghai', topN: 10 }],
+    ['OAN-001', {}], ['OAN-002', { page: 1, pageSize: 10 }],
+    ['OAP-001', {}], ['OAP-002', { page: 1, pageSize: 10 }]
   ];
   for (const [operationId, input] of calls) {
     const response = await readService.execute(operationId, input, context);
@@ -72,6 +75,6 @@ for (const target of created) {
     if (remaining.items.length) cleanupComplete = false;
   }
 }
-const passed = results.length === 5 && results.every(item => item.passed) && cleanupComplete;
-console.log(JSON.stringify({ passed, expected: 5, verified: results.length, cleanupComplete, results }, null, 2));
+const passed = results.length === 10 && results.every(item => item.passed) && cleanupComplete;
+console.log(JSON.stringify({ passed, expected: 10, verified: results.length, cleanupComplete, results }, null, 2));
 if (!passed) process.exitCode = 2;

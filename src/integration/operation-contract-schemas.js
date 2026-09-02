@@ -952,7 +952,12 @@ export function createAdminReadOperationContracts() {
     'ADM-003': contract('ADM-003', pageRequest, publicItemList(auditLogSchema)),
     'ADM-004': contract('ADM-004', pageRequest, publicItemList(integrationLogSchema)),
     'INT-004': contract('INT-004', pageRequest, adminViewPageSchema),
-    'ARC-002': contract('ARC-002', Object.freeze({ type: 'object', required: ['archiveTaskId'], properties: { archiveTaskId: identifier }, additionalProperties: false }), archiveDetailSchema)
+    'ARC-002': contract('ARC-002', Object.freeze({ type: 'object', required: ['archiveTaskId'], properties: { archiveTaskId: identifier }, additionalProperties: false }), archiveDetailSchema),
+    'OPS-001': contract('OPS-001', pageRequest, openObject),
+    'OAN-001': contract('OAN-001', pageRequest, openObject),
+    'OAN-002': contract('OAN-002', pageRequest, publicItemList(openObject)),
+    'OAP-001': contract('OAP-001', pageRequest, openObject),
+    'OAP-002': contract('OAP-002', pageRequest, publicItemList(openObject))
   });
 }
 

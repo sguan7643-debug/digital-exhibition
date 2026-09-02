@@ -9,7 +9,8 @@ const verifiedReadOperations = new Set([
   'TAL-001', 'TAL-002', 'TAL-003', 'TAL-005',
   'PTS-004', 'TRN-001', 'TRN-002', 'TRN-003', 'TRN-006',
   'CER-001', 'CER-002', 'CER-003', 'OPS-003', 'MAT-001', 'MAT-002', 'COM-010',
-  'INT-001', 'INT-004', 'ADM-003', 'ADM-004', 'ARC-002'
+  'INT-001', 'INT-004', 'ADM-003', 'ADM-004', 'ARC-002', 'OPS-001',
+  'OAN-001', 'OAN-002', 'OAP-001', 'OAP-002'
 ]);
 
 export function resolveRemoteReadOperation(operationId) {

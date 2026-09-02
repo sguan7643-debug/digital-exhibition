@@ -13,7 +13,10 @@ const rowsByName = new Map([
   ['用户权限', [
     { record_id: 'p1', fields: { 用户ID: 'ADMIN-1', 权限编码: 'admin.integrations.view', 启用: true } },
     { record_id: 'p2', fields: { 用户ID: 'ADMIN-1', 权限编码: 'admin.audit.view', 启用: true } },
-    { record_id: 'p3', fields: { 用户ID: 'ADMIN-1', 权限编码: 'admin.archive.view', 启用: true } }
+    { record_id: 'p3', fields: { 用户ID: 'ADMIN-1', 权限编码: 'admin.archive.view', 启用: true } },
+    { record_id: 'p4', fields: { 用户ID: 'ADMIN-1', 权限编码: 'operations.dashboard.view', 启用: true } },
+    { record_id: 'p5', fields: { 用户ID: 'ADMIN-1', 权限编码: 'operations.announcements.manage', 启用: true } },
+    { record_id: 'p6', fields: { 用户ID: 'ADMIN-1', 权限编码: 'operations.apps.manage', 启用: true } }
   ]],
   ['消息通知', []], ['应用收藏', []], ['积分余额', []],
   ['多维表连接配置', [{ record_id: 'conn1', fields: { 连接编码: 'CONN-1', 环境: 'TEST', 'Base Token掩码': 'bas***123', 启用: true, 最后健康状态: 'HEALTHY', 版本号: 2 } }]],
@@ -23,6 +26,12 @@ const rowsByName = new Map([
   ['后台任务执行记录', [{ record_id: 'exec1', fields: { 执行ID: 'EXEC-1', 任务ID: 'JOB-1', 触发类型: 'MANUAL', 触发人ID: 'ADMIN-1', 开始时间: '2026-09-02T01:00:00.000Z', 状态: 'SUCCEEDED', 进度: 100, 总数: 1, 成功数: 1, 失败数: 0, 跳过数: 0 } }]],
   ['归档任务', [{ record_id: 'archive1', fields: { 归档任务ID: 'ARCHIVE-1', 状态: 'SUCCEEDED', 阶段: 'VERIFIED', 源记录数: 10, 已归档数: 10, 已删除数: 0, 失败数: 0, 源校验和: 'SOURCE-HASH', 归档校验和: 'ARCHIVE-HASH', 归档位置掩码: 'bucket/***' } }]],
   ['归档执行记录', [{ record_id: 'archive-exec1', fields: { 执行记录ID: 'AEXEC-1', 归档任务ID: 'ARCHIVE-1', 动作: 'VERIFY', 状态: 'SUCCEEDED', 源记录ID: 'SOURCE-1', 归档记录ID: 'TARGET-1' } }]]
+  ,['日统计汇总', [{ record_id: 'daily1', fields: { 汇总编码: 'DAY-1', 统计日期: '2026-09-02', 指标编码: 'VISIT_COUNT', 指标值: 12 } }]],
+  ['统计指标定义', [{ record_id: 'metric1', fields: { 指标编码: 'VISIT_COUNT', 指标名称: '访问量', 单位: '次', 口径版本: '1' } }]],
+  ['公告通知', [{ record_id: 'ann1', fields: { 公告ID: 'ANN-1', 公告标题: '系统公告', 分类: 'SYSTEM', 状态: 'PUBLISHED', 发布时间: '2026-09-02', 更新时间: '2026-09-02', 版本: 1 } }]],
+  ['应用索引', [{ record_id: 'app1', fields: { 应用ID: 'APP-1', 应用名称: '采购助手', 应用类型: 'AI', 状态: 'ONLINE', 使用量: 10, 收藏数: 2 } }]],
+  ['应用类型配置', [{ record_id: 'type1', fields: { 类型ID: 'AI', 类型编码: 'AI', 类型名称: 'AI智能体' } }]],
+  ['业务域字典', []], ['场景字典', []], ['上架申请', []]
 ]);
 const tableNames = new Map([...identifierContract.byName.values()].map(table => [table.tableId, table.name]));
 const client = { async listRecords(tableId) { const items = rowsByName.get(tableNames.get(tableId)) || []; return { items, total: items.length, hasMore: false, nextPageToken: '' }; } };
@@ -41,8 +50,18 @@ responses.set('INT-004', await service.execute('INT-004', { view: 'EXECUTIONS', 
 assert.equal(responses.get('INT-004').data.items[0].executionId, 'EXEC-1');
 responses.set('ARC-002', await service.execute('ARC-002', { archiveTaskId: 'ARCHIVE-1' }, context));
 assert.equal(responses.get('ARC-002').data.executions[0].action, 'VERIFY');
+responses.set('OPS-001', await service.execute('OPS-001', { period: 'DAY', timezone: 'Asia/Shanghai' }, context));
+assert.equal(responses.get('OPS-001').data.metrics[0].value, 12);
+responses.set('OAN-001', await service.execute('OAN-001', {}, context));
+assert.equal(responses.get('OAN-001').data.publishedCount, 1);
+responses.set('OAN-002', await service.execute('OAN-002', { page: 1, pageSize: 10 }, context));
+assert.equal(responses.get('OAN-002').data.items[0].announcementId, 'ANN-1');
+responses.set('OAP-001', await service.execute('OAP-001', {}, context));
+assert.equal(responses.get('OAP-001').data.onlineCount, 1);
+responses.set('OAP-002', await service.execute('OAP-002', { page: 1, pageSize: 10 }, context));
+assert.equal(responses.get('OAP-002').data.items[0].appId, 'APP-1');
 
-for (const operationId of ['INT-001', 'ADM-003', 'ADM-004', 'INT-004', 'ARC-002']) {
+for (const operationId of ['INT-001', 'ADM-003', 'ADM-004', 'INT-004', 'ARC-002', 'OPS-001', 'OAN-001', 'OAN-002', 'OAP-001', 'OAP-002']) {
   validateContractSchema(responses.get(operationId), contracts[operationId].successSchema, operationId);
   assert.equal(resolveRemoteReadOperation(operationId).remoteEnabled, true);
 }

@@ -18,6 +18,11 @@ const READ_PLANS = Object.freeze({
   'ADM-003': Object.freeze({ kind: 'admin-read' }),
   'ADM-004': Object.freeze({ kind: 'admin-read' }),
   'ARC-002': Object.freeze({ kind: 'admin-read' }),
+  'OPS-001': Object.freeze({ kind: 'admin-read' }),
+  'OAN-001': Object.freeze({ kind: 'admin-read' }),
+  'OAN-002': Object.freeze({ kind: 'admin-read' }),
+  'OAP-001': Object.freeze({ kind: 'admin-read' }),
+  'OAP-002': Object.freeze({ kind: 'admin-read' }),
   'APP-001': Object.freeze({ kind: 'app-facets' }),
   'ANN-001': Object.freeze({ kind: 'announcement-facets' }),
   'COM-003': Object.freeze({ kind: 'contact-organizations' }),
@@ -1319,9 +1324,90 @@ export function createFeishuReadOnlyService(options) {
   }
 
   async function executeAdminRead(operationId, input, requestContext) {
-    const requiredPermission = operationId.startsWith('ADM-') ? 'admin.audit.view'
+    const requiredPermission = operationId === 'OPS-001' ? 'operations.dashboard.view'
+      : operationId.startsWith('OAN-') ? 'operations.announcements.manage'
+      : operationId.startsWith('OAP-') ? 'operations.apps.manage'
+      : operationId.startsWith('ADM-') ? 'admin.audit.view'
       : operationId.startsWith('ARC-') ? 'admin.archive.view' : 'admin.integrations.view';
     await requirePermission(requestContext, requiredPermission);
+    if (operationId === 'OPS-001') {
+      assertAllowedInput(input, ['period', 'startDate', 'endDate', 'orgId', 'timezone', 'topN']);
+      const period = input.period || 'WEEK'; const timezone = valueToText(input.timezone) || 'Asia/Shanghai';
+      if (!['DAY', 'WEEK', 'MONTH', 'QUARTER', 'CUSTOM'].includes(period)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '运营周期不受支持', 400);
+      const end = input.endDate ? new Date(`${input.endDate}T23:59:59.999Z`) : now();
+      let start;
+      if (period === 'CUSTOM') {
+        if (!input.startDate || !input.endDate) throw new FeishuProxyError('INVALID_OPERATION_INPUT', 'CUSTOM 周期必须提供 startDate 和 endDate', 400);
+        start = new Date(`${input.startDate}T00:00:00.000Z`);
+      } else {
+        const days = period === 'DAY' ? 1 : period === 'WEEK' ? 7 : period === 'MONTH' ? 30 : 90;
+        start = new Date(end.getTime() - (days - 1) * 86400000); start.setUTCHours(0, 0, 0, 0);
+      }
+      if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end < start || end - start > 366 * 86400000) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '运营统计日期范围无效或超过 366 天', 400);
+      const rangeMs = end - start + 1; const previousEnd = new Date(start.getTime() - 1); const previousStart = new Date(previousEnd.getTime() - rangeMs + 1);
+      const topN = input.topN == null ? 10 : Number(input.topN); if (!Number.isInteger(topN) || topN < 1 || topN > 50) throw new FeishuProxyError('INVALID_OPERATION_INPUT', 'topN 必须是 1 至 50 的整数', 400);
+      const [dailyRows, definitions, projection, announcementProjection, userRows] = await Promise.all([readAll('日统计汇总'), readAll('统计指标定义'), getAppProjection(), getAnnouncementProjection(), readAll('用户字典')]);
+      const startDate = start.toISOString().slice(0, 10); const endDate = end.toISOString().slice(0, 10);
+      const points = dailyRows.map(record => record?.fields || {}).filter(fields => {
+        const date = valueToText(fields['统计日期']).slice(0, 10); return date >= startDate && date <= endDate && (!input.orgId || valueToText(fields['维度ID']) === input.orgId);
+      });
+      const byMetric = new Map();
+      for (const fields of points) byMetric.set(valueToText(fields['指标编码']), (byMetric.get(valueToText(fields['指标编码'])) || 0) + valueToNumber(fields['指标值']));
+      const metricDefinitions = new Map(definitions.map(record => [valueToText(record?.fields?.['指标编码']), record?.fields || {}]));
+      const metricCodes = ['VISIT_COUNT', 'APP_USE_COUNT', 'ACTIVE_USER_COUNT', 'HOT_APP_COUNT', 'APPROVED_USER_COUNT'];
+      const metrics = metricCodes.map(code => {
+        const definition = metricDefinitions.get(code) || {}; const value = byMetric.get(code) || 0;
+        return { code, label: valueToText(definition['指标名称']) || code, value, unit: valueToText(definition['单位']), previousValue: 0, changeValue: value, changeRate: 0, direction: value > 0 ? 'UP' : 'FLAT', iconUrl: '' };
+      });
+      const visitTrend = [...new Set(points.map(fields => valueToText(fields['统计日期']).slice(0, 10)).filter(Boolean))].sort().map(date => ({ bucketStart: date, bucketEnd: date, label: date, visitCount: points.filter(fields => valueToText(fields['统计日期']).startsWith(date) && valueToText(fields['指标编码']) === 'VISIT_COUNT').reduce((sum, fields) => sum + valueToNumber(fields['指标值']), 0), uniqueUserCount: points.filter(fields => valueToText(fields['统计日期']).startsWith(date) && valueToText(fields['指标编码']) === 'ACTIVE_USER_COUNT').reduce((sum, fields) => sum + valueToNumber(fields['指标值']), 0), appUseCount: points.filter(fields => valueToText(fields['统计日期']).startsWith(date) && valueToText(fields['指标编码']) === 'APP_USE_COUNT').reduce((sum, fields) => sum + valueToNumber(fields['指标值']), 0) }));
+      const topApps = [...projection.items].sort((a, b) => b.usageCount - a.usageCount).slice(0, topN).map((app, index) => ({ rank: index + 1, appId: app.appId, appName: app.name, typeName: app.typeName, usageCount: app.usageCount, uniqueUserCount: 0, changeRate: 0 }));
+      const typeCounts = new Map(); for (const app of projection.items) typeCounts.set(app.typeCode, { typeCode: app.typeCode, typeName: app.typeName, count: (typeCounts.get(app.typeCode)?.count || 0) + 1 });
+      const totalApps = projection.items.length;
+      return {
+        period: { period, startDate, endDate, previousStartDate: previousStart.toISOString().slice(0, 10), previousEndDate: previousEnd.toISOString().slice(0, 10), timezone },
+        generatedAt: now().toISOString(), dataAsOf: now().toISOString(), sourceNames: ['日统计汇总', '应用索引', '公告通知'], metrics, visitTrend, topApps,
+        announcements: announcementProjection.items.slice(0, topN).map(item => ({ announcementId: item.announcementId, title: item.title, publisherOrgName: '', publishAt: item.publishedAt, viewCount: 0 })),
+        userActivity: { activeUserCount: byMetric.get('ACTIVE_USER_COUNT') || 0, totalUserCount: userRows.length, activeRate: userRows.length ? Number((((byMetric.get('ACTIVE_USER_COUNT') || 0) * 100) / userRows.length).toFixed(2)) : 0, visitsPerUser: 0, appsPerUser: 0 },
+        appUsageTrend: visitTrend.map(item => ({ bucketStart: item.bucketStart, label: item.label, usageCount: item.appUseCount, uniqueUserCount: item.uniqueUserCount })),
+        appTypeDistribution: [...typeCounts.values()].map(item => ({ ...item, percentage: totalApps ? Number((item.count * 100 / totalApps).toFixed(2)) : 0, colorToken: '' })),
+        accessSourceDistribution: [], metricDefinitionsVersion: Math.max(0, ...definitions.map(record => valueToNumber(record?.fields?.['口径版本'] || record?.fields?.['版本'])))
+      };
+    }
+
+    if (operationId === 'OAN-001' || operationId === 'OAN-002') {
+      const rows = await readAll('公告通知');
+      if (operationId === 'OAN-001') {
+        assertAllowedInput(input, ['startAt', 'endAt']); const today = now().toISOString().slice(0, 10); const yesterday = new Date(now().getTime() - 86400000).toISOString().slice(0, 10);
+        const filtered = rows.map(record => record?.fields || {}).filter(fields => (!input.startAt || valueToText(fields['发布时间']) >= input.startAt) && (!input.endAt || valueToText(fields['发布时间']) <= input.endAt));
+        const statusCount = status => filtered.filter(fields => valueToText(fields['状态']).toLocaleUpperCase('zh-CN') === status).length;
+        const todayCount = filtered.filter(fields => valueToText(fields['发布时间']).startsWith(today)).length; const yesterdayCount = filtered.filter(fields => valueToText(fields['发布时间']).startsWith(yesterday)).length;
+        return { totalCount: filtered.length, publishedCount: statusCount('PUBLISHED'), draftCount: statusCount('DRAFT'), scheduledCount: statusCount('SCHEDULED'), offlineCount: statusCount('OFFLINE'), expiredCount: statusCount('EXPIRED'), todayPublishedCount: todayCount, yesterdayComparison: todayCount - yesterdayCount };
+      }
+      assertAllowedInput(input, ['keyword', 'typeCode', 'statusCode', 'scopeType', 'scopeOrgId', 'publishStart', 'publishEnd', 'isTop', 'publisherId', 'page', 'pageSize', 'sort']);
+      const { page, pageSize } = publicPage(input); const keyword = valueToText(input.keyword).toLocaleLowerCase('zh-CN');
+      let items = rows.map(record => { const fields = record?.fields || {}; const statusCode = valueToText(fields['状态']); return {
+        announcementId: valueToText(fields['公告ID']) || String(record?.record_id || ''), title: valueToText(fields['公告标题']), typeCode: valueToText(fields['分类']), typeName: valueToText(fields['分类']), publishAt: valueToText(fields['发布时间']), validFrom: valueToText(fields['有效期开始']), validTo: valueToText(fields['有效期结束']), scopeType: valueToText(fields['范围类型']), scopeSummary: '', statusCode, statusName: statusCode, viewCount: valueToNumber(fields['浏览量']), readCount: 0, isTop: valueToBoolean(fields['是否置顶']), publisherId: valueToText(fields['发布人ID']), publisherName: valueToText(fields['发布人ID']), updatedAt: valueToText(fields['更新时间']), version: valueToNumber(fields['版本']), permissions: { canEdit: true, canPreview: true, canPublish: true, canOffline: true, canDelete: true, canTop: true }
+      }; }).filter(item => item.announcementId && (!keyword || item.title.toLocaleLowerCase('zh-CN').includes(keyword)) && (!input.typeCode || item.typeCode === input.typeCode) && (!input.statusCode || item.statusCode === input.statusCode) && (!input.scopeType || item.scopeType === input.scopeType) && (!input.publisherId || item.publisherId === input.publisherId) && (input.isTop === undefined || item.isTop === input.isTop));
+      items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)); return paginatePublic(items, page, pageSize);
+    }
+
+    if (operationId === 'OAP-001' || operationId === 'OAP-002') {
+      const projection = await getAppProjection();
+      if (operationId === 'OAP-001') {
+        assertAllowedInput(input, ['typeCode', 'domainId', 'responsibleOrgId', 'statusCode', 'startAt', 'endAt']);
+        const apps = projection.items.filter(item => (!input.typeCode || item.typeCode === input.typeCode) && (!input.domainId || item.domainId === input.domainId) && (!input.responsibleOrgId || item.responsibleOrgId === input.responsibleOrgId) && (!input.statusCode || item.status === input.statusCode));
+        const byType = new Map(); for (const app of apps) { const current = byType.get(app.typeCode) || { typeCode: app.typeCode, typeName: app.typeName, count: 0, onlineCount: 0 }; current.count += 1; if (app.status === 'ONLINE') current.onlineCount += 1; byType.set(app.typeCode, current); }
+        return { totalCount: apps.length, draftCount: apps.filter(item => item.status === 'DRAFT').length, submittedCount: apps.filter(item => item.status === 'SUBMITTED').length, onlineCount: apps.filter(item => item.status === 'ONLINE').length, offlineCount: apps.filter(item => item.status === 'OFFLINE').length, monthNewCount: 0, totalViews: apps.reduce((sum, item) => sum + item.usageCount, 0), totalUses: apps.reduce((sum, item) => sum + item.usageCount, 0), totalUniqueUsers: 0, totalFavorites: apps.reduce((sum, item) => sum + item.favoriteCount, 0), byType: [...byType.values()], generatedAt: now().toISOString() };
+      }
+      assertAllowedInput(input, ['keyword', 'appCode', 'typeCode', 'categoryCode', 'domainId', 'sceneCode', 'responsibleOrgId', 'ownerId', 'statusCode', 'isRecommended', 'isHot', 'onlineStart', 'onlineEnd', 'page', 'pageSize', 'sort']);
+      const { page, pageSize } = publicPage(input); const keyword = valueToText(input.keyword).toLocaleLowerCase('zh-CN');
+      const onboardingRows = await readAll('上架申请');
+      let items = projection.items.filter(item => (!keyword || `${item.name} ${item.summary}`.toLocaleLowerCase('zh-CN').includes(keyword)) && (!input.appCode || item.appCode === input.appCode) && (!input.typeCode || item.typeCode === input.typeCode) && (!input.categoryCode || item.categoryCode === input.categoryCode) && (!input.domainId || item.domainId === input.domainId) && (!input.sceneCode || item.sceneIds.includes(input.sceneCode)) && (!input.responsibleOrgId || item.responsibleOrgId === input.responsibleOrgId) && (!input.ownerId || item.ownerId === input.ownerId) && (!input.statusCode || item.status === input.statusCode)).map(item => {
+        const submission = onboardingRows.find(record => valueToText(record?.fields?.['关联应用ID']) === item.appId)?.fields || {};
+        return { ...item, submissionStatus: valueToText(submission['状态']) || 'NOT_SUBMITTED', schemaVersion: 0, lastPublishedAt: null, lastPublishedBy: null, dataQualityStatus: item.name && item.typeCode ? 'VALID' : 'INVALID', permissions: { canView: true, canEdit: true, canSubmit: true, canPublish: true, canOffline: true, canConfigurePermission: true, canArchive: true } };
+      });
+      items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)); return paginatePublic(items, page, pageSize);
+    }
     if (operationId === 'INT-001') {
       assertAllowedInput(input, ['environment', 'enabled', 'page', 'pageSize']);
       const { page, pageSize } = publicPage(input);
