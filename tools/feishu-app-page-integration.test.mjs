@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
-import { createAppReadOperationContracts, validateContractSchema } from '../src/integration/operation-contract-schemas.js';
+import { createVerifiedReadOperationContracts, validateContractSchema } from '../src/integration/operation-contract-schemas.js';
 import { resolveRemoteReadOperation } from '../src/integration/remote-operation-capabilities.js';
 import { mapRemoteApp } from '../src/integration/app-read-model.js';
+import { mapRemoteAnnouncement } from '../src/integration/announcement-read-model.js';
 
-const contracts = createAppReadOperationContracts();
-assert.deepEqual(Object.keys(contracts).sort(), ['APP-001', 'APP-002']);
+const contracts = createVerifiedReadOperationContracts();
+assert.deepEqual(Object.keys(contracts).sort(), ['ANN-001', 'ANN-002', 'APP-001', 'APP-002']);
 assert.equal(resolveRemoteReadOperation('APP-001').remoteEnabled, true);
 assert.equal(resolveRemoteReadOperation('APP-002').remoteEnabled, true);
-assert.equal(resolveRemoteReadOperation('ANN-002').remoteEnabled, false);
+assert.equal(resolveRemoteReadOperation('ANN-001').remoteEnabled, true);
+assert.equal(resolveRemoteReadOperation('ANN-002').remoteEnabled, true);
 
 const remoteItem = {
   id: 'rec-app', appId: 'APP-001', name: '经营分析可视化报表', typeCode: 'REPORT', typeName: '可视化报表',
@@ -35,4 +37,23 @@ assert.equal(mapped.scene, '生产运营');
 assert.equal(mapped.usage, 1418);
 assert.equal(mapped.route, '/apps/report-001');
 
-console.log('APP-001/APP-002 browser contracts, selective remote gate and view-model projection passed');
+const remoteAnnouncement = {
+  id: 'rec-ann', announcementId: 'ANN-001', title: '系统上线', category: '系统公告',
+  summary: '平台能力已完成更新。', status: '已发布', pinned: true, publishedAt: '2026-09-02 09:30:00'
+};
+const announcementSuccess = {
+  code: 'OK', data: {
+    items: [remoteAnnouncement], total: 1, page: 1, pageSize: 10, totalPages: 1,
+    hasPrevious: false, hasNext: false, hasMore: false, sort: 'published-desc',
+    filtersApplied: {}, facetsVersion: 'feishu-announcement-facets.v1'
+  }, traceId: 'trace-ann', schemaVersion: 'feishu-read-only.v1', sourceUpdatedAt: '2026-09-02T08:00:00.000Z',
+  isComplete: true, dataStale: false
+};
+assert.doesNotThrow(() => validateContractSchema(announcementSuccess, contracts['ANN-002'].successSchema));
+const mappedAnnouncement = mapRemoteAnnouncement(remoteAnnouncement);
+assert.equal(mappedAnnouncement.id, 'ANN-001');
+assert.equal(mappedAnnouncement.type, '系统公告');
+assert.equal(mappedAnnouncement.read, null, '飞书表没有已读字段时必须保持未知');
+assert.equal(mappedAnnouncement.status, '已发布');
+
+console.log('APP/ANN browser contracts, selective remote gate and view-model projections passed');

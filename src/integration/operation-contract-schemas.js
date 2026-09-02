@@ -187,6 +187,55 @@ const appListDataSchema = Object.freeze({
   additionalProperties: false
 });
 
+const announcementFilterSchema = Object.freeze({
+  type: 'object',
+  properties: { category: optionalText, status: optionalText, startDate: optionalText, endDate: optionalText },
+  additionalProperties: false
+});
+const announcementListRequestSchema = Object.freeze({
+  type: 'object',
+  properties: {
+    filters: announcementFilterSchema,
+    page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
+    pageSize: Object.freeze({ enum: [10, 20, 50, 100] }),
+    query: optionalText,
+    sort: Object.freeze({ enum: ['default', 'published-desc', 'published-asc'] })
+  },
+  additionalProperties: false
+});
+const announcementItemSchema = Object.freeze({
+  type: 'object',
+  required: ['id', 'announcementId', 'title', 'category', 'summary', 'status', 'pinned', 'publishedAt'],
+  properties: {
+    id: identifier, announcementId: identifier, title: text, category: optionalText,
+    summary: Object.freeze({ type: 'string', maxLength: 2048 }), status: optionalText,
+    pinned: booleanValue, publishedAt: optionalText
+  },
+  additionalProperties: false
+});
+const announcementFacetsDataSchema = Object.freeze({
+  type: 'object',
+  required: ['total', 'weekNew', 'categories', 'statuses', 'readStateAvailable', 'facetsVersion'],
+  properties: {
+    total: countInteger, weekNew: countInteger, categories: facetListSchema, statuses: facetListSchema,
+    readStateAvailable: booleanValue, facetsVersion: optionalText
+  },
+  additionalProperties: false
+});
+const announcementListDataSchema = Object.freeze({
+  type: 'object',
+  required: ['items', 'total', 'page', 'pageSize', 'totalPages', 'hasPrevious', 'hasNext', 'hasMore', 'sort', 'filtersApplied', 'facetsVersion'],
+  properties: {
+    items: Object.freeze({ type: 'array', items: announcementItemSchema, maxItems: 100 }), total: countInteger,
+    page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
+    pageSize: Object.freeze({ enum: [10, 20, 50, 100] }), totalPages: countInteger,
+    hasPrevious: booleanValue, hasNext: booleanValue, hasMore: booleanValue,
+    sort: Object.freeze({ enum: ['default', 'published-desc', 'published-asc'] }),
+    filtersApplied: announcementFilterSchema, facetsVersion: optionalText
+  },
+  additionalProperties: false
+});
+
 export function createAppReadOperationContracts() {
   return Object.freeze({
     'APP-001': Object.freeze({
@@ -200,6 +249,25 @@ export function createAppReadOperationContracts() {
       contractStatus: 'server-projection-verified'
     })
   });
+}
+
+export function createAnnouncementReadOperationContracts() {
+  return Object.freeze({
+    'ANN-001': Object.freeze({
+      operationId: 'ANN-001', requestSchema: facetRequestSchema,
+      successSchema: envelopeSchema(announcementFacetsDataSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA,
+      contractStatus: 'server-projection-verified'
+    }),
+    'ANN-002': Object.freeze({
+      operationId: 'ANN-002', requestSchema: announcementListRequestSchema,
+      successSchema: envelopeSchema(announcementListDataSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA,
+      contractStatus: 'server-projection-verified'
+    })
+  });
+}
+
+export function createVerifiedReadOperationContracts() {
+  return Object.freeze({ ...createAppReadOperationContracts(), ...createAnnouncementReadOperationContracts() });
 }
 
 function typeMatches(value, type) {

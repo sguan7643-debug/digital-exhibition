@@ -1,6 +1,6 @@
 import { getOperation } from './operation-registry.js';
 
-const verifiedReadOperations = new Set(['APP-001', 'APP-002']);
+const verifiedReadOperations = new Set(['APP-001', 'APP-002', 'ANN-001', 'ANN-002']);
 
 export function resolveRemoteReadOperation(operationId) {
   const operation = getOperation(operationId);

@@ -3,9 +3,14 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ANNOUNCEMENT_FIXTURES, createAnnouncementController } from '../state/announcement-controllers.js';
 import { routeSession } from '../state/session-store.js';
 import PaginationControl from '../components/PaginationControl.vue';
+import { mapRemoteAnnouncement } from '../integration/announcement-read-model.js';
 
 const REFERENCE_SHA256 = '58A43229752CC4A5210A2846B88DB267A622543AA8F7F034CDA42BC2041F4F8C';
-const props=defineProps({state:{type:String,default:'normal'}});
+const props=defineProps({
+  state:{type:String,default:'normal'},
+  integrationData:{type:Object,default:null},
+  integrationState:{type:String,default:'mock'}
+});
 const emit=defineEmits(['restore']);
 const controller=routeSession.controller('announcements',()=>createAnnouncementController(ANNOUNCEMENT_FIXTURES));
 const localState=ref(props.state);
@@ -14,6 +19,14 @@ const startDateInput=ref(null);
 const pagedAnnouncements=computed(()=>localState.value==='empty'?[]:controller.pagedResults);
 const contentVisible=computed(()=>['normal','empty','disabled'].includes(localState.value));
 const controlsDisabled=computed(()=>localState.value==='disabled');
+const remoteFacets=computed(()=>props.integrationData?.['ANN-001']);
+const remoteMode=computed(()=>Boolean(props.integrationData?.['ANN-002']));
+const readStateAvailable=computed(()=>remoteFacets.value?.readStateAvailable!==false);
+const readActionsDisabled=computed(()=>controlsDisabled.value||!readStateAvailable.value);
+const typeOptions=computed(()=>remoteFacets.value?.categories?.map(item=>item.name).filter(Boolean)||['平台公告','应用上线','活动通知','系统通知']);
+const statusOptions=computed(()=>remoteFacets.value?.statuses?.map(item=>item.name).filter(Boolean)||[]);
+const totalCount=computed(()=>remoteFacets.value?.total??controller.fixtures.length);
+const weekNew=computed(()=>remoteFacets.value?.weekNew??9);
 let loadingTimer;
 
 function finishLoading(){window.clearTimeout(loadingTimer);loadingTimer=window.setTimeout(()=>emit('restore'),800);}
@@ -25,6 +38,10 @@ function markAllRead(){controller.markAllRead();}
 function rememberDetail(item,event){if(controlsDisabled.value){event.preventDefault();return;}controller.markRead(item.id);window.history.replaceState({...window.history.state,xltRestoreFocus:`announcement-${item.id}`},'',window.location.href);}
 function resetEmpty(){controller.resetData();emit('restore');}
 
+watch(()=>props.integrationData?.['ANN-002']?.items,rows=>{
+  if(Array.isArray(rows))controller.replaceFixtures(rows.map(mapRemoteAnnouncement),{statusMode:'publication'});
+},{immediate:true});
+
 onMounted(()=>{const id=window.history.state?.xltRestoreFocus;if(id)nextTick(()=>document.getElementById(id)?.focus());});
 watch(()=>props.state,syncState);
 onBeforeUnmount(()=>window.clearTimeout(loadingTimer));
@@ -35,16 +52,16 @@ onBeforeUnmount(()=>window.clearTimeout(loadingTimer));
     <p class="sr-only" aria-live="polite">{{ controller.announcement }}</p>
     <template v-if="contentVisible">
       <header><h1>公告通知</h1><p>统一查看平台公告、应用上线通知与活动通知，及时获取公共信息</p></header>
-      <section class="notice-stats" aria-label="公告数据概览"><article><AppIcon name="notice-stat-unread" :size="67" /><div><strong>未读公告</strong><b>{{ controller.unreadCount }}</b><small>较昨日　<em class="down">↓ 5</em></small></div></article><article><AppIcon name="notice-stat-new" :size="67" /><div><strong>本周新增</strong><b>9</b><small>较上周　<em>↑ 3</em></small></div></article></section>
+      <section class="notice-stats" aria-label="公告数据概览"><article><AppIcon name="notice-stat-unread" :size="67" /><div><strong>{{ remoteMode?'公告总数':'未读公告' }}</strong><b>{{ remoteMode?totalCount:controller.unreadCount }}</b><small>{{ remoteMode?'来自飞书公告表':'较昨日　↓ 5' }}</small></div></article><article><AppIcon name="notice-stat-new" :size="67" /><div><strong>本周新增</strong><b>{{ weekNew }}</b><small>{{ remoteMode?'按发布时间统计':'较上周　↑ 3' }}</small></div></article></section>
       <form class="notice-filters" aria-label="公告筛选" @submit.prevent="applyAnnouncementFilters">
-        <label>公告类型：<select :value="controller.draft.type" :disabled="controlsDisabled" @change="updateFilter('type',$event)"><option value="">全部类型</option><option>平台公告</option><option>应用上线</option><option>活动通知</option><option>系统通知</option></select></label>
+        <label>公告类型：<select :value="controller.draft.type" :disabled="controlsDisabled" @change="updateFilter('type',$event)"><option value="">全部类型</option><option v-for="type in typeOptions" :key="type">{{ type }}</option></select></label>
         <label>发布时间：<span class="date-range"><input ref="startDateInput" type="date" aria-label="开始日期" :aria-invalid="Boolean(controller.validationError)" aria-describedby="notice-date-error" :value="controller.draft.startDate" :disabled="controlsDisabled" @input="controller.setDraft('startDate',$event.target.value)" /><b>~</b><input type="date" aria-label="结束日期" :aria-invalid="Boolean(controller.validationError)" aria-describedby="notice-date-error" :value="controller.draft.endDate" :disabled="controlsDisabled" @input="controller.setDraft('endDate',$event.target.value)" /></span><small id="notice-date-error" class="filter-error" role="alert">{{ controller.validationError }}</small></label>
-        <label>是否已读：<select :value="controller.draft.status" :disabled="controlsDisabled" @change="updateFilter('status',$event)"><option value="all">全部状态</option><option value="unread">未读</option><option value="read">已读</option></select></label>
-        <button type="submit" :disabled="controlsDisabled">筛选</button><button type="button" :disabled="controlsDisabled" @click="markAllRead">全部标为已读</button>
+        <label>{{ remoteMode?'发布状态：':'是否已读：' }}<select :value="controller.draft.status" :disabled="controlsDisabled" @change="updateFilter('status',$event)"><option value="all">全部状态</option><template v-if="remoteMode"><option v-for="status in statusOptions" :key="status">{{ status }}</option></template><template v-else><option value="unread">未读</option><option value="read">已读</option></template></select></label>
+        <button type="submit" :disabled="controlsDisabled">筛选</button><button type="button" :disabled="readActionsDisabled" :title="readStateAvailable?'':'飞书公告表未提供用户已读状态'" @click="markAllRead">全部标为已读</button>
       </form>
       <section class="notice-table">
         <div v-if="state === 'empty' || !pagedAnnouncements.length" class="notice-empty"><h2>暂无符合条件的公告</h2><p>请调整筛选条件后重试。</p><button type="button" @click="resetEmpty">清除筛选并恢复</button></div>
-        <template v-else><table><caption class="sr-only">公告通知列表</caption><thead><tr><th scope="col">公告内容</th><th scope="col">发布时间</th><th scope="col">状态</th><th scope="col">操作</th></tr></thead><tbody><tr v-for="item in pagedAnnouncements" :key="item.id"><td><i :class="item.tone" aria-hidden="true"></i><mark :class="item.tone">{{ item.type }}</mark><div><strong>{{ item.title }}</strong><p>{{ item.copy }}</p></div></td><td><time :datetime="`${item.date}T${item.time.slice(6)}`">{{ item.time }}</time></td><td><span :class="{unread:!item.read}">{{ item.read?'已读':'未读' }}</span></td><td><a v-if="item.hasDetail" :id="`announcement-${item.id}`" href="/announcements/notice-001" :aria-disabled="controlsDisabled" @click="rememberDetail(item,$event)">查看详情　›</a><button v-else :id="`announcement-${item.id}`" type="button" :disabled="controlsDisabled" @click="controller.explain(item)">查看详情　›</button></td></tr></tbody></table>
+        <template v-else><table><caption class="sr-only">公告通知列表</caption><thead><tr><th scope="col">公告内容</th><th scope="col">发布时间</th><th scope="col">状态</th><th scope="col">操作</th></tr></thead><tbody><tr v-for="item in pagedAnnouncements" :key="item.id"><td><i :class="item.tone" aria-hidden="true"></i><mark :class="item.tone">{{ item.type }}</mark><div><strong>{{ item.title }}</strong><p>{{ item.copy }}</p></div></td><td><time :datetime="item.date&&item.time?`${item.date}T${item.time.slice(6)}`:undefined">{{ item.time||'—' }}</time></td><td><span v-if="item.read===null">{{ item.status||'状态未提供' }}</span><span v-else :class="{unread:!item.read}">{{ item.read?'已读':'未读' }}</span></td><td><a v-if="item.hasDetail" :id="`announcement-${item.id}`" href="/announcements/notice-001" :aria-disabled="controlsDisabled" @click="rememberDetail(item,$event)">查看详情　›</a><button v-else :id="`announcement-${item.id}`" type="button" :disabled="controlsDisabled" @click="controller.explain(item)">查看详情　›</button></td></tr></tbody></table>
         <PaginationControl :total="controller.results.length" :page="controller.page" :page-size="controller.pageSize" :disabled="controlsDisabled" label="公告分页" @update:page="controller.setPage" @update:page-size="controller.setPageSize" /></template>
       </section>
     </template>

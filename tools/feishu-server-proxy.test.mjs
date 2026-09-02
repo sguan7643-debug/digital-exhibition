@@ -37,7 +37,10 @@ const calls = [];
 const fakeRowsByTableId = new Map([
   [contract.byName.get('数字化认证').tableId, { record_id: 'rec-cert', fields: { 主键: 'CERT-001', 认证类型: 'RPA', 状态: '有效' } }],
   [contract.byName.get('用户字典').tableId, { record_id: 'rec-user', fields: { 姓名: '张三丰', 岗位: '产品经理' } }],
-  [contract.byName.get('公告通知').tableId, { record_id: 'rec-ann', fields: { 公告标题: '系统上线', 分类: '系统公告' } }],
+  [contract.byName.get('公告通知').tableId, { record_id: 'rec-ann', fields: {
+    公告ID: 'ANN-001', 公告标题: '系统上线', 分类: '系统公告', 公告正文: '平台能力已完成更新。',
+    发布部门ID: 'D-001', 发布人ID: 'U-001', 状态: '已发布', 是否置顶: '是', 发布时间: '2026-09-02 09:30:00'
+  } }],
   [contract.byName.get('应用索引').tableId, { record_id: 'rec-app', fields: { 应用名称: '经营分析可视化报表', 应用类型: '可视化报表' } }],
   [contract.byName.get('人才项目').tableId, { record_id: 'rec-project', fields: { 项目名称: '数字人才培养', 项目类型: '培训' } }],
   [contract.byName.get('项目进度').tableId, { record_id: 'rec-progress', fields: { 阶段名称: '实施', 状态: '进行中' } }],
@@ -143,7 +146,6 @@ assert.ok(calls.some(call => call.url.includes(`/tables/${contract.byName.get('�
 
 for (const [operationId, tableName, expectedLabel] of [
   ['COM-004', '用户字典', '张三丰'],
-  ['ANN-002', '公告通知', '系统上线'],
   ['TAL-002', '人才项目', '数字人才培养'],
   ['TAL-003', '项目进度', '实施'],
   ['MAT-002', '素材中心', '操作手册']
@@ -153,6 +155,20 @@ for (const [operationId, tableName, expectedLabel] of [
   assert.equal(mapped.data.items[0].label, expectedLabel);
   assert.ok(calls.some(call => call.url.includes(`/tables/${contract.byName.get(tableName).tableId}/records`)));
 }
+
+const announcementFacets = await service.execute('ANN-001', { page: 1, pageSize: 100 });
+assert.equal(announcementFacets.data.total, 1);
+assert.equal(announcementFacets.data.categories[0].name, '系统公告');
+assert.equal(announcementFacets.data.statuses[0].name, '已发布');
+assert.equal(announcementFacets.data.readStateAvailable, false, '公告表没有用户已读字段，不得伪造已读状态');
+const announcementEnvelope = await service.execute('ANN-002', { page: 1, pageSize: 10, sort: 'published-desc' });
+assert.deepEqual(announcementEnvelope.data.items[0], {
+  id: 'rec-ann', announcementId: 'ANN-001', title: '系统上线', category: '系统公告',
+  summary: '平台能力已完成更新。', status: '已发布', pinned: true, publishedAt: '2026-09-02 09:30:00'
+});
+assert.equal(announcementEnvelope.data.total, 1);
+assert.equal(announcementEnvelope.data.pageSize, 10);
+assert.equal(Object.hasOwn(announcementEnvelope.data.items[0], 'publisherId'), false, '列表不得暴露发布人标识');
 
 for (const operation of OPERATION_REGISTRY.filter(item => item.access === 'write')) {
   await assert.rejects(() => service.execute(operation.id, {}), error => {

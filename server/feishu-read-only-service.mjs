@@ -3,8 +3,9 @@ import { getOperation } from '../src/integration/operation-registry.js';
 
 const READ_PLANS = Object.freeze({
   'APP-001': Object.freeze({ kind: 'app-facets' }),
+  'ANN-001': Object.freeze({ kind: 'announcement-facets' }),
   'COM-004': Object.freeze({ tableName: '用户字典', labelField: '姓名', typeField: '岗位' }),
-  'ANN-002': Object.freeze({ tableName: '公告通知', labelField: '公告标题', typeField: '分类' }),
+  'ANN-002': Object.freeze({ kind: 'announcement-list' }),
   'APP-002': Object.freeze({ kind: 'app-list' }),
   'TAL-002': Object.freeze({ tableName: '人才项目', labelField: '项目名称', typeField: '项目类型' }),
   'TAL-003': Object.freeze({ tableName: '项目进度', labelField: '阶段名称', typeField: '状态' }),
@@ -26,6 +27,11 @@ function valueToNumber(value) {
 function valueToList(value) {
   if (Array.isArray(value)) return value.flatMap(valueToList).filter(Boolean);
   return valueToText(value).split(/[、,，;；|/]/).map(item => item.trim()).filter(Boolean);
+}
+
+function valueToBoolean(value) {
+  const text = valueToText(value).trim().toLocaleLowerCase('zh-CN');
+  return ['是', 'true', '1', 'yes', '置顶'].includes(text);
 }
 
 function createLookup(records, idFields, labelField) {
@@ -90,6 +96,9 @@ export function createFeishuReadOnlyService(options) {
   let appProjectionCache = null;
   let appProjectionExpiresAt = 0;
   let appProjectionPending = null;
+  let announcementProjectionCache = null;
+  let announcementProjectionExpiresAt = 0;
+  let announcementProjectionPending = null;
 
   function resolveTable(tableName) {
     const table = identifierContract.byName.get(tableName);
@@ -192,6 +201,38 @@ export function createFeishuReadOnlyService(options) {
     return appProjectionPending;
   }
 
+  async function readAnnouncementProjection() {
+    const rows = await readAll('公告通知');
+    const items = rows.map(record => {
+      const fields = record?.fields || {};
+      const recordId = String(record?.record_id || '');
+      const announcementId = valueToText(fields['公告ID']) || recordId;
+      return {
+        id: recordId || announcementId,
+        announcementId,
+        title: valueToText(fields['公告标题']),
+        category: valueToText(fields['分类']),
+        summary: valueToText(fields['公告正文']).slice(0, 2048),
+        status: valueToText(fields['状态']),
+        pinned: valueToBoolean(fields['是否置顶']),
+        publishedAt: valueToText(fields['发布时间'])
+      };
+    }).filter(item => item.id && item.title);
+    return { items };
+  }
+
+  async function getAnnouncementProjection() {
+    const timestamp = Date.now();
+    if (announcementProjectionCache && timestamp < announcementProjectionExpiresAt) return announcementProjectionCache;
+    if (announcementProjectionPending) return announcementProjectionPending;
+    announcementProjectionPending = readAnnouncementProjection().then(result => {
+      announcementProjectionCache = result;
+      announcementProjectionExpiresAt = Date.now() + appProjectionCacheMs;
+      return result;
+    }).finally(() => { announcementProjectionPending = null; });
+    return announcementProjectionPending;
+  }
+
   function createFacet(values, sortOrder = 0) {
     const counts = new Map();
     for (const value of values.filter(Boolean)) counts.set(value, (counts.get(value) || 0) + 1);
@@ -261,6 +302,74 @@ export function createFeishuReadOnlyService(options) {
     };
   }
 
+  async function executeAnnouncement(operationId, input) {
+    const allowedKeys = operationId === 'ANN-002' ? ['page', 'pageSize', 'query', 'filters', 'sort'] : ['page', 'pageSize'];
+    if (Object.keys(input).some(key => !allowedKeys.includes(key))) {
+      throw new FeishuProxyError('INVALID_OPERATION_INPUT', '请求包含未允许的输入字段', 400);
+    }
+    const projection = await getAnnouncementProjection();
+    if (operationId === 'ANN-001') {
+      const cutoff = now().getTime() - 7 * 24 * 60 * 60 * 1000;
+      return {
+        total: projection.items.length,
+        weekNew: projection.items.filter(item => {
+          const timestamp = Date.parse(item.publishedAt);
+          return Number.isFinite(timestamp) && timestamp >= cutoff;
+        }).length,
+        categories: createFacet(projection.items.map(item => item.category)),
+        statuses: createFacet(projection.items.map(item => item.status)),
+        readStateAvailable: false,
+        facetsVersion: 'feishu-announcement-facets.v1'
+      };
+    }
+    const pageSize = input.pageSize == null ? 10 : input.pageSize;
+    const page = input.page == null ? 1 : input.page;
+    if (!Number.isInteger(pageSize) || ![10, 20, 50, 100].includes(pageSize)) {
+      throw new FeishuProxyError('INVALID_PAGE_SIZE', '页容量必须是 10、20、50 或 100', 400);
+    }
+    if (!Number.isInteger(page) || page < 1 || page > 100) {
+      throw new FeishuProxyError('INVALID_PAGE', '页码必须是 1 至 100 的整数', 400);
+    }
+    if (input.filters != null && (typeof input.filters !== 'object' || Array.isArray(input.filters))) {
+      throw new FeishuProxyError('INVALID_OPERATION_INPUT', '筛选条件必须是对象', 400);
+    }
+    const filters = input.filters || {};
+    const allowedFilterKeys = ['category', 'status', 'startDate', 'endDate'];
+    if (Object.keys(filters).some(key => !allowedFilterKeys.includes(key))) {
+      throw new FeishuProxyError('INVALID_OPERATION_INPUT', '请求包含未允许的筛选字段', 400);
+    }
+    if (filters.startDate && filters.endDate && filters.startDate > filters.endDate) {
+      throw new FeishuProxyError('INVALID_DATE_RANGE', '开始日期不能晚于结束日期', 400);
+    }
+    const query = valueToText(input.query).toLocaleLowerCase('zh-CN');
+    let rows = projection.items.filter(item => {
+      const publishedDate = item.publishedAt.slice(0, 10);
+      return (!query || [item.title, item.summary, item.category].join(' ').toLocaleLowerCase('zh-CN').includes(query))
+        && (!filters.category || item.category === filters.category)
+        && (!filters.status || item.status === filters.status)
+        && (!filters.startDate || publishedDate >= filters.startDate)
+        && (!filters.endDate || publishedDate <= filters.endDate);
+    });
+    const sort = input.sort || 'published-desc';
+    if (!['default', 'published-desc', 'published-asc'].includes(sort)) {
+      throw new FeishuProxyError('INVALID_OPERATION_INPUT', '排序方式不受支持', 400);
+    }
+    rows = [...rows].sort((left, right) => {
+      if (left.pinned !== right.pinned) return left.pinned ? -1 : 1;
+      const compared = left.publishedAt.localeCompare(right.publishedAt, 'zh-CN');
+      return sort === 'published-asc' ? compared : -compared;
+    });
+    const total = rows.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.min(page, totalPages);
+    const start = (safePage - 1) * pageSize;
+    return {
+      items: rows.slice(start, start + pageSize), total, page: safePage, pageSize, totalPages,
+      hasPrevious: safePage > 1, hasNext: safePage < totalPages, hasMore: safePage < totalPages,
+      sort, filtersApplied: filters, facetsVersion: 'feishu-announcement-facets.v1'
+    };
+  }
+
   async function execute(operationId, input = {}) {
     const operation = getOperation(operationId);
     if (!operation) throw new FeishuProxyError('UNKNOWN_OPERATION', '接口不在受控操作清单中', 404);
@@ -269,8 +378,10 @@ export function createFeishuReadOnlyService(options) {
     }
     const plan = READ_PLANS[operationId];
     if (!plan) throw new FeishuProxyError('READ_OPERATION_NOT_ENABLED', '该只读接口尚未完成字段合同核验', 503);
-    if (plan.kind === 'app-facets' || plan.kind === 'app-list') {
-      const data = await executeApp(operationId, input);
+    if (plan.kind === 'app-facets' || plan.kind === 'app-list' || plan.kind === 'announcement-facets' || plan.kind === 'announcement-list') {
+      const data = plan.kind.startsWith('announcement')
+        ? await executeAnnouncement(operationId, input)
+        : await executeApp(operationId, input);
       return {
         code: 'OK', data, traceId: traceIdFactory(), schemaVersion: 'feishu-read-only.v1',
         sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false
