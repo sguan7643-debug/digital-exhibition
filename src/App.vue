@@ -58,6 +58,12 @@ const integrationClient = createSafeProxyClient({
   operationContracts: createVerifiedReadOperationContracts()
 });
 
+async function executeReadOperation(operationId, input) {
+  const operation = resolveRemoteReadOperation(operationId);
+  if (integrationRuntime.mode !== 'remote' || !operation?.remoteEnabled) throw new Error('真实接口当前未启用');
+  return integrationClient.execute(operationId, input);
+}
+
 function normalizeInitialRoute() {
   if (window.location.pathname === '/') {
     window.history.replaceState(window.history.state, '', '/workbench' + window.location.search + window.location.hash);
@@ -209,6 +215,7 @@ const integrationLiveAnnouncement = computed(() => resolveIntegrationLiveAnnounc
       <apps-page v-else-if="page.id === '07'"
         :integration-data="integrationEnvelope.data"
         :integration-state="integrationEnvelope.state"
+        :operation-executor="executeReadOperation"
       />
       <tool-detail-page v-else-if="page.id === '08'" />
       <haineng-work-detail-page v-else-if="page.id === '09'" />

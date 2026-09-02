@@ -9,7 +9,8 @@ import { mapRemoteApp } from '../integration/app-read-model.js';
 
 const props = defineProps({
   integrationData: { type: Object, default: null },
-  integrationState: { type: String, default: 'mock' }
+  integrationState: { type: String, default: 'mock' },
+  operationExecutor: { type: Function, default: null }
 });
 
 const controller = routeSession.controller('apps',()=>createAppsController(APP_FIXTURES));
@@ -47,7 +48,31 @@ function toggleFavorite(route) {
   const selected=routeSession.toggleRouteFavorite(route);
   controller.announcement = selected ? '已收藏应用' : '已取消收藏';
 }
-function localAction(label, app) { controller.announcement = `${app.name}：${label}为本地演示操作`; }
+async function localAction(label, app) {
+  if (label !== '立即使用' || !props.operationExecutor || props.integrationState === 'mock') {
+    controller.announcement = `${app.name}：${label}为本地演示操作`;
+    return;
+  }
+  controller.announcement = `${app.name}：正在校验访问权限`;
+  try {
+    const response = await props.operationExecutor('APP-004', {
+      appId: app.id, launchMode: 'NEW_TAB', sourcePage: '/apps', requestedAt: new Date().toISOString()
+    });
+    if (!response.data.allowed || !response.data.launchUrl) {
+      controller.announcement = `${app.name}：${response.data.reasonMessage || '当前不可访问'}`;
+      return;
+    }
+    controller.announcement = `${app.name}：访问校验通过，正在打开应用`;
+    window.open(response.data.launchUrl, '_blank', 'noopener,noreferrer');
+  } catch (error) {
+    if (error?.status === 401) {
+      const returnTo = `${window.location.pathname}${window.location.search}`;
+      window.location.assign(`/api/v1/auth/feishu/start?returnTo=${encodeURIComponent(returnTo)}`);
+      return;
+    }
+    controller.announcement = `${app.name}：访问失败，请稍后重试`;
+  }
+}
 function receiveCategory(event) { setCategory(event.detail); }
 function receiveFilter(event) { controller.setFilter(event.detail.key, event.detail.value); }
 
