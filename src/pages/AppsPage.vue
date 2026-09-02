@@ -1,20 +1,32 @@
 <script setup>
 // Reference SHA-256: 6479C8AFB3EB22872C5CA17D58A29DC8504E8CF05E3284D5E49708B7894FF522
-import { computed, onBeforeUnmount, onMounted } from 'vue';
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { APP_CATEGORIES, APP_FIXTURES } from '../fixtures/mock-data.js';
 import { createAppsController } from '../state/interaction-controllers.js';
 import { routeSession } from '../state/session-store.js';
 import PaginationControl from '../components/PaginationControl.vue';
+import { mapRemoteApp } from '../integration/app-read-model.js';
+
+const props = defineProps({
+  integrationData: { type: Object, default: null },
+  integrationState: { type: String, default: 'mock' }
+});
 
 const controller = routeSession.controller('apps',()=>createAppsController(APP_FIXTURES));
-controller.setPageSize(12);
 const queryDraft = computed({get:()=>controller.queryDraft,set:value=>{controller.queryDraft=value;}});
 const displayApp = app => app.id === 'app-metric-001' ? { ...app, name: '库存周转分析报表', category: '库存', scene: '仓储物流', description: '统一监控各仓库周转情况，识别呆滞物料，提供优化建议和预警功能。' } : app;
-const filteredApps = computed(() => controller.results.filter(app => app.id !== 'app-report-001').map(displayApp));
+const filteredApps = computed(() => controller.results.map(displayApp));
 const pagedApps = computed(() => filteredApps.value.slice((controller.page - 1) * controller.pageSize, controller.page * controller.pageSize));
 const filter = controller.filters;
-const tags = [...new Set(APP_FIXTURES.map(app => app.tag))];
-const domains = [...new Set(APP_FIXTURES.map(app => app.domain))];
+const facets = computed(() => props.integrationData?.['APP-001']);
+const categories = computed(() => facets.value?.types?.map(item => item.name).filter(Boolean) || APP_CATEGORIES);
+const tags = computed(() => facets.value?.categories?.map(item => item.name).filter(Boolean) || [...new Set(controller.fixtures.map(app => app.tag))]);
+const domains = computed(() => facets.value?.domains?.map(item => item.name).filter(Boolean) || [...new Set(controller.fixtures.map(app => app.domain))]);
+
+watch(() => props.integrationData?.['APP-002']?.items, rows => {
+  controller.fixtures = Array.isArray(rows) ? rows.map(mapRemoteApp) : [...APP_FIXTURES];
+  controller.page = 1;
+}, { immediate: true });
 
 function syncUrl() {
   const query = new URLSearchParams(window.location.search);
@@ -56,11 +68,11 @@ onBeforeUnmount(() => {
   <article class="apps-page" data-visual-baseline="ui-update-0831-apps" aria-labelledby="apps-title">
     <p class="sr-only" aria-live="polite">{{ controller.announcement }}</p>
     <header><div><h1 id="apps-title">应用中心</h1><p>汇聚优质应用资源，助力业务高效协同与智能决策</p></div><button type="button" @click="controller.announcement='应用上线申请为本地演示操作'">应用上线申请</button></header>
-    <form class="apps-filter" aria-label="应用筛选" @submit.prevent="submitSearch" @reset.prevent="resetFilters"><label>应用名称或关键词<input v-model="queryDraft" type="search" placeholder="请输入应用名称或关键词" /></label><label>标签<select :value="filter.tag" @change="setFilter('tag', $event.target.value)"><option value="">请选择标签</option><option v-for="tag in tags" :key="tag">{{ tag }}</option></select></label><label>应用类型<select :value="filter.type" @change="setFilter('type', $event.target.value)"><option value="">请选择应用类型</option><option v-for="category in APP_CATEGORIES" :key="category">{{ category }}</option></select></label><label>主题域<select :value="filter.domain" @change="setFilter('domain', $event.target.value)"><option value="">请选择主题域</option><option v-for="domain in domains" :key="domain">{{ domain }}</option></select></label><button type="reset">重置</button><button type="submit">查询</button></form>
+    <form class="apps-filter" aria-label="应用筛选" @submit.prevent="submitSearch" @reset.prevent="resetFilters"><label>应用名称或关键词<input v-model="queryDraft" type="search" placeholder="请输入应用名称或关键词" /></label><label>标签<select :value="filter.tag" @change="setFilter('tag', $event.target.value)"><option value="">请选择标签</option><option v-for="tag in tags" :key="tag">{{ tag }}</option></select></label><label>应用类型<select :value="filter.type" @change="setFilter('type', $event.target.value)"><option value="">请选择应用类型</option><option v-for="category in categories" :key="category">{{ category }}</option></select></label><label>主题域<select :value="filter.domain" @change="setFilter('domain', $event.target.value)"><option value="">请选择主题域</option><option v-for="domain in domains" :key="domain">{{ domain }}</option></select></label><button type="reset">重置</button><button type="submit">查询</button></form>
     <div class="apps-tools"><strong>全部应用 {{ filteredApps.length }} 个</strong><button type="button" @click="resetFilters">清空筛选</button><span v-if="filter.category" class="active-category">{{ filter.category }}</span><select :value="controller.sort" aria-label="排序" @change="controller.setSort($event.target.value)"><option value="default">综合排序</option><option value="usage-desc">使用量从高到低</option><option value="favorites-desc">收藏量从高到低</option><option value="name">名称排序</option></select><button type="button" aria-label="卡片视图" :aria-pressed="controller.view === 'grid'" @click="controller.setView('grid')"><AppIcon name="grid" :size="16" /></button><button type="button" aria-label="列表视图" :aria-pressed="controller.view === 'list'" @click="controller.setView('list')"><AppIcon name="list" :size="16" /></button></div>
     <section v-if="filteredApps.length" class="apps-grid" :class="{ 'list-view': controller.view === 'list' }" aria-label="应用列表"><article v-for="app in pagedApps" :key="app.id"><header><AppIcon :name="app.image" :size="52" /><div><h2><mark>{{ app.tag }}</mark>{{ app.name }}</h2><p><mark>{{ app.category }}</mark><mark>{{ app.scene }}</mark></p></div></header><p>{{ app.description }}</p><dl><div><dt>使用量</dt><dd>{{ app.usage.toLocaleString('zh-CN') }}</dd></div><div><dt>收藏</dt><dd>{{ app.favorites.toLocaleString('zh-CN') }}</dd></div><div><dt>负责人</dt><dd>{{ app.owner }}</dd></div><div><dt>开发者</dt><dd>{{ app.developer }}</dd></div></dl><footer><a :id="`app-${app.id}`" :data-session-focus="`app-${app.id}`" :href="app.route">查看详情</a><button type="button" @click="localAction('立即使用', app)">立即使用</button><button type="button" :aria-pressed="routeSession.isRouteFavorite(app.route)" @click="toggleFavorite(app.route)">{{ routeSession.isRouteFavorite(app.route) ? '已收藏' : '收藏' }}</button><button type="button" @click="localAction('申请试用', app)">申请试用</button></footer></article></section>
     <section v-else class="apps-empty" role="status"><h2>暂无符合条件的应用</h2><p>请调整筛选条件或清空筛选后重试。</p><button type="button" @click="resetFilters">清空筛选</button></section>
-    <PaginationControl class="apps-pagination" :total="filteredApps.length" :page="controller.page" :page-size="controller.pageSize" :page-sizes="[12]" label="应用中心分页" @update:page="controller.setPage" @update:page-size="controller.setPageSize" />
+    <PaginationControl class="apps-pagination" :total="filteredApps.length" :page="controller.page" :page-size="controller.pageSize" :page-sizes="[10,20,50]" label="应用中心分页" @update:page="controller.setPage" @update:page-size="controller.setPageSize" />
   </article>
 </template>
 

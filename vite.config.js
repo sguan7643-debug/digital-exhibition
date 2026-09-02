@@ -1,8 +1,15 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import { feishuReadOnlyProxy } from './server/feishu-vite-plugin.mjs';
 
-export default defineConfig({
-  plugins: [vue()],
+export default defineConfig(({ mode }) => {
+  const serverEnv = loadEnv(mode, process.cwd(), 'FEISHU_');
+  return ({
+  plugins: [vue(), feishuReadOnlyProxy({
+    appId: serverEnv.FEISHU_APP_ID,
+    appSecret: serverEnv.FEISHU_APP_SECRET,
+    baseToken: serverEnv.FEISHU_BASE_TOKEN
+  })],
   esbuild: false,
   resolve: {
     alias: {
@@ -15,11 +22,15 @@ export default defineConfig({
   server: {
     host: '127.0.0.1',
     port: 4173,
-    strictPort: true
+    strictPort: true,
+    fs: {
+      deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/server/**', '**/tools/**']
+    }
   },
   preview: {
     host: '127.0.0.1',
     port: 4173,
     strictPort: true
   }
+  });
 });

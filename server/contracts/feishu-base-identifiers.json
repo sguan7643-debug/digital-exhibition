@@ -1,0 +1,3493 @@
+{
+  "schemaVersion": "feishu-base-identifiers.v1",
+  "sourceSha256": "DF623770B2DF50DA0DB83C7D9CBBBA7CB4CF23D3BF475E1E588EECB72D53FEE6",
+  "tableCount": 36,
+  "fieldCount": 271,
+  "tables": [
+    {
+      "name": "用户字典",
+      "tableId": "tbl6BATW8d1ahsbm",
+      "views": [
+        {
+          "viewId": "vew2iKfYBj",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 7,
+      "fields": [
+        {
+          "fieldId": "fld603KO5z",
+          "name": "用户ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1ajq4MA",
+          "name": "姓名",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5xguxnx",
+          "name": "工号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5fOne0r",
+          "name": "所属部门ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1ah1nFX",
+          "name": "岗位",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldFdRJgT9",
+          "name": "邮箱",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2LF0aMH",
+          "name": "手机号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "部门字典",
+      "tableId": "tbl5FYux2dx60VTo",
+      "views": [
+        {
+          "viewId": "vew2x3e5sS",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 2,
+      "fields": [
+        {
+          "fieldId": "fld72nhaap",
+          "name": "部门ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2KjmC8U",
+          "name": "部门名称",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "业务域字典",
+      "tableId": "tbl1vUUXPPbDYRFK",
+      "views": [
+        {
+          "viewId": "vew6Bzfncq",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 2,
+      "fields": [
+        {
+          "fieldId": "flduQrTalY",
+          "name": "业务域ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld48NHPa2",
+          "name": "业务域名称",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "场景字典",
+      "tableId": "tbl6vhBm9ICRfj90",
+      "views": [
+        {
+          "viewId": "vew7wGAIG3",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 2,
+      "fields": [
+        {
+          "fieldId": "fld2UvZuDK",
+          "name": "场景ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld63vkMsB",
+          "name": "场景名称",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "应用类型配置",
+      "tableId": "tbl3pZdlgPrWPwFQ",
+      "views": [
+        {
+          "viewId": "vew3C7hmJK",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 10,
+      "fields": [
+        {
+          "fieldId": "fld3ifVF8c",
+          "name": "类型ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6xDgXhI",
+          "name": "类型名称",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4DH1ZIw",
+          "name": "类型编码",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6ppl5t1",
+          "name": "类型图标",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1sBmJIL",
+          "name": "排序",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "flds1ndrsF",
+          "name": "状态",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2lRORhX",
+          "name": "是否系统内置",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld546CA94",
+          "name": "类型描述",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4vpz5F5",
+          "name": "创建时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7BbuSjJ",
+          "name": "更新时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "应用索引",
+      "tableId": "tbl1Tvwl7t5RxcMs",
+      "views": [
+        {
+          "viewId": "vewzYRgeTL",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 22,
+      "fields": [
+        {
+          "fieldId": "fld37Sr5di",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldqayH24L",
+          "name": "应用名称",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1QiXq3Z",
+          "name": "应用类型",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5rqCIls",
+          "name": "子类型",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "flduXSaSAz",
+          "name": "应用简介",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7wPrikl",
+          "name": "应用关键字",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": 0,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6BCmJeZ",
+          "name": "应用URL地址",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6YOPTfg",
+          "name": "状态",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2vN8z9t",
+          "name": "访问次数",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7uG5e1q",
+          "name": "使用次数",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4QnDVrG",
+          "name": "收藏数",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1LWGkQi",
+          "name": "发布时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7KouFzK",
+          "name": "创建日期",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld500Vjnr",
+          "name": "最近更新日期",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldVJM0JXt",
+          "name": "负责人ID",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": 0,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4RPFwOb",
+          "name": "所属部门ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld15jwzz5",
+          "name": "开发者ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4blNvZL",
+          "name": "开发部门ID",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": 0,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3VUVETu",
+          "name": "运营人员ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldOtJgOTE",
+          "name": "所属业务域ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7K0Iq1V",
+          "name": "所属场景ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1CrYIPA",
+          "name": "适用对象",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "可视化驾驶舱详情",
+      "tableId": "tbl4hXMyy0X7B59x",
+      "views": [
+        {
+          "viewId": "vew2LalObX",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 9,
+      "fields": [
+        {
+          "fieldId": "fld3VzEtNq",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3IVQrgX",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4DbCruO",
+          "name": "应用编码",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld61fijD6",
+          "name": "版本号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5Xs2joq",
+          "name": "集成数据",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6GAKY2W",
+          "name": "数据更新频率",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1u3QWS1",
+          "name": "权限控制要求",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld63Y8zpY",
+          "name": "核心功能",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldlHQs2Iq",
+          "name": "应用描述",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "可视化报表详情",
+      "tableId": "tbl18HF77AprNaYG",
+      "views": [
+        {
+          "viewId": "vewQbJO1dw",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 9,
+      "fields": [
+        {
+          "fieldId": "fld7n4uRUo",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6mpYsm6",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3VNtyBl",
+          "name": "应用编码",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2FqKqDy",
+          "name": "版本号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld22OMuBp",
+          "name": "集成数据",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7ChqV5n",
+          "name": "数据更新频率",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1R4P2bI",
+          "name": "权限控制要求",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4qdeo52",
+          "name": "核心功能",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5dZ0BZV",
+          "name": "应用描述",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "海能work应用详情",
+      "tableId": "tbl1U8zVHKD8umtB",
+      "views": [
+        {
+          "viewId": "vew6XIXEUr",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 9,
+      "fields": [
+        {
+          "fieldId": "fld1XBzh0p",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4iMnXYv",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2u1EtdL",
+          "name": "应用编码",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4Gl69r3",
+          "name": "版本号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld72flBbo",
+          "name": "应用图片或视频",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3uzYUMR",
+          "name": "使用指南",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3qNnbMx",
+          "name": "使用功能",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3NlnIiJ",
+          "name": "使用说明文档链接",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1QLvTJu",
+          "name": "应用描述",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "工具应用详情",
+      "tableId": "tbl6Ny7Lx968xY4I",
+      "views": [
+        {
+          "viewId": "vew535qz0a",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 7,
+      "fields": [
+        {
+          "fieldId": "fld7EMijTD",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld15Z5C6i",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldY3Dqdl3",
+          "name": "应用编码",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1SRHZmG",
+          "name": "版本号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4LMJ1Wh",
+          "name": "使用说明",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1G6qTCE",
+          "name": "核心功能",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2Lihwbf",
+          "name": "应用描述",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "RPA应用详情",
+      "tableId": "tbl5Ks8cFcZeaWNN",
+      "views": [
+        {
+          "viewId": "vew7ghsRyX",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 7,
+      "fields": [
+        {
+          "fieldId": "fld4RLMlWP",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7BqmwfA",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld64Epfmf",
+          "name": "应用编码",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5Rj1JHp",
+          "name": "版本号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1yIs3JV",
+          "name": "RPA所属平台",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld41zo5kt",
+          "name": "操作流程步骤",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld766l56M",
+          "name": "应用描述",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "EAD应用详情",
+      "tableId": "tbl5LIKvHN5LwsrH",
+      "views": [
+        {
+          "viewId": "vew2xfen2j",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 7,
+      "fields": [
+        {
+          "fieldId": "fld3B85O3l",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld37LuoER",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1s3aWzy",
+          "name": "应用编码",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5z9uywi",
+          "name": "版本号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2et49Mp",
+          "name": "应用内容",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3ysydHS",
+          "name": "使用流程步骤",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2bKBvCZ",
+          "name": "应用描述",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "AI应用详情",
+      "tableId": "tbl7sjfBKnucA703",
+      "views": [
+        {
+          "viewId": "vew2zTNiUg",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 7,
+      "fields": [
+        {
+          "fieldId": "fld1lRYIn7",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6oLOQHe",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1NQPhFM",
+          "name": "应用编码",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldiKvjZp8",
+          "name": "版本号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1T6ciFS",
+          "name": "所属数据源",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6ZwZcYI",
+          "name": "应用描述",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7yXQK1A",
+          "name": "核心功能",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "数据集应用详情",
+      "tableId": "tbl5FPUx5xbGYhJt",
+      "views": [
+        {
+          "viewId": "vew3SNfmTs",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 8,
+      "fields": [
+        {
+          "fieldId": "fld4nnPmYO",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldBJrbCir",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4n3rAUc",
+          "name": "应用编码",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4mudKBL",
+          "name": "版本号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldkqRCyZT",
+          "name": "数据来源",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3f6YHgq",
+          "name": "更新频率",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5qUByAj",
+          "name": "数据字段列表",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": 0,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6s7mQsF",
+          "name": "应用描述",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "指标应用详情",
+      "tableId": "tbl6rI3X2pcAUztR",
+      "views": [
+        {
+          "viewId": "vew7gQEbbe",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 20,
+      "fields": [
+        {
+          "fieldId": "fldnEjWpIk",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7sZRuw4",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2GXLSoH",
+          "name": "应用编码",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7JcuU4I",
+          "name": "版本号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1z1qLmu",
+          "name": "主要领域",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld20O6KZF",
+          "name": "指标应用场景",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5xqXinS",
+          "name": "指标级别",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3TUIf7I",
+          "name": "业务解释部门",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7uJmTFU",
+          "name": "成果来源系统",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7tpHnB8",
+          "name": "指标定义",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4pUlE9r",
+          "name": "业务获取逻辑",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6CAKRNF",
+          "name": "业务计算公式",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld128RXWy",
+          "name": "计算单位",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5cIepmW",
+          "name": "采集方式",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldnTkVGZc",
+          "name": "维度",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4HKcjiE",
+          "name": "统计粒度",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2Jrhzgc",
+          "name": "关键值",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldISpjWZz",
+          "name": "权限控制要求",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5az2vcI",
+          "name": "使用说明",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld485HFuv",
+          "name": "列20",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "附件资料",
+      "tableId": "tbl4ImRqwcoGGpIX",
+      "views": [
+        {
+          "viewId": "vew6uHtkd6",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 7,
+      "fields": [
+        {
+          "fieldId": "fldvr1n6l1",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7AIczQE",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld78BK683",
+          "name": "文件名称",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5rcbaIG",
+          "name": "附件文件",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6tKMztF",
+          "name": "文件大小",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4lhVogg",
+          "name": "上传时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6yTFkpK",
+          "name": "上传人ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "演示截图录屏",
+      "tableId": "tblJLeQFdxHuXS3q",
+      "views": [
+        {
+          "viewId": "vewuVAfu7r",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 5,
+      "fields": [
+        {
+          "fieldId": "fld5adi3ns",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5FpmKDA",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1JviJUZ",
+          "name": "媒体类型",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": 0,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2mMq1pU",
+          "name": "文件",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1ZElEsr",
+          "name": "说明文字",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "应用评论",
+      "tableId": "tbl5qS6ek4HoKyy1",
+      "views": [
+        {
+          "viewId": "vew4MiBI7W",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 5,
+      "fields": [
+        {
+          "fieldId": "fld2EgwHOe",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4dgty6o",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldv01W30o",
+          "name": "评论人ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7yYP9gI",
+          "name": "评论内容",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5a3P1Qa",
+          "name": "评论时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "相关培训",
+      "tableId": "tblIY0eHBPN6Bp7E",
+      "views": [
+        {
+          "viewId": "vew3jVKTFJ",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 8,
+      "fields": [
+        {
+          "fieldId": "fld52WpKAb",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6qeRivT",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld77MweW0",
+          "name": "培训标题",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5rPa5J2",
+          "name": "培训分类",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldL4UzWPJ",
+          "name": "讲师姓名",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1mVp0B1",
+          "name": "时长(分钟)",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1lMpvvc",
+          "name": "培训链接",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld52E4CMv",
+          "name": "排序",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "应用素材关联",
+      "tableId": "tbl5zTUSyroNXoWp",
+      "views": [
+        {
+          "viewId": "vewFW8rTTg",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 3,
+      "fields": [
+        {
+          "fieldId": "fld353RfqJ",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld23tjAnA",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4SIF3rj",
+          "name": "素材ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "素材中心",
+      "tableId": "tbl4XPfN9Sec8tBP",
+      "views": [
+        {
+          "viewId": "vew1zyIGWE",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 4,
+      "fields": [
+        {
+          "fieldId": "fld5EQZbMK",
+          "name": "素材ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7kb3msS",
+          "name": "素材名称",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld19m5KPF",
+          "name": "素材文件",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5FD4nZY",
+          "name": "下载次数",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "公告通知",
+      "tableId": "tbl65ghpOre10Ev8",
+      "views": [
+        {
+          "viewId": "vew3DYW0JV",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 9,
+      "fields": [
+        {
+          "fieldId": "fld4KfPlVF",
+          "name": "公告ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3ckPvWP",
+          "name": "公告标题",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6q4Aqnn",
+          "name": "分类",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6JvmIKg",
+          "name": "公告正文",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1vBfnjo",
+          "name": "发布部门ID",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": 0,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6pPAYle",
+          "name": "发布人ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld43N3x68",
+          "name": "状态",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldenjQmZa",
+          "name": "是否置顶",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": 0,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld28ZQwZ9",
+          "name": "发布时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "消息通知",
+      "tableId": "tbl40wTAGiMt3KcX",
+      "views": [
+        {
+          "viewId": "vew7FKf6kI",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 7,
+      "fields": [
+        {
+          "fieldId": "fld6QYPhnP",
+          "name": "消息ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3B7wLHW",
+          "name": "接收人ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6IYoTqs",
+          "name": "消息标题",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5kgdZb2",
+          "name": "消息内容",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldEK4dAIo",
+          "name": "分类",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldYK5bcMi",
+          "name": "已读状态",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": 0,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2PS2Zuj",
+          "name": "消息时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "培训课程",
+      "tableId": "tbl2Sl4d7XHh0OiB",
+      "views": [
+        {
+          "viewId": "vew2qS58YB",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 9,
+      "fields": [
+        {
+          "fieldId": "fld5Pdj29m",
+          "name": "课程ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2DgA56D",
+          "name": "培训标题",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld56TldDq",
+          "name": "分类",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6eNR77s",
+          "name": "讲师姓名",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld74dmkFf",
+          "name": "开始时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4BjswjD",
+          "name": "格式",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6fDbXUo",
+          "name": "培训简介",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5Tc1oCL",
+          "name": "状态",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldIU5RsGF",
+          "name": "已报名人数",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "应用收藏",
+      "tableId": "tbl7DSq9NHtoVU0A",
+      "views": [
+        {
+          "viewId": "vew39DWseQ",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 4,
+      "fields": [
+        {
+          "fieldId": "fld3JyGfcG",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7L6RAmP",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7JxD2Ta",
+          "name": "用户ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld56DNg70",
+          "name": "收藏时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "使用申请",
+      "tableId": "tbl2x8E8crDcE4hH",
+      "views": [
+        {
+          "viewId": "vewiAk6FfD",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 6,
+      "fields": [
+        {
+          "fieldId": "fld61iAJHi",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldu1YaY2x",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7o4keNS",
+          "name": "申请人ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7edTYXE",
+          "name": "申请理由",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldReyTSRx",
+          "name": "状态",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld178bUiM",
+          "name": "申请时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "用户权限",
+      "tableId": "tbl15RmmDtr4H5Fi",
+      "views": [
+        {
+          "viewId": "vew1J6gX2M",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 6,
+      "fields": [
+        {
+          "fieldId": "fld5s9r5QK",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld30G6Y3j",
+          "name": "应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6m32Dci",
+          "name": "用户ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5VcQSq9",
+          "name": "授权时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld44wd2qd",
+          "name": "授权人ID",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": 0,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2rgj3mS",
+          "name": "状态",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "用户累计统计",
+      "tableId": "tblX1Mj4e48fnKTo",
+      "views": [
+        {
+          "viewId": "vewsfRFsPe",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 7,
+      "fields": [
+        {
+          "fieldId": "fld2ivLPTF",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2RZcGvS",
+          "name": "用户ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1w6UvQa",
+          "name": "累计访问应用次数",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6jipjC8",
+          "name": "累计使用应用次数",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2hAsy3z",
+          "name": "累计收藏次数",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3dZ4tL2",
+          "name": "累计评论次数",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6cTS1rk",
+          "name": "累计培训报名次数",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "用户月度统计",
+      "tableId": "tbl1wpgD6H6WYwVG",
+      "views": [
+        {
+          "viewId": "vew4N2Ew5M",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 8,
+      "fields": [
+        {
+          "fieldId": "fldo4tvt8b",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6jYPWTX",
+          "name": "用户ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld62vZaHQ",
+          "name": "年月",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": 0,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6FGJHBB",
+          "name": "当月访问次数",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7wLGcGF",
+          "name": "当月使用次数",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1rMCbcS",
+          "name": "当月收藏次数",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5R9DTmZ",
+          "name": "当月评论次数",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7tbT1wR",
+          "name": "当月培训报名次数",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "上架申请",
+      "tableId": "tbl3z0pkeEWqlJRZ",
+      "views": [
+        {
+          "viewId": "vew2i0KI4l",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 9,
+      "fields": [
+        {
+          "fieldId": "fld2IcvZdw",
+          "name": "申请单号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7sPd1Fo",
+          "name": "关联应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5oJN5B5",
+          "name": "应用类型ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5O8nn4O",
+          "name": "申请人ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7BXC5tb",
+          "name": "表单数据",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": 0,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2R3KZlw",
+          "name": "状态",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5nUTMXW",
+          "name": "当前审批节点",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld43T29x4",
+          "name": "提交时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldfIUbGJQ",
+          "name": "退回原因",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "积分余额",
+      "tableId": "tbl4GtW9v31QaMxH",
+      "views": [
+        {
+          "viewId": "vew7IW4I8d",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 13,
+      "fields": [
+        {
+          "fieldId": "fld4L7uYMq",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1WvRqY8",
+          "name": "用户ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld20CCLsZ",
+          "name": "当前总积分",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2nhZPen",
+          "name": "基础活跃累计",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3inJlNU",
+          "name": "应用互动累计",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldFQHxjfl",
+          "name": "应用使用累计",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6HSGC7v",
+          "name": "应用建设累计",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld57FM2YW",
+          "name": "团队推广累计",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6S9im8k",
+          "name": "持续建设累计",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6a51cSW",
+          "name": "培训学习累计",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3X2yp4T",
+          "name": "本月积分",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld414Z6uh",
+          "name": "上月积分",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld65vlzBY",
+          "name": "最后更新时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "积分月度汇总",
+      "tableId": "tbl6Q2VIbmsztQHW",
+      "views": [
+        {
+          "viewId": "vew4J9Z8tR",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 9,
+      "fields": [
+        {
+          "fieldId": "fld39D66Vi",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3mGSsxO",
+          "name": "用户ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "flda2L2OPj",
+          "name": "年月",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": 0,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldIhnuqU9",
+          "name": "月度总积分",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldd6VtBNg",
+          "name": "基础活跃月度合计",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3efcdni",
+          "name": "应用互动月度合计",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1ke72ey",
+          "name": "应用使用月度合计",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld2rCZnH9",
+          "name": "应用建设月度合计",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld652oP2o",
+          "name": "培训学习月度合计",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "数字化认证",
+      "tableId": "tbl4YatzzB7DCEi2",
+      "views": [
+        {
+          "viewId": "vew1h08FhR",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 6,
+      "fields": [
+        {
+          "fieldId": "fld1VPMoBB",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4ToiKGS",
+          "name": "用户ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5ICKo34",
+          "name": "认证类型",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1HOAKEq",
+          "name": "状态",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": 0,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6oOG55I",
+          "name": "认证时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1Nvh3sw",
+          "name": "过期时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "人才库",
+      "tableId": "tbl5Cam5TbgBb81z",
+      "views": [
+        {
+          "viewId": "vew4Urxtjm",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 6,
+      "fields": [
+        {
+          "fieldId": "fld3vByK2G",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4y7ksDN",
+          "name": "用户ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld637uqa6",
+          "name": "人才类型",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6qdtVYI",
+          "name": "人才等级",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": 0,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6TME4ym",
+          "name": "擅长领域",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldJ9lyBk9",
+          "name": "状态",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "人才项目",
+      "tableId": "tbl2FIaFX8uHSWSp",
+      "views": [
+        {
+          "viewId": "vew6aqPUdr",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 7,
+      "fields": [
+        {
+          "fieldId": "fld2aiQNih",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5WmVrxH",
+          "name": "项目名称",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7qhkE8w",
+          "name": "项目类型",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld5deWOWJ",
+          "name": "负责人ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1n4xqpL",
+          "name": "状态",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3dxuTTs",
+          "name": "开始日期",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1cIJADF",
+          "name": "结束日期",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    },
+    {
+      "name": "项目进度",
+      "tableId": "tbl1nUb4swXSjsXm",
+      "views": [
+        {
+          "viewId": "vew5ZsXJao",
+          "name": "表格",
+          "type": 1
+        }
+      ],
+      "fieldCount": 5,
+      "fields": [
+        {
+          "fieldId": "fld2k28T9J",
+          "name": "主键",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7cOn885",
+          "name": "项目ID",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": 0,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6FlapgQ",
+          "name": "阶段名称",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4oTNPiq",
+          "name": "状态",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4onosdD",
+          "name": "更新时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        }
+      ]
+    }
+  ]
+}

@@ -39,6 +39,9 @@ import { getPageIntegrationContract } from './integration/page-integration-matri
 import { resolveIntegrationRuntime } from './integration/runtime-config.js';
 import { createPageDataSource, describeDataSourceEnvelope } from './integration/page-data-source.js';
 import { resolveIntegrationLiveAnnouncement } from './integration/live-region.js';
+import { createSafeProxyClient } from './integration/safe-proxy-client.js';
+import { createAppReadOperationContracts } from './integration/operation-contract-schemas.js';
+import { resolveRemoteReadOperation } from './integration/remote-operation-capabilities.js';
 
 const integrationRuntime = resolveIntegrationRuntime({
   requestedMode: import.meta.env.VITE_EXHIBITION_DATA_MODE,
@@ -47,6 +50,12 @@ const integrationRuntime = resolveIntegrationRuntime({
   contractEvidenceComplete: import.meta.env.VITE_EXHIBITION_CONTRACT_EVIDENCE === 'complete',
   timeoutMs: Number(import.meta.env.VITE_EXHIBITION_REQUEST_TIMEOUT_MS),
   origin: window.location.origin
+});
+const integrationClient = createSafeProxyClient({
+  baseUrl: integrationRuntime.proxyBase,
+  origin: window.location.origin,
+  timeoutMs: integrationRuntime.timeoutMs,
+  operationContracts: createAppReadOperationContracts()
 });
 
 function normalizeInitialRoute() {
@@ -157,12 +166,21 @@ const integrationEnvelope = ref({ mode: 'disabled', state: 'disabled', operation
 let integrationDataSource;
 
 async function syncIntegrationEnvelope() {
+  const route = page.value.route;
+  const routeRuntime = route === '/apps'
+    ? integrationRuntime
+    : Object.freeze({ ...integrationRuntime, mode: 'mock', reason: 'route-not-yet-remotely-verified' });
   integrationDataSource = createPageDataSource({
-    route: page.value.route,
-    runtime: integrationRuntime,
-    mockLoader: () => ({ source: 'existing-approved-page-fixture', route: page.value.route })
+    route,
+    runtime: routeRuntime,
+    mockLoader: () => ({ source: 'existing-approved-page-fixture', route: page.value.route }),
+    client: integrationClient,
+    operationResolver: resolveRemoteReadOperation
   });
-  integrationEnvelope.value = await integrationDataSource.load();
+  const pending = integrationDataSource.load(route === '/apps' ? { page: 1, pageSize: 100 } : {});
+  integrationEnvelope.value = integrationDataSource.snapshot();
+  const result = await pending;
+  if (page.value.route === route) integrationEnvelope.value = result;
 }
 
 watch(() => page.value.route, syncIntegrationEnvelope, { immediate: true });
@@ -184,7 +202,10 @@ const integrationLiveAnnouncement = computed(() => resolveIntegrationLiveAnnounc
       <profile-page v-else-if="page.id === '04'" />
       <announcements-page v-else-if="page.id === '05'" />
       <notice-detail-page v-else-if="page.id === '06'" />
-      <apps-page v-else-if="page.id === '07'" />
+      <apps-page v-else-if="page.id === '07'"
+        :integration-data="integrationEnvelope.data"
+        :integration-state="integrationEnvelope.state"
+      />
       <tool-detail-page v-else-if="page.id === '08'" />
       <haineng-work-detail-page v-else-if="page.id === '09'" />
       <report-detail-page v-else-if="page.id === '10'" />

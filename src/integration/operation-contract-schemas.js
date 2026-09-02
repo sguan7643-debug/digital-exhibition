@@ -2,6 +2,9 @@ const text = Object.freeze({ type: 'string', minLength: 1, maxLength: 256 });
 const optionalText = Object.freeze({ type: 'string', maxLength: 256 });
 const identifier = Object.freeze({ type: 'string', minLength: 1, maxLength: 128 });
 const nonNegativeInteger = Object.freeze({ type: 'integer', minimum: 0, maximum: 100000 });
+const countInteger = Object.freeze({ type: 'integer', minimum: 0, maximum: 1000000000 });
+const booleanValue = Object.freeze({ type: 'boolean' });
+const stringList = Object.freeze({ type: 'array', items: optionalText, maxItems: 100 });
 
 const filterSchema = Object.freeze({
   type: 'object',
@@ -31,7 +34,10 @@ const dataSchema = Object.freeze({
   required: ['items'],
   properties: {
     items: Object.freeze({ type: 'array', items: recordSchema, maxItems: 100 }),
-    total: nonNegativeInteger
+    total: nonNegativeInteger,
+    page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
+    pageSize: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
+    hasMore: Object.freeze({ type: 'boolean' })
   },
   additionalProperties: false
 });
@@ -40,6 +46,7 @@ export const SYNTHETIC_REQUEST_SCHEMA = Object.freeze({
   type: 'object',
   properties: {
     filters: filterSchema,
+    page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
     pageSize: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
     query: optionalText,
     idempotencyKey: identifier,
@@ -87,6 +94,112 @@ export function createSyntheticOperationContracts(operationIds = []) {
     errorSchema: SYNTHETIC_ERROR_SCHEMA,
     contractStatus: 'synthetic-default-off'
   })])));
+}
+
+const appFilterSchema = Object.freeze({
+  type: 'object',
+  properties: {
+    type: optionalText, category: optionalText, domain: optionalText,
+    scene: optionalText, status: optionalText, owner: optionalText
+  },
+  additionalProperties: false
+});
+
+const appListRequestSchema = Object.freeze({
+  type: 'object',
+  properties: {
+    filters: appFilterSchema,
+    page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
+    pageSize: Object.freeze({ enum: [10, 20, 50, 100] }),
+    query: optionalText,
+    sort: Object.freeze({ enum: ['default', 'usage-desc', 'favorites-desc', 'name'] })
+  },
+  additionalProperties: false
+});
+
+const emptyRequestSchema = Object.freeze({ type: 'object', properties: {}, additionalProperties: false });
+const facetRequestSchema = Object.freeze({
+  type: 'object',
+  properties: {
+    page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
+    pageSize: Object.freeze({ enum: [10, 20, 50, 100] })
+  },
+  additionalProperties: false
+});
+const facetItemSchema = Object.freeze({
+  type: 'object', required: ['code', 'name', 'count', 'sortOrder', 'enabled'],
+  properties: { code: optionalText, name: optionalText, count: countInteger, sortOrder: countInteger, enabled: booleanValue },
+  additionalProperties: false
+});
+const facetListSchema = Object.freeze({ type: 'array', items: facetItemSchema, maxItems: 100 });
+const appItemSchema = Object.freeze({
+  type: 'object',
+  required: [
+    'id', 'appId', 'name', 'typeCode', 'typeName', 'categoryCode', 'categoryName', 'domainId', 'domainName',
+    'sceneIds', 'sceneNames', 'keywords', 'summary', 'status', 'usageCount', 'favoriteCount', 'ownerId', 'ownerName',
+    'developerId', 'developerName', 'responsibleOrgId', 'responsibleOrgName', 'developerOrgId', 'developerOrgName',
+    'updatedAt', 'iconName', 'detailPath'
+  ],
+  properties: {
+    id: identifier, appId: identifier, name: text, typeCode: optionalText, typeName: optionalText,
+    categoryCode: optionalText, categoryName: optionalText, domainId: optionalText, domainName: optionalText,
+    sceneIds: stringList, sceneNames: stringList, keywords: stringList,
+    summary: Object.freeze({ type: 'string', maxLength: 2048 }), status: optionalText,
+    usageCount: countInteger, favoriteCount: countInteger,
+    ownerId: optionalText, ownerName: optionalText, developerId: optionalText, developerName: optionalText,
+    responsibleOrgId: optionalText, responsibleOrgName: optionalText, developerOrgId: optionalText, developerOrgName: optionalText,
+    updatedAt: optionalText, iconName: optionalText, detailPath: optionalText
+  },
+  additionalProperties: false
+});
+
+function envelopeSchema(data) {
+  return Object.freeze({
+    type: 'object', required: ['code', 'data'],
+    properties: {
+      code: Object.freeze({ enum: ['OK'] }), data, traceId: identifier, schemaVersion: optionalText,
+      sourceUpdatedAt: optionalText, dataStale: booleanValue, isComplete: booleanValue,
+      unavailableReasonCode: optionalText
+    },
+    additionalProperties: false
+  });
+}
+
+const appFacetsDataSchema = Object.freeze({
+  type: 'object', required: ['total', 'types', 'categories', 'tags', 'domains', 'scenes', 'facetsVersion'],
+  properties: {
+    total: countInteger, types: facetListSchema, categories: facetListSchema, tags: facetListSchema,
+    domains: facetListSchema, scenes: facetListSchema, facetsVersion: optionalText
+  },
+  additionalProperties: false
+});
+const appListDataSchema = Object.freeze({
+  type: 'object',
+  required: ['items', 'total', 'page', 'pageSize', 'totalPages', 'hasPrevious', 'hasNext', 'hasMore', 'sort', 'filtersApplied', 'facetsVersion'],
+  properties: {
+    items: Object.freeze({ type: 'array', items: appItemSchema, maxItems: 100 }), total: countInteger,
+    page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
+    pageSize: Object.freeze({ enum: [10, 20, 50, 100] }), totalPages: countInteger,
+    hasPrevious: booleanValue, hasNext: booleanValue, hasMore: booleanValue,
+    sort: Object.freeze({ enum: ['default', 'usage-desc', 'favorites-desc', 'name'] }),
+    filtersApplied: appFilterSchema, facetsVersion: optionalText
+  },
+  additionalProperties: false
+});
+
+export function createAppReadOperationContracts() {
+  return Object.freeze({
+    'APP-001': Object.freeze({
+      operationId: 'APP-001', requestSchema: facetRequestSchema,
+      successSchema: envelopeSchema(appFacetsDataSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA,
+      contractStatus: 'server-projection-verified'
+    }),
+    'APP-002': Object.freeze({
+      operationId: 'APP-002', requestSchema: appListRequestSchema,
+      successSchema: envelopeSchema(appListDataSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA,
+      contractStatus: 'server-projection-verified'
+    })
+  });
 }
 
 function typeMatches(value, type) {
