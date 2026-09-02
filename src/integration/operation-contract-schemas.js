@@ -631,6 +631,30 @@ export function createPersonalReadOperationContracts() {
   });
 }
 
+export function createWorkbenchSearchOperationContract() {
+  const searchFacetSchema = Object.freeze({ type: 'object', required: ['value', 'label', 'count'], properties: { value: optionalText, label: optionalText, count: countInteger }, additionalProperties: false });
+  return Object.freeze({
+    'WB-002': Object.freeze({
+      operationId: 'WB-002',
+      requestSchema: Object.freeze({ type: 'object', properties: {
+        keyword: optionalText, scene: optionalText, typeCode: optionalText,
+        page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }), pageSize: Object.freeze({ enum: [10, 20, 50, 100] }),
+        sort: Object.freeze({ enum: ['RELEVANCE', 'USAGE_DESC', 'NAME_ASC'] })
+      }, additionalProperties: false }),
+      successSchema: envelopeSchema(Object.freeze({
+        type: 'object', required: ['items', ...Object.keys(personalPaginationProperties), 'sort', 'filtersApplied', 'facets', 'normalizedKeyword'],
+        properties: {
+          items: Object.freeze({ type: 'array', items: appItemSchema, maxItems: 100 }), ...personalPaginationProperties,
+          sort: Object.freeze({ enum: ['RELEVANCE', 'USAGE_DESC', 'NAME_ASC'] }),
+          filtersApplied: Object.freeze({ type: 'object', required: ['keyword', 'scene', 'typeCode'], properties: { keyword: optionalText, scene: optionalText, typeCode: optionalText }, additionalProperties: false }),
+          facets: Object.freeze({ type: 'object', required: ['scenes', 'types'], properties: { scenes: Object.freeze({ type: 'array', items: searchFacetSchema, maxItems: 100 }), types: Object.freeze({ type: 'array', items: searchFacetSchema, maxItems: 100 }) }, additionalProperties: false }),
+          normalizedKeyword: optionalText
+        }, additionalProperties: false
+      })), errorSchema: SYNTHETIC_ERROR_SCHEMA, contractStatus: 'server-projection-verified'
+    })
+  });
+}
+
 export function createIdentityReadOperationContracts() {
   return Object.freeze({
     'COM-001': Object.freeze({
@@ -812,6 +836,7 @@ export function createVerifiedReadOperationContracts() {
     ...createIdentityReadOperationContracts(),
     ...createDictionaryCommentReadOperationContracts(),
     ...createPersonalReadOperationContracts(),
+    ...createWorkbenchSearchOperationContract(),
     ...createAppReadOperationContracts(),
     ...createAnnouncementReadOperationContracts(),
     ...createTalentReadOperationContracts(),

@@ -4,6 +4,7 @@ import { getOperation } from '../src/integration/operation-registry.js';
 const READ_PLANS = Object.freeze({
   'COM-001': Object.freeze({ kind: 'current-user' }),
   'COM-005': Object.freeze({ kind: 'dictionary-batch' }),
+  'WB-002': Object.freeze({ kind: 'workbench-search' }),
   'APP-001': Object.freeze({ kind: 'app-facets' }),
   'ANN-001': Object.freeze({ kind: 'announcement-facets' }),
   'COM-003': Object.freeze({ kind: 'contact-organizations' }),
@@ -972,6 +973,30 @@ export function createFeishuReadOnlyService(options) {
     return { ...paginatePublic(items, page, pageSize), sort, filtersApplied: { appId, rating: input.rating ?? null, hasReply: input.hasReply ?? null } };
   }
 
+  async function executeWorkbenchSearch(input) {
+    assertAllowedInput(input, ['keyword', 'scene', 'typeCode', 'page', 'pageSize', 'sort']);
+    const { page, pageSize } = publicPage(input);
+    const sort = input.sort || 'RELEVANCE';
+    if (!['RELEVANCE', 'USAGE_DESC', 'NAME_ASC'].includes(sort)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '工作台搜索排序方式不受支持', 400);
+    const projection = await getAppProjection();
+    const normalizedKeyword = valueToText(input.keyword).trim().toLocaleLowerCase('zh-CN');
+    let items = projection.items.filter(item => (!normalizedKeyword || `${item.name} ${item.summary} ${item.keywords.join(' ')}`.toLocaleLowerCase('zh-CN').includes(normalizedKeyword))
+      && (!input.scene || item.sceneIds.includes(input.scene) || item.sceneNames.includes(input.scene))
+      && (!input.typeCode || item.typeCode === input.typeCode));
+    if (sort === 'USAGE_DESC') items = [...items].sort((left, right) => right.usageCount - left.usageCount);
+    if (sort === 'NAME_ASC') items = [...items].sort((left, right) => left.name.localeCompare(right.name, 'zh-CN'));
+    const sceneCounts = new Map(); const typeCounts = new Map();
+    for (const item of items) {
+      item.sceneIds.forEach((value, index) => sceneCounts.set(value, { value, label: item.sceneNames[index] || value, count: (sceneCounts.get(value)?.count || 0) + 1 }));
+      typeCounts.set(item.typeCode, { value: item.typeCode, label: item.typeName, count: (typeCounts.get(item.typeCode)?.count || 0) + 1 });
+    }
+    return {
+      ...paginatePublic(items, page, pageSize), sort,
+      filtersApplied: { keyword: valueToText(input.keyword).trim(), scene: valueToText(input.scene), typeCode: valueToText(input.typeCode) },
+      facets: { scenes: [...sceneCounts.values()], types: [...typeCounts.values()] }, normalizedKeyword
+    };
+  }
+
   function requireIdentity(requestContext) {
     const identity = requestContext?.identity;
     const userId = valueToText(identity?.userId || identity?.openId);
@@ -1283,6 +1308,10 @@ export function createFeishuReadOnlyService(options) {
         code: 'OK', data, traceId: traceIdFactory(), schemaVersion: plan.kind === 'dictionary-batch' ? 'feishu-dictionaries.v1' : 'feishu-app-comments.v1',
         sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false
       };
+    }
+    if (plan.kind === 'workbench-search') {
+      const data = await executeWorkbenchSearch(input);
+      return { code: 'OK', data, traceId: traceIdFactory(), schemaVersion: 'feishu-workbench-search.v1', sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false };
     }
     if (plan.kind === 'personal-read') {
       const data = await executePersonalRead(operationId, input, requestContext);
