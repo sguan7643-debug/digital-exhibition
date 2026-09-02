@@ -1,21 +1,22 @@
 import { createHash } from 'node:crypto';
-import { MISSING_TABLE_MANIFEST_VERSION, MISSING_TABLE_SCHEMAS } from '../server/contracts/feishu-missing-table-manifest.mjs';
+import { EXISTING_TABLE_FIELD_COMPLETIONS, MISSING_TABLE_MANIFEST_VERSION, MISSING_TABLE_SCHEMAS } from '../server/contracts/feishu-missing-table-manifest.mjs';
 import { createFeishuSchemaAdminClient } from '../server/feishu-schema-admin-client.mjs';
 
 const apply = process.argv.includes('--apply');
 const verifyOnly = process.argv.includes('--verify');
 const client = createFeishuSchemaAdminClient();
 const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
-const manifestHash = createHash('sha256').update(JSON.stringify(MISSING_TABLE_SCHEMAS)).digest('hex');
+const targetSchemas = [...MISSING_TABLE_SCHEMAS, ...EXISTING_TABLE_FIELD_COMPLETIONS];
+const manifestHash = createHash('sha256').update(JSON.stringify(targetSchemas)).digest('hex');
 
 async function inspect() {
   const tables = await client.listTables();
   const byName = new Map(tables.map(table => [table.name, table]));
   const actions = [];
-  for (const schema of MISSING_TABLE_SCHEMAS) {
+  for (const schema of targetSchemas) {
     const table = byName.get(schema.table_name);
     if (!table) {
-      actions.push({ action: 'CREATE_TABLE', tableName: schema.table_name, tableCode: schema.table_code, fieldCount: schema.fields.length });
+      actions.push({ action: schema.create_if_missing === false ? 'MISSING_EXISTING_TABLE' : 'CREATE_TABLE', tableName: schema.table_name, tableCode: schema.table_code, fieldCount: schema.fields.length });
       continue;
     }
     const fields = await client.listFields(table.table_id);
@@ -32,10 +33,12 @@ if (apply && !verifyOnly) {
   if (!client.schemaWriteEnabled) throw new Error('必须同时设置 FEISHU_SCHEMA_WRITE_ENABLED=1 才能执行 --apply');
   for (const action of snapshot.actions) {
     if (action.action === 'CREATE_TABLE') {
-      const schema = MISSING_TABLE_SCHEMAS.find(item => item.table_name === action.tableName);
+      const schema = targetSchemas.find(item => item.table_name === action.tableName);
       await client.createTable(schema);
-    } else {
+    } else if (action.action === 'CREATE_FIELD') {
       await client.createField(action.tableId, action.field);
+    } else {
+      throw new Error(`受控既有表不存在：${action.tableName}`);
     }
     await wait(800);
   }

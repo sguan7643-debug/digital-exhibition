@@ -61,8 +61,73 @@ export const MISSING_TABLE_SCHEMAS = Object.freeze([
   table('归档执行记录', 'archive_execution_record', ['执行记录ID', 'execution_record_id'], [text('归档任务ID', 'archive_task_id'), text('恢复任务ID', 'restore_task_id'), text('资源类型', 'resource_type'), text('源记录ID', 'source_record_id'), text('归档记录ID', 'archive_record_id'), select('动作', 'action', ['ARCHIVE', 'VERIFY', 'DELETE', 'RESTORE']), text('状态', 'status'), text('源校验和', 'source_checksum'), text('目标校验和', 'target_checksum'), text('错误编码', 'error_code'), text('错误信息', 'error_message'), date('开始时间', 'started_at'), date('结束时间', 'finished_at')])
 ]);
 
+const completion = (name, code, fields) => Object.freeze({ table_name: name, table_code: code, create_if_missing: false, fields: Object.freeze(fields) });
+const auditCompletion = () => [
+  number('版本', 'version'), checkbox('已删除', 'deleted'), date('删除时间', 'deleted_at'), person('删除人', 'deleted_by'),
+  text('来源系统', 'source_system'), text('来源记录ID', 'source_record_id'), text('追踪ID', 'trace_id'),
+  createdAt(), createdBy(), updatedAt(), updatedBy()
+];
+
+export const EXISTING_TABLE_FIELD_COMPLETIONS = Object.freeze([
+  completion('用户字典', 'identity_user_cache', [
+    attachment('头像', 'avatar_file'), text('组织ID', 'org_id'), text('组织名称', 'org_name'), text('所属部门名称', 'department_name'),
+    text('办公地点ID', 'office_id'), text('办公地点名称', 'office_name'), text('手机号脱敏值', 'mobile_masked'),
+    text('邮箱脱敏值', 'email_masked'), checkbox('启用', 'enabled'), text('任职状态', 'employment_status'),
+    date('生效时间', 'effective_from'), date('失效时间', 'effective_to'), date('最后同步时间', 'last_synced_at'), ...auditCompletion()
+  ]),
+  completion('公告通知', 'announcement', [
+    text('公告摘要', 'summary'), date('有效期开始', 'valid_from'), date('有效期结束', 'valid_to'), number('浏览量', 'view_count'),
+    text('发布模式', 'publish_mode'), text('范围类型', 'scope_type'), date('置顶结束时间', 'top_until'),
+    date('下线时间', 'offline_at'), text('下线原因', 'offline_reason'), ...auditCompletion()
+  ]),
+  completion('应用索引', 'app_application', [
+    text('应用编码', 'app_code'), text('应用简称', 'short_name'), text('分类编码', 'category_code'), text('分类名称', 'category_name'),
+    multiSelect('标签', 'tags', ['推荐', '热门', '新上线']), attachment('应用Logo', 'logo_file'), attachment('应用封面', 'cover_file'),
+    number('评论数', 'comment_count'), number('综合评分', 'rating'), checkbox('推荐应用', 'is_recommended'),
+    date('推荐开始时间', 'recommended_start_at'), date('推荐结束时间', 'recommended_end_at'), checkbox('热门应用', 'is_hot'),
+    date('热门开始时间', 'hot_start_at'), date('热门结束时间', 'hot_end_at'), text('访问方式', 'access_mode'),
+    text('打开方式', 'open_mode'), text('SSO模式', 'sso_mode'), number('排序', 'sort_order'), text('当前结构版本', 'current_schema_version'),
+    ...auditCompletion()
+  ]),
+  completion('人才库', 'talent_person', [
+    text('姓名', 'display_name'), text('工号', 'employee_no'), number('年龄', 'age'), text('所属部门ID', 'department_id'),
+    text('所属部门名称', 'department_name'), text('责任科室ID', 'office_id'), text('责任科室名称', 'office_name'),
+    multiSelect('能力标签', 'capability_tags', ['数据治理', '经营分析', '人工智能', '项目管理']), text('培养方向', 'development_direction'),
+    date('轮岗计划开始时间', 'rotation_start_at'), date('轮岗计划结束时间', 'rotation_end_at'), text('岗位', 'position_name'),
+    text('办公地点', 'office_location'), text('业务领域', 'business_domain'), text('技术方向', 'technical_direction'),
+    date('入库日期', 'joined_at'), date('退出日期', 'exited_at'), text('联系方式脱敏值', 'contact_masked'), attachment('头像', 'avatar_file'),
+    text('个人简介', 'profile'), text('负责人ID', 'owner_id'), attachment('附件', 'attachments'), ...auditCompletion()
+  ]),
+  completion('人才项目', 'talent_project', [
+    text('项目编码', 'project_code'), text('需求部门ID', 'request_org_id'), text('需求部门名称', 'request_org_name'), text('提出人ID', 'requester_id'),
+    text('业务域ID', 'business_domain_id'), text('业务域名称', 'business_domain_name'), text('技术类型', 'technology_type'),
+    text('项目成员ID', 'member_ids'), select('项目规模', 'project_scale', ['SMALL', 'MEDIUM', 'LARGE']), select('项目难度', 'difficulty', ['LOW', 'MEDIUM', 'HIGH']),
+    number('完成率', 'completion_rate'), text('当前里程碑ID', 'current_milestone_id'), text('当前里程碑名称', 'current_milestone_name'),
+    select('风险等级', 'risk_level', ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']), date('实际开始日期', 'actual_start_date'),
+    date('实际结束日期', 'actual_end_date'), text('项目简介', 'summary'), text('项目目标', 'objectives'), text('项目成果', 'deliverables'),
+    attachment('项目附件', 'attachments'), ...auditCompletion()
+  ]),
+  completion('项目进度', 'talent_project_progress', [
+    date('汇报日期', 'report_date'), number('完成率', 'completion_rate'), text('当前里程碑ID', 'current_milestone_id'),
+    text('当前里程碑名称', 'current_milestone_name'), text('本期完成', 'completed_work'), text('下期计划', 'next_plan'),
+    text('风险', 'risks'), text('问题', 'issues'), text('所需支持', 'support_required'), attachment('附件', 'attachments'),
+    text('汇报人ID', 'reporter_id'), text('汇报人姓名', 'reporter_name'), date('汇报时间', 'reported_at'), ...auditCompletion()
+  ]),
+  completion('素材中心', 'material', [
+    text('素材编码', 'material_code'), text('素材摘要', 'summary'), text('素材描述', 'description_html'), text('素材类型', 'material_type'),
+    text('分类ID', 'category_id'), text('分类名称', 'category_name'), text('关联应用ID', 'related_app_ids'), attachment('封面', 'cover_file'),
+    text('版本名称', 'version_name'), text('发布人ID', 'publisher_id'), text('发布人姓名', 'publisher_name'), date('发布时间', 'published_at'),
+    number('浏览量', 'view_count'), number('收藏数', 'favorite_count'), text('权限范围', 'permission_scope'), text('状态', 'status'),
+    ...auditCompletion()
+  ])
+]);
+
 if (MISSING_TABLE_SCHEMAS.length !== 28) throw new Error(`缺失表清单必须为 28 张，当前 ${MISSING_TABLE_SCHEMAS.length}`);
 for (const schema of MISSING_TABLE_SCHEMAS) {
   const names = schema.fields.map(field => field.field_name);
   if (new Set(names).size !== names.length) throw new Error(`${schema.table_name} 存在重复字段名`);
+}
+for (const schema of EXISTING_TABLE_FIELD_COMPLETIONS) {
+  const names = schema.fields.map(field => field.field_name);
+  if (new Set(names).size !== names.length) throw new Error(`${schema.table_name} 补齐字段存在重复字段名`);
 }

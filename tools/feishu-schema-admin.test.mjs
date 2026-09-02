@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
-import { MISSING_TABLE_SCHEMAS } from '../server/contracts/feishu-missing-table-manifest.mjs';
+import { EXISTING_TABLE_FIELD_COMPLETIONS, MISSING_TABLE_SCHEMAS } from '../server/contracts/feishu-missing-table-manifest.mjs';
 import { createFeishuSchemaAdminClient } from '../server/feishu-schema-admin-client.mjs';
 
 assert.equal(MISSING_TABLE_SCHEMAS.length, 28);
 assert.equal(new Set(MISSING_TABLE_SCHEMAS.map(item => item.table_name)).size, 28);
 assert.ok(MISSING_TABLE_SCHEMAS.every(item => item.fields.length >= 5));
+assert.equal(EXISTING_TABLE_FIELD_COMPLETIONS.length, 7);
 
 const calls = [];
 const fetchImpl = async (url, options = {}) => {
