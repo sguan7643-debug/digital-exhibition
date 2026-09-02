@@ -44,6 +44,7 @@ function getOperationContract(operationContracts, operationId) {
 export function normalizeIntegrationError(error = {}) {
   const status = Number(error.status || error.response?.status || 0);
   const code = String(error.code || error.name || '').toLowerCase();
+  if (status === 401) return { state: 'authentication-required', retryable: false };
   if (status === 403) return { state: 'permission-denied', retryable: false };
   if (status === 429) return { state: 'rate-limited', retryable: true };
   if (status === 409) return { state: 'conflict', retryable: false };

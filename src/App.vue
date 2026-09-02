@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import ExhibitionShell from './components/ExhibitionShell.vue';
 import PageStateBoundary from './components/PageStateBoundary.vue';
+import IntegrationAuthBanner from './components/IntegrationAuthBanner.vue';
 import AnnouncementsPage from './pages/AnnouncementsPage.vue';
 import FavoritesPage from './pages/FavoritesPage.vue';
 import MessagesPage from './pages/MessagesPage.vue';
@@ -177,9 +178,25 @@ const detailAppIds = Object.freeze({
   '/apps/ai-001': 'APP001', '/apps/ead-001': 'APP002', '/apps/rpa-001': 'APP003'
 });
 
+const authenticatedRouteLoads = Object.freeze({
+  '/workbench': Object.freeze({
+    operationIds: ['COM-001', 'COM-002', 'COM-005', 'WB-001'],
+    inputByOperation: Object.freeze({
+      'COM-001': {}, 'COM-002': { platform: 'WEB' },
+      'COM-005': { dictionaryCodes: ['APP_TYPE', 'BUSINESS_DOMAIN', 'SCENE'], includeDisabled: false },
+      'WB-001': { hotLimit: 4, courseLimit: 3, noticeLimit: 4 }
+    })
+  }),
+  '/messages': Object.freeze({ operationIds: ['MSG-001', 'MSG-002'], inputByOperation: Object.freeze({ 'MSG-001': {}, 'MSG-002': { page: 1, pageSize: 100 } }) }),
+  '/favorites': Object.freeze({ operationIds: ['FAV-001', 'FAV-002'], inputByOperation: Object.freeze({ 'FAV-001': { resourceType: 'APP' }, 'FAV-002': { resourceType: 'APP', page: 1, pageSize: 100 } }) }),
+  '/profile': Object.freeze({ operationIds: ['COM-001', 'WB-003'], inputByOperation: Object.freeze({ 'COM-001': {}, 'WB-003': { recentMessageLimit: 5, todoLimit: 5 } }) }),
+  '/points': Object.freeze({ operationIds: ['PTS-001', 'PTS-003', 'PTS-004'], inputByOperation: Object.freeze({ 'PTS-001': {}, 'PTS-003': { groupBy: 'SOURCE' }, 'PTS-004': {} }) }),
+  '/points/details': Object.freeze({ operationIds: ['PTS-002'], inputByOperation: Object.freeze({ 'PTS-002': { page: 1, pageSize: 100 } }) })
+});
+
 async function syncIntegrationEnvelope() {
   const route = page.value.route;
-  const remoteVerifiedRoutes=['/apps','/announcements','/talent/people', ...Object.keys(detailAppIds)];
+  const remoteVerifiedRoutes=['/apps','/announcements','/talent/people', ...Object.keys(detailAppIds), ...Object.keys(authenticatedRouteLoads)];
   const routeRuntime = remoteVerifiedRoutes.includes(route)
     ? integrationRuntime
     : Object.freeze({ ...integrationRuntime, mode: 'mock', reason: 'route-not-yet-remotely-verified' });
@@ -191,11 +208,12 @@ async function syncIntegrationEnvelope() {
     operationResolver: resolveRemoteReadOperation
   });
   const appId = detailAppIds[route];
+  const authenticatedLoad = authenticatedRouteLoads[route];
   const loadOptions = appId ? { inputByOperation: {
     'APP-003': { appId, include: ['attachments', 'trainings', 'relatedMaterials'] },
     'APP-009': { appId, page: 1, pageSize: 100, sort: 'sortOrder,asc' }
-  } } : {};
-  const pending = integrationDataSource.load(remoteVerifiedRoutes.includes(route) && !appId ? { page: 1, pageSize: 100 } : {}, loadOptions);
+  } } : authenticatedLoad || {};
+  const pending = integrationDataSource.load(remoteVerifiedRoutes.includes(route) && !appId && !authenticatedLoad ? { page: 1, pageSize: 100 } : {}, loadOptions);
   integrationEnvelope.value = integrationDataSource.snapshot();
   const result = await pending;
   if (page.value.route === route) integrationEnvelope.value = result;
@@ -204,6 +222,9 @@ async function syncIntegrationEnvelope() {
 watch(() => page.value.route, syncIntegrationEnvelope, { immediate: true });
 const integrationSourceLabel = computed(() => describeDataSourceEnvelope(integrationEnvelope.value));
 const integrationLiveAnnouncement = computed(() => resolveIntegrationLiveAnnouncement(integrationEnvelope.value, integrationSourceLabel.value));
+const integrationAuthRequired = computed(() => integrationEnvelope.value.state === 'authentication-required'
+  || Object.values(integrationEnvelope.value.sectionRecords || {}).some(record => record?.errorState === 'authentication-required'));
+const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`)}`);
 </script>
 
 <template>
@@ -213,6 +234,7 @@ const integrationLiveAnnouncement = computed(() => resolveIntegrationLiveAnnounc
     :data-integration-operations="integrationContract?.readOperationIds.join(',')"
   >
     <p class="sr-only integration-source-status" data-integration-status aria-live="polite">{{ integrationLiveAnnouncement }}</p>
+    <integration-auth-banner v-if="integrationAuthRequired" :href="feishuAuthUrl" />
     <page-state-boundary :page="page" :state="page.state" @restore="restoreNormal">
       <workbench-page v-if="page.id === '01'" />
       <messages-page v-else-if="page.id === '02'" />
