@@ -89,5 +89,68 @@ export function createFeishuOpenApiClient(options = {}) {
     };
   }
 
-  return Object.freeze({ credentialsReady, listRecords });
+  async function contactList(pathname, query = {}) {
+    requireCredentials();
+    const pageSize = query.pageSize == null ? 50 : Number(query.pageSize);
+    if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50) {
+      throw new FeishuProxyError('INVALID_CONTACT_PAGE_SIZE', '通讯录页容量必须是 1 至 50 的整数', 400);
+    }
+    const token = await getTenantToken();
+    const url = new URL(`${API_ROOT}${pathname}`);
+    url.searchParams.set('page_size', String(pageSize));
+    url.searchParams.set('user_id_type', query.userIdType || 'user_id');
+    url.searchParams.set('department_id_type', query.departmentIdType || 'open_department_id');
+    if (query.pageToken) url.searchParams.set('page_token', String(query.pageToken));
+    const response = await fetchImpl(url, {
+      method: 'GET', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+    });
+    const body = await safeJson(response);
+    if (!response.ok || body.code !== 0 || (body.data?.items != null && !Array.isArray(body.data.items))) {
+      const status = response.status === 429 ? 429 : response.status === 403 ? 403 : 502;
+      throw new FeishuProxyError('FEISHU_CONTACT_FAILED', '飞书通讯录读取失败', status, {
+        upstreamCode: Number.isInteger(body.code) ? body.code : undefined
+      });
+    }
+    return {
+      items: body.data?.items || [],
+      hasMore: Boolean(body.data?.has_more),
+      nextPageToken: body.data?.page_token || ''
+    };
+  }
+
+  async function listDepartmentChildren(departmentId = '0', query = {}) {
+    const normalized = String(departmentId || '');
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_\-@.]{0,63}$/.test(normalized)) {
+      throw new FeishuProxyError('INVALID_DEPARTMENT_ID', '飞书部门标识非法', 400);
+    }
+    return contactList(`/contact/v3/departments/${encodeURIComponent(normalized)}/children`, query);
+  }
+
+  const listUsersByDepartmentWithId = async (departmentId = '0', query = {}) => {
+    requireCredentials();
+    const normalized = String(departmentId || '');
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_\-@.]{0,63}$/.test(normalized)) {
+      throw new FeishuProxyError('INVALID_DEPARTMENT_ID', '飞书部门标识非法', 400);
+    }
+    const pageSize = query.pageSize == null ? 50 : Number(query.pageSize);
+    if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50) {
+      throw new FeishuProxyError('INVALID_CONTACT_PAGE_SIZE', '通讯录页容量必须是 1 至 50 的整数', 400);
+    }
+    const token = await getTenantToken();
+    const url = new URL(`${API_ROOT}/contact/v3/users/find_by_department`);
+    url.searchParams.set('department_id', normalized);
+    url.searchParams.set('page_size', String(pageSize));
+    url.searchParams.set('user_id_type', query.userIdType || 'user_id');
+    url.searchParams.set('department_id_type', query.departmentIdType || 'open_department_id');
+    if (query.pageToken) url.searchParams.set('page_token', String(query.pageToken));
+    const response = await fetchImpl(url, { method: 'GET', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } });
+    const body = await safeJson(response);
+    if (!response.ok || body.code !== 0 || (body.data?.items != null && !Array.isArray(body.data.items))) {
+      const status = response.status === 429 ? 429 : response.status === 403 ? 403 : 502;
+      throw new FeishuProxyError('FEISHU_CONTACT_FAILED', '飞书通讯录读取失败', status, { upstreamCode: Number.isInteger(body.code) ? body.code : undefined });
+    }
+    return { items: body.data?.items || [], hasMore: Boolean(body.data?.has_more), nextPageToken: body.data?.page_token || '' };
+  };
+
+  return Object.freeze({ credentialsReady, listRecords, listDepartmentChildren, listUsersByDepartment: listUsersByDepartmentWithId });
 }

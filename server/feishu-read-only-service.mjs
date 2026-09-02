@@ -4,11 +4,14 @@ import { getOperation } from '../src/integration/operation-registry.js';
 const READ_PLANS = Object.freeze({
   'APP-001': Object.freeze({ kind: 'app-facets' }),
   'ANN-001': Object.freeze({ kind: 'announcement-facets' }),
-  'COM-004': Object.freeze({ tableName: '用户字典', labelField: '姓名', typeField: '岗位' }),
+  'COM-003': Object.freeze({ kind: 'contact-organizations' }),
+  'COM-004': Object.freeze({ kind: 'contact-users' }),
   'ANN-002': Object.freeze({ kind: 'announcement-list' }),
   'APP-002': Object.freeze({ kind: 'app-list' }),
-  'TAL-002': Object.freeze({ tableName: '人才项目', labelField: '项目名称', typeField: '项目类型' }),
-  'TAL-003': Object.freeze({ tableName: '项目进度', labelField: '阶段名称', typeField: '状态' }),
+  'TAL-001': Object.freeze({ kind: 'talent-people' }),
+  'TAL-002': Object.freeze({ kind: 'talent-projects' }),
+  'TAL-003': Object.freeze({ kind: 'talent-progress' }),
+  'TAL-005': Object.freeze({ kind: 'talent-facets' }),
   'MAT-002': Object.freeze({ tableName: '素材中心', labelField: '素材名称', typeField: '素材文件' })
 });
 
@@ -34,14 +37,14 @@ function valueToBoolean(value) {
   return ['是', 'true', '1', 'yes', '置顶'].includes(text);
 }
 
-function createLookup(records, idFields, labelField) {
+function createLookup(records, idFields, labelField, { fallbackToKey = true } = {}) {
   const lookup = new Map();
   for (const record of records) {
     const fields = record?.fields || {};
     const label = valueToText(fields[labelField]);
     for (const field of idFields) {
       const key = valueToText(fields[field]);
-      if (key) lookup.set(key, label || key);
+      if (key && (label || fallbackToKey)) lookup.set(key, label || key);
     }
   }
   return lookup;
@@ -99,6 +102,12 @@ export function createFeishuReadOnlyService(options) {
   let announcementProjectionCache = null;
   let announcementProjectionExpiresAt = 0;
   let announcementProjectionPending = null;
+  let talentProjectionCache = null;
+  let talentProjectionExpiresAt = 0;
+  let talentProjectionPending = null;
+  let contactProjectionCache = null;
+  let contactProjectionExpiresAt = 0;
+  let contactProjectionPending = null;
 
   function resolveTable(tableName) {
     const table = identifierContract.byName.get(tableName);
@@ -231,6 +240,220 @@ export function createFeishuReadOnlyService(options) {
       return result;
     }).finally(() => { announcementProjectionPending = null; });
     return announcementProjectionPending;
+  }
+
+  async function readTalentProjection() {
+    const [personRows, projectRows, progressRows, userRows, departmentRows] = await Promise.all([
+      readAll('人才库'), readAll('人才项目'), readAll('项目进度'), readAll('用户字典'), readAll('部门字典')
+    ]);
+    const userLookup = createLookup(userRows, ['用户ID', '工号', '姓名'], '姓名');
+    const employeeLookup = createLookup(userRows, ['用户ID', '姓名'], '工号', { fallbackToKey: false });
+    const userDepartmentLookup = createLookup(userRows, ['用户ID', '工号', '姓名'], '所属部门ID');
+    const departmentLookup = createLookup(departmentRows, ['部门ID', '部门名称'], '部门名称');
+    const projectLookup = createLookup(projectRows, ['主键'], '项目名称');
+    const people = personRows.map(record => {
+      const fields = record?.fields || {};
+      const userId = valueToText(fields['用户ID']);
+      const departmentId = userDepartmentLookup.get(userId) || '';
+      const talentId = valueToText(fields['主键']) || String(record?.record_id || '');
+      return {
+        id: String(record?.record_id || talentId), talentId, userId,
+        name: userLookup.get(userId) || userId, employeeNo: employeeLookup.get(userId) || '',
+        type: valueToText(fields['人才类型']), level: valueToText(fields['人才等级']),
+        specialties: valueToList(fields['擅长领域']), status: valueToText(fields['状态']),
+        departmentId, departmentName: departmentLookup.get(departmentId) || departmentId
+      };
+    }).filter(item => item.id && item.userId);
+    const projects = projectRows.map(record => {
+      const fields = record?.fields || {};
+      const ownerId = valueToText(fields['负责人ID']);
+      const projectId = valueToText(fields['主键']) || String(record?.record_id || '');
+      return {
+        id: String(record?.record_id || projectId), projectId, name: valueToText(fields['项目名称']),
+        type: valueToText(fields['项目类型']), ownerId, ownerName: userLookup.get(ownerId) || ownerId,
+        status: valueToText(fields['状态']), startDate: valueToText(fields['开始日期']), endDate: valueToText(fields['结束日期'])
+      };
+    }).filter(item => item.id && item.name);
+    const progress = progressRows.map(record => {
+      const fields = record?.fields || {};
+      const projectId = valueToText(fields['项目ID']);
+      const progressId = valueToText(fields['主键']) || String(record?.record_id || '');
+      return {
+        id: String(record?.record_id || progressId), progressId, projectId,
+        projectName: projectLookup.get(projectId) || projectId, phaseName: valueToText(fields['阶段名称']),
+        status: valueToText(fields['状态']), updatedAt: valueToText(fields['更新时间'])
+      };
+    }).filter(item => item.id && item.projectId);
+    return { people, projects, progress };
+  }
+
+  async function getTalentProjection() {
+    const timestamp = Date.now();
+    if (talentProjectionCache && timestamp < talentProjectionExpiresAt) return talentProjectionCache;
+    if (talentProjectionPending) return talentProjectionPending;
+    talentProjectionPending = readTalentProjection().then(result => {
+      talentProjectionCache = result;
+      talentProjectionExpiresAt = Date.now() + appProjectionCacheMs;
+      return result;
+    }).finally(() => { talentProjectionPending = null; });
+    return talentProjectionPending;
+  }
+
+  async function readContactPage(readPage) {
+    const items = [];
+    let pageToken = '';
+    for (let page = 1; page <= 100; page += 1) {
+      const result = await readPage(pageToken);
+      items.push(...result.items);
+      if (!result.hasMore || !result.nextPageToken) break;
+      pageToken = result.nextPageToken;
+      if (page === 100) throw new FeishuProxyError('CONTACT_PAGINATION_LIMIT', '通讯录分页超过安全上限', 502);
+    }
+    return items;
+  }
+
+  async function readContactProjection() {
+    if (!client.listDepartmentChildren || !client.listUsersByDepartment) {
+      throw new FeishuProxyError('CONTACT_CLIENT_UNAVAILABLE', '飞书通讯录客户端未配置', 503);
+    }
+    const departments = [];
+    const queue = [{ id: '0', depth: 0 }];
+    const seenDepartments = new Set(['0']);
+    while (queue.length) {
+      const parent = queue.shift();
+      const children = await readContactPage(pageToken => client.listDepartmentChildren(parent.id, {
+        pageSize: 50, pageToken, userIdType: 'user_id', departmentIdType: 'open_department_id'
+      }));
+      for (const item of children) {
+        const id = valueToText(item.open_department_id || item.department_id);
+        if (!id || seenDepartments.has(id)) continue;
+        seenDepartments.add(id);
+        const department = {
+          id, code: valueToText(item.department_id), name: valueToText(item.name), parentId: valueToText(item.parent_department_id) || parent.id,
+          depth: parent.depth + 1, memberCount: valueToNumber(item.member_count),
+          enabled: item.status?.is_deleted !== true
+        };
+        departments.push(department);
+        queue.push({ id, depth: department.depth });
+      }
+    }
+    const departmentNameById = new Map(departments.map(item => [item.id, item.name]));
+    const usersById = new Map();
+    for (const departmentId of ['0', ...departments.map(item => item.id)]) {
+      const users = await readContactPage(pageToken => client.listUsersByDepartment(departmentId, {
+        pageSize: 50, pageToken, userIdType: 'user_id', departmentIdType: 'open_department_id'
+      }));
+      for (const item of users) {
+        const userId = valueToText(item.user_id || item.open_id);
+        if (!userId) continue;
+        const departmentIds = Array.isArray(item.department_ids) ? item.department_ids.map(valueToText).filter(Boolean) : [];
+        const primaryDepartmentId = departmentIds[0] || departmentId;
+        usersById.set(userId, {
+          userId, employeeNo: valueToText(item.employee_no), displayName: valueToText(item.name),
+          avatarUrl: valueToText(item.avatar?.avatar_72 || item.avatar?.avatar_240), orgId: primaryDepartmentId,
+          orgName: departmentNameById.get(primaryDepartmentId) || '', departmentId: primaryDepartmentId,
+          departmentName: departmentNameById.get(primaryDepartmentId) || '', officeId: '', officeName: '',
+          title: valueToText(item.job_title), mobileMasked: '', emailMasked: '',
+          enabled: item.status?.is_resigned !== true && item.status?.is_exited !== true && item.status?.is_frozen !== true
+        });
+      }
+    }
+    return { departments, users: [...usersById.values()] };
+  }
+
+  async function getContactProjection() {
+    const timestamp = Date.now();
+    if (contactProjectionCache && timestamp < contactProjectionExpiresAt) return contactProjectionCache;
+    if (contactProjectionPending) return contactProjectionPending;
+    contactProjectionPending = readContactProjection().then(result => {
+      contactProjectionCache = result;
+      contactProjectionExpiresAt = Date.now() + appProjectionCacheMs;
+      return result;
+    }).finally(() => { contactProjectionPending = null; });
+    return contactProjectionPending;
+  }
+
+  function buildOrganizationTree(departments, rootId = '0', maxDepth = 20) {
+    const byParent = new Map();
+    const byId = new Map(departments.map(item => [item.id, item]));
+    for (const item of departments) {
+      if (!byParent.has(item.parentId)) byParent.set(item.parentId, []);
+      byParent.get(item.parentId).push(item);
+    }
+    const resolvePath = item => {
+      const path = [];
+      const seen = new Set();
+      let current = item;
+      while (current && !seen.has(current.id)) {
+        seen.add(current.id);
+        path.unshift(current);
+        current = byId.get(current.parentId);
+      }
+      return path;
+    };
+    const visit = (parentId, depth) => (byParent.get(parentId) || [])
+      .sort((left, right) => left.name.localeCompare(right.name, 'zh-CN'))
+      .map((item, index) => {
+        const path = resolvePath(item);
+        const children = depth < maxDepth ? visit(item.id, depth + 1) : [];
+        return {
+          orgId: item.id, orgCode: item.code, orgName: item.name, orgType: 'DEPARTMENT', parentId: item.parentId,
+          pathIds: path.map(node => node.id), pathNames: path.map(node => node.name), level: item.depth,
+          sortOrder: index, enabled: item.enabled, hasChildren: children.length > 0,
+          userCount: item.memberCount, children
+        };
+      });
+    return visit(rootId, 1);
+  }
+
+  async function executeContact(operationId, input) {
+    const projection = await getContactProjection();
+    if (operationId === 'COM-003') {
+      const allowedKeys = ['rootId', 'keyword', 'orgType', 'enabled', 'includeUsers', 'maxDepth'];
+      if (Object.keys(input).some(key => !allowedKeys.includes(key))) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '请求包含未允许的输入字段', 400);
+      const maxDepth = input.maxDepth == null ? 20 : Number(input.maxDepth);
+      if (!Number.isInteger(maxDepth) || maxDepth < 1 || maxDepth > 20) throw new FeishuProxyError('INVALID_MAX_DEPTH', '组织树深度必须是 1 至 20', 400);
+      const keyword = valueToText(input.keyword).toLocaleLowerCase('zh-CN');
+      const filtered = projection.departments.filter(item =>
+        (input.enabled == null || item.enabled === input.enabled) && (!keyword || item.name.toLocaleLowerCase('zh-CN').includes(keyword))
+      );
+      if (input.orgType && input.orgType !== 'DEPARTMENT') {
+        return { items: [], includeUsers: Boolean(input.includeUsers), userCount: 0, total: 0, source: 'FEISHU_CONTACT_V3' };
+      }
+      return {
+        items: buildOrganizationTree(filtered, valueToText(input.rootId) || '0', maxDepth),
+        includeUsers: Boolean(input.includeUsers),
+        userCount: input.includeUsers ? projection.users.filter(item => item.enabled).length : 0,
+        total: filtered.length, source: 'FEISHU_CONTACT_V3'
+      };
+    }
+    const allowedKeys = ['keyword', 'employeeNo', 'orgId', 'departmentId', 'enabled', 'page', 'pageSize', 'sort'];
+    if (Object.keys(input).some(key => !allowedKeys.includes(key))) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '请求包含未允许的输入字段', 400);
+    const pageSize = input.pageSize == null ? 10 : Number(input.pageSize);
+    const page = input.page == null ? 1 : Number(input.page);
+    if (![10, 20, 50, 100].includes(pageSize)) throw new FeishuProxyError('INVALID_PAGE_SIZE', '页容量必须是 10、20、50 或 100', 400);
+    if (!Number.isInteger(page) || page < 1 || page > 100) throw new FeishuProxyError('INVALID_PAGE', '页码必须是 1 至 100 的整数', 400);
+    const keyword = valueToText(input.keyword).toLocaleLowerCase('zh-CN');
+    let rows = projection.users.filter(item =>
+      (!keyword || [item.displayName, item.employeeNo, item.departmentName, item.title].join(' ').toLocaleLowerCase('zh-CN').includes(keyword)) &&
+      (!input.employeeNo || item.employeeNo === input.employeeNo) &&
+      (!input.orgId || item.orgId === input.orgId) && (!input.departmentId || item.departmentId === input.departmentId) &&
+      (input.enabled == null || item.enabled === input.enabled)
+    );
+    rows = [...rows].sort((left, right) => left.displayName.localeCompare(right.displayName, 'zh-CN'));
+    const total = rows.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.min(page, totalPages);
+    return {
+      items: rows.slice((safePage - 1) * pageSize, safePage * pageSize), total, page: safePage, pageSize,
+      totalPages, hasPrevious: safePage > 1, hasNext: safePage < totalPages, hasMore: safePage < totalPages,
+      sort: 'name,asc',
+      filtersApplied: {
+        keyword: valueToText(input.keyword), employeeNo: valueToText(input.employeeNo), orgId: valueToText(input.orgId),
+        departmentId: valueToText(input.departmentId), enabled: input.enabled == null ? true : input.enabled
+      },
+      source: 'FEISHU_CONTACT_V3'
+    };
   }
 
   function createFacet(values, sortOrder = 0) {
@@ -370,6 +593,71 @@ export function createFeishuReadOnlyService(options) {
     };
   }
 
+  async function executeTalent(operationId, input) {
+    const allowedKeys = operationId === 'TAL-005' ? ['page', 'pageSize'] : ['page', 'pageSize', 'query', 'filters', 'sort'];
+    if (Object.keys(input).some(key => !allowedKeys.includes(key))) {
+      throw new FeishuProxyError('INVALID_OPERATION_INPUT', '请求包含未允许的输入字段', 400);
+    }
+    const projection = await getTalentProjection();
+    if (operationId === 'TAL-005') {
+      return {
+        types: createFacet(projection.people.map(item => item.type)),
+        levels: createFacet(projection.people.map(item => item.level)),
+        specialties: createFacet(projection.people.flatMap(item => item.specialties)),
+        statuses: createFacet(projection.people.map(item => item.status)),
+        departments: createFacet(projection.people.map(item => item.departmentName)),
+        facetsVersion: 'feishu-talent.v1'
+      };
+    }
+    const pageSize = input.pageSize == null ? 10 : input.pageSize;
+    const page = input.page == null ? 1 : input.page;
+    if (!Number.isInteger(pageSize) || ![10, 20, 50, 100].includes(pageSize)) {
+      throw new FeishuProxyError('INVALID_PAGE_SIZE', '页容量必须是 10、20、50 或 100', 400);
+    }
+    if (!Number.isInteger(page) || page < 1 || page > 100) {
+      throw new FeishuProxyError('INVALID_PAGE', '页码必须是 1 至 100 的整数', 400);
+    }
+    if (input.filters != null && (typeof input.filters !== 'object' || Array.isArray(input.filters))) {
+      throw new FeishuProxyError('INVALID_OPERATION_INPUT', '筛选条件必须是对象', 400);
+    }
+    const filters = input.filters || {};
+    const allowedFilters = operationId === 'TAL-001'
+      ? ['type', 'level', 'specialty', 'status', 'department']
+      : operationId === 'TAL-002' ? ['type', 'status', 'owner'] : ['project', 'status', 'phase'];
+    if (Object.keys(filters).some(key => !allowedFilters.includes(key))) {
+      throw new FeishuProxyError('INVALID_OPERATION_INPUT', '请求包含未允许的筛选字段', 400);
+    }
+    const source = operationId === 'TAL-001' ? projection.people : operationId === 'TAL-002' ? projection.projects : projection.progress;
+    const query = valueToText(input.query).toLocaleLowerCase('zh-CN');
+    let rows = source.filter(item => {
+      const searchable = Object.values(item).flatMap(value => Array.isArray(value) ? value : [value]).join(' ').toLocaleLowerCase('zh-CN');
+      if (query && !searchable.includes(query)) return false;
+      if (operationId === 'TAL-001') return (!filters.type || item.type === filters.type)
+        && (!filters.level || item.level === filters.level)
+        && (!filters.specialty || item.specialties.includes(filters.specialty))
+        && (!filters.status || item.status === filters.status)
+        && (!filters.department || item.departmentId === filters.department || item.departmentName === filters.department);
+      if (operationId === 'TAL-002') return (!filters.type || item.type === filters.type)
+        && (!filters.status || item.status === filters.status)
+        && (!filters.owner || item.ownerId === filters.owner || item.ownerName === filters.owner);
+      return (!filters.project || item.projectId === filters.project || item.projectName === filters.project)
+        && (!filters.status || item.status === filters.status)
+        && (!filters.phase || item.phaseName === filters.phase);
+    });
+    const sort = input.sort || 'default';
+    if (!['default', 'name'].includes(sort)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '排序方式不受支持', 400);
+    if (sort === 'name') rows = [...rows].sort((left, right) => String(left.name || left.projectName).localeCompare(String(right.name || right.projectName), 'zh-CN'));
+    const total = rows.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.min(page, totalPages);
+    const start = (safePage - 1) * pageSize;
+    return {
+      items: rows.slice(start, start + pageSize), total, page: safePage, pageSize, totalPages,
+      hasPrevious: safePage > 1, hasNext: safePage < totalPages, hasMore: safePage < totalPages,
+      filtersApplied: filters, facetsVersion: 'feishu-talent.v1'
+    };
+  }
+
   async function execute(operationId, input = {}) {
     const operation = getOperation(operationId);
     if (!operation) throw new FeishuProxyError('UNKNOWN_OPERATION', '接口不在受控操作清单中', 404);
@@ -378,9 +666,11 @@ export function createFeishuReadOnlyService(options) {
     }
     const plan = READ_PLANS[operationId];
     if (!plan) throw new FeishuProxyError('READ_OPERATION_NOT_ENABLED', '该只读接口尚未完成字段合同核验', 503);
-    if (plan.kind === 'app-facets' || plan.kind === 'app-list' || plan.kind === 'announcement-facets' || plan.kind === 'announcement-list') {
+    if (plan.kind === 'app-facets' || plan.kind === 'app-list' || plan.kind?.startsWith('announcement') || plan.kind?.startsWith('talent') || plan.kind?.startsWith('contact')) {
       const data = plan.kind.startsWith('announcement')
         ? await executeAnnouncement(operationId, input)
+        : plan.kind.startsWith('talent') ? await executeTalent(operationId, input)
+        : plan.kind.startsWith('contact') ? await executeContact(operationId, input)
         : await executeApp(operationId, input);
       return {
         code: 'OK', data, traceId: traceIdFactory(), schemaVersion: 'feishu-read-only.v1',

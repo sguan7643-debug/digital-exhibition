@@ -5,11 +5,16 @@ import { mapRemoteApp } from '../src/integration/app-read-model.js';
 import { mapRemoteAnnouncement } from '../src/integration/announcement-read-model.js';
 
 const contracts = createVerifiedReadOperationContracts();
-assert.deepEqual(Object.keys(contracts).sort(), ['ANN-001', 'ANN-002', 'APP-001', 'APP-002']);
+assert.deepEqual(Object.keys(contracts).sort(), [
+  'ANN-001', 'ANN-002', 'APP-001', 'APP-002', 'COM-003', 'COM-004',
+  'TAL-001', 'TAL-002', 'TAL-003', 'TAL-005'
+]);
 assert.equal(resolveRemoteReadOperation('APP-001').remoteEnabled, true);
 assert.equal(resolveRemoteReadOperation('APP-002').remoteEnabled, true);
 assert.equal(resolveRemoteReadOperation('ANN-001').remoteEnabled, true);
 assert.equal(resolveRemoteReadOperation('ANN-002').remoteEnabled, true);
+assert.equal(resolveRemoteReadOperation('COM-003').remoteEnabled, true);
+assert.equal(resolveRemoteReadOperation('COM-004').remoteEnabled, true);
 
 const remoteItem = {
   id: 'rec-app', appId: 'APP-001', name: '经营分析可视化报表', typeCode: 'REPORT', typeName: '可视化报表',

@@ -167,7 +167,8 @@ let integrationDataSource;
 
 async function syncIntegrationEnvelope() {
   const route = page.value.route;
-  const routeRuntime = ['/apps','/announcements'].includes(route)
+  const remoteVerifiedRoutes=['/apps','/announcements','/talent/people'];
+  const routeRuntime = remoteVerifiedRoutes.includes(route)
     ? integrationRuntime
     : Object.freeze({ ...integrationRuntime, mode: 'mock', reason: 'route-not-yet-remotely-verified' });
   integrationDataSource = createPageDataSource({
@@ -177,7 +178,7 @@ async function syncIntegrationEnvelope() {
     client: integrationClient,
     operationResolver: resolveRemoteReadOperation
   });
-  const pending = integrationDataSource.load(['/apps','/announcements'].includes(route) ? { page: 1, pageSize: 100 } : {});
+  const pending = integrationDataSource.load(remoteVerifiedRoutes.includes(route) ? { page: 1, pageSize: 100 } : {});
   integrationEnvelope.value = integrationDataSource.snapshot();
   const result = await pending;
   if (page.value.route === route) integrationEnvelope.value = result;
@@ -229,7 +230,10 @@ const integrationLiveAnnouncement = computed(() => resolveIntegrationLiveAnnounc
       <app-editor-page v-else-if="page.id === '25'" />
       <admin-page v-else-if="page.id === '26'" />
       <certification-page v-else-if="page.id === '27'" />
-      <talent-people-page v-else-if="page.id === '28'" />
+      <talent-people-page v-else-if="page.id === '28'"
+        :integration-data="integrationEnvelope.data"
+        :integration-state="integrationEnvelope.state"
+      />
       <talent-projects-page v-else-if="page.id === '29'" />
       <talent-progress-page v-else-if="page.id === '30'" />
       <portal-page v-else :page="page" />

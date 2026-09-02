@@ -42,8 +42,17 @@ const fakeRowsByTableId = new Map([
     发布部门ID: 'D-001', 发布人ID: 'U-001', 状态: '已发布', 是否置顶: '是', 发布时间: '2026-09-02 09:30:00'
   } }],
   [contract.byName.get('应用索引').tableId, { record_id: 'rec-app', fields: { 应用名称: '经营分析可视化报表', 应用类型: '可视化报表' } }],
-  [contract.byName.get('人才项目').tableId, { record_id: 'rec-project', fields: { 项目名称: '数字人才培养', 项目类型: '培训' } }],
-  [contract.byName.get('项目进度').tableId, { record_id: 'rec-progress', fields: { 阶段名称: '实施', 状态: '进行中' } }],
+  [contract.byName.get('人才库').tableId, { record_id: 'rec-person', fields: {
+    主键: 'TALENT-001', 用户ID: 'U-001', 人才类型: '数字化人才', 人才等级: '高级',
+    擅长领域: ['数据治理'], 状态: '在库'
+  } }],
+  [contract.byName.get('人才项目').tableId, { record_id: 'rec-project', fields: {
+    主键: 'PROJECT-001', 项目名称: '数字人才培养', 项目类型: '培训', 负责人ID: 'U-001',
+    状态: '进行中', 开始日期: '2026-09-01', 结束日期: '2026-12-31'
+  } }],
+  [contract.byName.get('项目进度').tableId, { record_id: 'rec-progress', fields: {
+    主键: 'PROGRESS-001', 项目ID: 'PROJECT-001', 阶段名称: '实施', 状态: '进行中', 更新时间: '2026-09-02 10:00:00'
+  } }],
   [contract.byName.get('素材中心').tableId, { record_id: 'rec-material', fields: { 素材名称: '操作手册', 素材文件: 'PDF' } }]
   ,[contract.byName.get('应用类型配置').tableId, { record_id: 'rec-type', fields: { 类型ID: 'TYPE-REPORT', 类型名称: '可视化报表', 类型编码: 'REPORT', 状态: '启用', 排序: 1 } }]
   ,[contract.byName.get('业务域字典').tableId, { record_id: 'rec-domain', fields: { 业务域ID: 'DOMAIN-OPS', 业务域名称: '生产运营' } }]
@@ -53,6 +62,28 @@ const fakeFetch = async (url, options = {}) => {
   calls.push({ url: String(url), method: options.method || 'GET', headers: options.headers, body: options.body });
   if (String(url).endsWith('/auth/v3/tenant_access_token/internal')) {
     return new Response(JSON.stringify({ code: 0, tenant_access_token: 'server-only-token', expire: 7200 }), {
+      status: 200, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  if (String(url).includes('/contact/v3/departments/0/children')) {
+    return new Response(JSON.stringify({ code: 0, data: { items: [{
+      open_department_id: 'od-dept-001', department_id: 'D-001', name: '经营管理部',
+      parent_department_id: '0', member_count: 1, status: { is_deleted: false }
+    }], has_more: false, page_token: '' } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+  if (String(url).includes('/contact/v3/departments/od-dept-001/children')) {
+    return new Response(JSON.stringify({ code: 0, data: { items: [], has_more: false, page_token: '' } }), {
+      status: 200, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  if (String(url).includes('/contact/v3/users/find_by_department')) {
+    const departmentId = new URL(String(url)).searchParams.get('department_id');
+    const items = departmentId === '0' ? [{
+      user_id: 'ou-user-001', employee_no: 'EMP-001', name: '张三丰', department_ids: ['od-dept-001'],
+      avatar: { avatar_72: 'https://example.invalid/avatar-safe.png' }, job_title: '产品经理',
+      mobile: '13800000000', email: 'private@example.invalid', status: { is_resigned: false, is_exited: false, is_frozen: false }
+    }] : [];
+    return new Response(JSON.stringify({ code: 0, data: { items, has_more: false, page_token: '' } }), {
       status: 200, headers: { 'Content-Type': 'application/json' }
     });
   }
@@ -145,9 +176,6 @@ assert.equal(Object.hasOwn(envelope.data.items[0], 'fields'), false, '代理不�
 assert.ok(calls.some(call => call.url.includes(`/tables/${contract.byName.get('应用索引').tableId}/records`)));
 
 for (const [operationId, tableName, expectedLabel] of [
-  ['COM-004', '用户字典', '张三丰'],
-  ['TAL-002', '人才项目', '数字人才培养'],
-  ['TAL-003', '项目进度', '实施'],
   ['MAT-002', '素材中心', '操作手册']
 ]) {
   const mapped = await service.execute(operationId, {});
@@ -155,6 +183,49 @@ for (const [operationId, tableName, expectedLabel] of [
   assert.equal(mapped.data.items[0].label, expectedLabel);
   assert.ok(calls.some(call => call.url.includes(`/tables/${contract.byName.get(tableName).tableId}/records`)));
 }
+
+const organizationTree = await service.execute('COM-003', { includeUsers: true, maxDepth: 5 });
+assert.equal(organizationTree.data.items[0].orgId, 'od-dept-001');
+assert.equal(organizationTree.data.items[0].orgCode, 'D-001');
+assert.equal(organizationTree.data.items[0].orgName, '经营管理部');
+assert.deepEqual(organizationTree.data.items[0].pathIds, ['od-dept-001']);
+assert.equal(organizationTree.data.items[0].hasChildren, false);
+assert.equal(organizationTree.data.userCount, 1);
+const contactUsers = await service.execute('COM-004', { page: 1, pageSize: 10 });
+assert.deepEqual(contactUsers.data.items[0], {
+  userId: 'ou-user-001', employeeNo: 'EMP-001', displayName: '张三丰',
+  avatarUrl: 'https://example.invalid/avatar-safe.png', orgId: 'od-dept-001', orgName: '经营管理部',
+  departmentId: 'od-dept-001', departmentName: '经营管理部', officeId: '', officeName: '', title: '产品经理',
+  mobileMasked: '', emailMasked: '', enabled: true
+});
+assert.equal(contactUsers.data.sort, 'name,asc');
+assert.equal(contactUsers.data.filtersApplied.enabled, true);
+assert.doesNotMatch(JSON.stringify(contactUsers), /13800000000|private@example\.invalid/, '通讯录代理不得暴露手机号或邮箱原值');
+
+const talentFacets = await service.execute('TAL-005', { page: 1, pageSize: 10 });
+assert.equal(talentFacets.data.types[0].name, '数字化人才');
+assert.equal(talentFacets.data.levels[0].name, '高级');
+assert.equal(talentFacets.data.departments[0].name, '经营管理部');
+const talentPeople = await service.execute('TAL-001', { page: 1, pageSize: 10 });
+assert.deepEqual(talentPeople.data.items[0], {
+  id: 'rec-person', talentId: 'TALENT-001', userId: 'U-001', name: '张三丰', employeeNo: '',
+  type: '数字化人才', level: '高级', specialties: ['数据治理'], status: '在库',
+  departmentId: 'D-001', departmentName: '经营管理部'
+});
+const talentProjects = await service.execute('TAL-002', { page: 1, pageSize: 10 });
+assert.deepEqual(talentProjects.data.items[0], {
+  id: 'rec-project', projectId: 'PROJECT-001', name: '数字人才培养', type: '培训', ownerId: 'U-001',
+  ownerName: '张三丰', status: '进行中', startDate: '2026-09-01', endDate: '2026-12-31'
+});
+const talentProgress = await service.execute('TAL-003', { page: 1, pageSize: 10 });
+assert.deepEqual(talentProgress.data.items[0], {
+  id: 'rec-progress', progressId: 'PROGRESS-001', projectId: 'PROJECT-001', projectName: '数字人才培养',
+  phaseName: '实施', status: '进行中', updatedAt: '2026-09-02 10:00:00'
+});
+for (const tableName of ['人才库', '人才项目', '项目进度']) {
+  assert.ok(calls.some(call => call.url.includes(`/tables/${contract.byName.get(tableName).tableId}/records`)));
+}
+assert.equal(Object.hasOwn(talentPeople.data.items[0], 'fields'), false, '人才接口不得透传飞书原始字段');
 
 const announcementFacets = await service.execute('ANN-001', { page: 1, pageSize: 100 });
 assert.equal(announcementFacets.data.total, 1);

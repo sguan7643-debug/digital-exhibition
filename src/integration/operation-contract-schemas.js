@@ -236,6 +236,153 @@ const announcementListDataSchema = Object.freeze({
   additionalProperties: false
 });
 
+const talentFilterSchema = Object.freeze({
+  type: 'object',
+  properties: {
+    type: optionalText, level: optionalText, specialty: optionalText, status: optionalText,
+    department: optionalText, owner: optionalText, project: optionalText, phase: optionalText
+  },
+  additionalProperties: false
+});
+const talentListRequestSchema = Object.freeze({
+  type: 'object',
+  properties: {
+    filters: talentFilterSchema,
+    page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
+    pageSize: Object.freeze({ enum: [10, 20, 50, 100] }),
+    query: optionalText,
+    sort: Object.freeze({ enum: ['default', 'name'] })
+  },
+  additionalProperties: false
+});
+const talentPersonSchema = Object.freeze({
+  type: 'object',
+  required: ['id', 'talentId', 'userId', 'name', 'employeeNo', 'type', 'level', 'specialties', 'status', 'departmentId', 'departmentName'],
+  properties: {
+    id: identifier, talentId: identifier, userId: identifier, name: text, employeeNo: optionalText,
+    type: optionalText, level: optionalText, specialties: stringList, status: optionalText,
+    departmentId: optionalText, departmentName: optionalText
+  },
+  additionalProperties: false
+});
+const talentProjectSchema = Object.freeze({
+  type: 'object',
+  required: ['id', 'projectId', 'name', 'type', 'ownerId', 'ownerName', 'status', 'startDate', 'endDate'],
+  properties: {
+    id: identifier, projectId: identifier, name: text, type: optionalText, ownerId: optionalText,
+    ownerName: optionalText, status: optionalText, startDate: optionalText, endDate: optionalText
+  },
+  additionalProperties: false
+});
+const talentProgressSchema = Object.freeze({
+  type: 'object',
+  required: ['id', 'progressId', 'projectId', 'projectName', 'phaseName', 'status', 'updatedAt'],
+  properties: {
+    id: identifier, progressId: identifier, projectId: identifier, projectName: optionalText,
+    phaseName: optionalText, status: optionalText, updatedAt: optionalText
+  },
+  additionalProperties: false
+});
+function talentListDataSchema(itemSchema) {
+  return Object.freeze({
+    type: 'object',
+    required: ['items', 'total', 'page', 'pageSize', 'totalPages', 'hasPrevious', 'hasNext', 'hasMore', 'filtersApplied', 'facetsVersion'],
+    properties: {
+      items: Object.freeze({ type: 'array', items: itemSchema, maxItems: 100 }), total: countInteger,
+      page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
+      pageSize: Object.freeze({ enum: [10, 20, 50, 100] }), totalPages: countInteger,
+      hasPrevious: booleanValue, hasNext: booleanValue, hasMore: booleanValue,
+      filtersApplied: talentFilterSchema, facetsVersion: optionalText
+    },
+    additionalProperties: false
+  });
+}
+const talentFacetsDataSchema = Object.freeze({
+  type: 'object',
+  required: ['types', 'levels', 'specialties', 'statuses', 'departments', 'facetsVersion'],
+  properties: {
+    types: facetListSchema, levels: facetListSchema, specialties: facetListSchema,
+    statuses: facetListSchema, departments: facetListSchema, facetsVersion: optionalText
+  },
+  additionalProperties: false
+});
+
+const organizationRequestSchema = Object.freeze({
+  type: 'object',
+  properties: {
+    rootId: optionalText, keyword: optionalText, orgType: optionalText, enabled: booleanValue,
+    includeUsers: booleanValue, maxDepth: Object.freeze({ type: 'integer', minimum: 1, maximum: 20 })
+  },
+  additionalProperties: false
+});
+const organizationNodeSchema = Object.freeze({
+  type: 'object',
+  required: [
+    'orgId', 'orgCode', 'orgName', 'orgType', 'parentId', 'pathIds', 'pathNames', 'level',
+    'sortOrder', 'enabled', 'hasChildren', 'userCount', 'children'
+  ],
+  properties: {
+    orgId: identifier, orgCode: optionalText, orgName: text, orgType: optionalText, parentId: optionalText,
+    pathIds: stringList, pathNames: stringList, level: countInteger, sortOrder: countInteger,
+    enabled: booleanValue, hasChildren: booleanValue, userCount: countInteger,
+    children: Object.freeze({ type: 'array', items: Object.freeze({ type: 'object' }), maxItems: 100 })
+  },
+  additionalProperties: false
+});
+const organizationDataSchema = Object.freeze({
+  type: 'object',
+  required: ['items', 'includeUsers', 'userCount', 'total', 'source'],
+  properties: {
+    items: Object.freeze({ type: 'array', items: organizationNodeSchema, maxItems: 100 }),
+    includeUsers: booleanValue, userCount: countInteger, total: countInteger, source: optionalText
+  },
+  additionalProperties: false
+});
+const contactUserRequestSchema = Object.freeze({
+  type: 'object',
+  properties: {
+    keyword: optionalText, employeeNo: optionalText, orgId: optionalText, departmentId: optionalText,
+    enabled: booleanValue, page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
+    pageSize: Object.freeze({ enum: [10, 20, 50, 100] }), sort: Object.freeze({ enum: ['name,asc'] })
+  },
+  additionalProperties: false
+});
+const contactUserItemSchema = Object.freeze({
+  type: 'object',
+  required: [
+    'userId', 'employeeNo', 'displayName', 'avatarUrl', 'orgId', 'orgName', 'departmentId',
+    'departmentName', 'officeId', 'officeName', 'title', 'mobileMasked', 'emailMasked', 'enabled'
+  ],
+  properties: {
+    userId: identifier, employeeNo: optionalText, displayName: text, avatarUrl: optionalText,
+    orgId: optionalText, orgName: optionalText, departmentId: optionalText, departmentName: optionalText,
+    officeId: optionalText, officeName: optionalText, title: optionalText, mobileMasked: optionalText,
+    emailMasked: optionalText, enabled: booleanValue
+  },
+  additionalProperties: false
+});
+const contactFiltersSchema = Object.freeze({
+  type: 'object',
+  properties: {
+    keyword: optionalText, employeeNo: optionalText, orgId: optionalText, departmentId: optionalText, enabled: booleanValue
+  },
+  additionalProperties: false
+});
+const contactUserDataSchema = Object.freeze({
+  type: 'object',
+  required: [
+    'items', 'total', 'page', 'pageSize', 'totalPages', 'hasPrevious', 'hasNext', 'hasMore',
+    'sort', 'filtersApplied', 'source'
+  ],
+  properties: {
+    items: Object.freeze({ type: 'array', items: contactUserItemSchema, maxItems: 100 }), total: countInteger,
+    page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }), pageSize: Object.freeze({ enum: [10, 20, 50, 100] }),
+    totalPages: countInteger, hasPrevious: booleanValue, hasNext: booleanValue, hasMore: booleanValue,
+    sort: Object.freeze({ enum: ['name,asc'] }), filtersApplied: contactFiltersSchema, source: optionalText
+  },
+  additionalProperties: false
+});
+
 export function createAppReadOperationContracts() {
   return Object.freeze({
     'APP-001': Object.freeze({
@@ -266,8 +413,46 @@ export function createAnnouncementReadOperationContracts() {
   });
 }
 
+export function createTalentReadOperationContracts() {
+  const listContract = (operationId, itemSchema) => Object.freeze({
+    operationId, requestSchema: talentListRequestSchema,
+    successSchema: envelopeSchema(talentListDataSchema(itemSchema)), errorSchema: SYNTHETIC_ERROR_SCHEMA,
+    contractStatus: 'server-projection-verified'
+  });
+  return Object.freeze({
+    'TAL-001': listContract('TAL-001', talentPersonSchema),
+    'TAL-002': listContract('TAL-002', talentProjectSchema),
+    'TAL-003': listContract('TAL-003', talentProgressSchema),
+    'TAL-005': Object.freeze({
+      operationId: 'TAL-005', requestSchema: facetRequestSchema,
+      successSchema: envelopeSchema(talentFacetsDataSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA,
+      contractStatus: 'server-projection-verified'
+    })
+  });
+}
+
+export function createContactReadOperationContracts() {
+  return Object.freeze({
+    'COM-003': Object.freeze({
+      operationId: 'COM-003', requestSchema: organizationRequestSchema,
+      successSchema: envelopeSchema(organizationDataSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA,
+      contractStatus: 'official-contact-v3-verified'
+    }),
+    'COM-004': Object.freeze({
+      operationId: 'COM-004', requestSchema: contactUserRequestSchema,
+      successSchema: envelopeSchema(contactUserDataSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA,
+      contractStatus: 'official-contact-v3-verified'
+    })
+  });
+}
+
 export function createVerifiedReadOperationContracts() {
-  return Object.freeze({ ...createAppReadOperationContracts(), ...createAnnouncementReadOperationContracts() });
+  return Object.freeze({
+    ...createAppReadOperationContracts(),
+    ...createAnnouncementReadOperationContracts(),
+    ...createTalentReadOperationContracts(),
+    ...createContactReadOperationContracts()
+  });
 }
 
 function typeMatches(value, type) {
