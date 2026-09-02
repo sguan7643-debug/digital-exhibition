@@ -69,6 +69,13 @@ const auditCompletion = () => [
 ];
 
 export const EXISTING_TABLE_FIELD_COMPLETIONS = Object.freeze([
+  completion('培训课程', 'training_course', [
+    date('结束时间', 'end_at'), date('报名开始时间', 'registration_start_at'), date('报名结束时间', 'registration_end_at'),
+    text('学习入口URL', 'launch_url'), date('入口过期时间', 'launch_expires_at'),
+    select('直播状态', 'live_status', ['NOT_STARTED', 'LIVE', 'ENDED', 'REPLAY']), text('出勤规则', 'attendance_rule'),
+    attachment('学习资料', 'materials'), text('关联应用ID', 'related_app_ids'), checkbox('积分启用', 'points_enabled'),
+    number('积分值', 'points'), text('积分触发条件', 'points_trigger'), ...auditCompletion()
+  ]),
   completion('用户字典', 'identity_user_cache', [
     attachment('头像', 'avatar_file'), text('组织ID', 'org_id'), text('组织名称', 'org_name'), text('所属部门名称', 'department_name'),
     text('办公地点ID', 'office_id'), text('办公地点名称', 'office_name'), text('手机号脱敏值', 'mobile_masked'),

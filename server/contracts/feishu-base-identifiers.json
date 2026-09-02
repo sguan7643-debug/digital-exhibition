@@ -1,9 +1,9 @@
 {
   "schemaVersion": "feishu-base-identifiers.v2",
-  "sourceSha256": "8C3658EE31FA5A20DF39F5D9DED13A9A82FF0D6ADB9CC84DA5152118C2B84180",
-  "generatedAt": "2026-09-02T09:01:28.678Z",
+  "sourceSha256": "84843E0E317C6B978561A77125AEDC330A27D1381990FA4F0A33F3CEF49960DD",
+  "generatedAt": "2026-09-02T14:40:19.831Z",
   "tableCount": 64,
-  "fieldCount": 1267,
+  "fieldCount": 1290,
   "tables": [
     {
       "name": "用户字典",
@@ -4178,7 +4178,7 @@
           "type": "grid"
         }
       ],
-      "fieldCount": 9,
+      "fieldCount": 32,
       "fields": [
         {
           "fieldId": "fld5Pdj29m",
@@ -4275,6 +4275,276 @@
           "uiType": "Number",
           "isPrimary": false,
           "formatter": "0.00",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldsLMxjsn",
+          "name": "结束时间",
+          "type": 5,
+          "uiType": "DateTime",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldlNRalSr",
+          "name": "报名开始时间",
+          "type": 5,
+          "uiType": "DateTime",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldbk8stmV",
+          "name": "报名结束时间",
+          "type": 5,
+          "uiType": "DateTime",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldnBpfeZx",
+          "name": "学习入口URL",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldzj6zB1n",
+          "name": "入口过期时间",
+          "type": 5,
+          "uiType": "DateTime",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldhX3vIfy",
+          "name": "直播状态",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [
+            {
+              "id": "optxkTuvOI",
+              "name": "NOT_STARTED"
+            },
+            {
+              "id": "optbMW5e8Y",
+              "name": "LIVE"
+            },
+            {
+              "id": "optH962a8c",
+              "name": "ENDED"
+            },
+            {
+              "id": "optB3k4nb1",
+              "name": "REPLAY"
+            }
+          ],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldP3eIbCY",
+          "name": "出勤规则",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldUMcUonG",
+          "name": "学习资料",
+          "type": 17,
+          "uiType": "Attachment",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldY2Wmpo8",
+          "name": "关联应用ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "flde5d6KtC",
+          "name": "积分启用",
+          "type": 7,
+          "uiType": "Checkbox",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldcmo4dnH",
+          "name": "积分值",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldgAwa3At",
+          "name": "积分触发条件",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldqlwLBau",
+          "name": "版本",
+          "type": 2,
+          "uiType": "Number",
+          "isPrimary": false,
+          "formatter": "0",
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldZAEsFVk",
+          "name": "已删除",
+          "type": 7,
+          "uiType": "Checkbox",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldOvQhLpN",
+          "name": "删除时间",
+          "type": 5,
+          "uiType": "DateTime",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldlS2G5SQ",
+          "name": "删除人",
+          "type": 11,
+          "uiType": "User",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldcL7TQt4",
+          "name": "来源系统",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld9fhGA7h",
+          "name": "来源记录ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldFE8GTf7",
+          "name": "追踪ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldZoMW84P",
+          "name": "创建时间",
+          "type": 1001,
+          "uiType": "CreatedTime",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldJtOn7eP",
+          "name": "创建人",
+          "type": 1003,
+          "uiType": "CreatedUser",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldZKdgkBD",
+          "name": "更新时间",
+          "type": 1002,
+          "uiType": "ModifiedTime",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldn1pfipl",
+          "name": "修改人",
+          "type": 1004,
+          "uiType": "ModifiedUser",
+          "isPrimary": false,
+          "formatter": null,
           "optionsType": null,
           "options": [],
           "relationTargetTableId": null

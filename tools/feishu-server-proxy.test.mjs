@@ -254,7 +254,7 @@ for (const operation of OPERATION_REGISTRY.filter(item => item.access === 'write
     return true;
   });
 }
-await assert.rejects(() => service.execute('CER-003', {}), error => {
+await assert.rejects(() => service.execute('OPS-001', {}), error => {
   assert.equal(error.code, 'READ_OPERATION_NOT_ENABLED');
   assert.equal(error.status, 503);
   return true;

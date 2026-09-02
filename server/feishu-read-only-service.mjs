@@ -9,6 +9,10 @@ const READ_PLANS = Object.freeze({
   'WB-001': Object.freeze({ kind: 'workbench-personal' }),
   'WB-003': Object.freeze({ kind: 'workbench-personal' }),
   'WB-004': Object.freeze({ kind: 'workbench-personal' }),
+  'APP-010': Object.freeze({ kind: 'identity-detail' }),
+  'TRN-006': Object.freeze({ kind: 'identity-detail' }),
+  'CER-003': Object.freeze({ kind: 'identity-detail' }),
+  'COM-010': Object.freeze({ kind: 'identity-detail' }),
   'APP-001': Object.freeze({ kind: 'app-facets' }),
   'ANN-001': Object.freeze({ kind: 'announcement-facets' }),
   'COM-003': Object.freeze({ kind: 'contact-organizations' }),
@@ -1182,6 +1186,125 @@ export function createFeishuReadOnlyService(options) {
     };
   }
 
+  function normalizedApplicationStatus(fields) {
+    return valueToText(fields['本地状态'] || fields['状态']).toLocaleUpperCase('zh-CN') || 'UNKNOWN';
+  }
+
+  async function executeIdentityDetail(operationId, input, requestContext) {
+    const { userId } = requireIdentity(requestContext);
+    if (operationId === 'APP-010') {
+      assertAllowedInput(input, ['applicationId', 'includeHistory']);
+      const applicationId = valueToText(input.applicationId);
+      if (!applicationId) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '申请进度必须提供 applicationId', 400);
+      const [useRows, onboardingRows, reuseRows, submissionRows, userRows, projection] = await Promise.all([
+        readAll('使用申请'), readAll('上架申请'), readAll('应用复用申请'), readAll('外部成果提交记录'), readAll('用户字典'), getAppProjection()
+      ]);
+      const candidates = [
+        ...useRows.map(record => ({ record, businessType: 'APP_USE' })),
+        ...onboardingRows.map(record => ({ record, businessType: 'APP_ONBOARDING' })),
+        ...reuseRows.map(record => ({ record, businessType: 'APP_REUSE' }))
+      ];
+      const found = candidates.find(({ record }) => {
+        const fields = record?.fields || {};
+        return [fields['主键'], fields['申请编号'], fields['申请单号'], record?.record_id].map(valueToText).includes(applicationId);
+      });
+      if (!found || valueToText(found.record?.fields?.['申请人ID']) !== userId) {
+        throw new FeishuProxyError('RESOURCE_NOT_FOUND', '申请不存在或不属于当前用户', 404);
+      }
+      const fields = found.record.fields || {};
+      const appId = valueToText(fields['应用ID'] || fields['关联应用ID']);
+      const app = projection.items.find(item => item.appId === appId);
+      const applicantName = valueToText(userRows.find(record => valueToText(record?.fields?.['用户ID']) === userId)?.fields?.['姓名']);
+      const applicationNo = valueToText(fields['申请编号'] || fields['申请单号'] || fields['主键']) || applicationId;
+      const status = normalizedApplicationStatus(fields);
+      const submission = submissionRows.find(record => {
+        const current = record?.fields || {};
+        return valueToText(current['上架申请ID']) === applicationId || (found.businessType === 'APP_ONBOARDING' && valueToText(current['应用ID']) === appId);
+      })?.fields || {};
+      const externalStatus = valueToText(submission['外部提交状态']).toLocaleUpperCase('zh-CN') || 'NOT_SUBMITTED';
+      const submittedAt = valueToText(fields['提交时间'] || fields['申请时间']);
+      const completedAt = valueToText(fields['完成时间']) || null;
+      const steps = input.includeHistory === false ? [] : [
+        { stepCode: 'SUBMITTED', stepName: '提交申请', statusCode: submittedAt ? 'COMPLETED' : 'PENDING', statusName: submittedAt ? '已完成' : '待提交', startedAt: submittedAt || null, completedAt: submittedAt || null },
+        { stepCode: 'LOCAL_PROCESSING', stepName: '本地处理', statusCode: ['COMPLETED', 'APPROVED'].includes(status) ? 'COMPLETED' : ['REJECTED', 'CANCELLED'].includes(status) ? status : 'PROCESSING', statusName: status, startedAt: submittedAt || null, completedAt },
+        { stepCode: 'EXTERNAL_SUBMISSION', stepName: '外部提交', statusCode: externalStatus, statusName: externalStatus, startedAt: valueToText(submission['最后尝试时间']) || null, completedAt: valueToText(submission['外部提交时间']) || null }
+      ];
+      return {
+        applicationId, applicationNo, businessType: found.businessType, resourceId: appId, resourceName: app?.name || appId,
+        applicantId: userId, applicantName, submissionChannel: valueToText(submission['渠道']) || 'INTERNAL', submittedAt,
+        localStatusCode: status, localStatusName: status, externalSubmissionStatus: externalStatus,
+        externalReferenceNo: valueToText(submission['外部引用编号']) || null, externalSubmittedAt: valueToText(submission['外部提交时间']) || null,
+        failureCode: valueToText(submission['失败编码']) || null, failureMessage: valueToText(submission['失败信息']) || null,
+        steps, canWithdraw: ['DRAFT', 'SUBMITTED', 'PENDING'].includes(status), canResubmit: ['REJECTED', 'FAILED'].includes(status),
+        updatedAt: valueToText(fields['更新时间'] || fields['完成时间'] || fields['提交时间'] || fields['申请时间'])
+      };
+    }
+
+    if (operationId === 'COM-010') {
+      assertAllowedInput(input, ['exportId']);
+      const exportId = valueToText(input.exportId);
+      if (!exportId) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '导出任务必须提供 exportId', 400);
+      const record = (await readAll('导出任务')).find(item => valueToText(item?.fields?.['导出任务ID']) === exportId);
+      const fields = record?.fields || {};
+      if (!record || valueToText(fields['创建用户ID']) !== userId) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '导出任务不存在或不属于当前用户', 404);
+      const fileId = valueToText(fields['文件ID']);
+      return {
+        exportId, exportType: valueToText(fields['导出类型']), status: valueToText(fields['状态']), progress: valueToNumber(fields['进度']),
+        totalRows: valueToNumber(fields['总行数']), processedRows: valueToNumber(fields['已处理行数']),
+        file: fileId ? { fileId, fileName: '', mimeType: '', sizeBytes: 0, downloadPath: `/api/v1/files/${encodeURIComponent(fileId)}/access-url` } : null,
+        failureCode: valueToText(fields['失败编码']) || null, failureMessage: valueToText(fields['失败信息']) || null,
+        createdAt: valueToText(fields['创建时间']), finishedAt: valueToText(fields['完成时间']) || null, expiresAt: valueToText(fields['过期时间']) || null
+      };
+    }
+
+    if (operationId === 'TRN-006') {
+      assertAllowedInput(input, ['courseId', 'sourcePage', 'deviceId']);
+      const courseId = valueToText(input.courseId);
+      if (!courseId || !valueToText(input.sourcePage)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '学习入口必须提供 courseId 和 sourcePage', 400);
+      const [courseRows, registrationRows] = await Promise.all([readAll('培训课程'), readAll('培训报名')]);
+      const course = courseRows.find(record => valueToText(record?.fields?.['课程ID']) === courseId);
+      if (!course) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '课程不存在或不可见', 404);
+      const fields = course.fields || {};
+      const registration = registrationRows.find(record => valueToText(record?.fields?.['课程ID']) === courseId && valueToText(record?.fields?.['用户ID']) === userId)?.fields || {};
+      const registrationStatus = valueToText(registration['状态']).toLocaleUpperCase('zh-CN');
+      const launchUrl = valueToText(fields['学习入口URL']);
+      const expiresAt = valueToText(fields['入口过期时间']) || null;
+      const liveStatus = valueToText(fields['直播状态']).toLocaleUpperCase('zh-CN') || valueToText(fields['状态']) || 'UNKNOWN';
+      let reasonCode = null;
+      if (!['REGISTERED', 'ATTENDED', 'COMPLETED'].includes(registrationStatus)) reasonCode = 'NOT_REGISTERED';
+      else if (!launchUrl) reasonCode = 'LAUNCH_URL_NOT_CONFIGURED';
+      else if (expiresAt && expiresAt <= now().toISOString()) reasonCode = 'LAUNCH_URL_EXPIRED';
+      else if (['ENDED', 'CANCELLED', 'CLOSED'].includes(liveStatus)) reasonCode = 'COURSE_NOT_AVAILABLE';
+      return { allowed: !reasonCode, reasonCode, launchUrl: reasonCode ? null : launchUrl, expiresAt: reasonCode ? null : expiresAt, liveStatus, attendanceToken: null };
+    }
+
+    assertAllowedInput(input, ['certificationId']);
+    const certificationId = valueToText(input.certificationId);
+    if (!certificationId) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '认证详情必须提供 certificationId', 400);
+    const [projectRows, sessionRows, bookingRows] = await Promise.all([readAll('认证项目'), readAll('考试场次'), readAll('考试预约')]);
+    const record = projectRows.find(item => valueToText(item?.fields?.['认证编码']) === certificationId);
+    if (!record) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '认证项目不存在或不可见', 404);
+    const fields = record.fields || {};
+    const base = certificationFromRecord(record);
+    const sessions = sessionRows.filter(item => valueToText(item?.fields?.['认证项目ID']) === certificationId).map(item => {
+      const current = item.fields || {}; const capacity = valueToNumber(current['容量']); const reserved = valueToNumber(current['已预约人数']);
+      return { sessionId: valueToText(current['场次编码']) || String(item.record_id || ''), siteName: valueToText(current['考试地点']) || valueToText(current['场次名称']), startAt: valueToText(current['考试开始']), endAt: valueToText(current['考试结束']), capacity, remaining: Math.max(0, capacity - reserved), statusCode: valueToText(current['状态']) };
+    });
+    const sites = new Map();
+    for (const session of sessions) {
+      const siteId = session.siteName || 'UNASSIGNED'; const site = sites.get(siteId) || { siteId, name: session.siteName, address: session.siteName, capacity: 0, remaining: 0, examSessions: [] };
+      site.capacity += session.capacity; site.remaining += session.remaining;
+      site.examSessions.push({ sessionId: session.sessionId, startAt: session.startAt, endAt: session.endAt, remaining: session.remaining }); sites.set(siteId, site);
+    }
+    const booking = bookingRows.find(item => valueToText(item?.fields?.['认证项目ID']) === certificationId && valueToText(item?.fields?.['用户ID']) === userId)?.fields || {};
+    const bookingStatus = valueToText(booking['状态']) || null;
+    return {
+      ...base, descriptionHtml: valueToText(fields['认证说明']), requirements: valueToList(fields['适用人群']),
+      syllabus: [valueToText(fields['考试规则']), valueToText(fields['通过规则'])].filter(Boolean), trainingCourseIds: [], examSites: [...sites.values()], attachments: [],
+      myStatus: { registered: Boolean(valueToText(booking['预约编号'])) && bookingStatus !== 'CANCELLED', bookingId: valueToText(booking['预约编号']) || null, result: bookingStatus, certificateNo: null }
+    };
+  }
+
   function messageRead(fields) {
     return /^(?:已读|true|1|yes)$/i.test(valueToText(fields['已读状态']).trim());
   }
@@ -1501,6 +1624,10 @@ export function createFeishuReadOnlyService(options) {
     if (plan.kind === 'personal-read') {
       const data = await executePersonalRead(operationId, input, requestContext);
       return { code: 'OK', data, traceId: traceIdFactory(), schemaVersion: 'feishu-personal-read.v1', sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false };
+    }
+    if (plan.kind === 'identity-detail') {
+      const data = await executeIdentityDetail(operationId, input, requestContext);
+      return { code: 'OK', data, traceId: traceIdFactory(), schemaVersion: 'feishu-identity-detail.v1', sourceUpdatedAt: now().toISOString(), isComplete: true, dataStale: false };
     }
     if (plan.kind === 'app-facets' || plan.kind === 'app-list' || plan.kind?.startsWith('announcement') || plan.kind?.startsWith('talent') || plan.kind?.startsWith('contact') || plan.kind === 'public-read' || plan.kind === 'first-batch-detail') {
       const data = plan.kind.startsWith('announcement')

@@ -862,6 +862,67 @@ const materialCategorySchema = Object.freeze({
   properties: { categoryId: identifier, categoryCode: identifier, categoryName: optionalText, parentId: optionalText, sortOrder: countInteger, count: countInteger }, additionalProperties: false
 });
 
+const applicationStepSchema = Object.freeze({
+  type: 'object', required: ['stepCode', 'stepName', 'statusCode', 'statusName', 'startedAt', 'completedAt'],
+  properties: { stepCode: identifier, stepName: text, statusCode: identifier, statusName: optionalText, startedAt: nullableText, completedAt: nullableText },
+  additionalProperties: false
+});
+const applicationProgressSchema = Object.freeze({
+  type: 'object',
+  required: ['applicationId', 'applicationNo', 'businessType', 'resourceId', 'resourceName', 'applicantId', 'applicantName', 'submissionChannel', 'submittedAt', 'localStatusCode', 'localStatusName', 'externalSubmissionStatus', 'externalReferenceNo', 'externalSubmittedAt', 'failureCode', 'failureMessage', 'steps', 'canWithdraw', 'canResubmit', 'updatedAt'],
+  properties: {
+    applicationId: identifier, applicationNo: identifier, businessType: Object.freeze({ enum: ['APP_ONBOARDING', 'APP_USE', 'APP_REUSE'] }),
+    resourceId: optionalText, resourceName: optionalText, applicantId: identifier, applicantName: optionalText,
+    submissionChannel: Object.freeze({ enum: ['INTERNAL', 'EAD', 'HAINENG_WORK'] }), submittedAt: optionalText,
+    localStatusCode: identifier, localStatusName: optionalText,
+    externalSubmissionStatus: Object.freeze({ enum: ['NOT_SUBMITTED', 'SUBMITTING', 'SUBMITTED', 'FAILED', 'UNKNOWN'] }),
+    externalReferenceNo: nullableText, externalSubmittedAt: nullableText, failureCode: nullableText, failureMessage: nullableText,
+    steps: Object.freeze({ type: 'array', items: applicationStepSchema, maxItems: 20 }), canWithdraw: booleanValue, canResubmit: booleanValue, updatedAt: optionalText
+  }, additionalProperties: false
+});
+const trainingLaunchSchema = Object.freeze({
+  type: 'object', required: ['allowed', 'reasonCode', 'launchUrl', 'expiresAt', 'liveStatus', 'attendanceToken'],
+  properties: { allowed: booleanValue, reasonCode: nullableText, launchUrl: nullableText, expiresAt: nullableText, liveStatus: optionalText, attendanceToken: nullableText },
+  additionalProperties: false
+});
+const examSessionSchema = Object.freeze({
+  type: 'object', required: ['sessionId', 'startAt', 'endAt', 'remaining'],
+  properties: { sessionId: identifier, startAt: optionalText, endAt: optionalText, remaining: countInteger }, additionalProperties: false
+});
+const examSiteSchema = Object.freeze({
+  type: 'object', required: ['siteId', 'name', 'address', 'capacity', 'remaining', 'examSessions'],
+  properties: { siteId: identifier, name: optionalText, address: optionalText, capacity: countInteger, remaining: countInteger, examSessions: Object.freeze({ type: 'array', items: examSessionSchema, maxItems: 100 }) }, additionalProperties: false
+});
+const certificationDetailSchema = Object.freeze({
+  type: 'object', required: [...certificationSchema.required, 'descriptionHtml', 'requirements', 'syllabus', 'trainingCourseIds', 'examSites', 'attachments', 'myStatus'],
+  properties: {
+    ...certificationSchema.properties, descriptionHtml: optionalText, requirements: stringList, syllabus: stringList, trainingCourseIds: stringList,
+    examSites: Object.freeze({ type: 'array', items: examSiteSchema, maxItems: 100 }), attachments: openObjectList,
+    myStatus: Object.freeze({ type: 'object', required: ['registered', 'bookingId', 'result', 'certificateNo'], properties: { registered: booleanValue, bookingId: nullableText, result: nullableText, certificateNo: nullableText }, additionalProperties: false })
+  }, additionalProperties: false
+});
+const exportTaskSchema = Object.freeze({
+  type: 'object', required: ['exportId', 'exportType', 'status', 'progress', 'totalRows', 'processedRows', 'file', 'failureCode', 'failureMessage', 'createdAt', 'finishedAt', 'expiresAt'],
+  properties: {
+    exportId: identifier, exportType: optionalText, status: optionalText, progress: countInteger, totalRows: countInteger, processedRows: countInteger,
+    file: Object.freeze({ anyOf: [openObject, Object.freeze({ type: 'null' })] }), failureCode: nullableText, failureMessage: nullableText,
+    createdAt: optionalText, finishedAt: nullableText, expiresAt: nullableText
+  }, additionalProperties: false
+});
+
+export function createIdentityDetailOperationContracts() {
+  const contract = (operationId, requestSchema, dataSchema) => Object.freeze({
+    operationId, requestSchema, successSchema: envelopeSchema(dataSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA,
+    contractStatus: 'server-projection-verified'
+  });
+  return Object.freeze({
+    'APP-010': contract('APP-010', Object.freeze({ type: 'object', required: ['applicationId'], properties: { applicationId: identifier, includeHistory: booleanValue }, additionalProperties: false }), applicationProgressSchema),
+    'TRN-006': contract('TRN-006', Object.freeze({ type: 'object', required: ['courseId', 'sourcePage'], properties: { courseId: identifier, sourcePage: identifier, deviceId: optionalText }, additionalProperties: false }), trainingLaunchSchema),
+    'CER-003': contract('CER-003', Object.freeze({ type: 'object', required: ['certificationId'], properties: { certificationId: identifier }, additionalProperties: false }), certificationDetailSchema),
+    'COM-010': contract('COM-010', Object.freeze({ type: 'object', required: ['exportId'], properties: { exportId: identifier }, additionalProperties: false }), exportTaskSchema)
+  });
+}
+
 export function createPublicReadOperationContracts() {
   const contract = (operationId, requestSchema, data) => Object.freeze({
     operationId, requestSchema, successSchema: envelopeSchema(data), errorSchema: SYNTHETIC_ERROR_SCHEMA,
@@ -905,6 +966,7 @@ export function createVerifiedReadOperationContracts() {
     ...createPersonalReadOperationContracts(),
     ...createWorkbenchSearchOperationContract(),
     ...createWorkbenchPersonalOperationContracts(),
+    ...createIdentityDetailOperationContracts(),
     ...createAppReadOperationContracts(),
     ...createAnnouncementReadOperationContracts(),
     ...createTalentReadOperationContracts(),
