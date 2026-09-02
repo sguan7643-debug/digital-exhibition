@@ -1,3 +1,5 @@
+import { getFeishuOperationSourceContract } from './feishu-source-contract.js';
+
 const expand = (prefix, numbers) => numbers.map(number => `${prefix}-${String(number).padStart(3, '0')}`);
 
 export const FIRST_BATCH_OPERATION_IDS = Object.freeze([
@@ -48,16 +50,22 @@ const batches = [
   ['deferred', DEFERRED_OPERATION_IDS]
 ];
 
-export const OPERATION_REGISTRY = Object.freeze(batches.flatMap(([batch, ids]) => ids.map(id => Object.freeze({
-  id,
-  batch,
-  access: writeIds.has(id) ? 'write' : 'read',
-  readOnly: !writeIds.has(id),
-  risk: riskyIds.has(id) ? 'high' : writeIds.has(id) ? 'controlled' : 'read-only',
-  contractStatus: 'candidate-only',
-  remoteEnabled: false,
-  disabledReason: '缺少经核验的代理、表、视图与 field_id 契约证据'
-}))));
+export const OPERATION_REGISTRY = Object.freeze(batches.flatMap(([batch, ids]) => ids.map(id => {
+  const sourceContract = getFeishuOperationSourceContract(id);
+  return Object.freeze({
+    id,
+    batch,
+    access: writeIds.has(id) ? 'write' : 'read',
+    readOnly: !writeIds.has(id),
+    risk: riskyIds.has(id) ? 'high' : writeIds.has(id) ? 'controlled' : 'read-only',
+    contractStatus: sourceContract.schemaCoverage === 'verified' ? 'source-name-schema-verified' : 'source-name-schema-partial',
+    verifiedSourceTables: sourceContract.verifiedTables,
+    missingSourceTables: sourceContract.missingTables,
+    apiReady: false,
+    remoteEnabled: false,
+    disabledReason: sourceContract.disabledReason
+  });
+})));
 
 export function getOperation(operationId) {
   return OPERATION_REGISTRY.find(operation => operation.id === operationId);
