@@ -52,6 +52,8 @@ for (const page of PAGE_INTEGRATION_MATRIX) {
   assert.deepEqual(new Set([...page.readOperationIds, ...page.interactionOperationIds, ...page.actions.map(action => action.operationId)]), new Set(page.operationIds));
 }
 const mappedWriteIds = new Set(PAGE_INTEGRATION_MATRIX.flatMap(page => page.actions.map(action => action.operationId)));
+const mappedOperationIds = new Set(PAGE_INTEGRATION_MATRIX.flatMap(page => page.operationIds));
+assert.deepEqual(OPERATION_REGISTRY.filter(item => !mappedOperationIds.has(item.id)).map(item => item.id), [], '101 个 operation 必须全部有页面归属');
 assert.equal(FEISHU_WRITE_OPERATION_MANIFEST.length, 36);
 assert.deepEqual(
   FEISHU_WRITE_OPERATION_MANIFEST.filter(item => !mappedWriteIds.has(item.operationId)).map(item => item.operationId),
