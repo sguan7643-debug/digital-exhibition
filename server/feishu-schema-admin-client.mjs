@@ -113,6 +113,19 @@ export function createFeishuSchemaAdminClient(options = {}) {
     return items;
   }
 
+  async function listViews(tableId) {
+    const items = [];
+    let pageToken = '';
+    do {
+      const query = new URLSearchParams({ page_size: '100' });
+      if (pageToken) query.set('page_token', pageToken);
+      const data = await call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables/${encodeURIComponent(tableId)}/views?${query}`);
+      items.push(...(data.items || []));
+      pageToken = data.has_more ? String(data.page_token || '') : '';
+    } while (pageToken);
+    return items;
+  }
+
   async function createTable(schema) {
     const data = await call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables`, {
       method: 'POST', writeGate: 'schema',
@@ -177,7 +190,7 @@ export function createFeishuSchemaAdminClient(options = {}) {
   }
 
   return Object.freeze({
-    schemaWriteEnabled, recordWriteEnabled, listTables, listFields, createTable, createField,
+    schemaWriteEnabled, recordWriteEnabled, listTables, listFields, listViews, createTable, createField,
     searchRecords, createRecord, updateRecord, deleteRecord, uploadMedia
   });
 }

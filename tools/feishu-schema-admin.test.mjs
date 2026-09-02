@@ -12,12 +12,14 @@ const fetchImpl = async (url, options = {}) => {
   calls.push({ url: String(url), method: options.method || 'GET', body: options.body });
   if (String(url).endsWith('/auth/v3/tenant_access_token/internal')) return Response.json({ code: 0, tenant_access_token: 'test-token', expire: 7200 });
   if (String(url).includes('/tables?')) return Response.json({ code: 0, data: { items: [], has_more: false } });
+  if (String(url).includes('/views?')) return Response.json({ code: 0, data: { items: [{ view_id: 'vew-test', view_name: '表格', view_type: 'grid' }], has_more: false } });
   if (options.method === 'POST' && String(url).endsWith('/tables')) return Response.json({ code: 0, data: { table_id: 'tbl-created', default_view_id: 'vew-created', field_id_list: ['fld-created'] } });
   if (options.method === 'POST' && String(url).endsWith('/drive/v1/medias/upload_all')) return Response.json({ code: 0, data: { file_token: 'file-test-token' } });
   throw new Error(`未声明请求：${url}`);
 };
 const disabled = createFeishuSchemaAdminClient({ appId: 'app-test', appSecret: 'secret-test', baseToken: 'base-test', fetchImpl });
 assert.deepEqual(await disabled.listTables(), []);
+assert.equal((await disabled.listViews('tbl-test'))[0].view_id, 'vew-test');
 await assert.rejects(() => disabled.createTable(MISSING_TABLE_SCHEMAS[0]), error => error.code === 'SCHEMA_WRITE_DISABLED');
 const enabled = createFeishuSchemaAdminClient({ appId: 'app-test', appSecret: 'secret-test', baseToken: 'base-test', fetchImpl, schemaWriteEnabled: true });
 const created = await enabled.createTable(MISSING_TABLE_SCHEMAS[0]);

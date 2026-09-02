@@ -12,8 +12,8 @@ function deepFreeze(value) {
 
 export function loadFeishuIdentifierContract(filePath) {
   const contract = JSON.parse(readFileSync(filePath, 'utf8'));
-  if (contract.schemaVersion !== 'feishu-base-identifiers.v1') throw new Error('飞书标识契约版本不受支持');
-  if (contract.tableCount !== 36 || contract.fieldCount !== 271 || contract.tables?.length !== 36) {
+  if (contract.schemaVersion !== 'feishu-base-identifiers.v2') throw new Error('飞书标识契约版本不受支持');
+  if (contract.tableCount !== 64 || contract.tables?.length !== contract.tableCount || !Number.isInteger(contract.fieldCount)) {
     throw new Error('飞书标识契约数量不完整');
   }
   if (Object.hasOwn(contract, 'baseId') || Object.hasOwn(contract, 'appToken')) {
@@ -37,7 +37,7 @@ export function loadFeishuIdentifierContract(filePath) {
       fieldIds.add(field.fieldId);
     }
   }
-  if (fieldIds.size !== 271) throw new Error('飞书字段标识不完整');
+  if (fieldIds.size !== contract.fieldCount) throw new Error('飞书字段标识不完整');
 
   const byName = new Map(contract.tables.map(table => [table.name, table]));
   Object.defineProperty(contract, 'byName', { value: byName, enumerable: false, writable: false });

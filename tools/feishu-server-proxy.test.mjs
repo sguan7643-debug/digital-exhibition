@@ -14,11 +14,11 @@ assert.ok(viteConfig.server.fs.deny.includes('**/server/**'));
 assert.ok(viteConfig.server.fs.deny.includes('**/tools/**'));
 const contract = loadFeishuIdentifierContract(path.join(root, 'server', 'contracts', 'feishu-base-identifiers.json'));
 
-assert.equal(contract.tableCount, 36);
-assert.equal(contract.tables.length, 36);
-assert.equal(new Set(contract.tables.map(table => table.tableId)).size, 36);
-assert.equal(contract.tables.reduce((total, table) => total + table.fields.length, 0), 271);
-assert.equal(new Set(contract.tables.flatMap(table => table.fields.map(field => field.fieldId))).size, 271);
+assert.equal(contract.tableCount, 64);
+assert.equal(contract.tables.length, 64);
+assert.equal(new Set(contract.tables.map(table => table.tableId)).size, 64);
+assert.equal(contract.tables.reduce((total, table) => total + table.fields.length, 0), contract.fieldCount);
+assert.equal(new Set(contract.tables.flatMap(table => table.fields.map(field => field.fieldId))).size, contract.fieldCount);
 assert.equal(contract.byName.get('数字化认证').tableId, 'tbl4YatzzB7DCEi2');
 assert.equal(contract.byName.get('数字化认证').views[0].viewId, 'vew1h08FhR');
 assert.equal(Object.hasOwn(contract, 'baseId'), false, '服务端结构字典也不得写死 Base token');
@@ -300,4 +300,4 @@ const pageTypeRejected = await dispatch({
 assert.equal(pageTypeRejected.status, 400);
 assert.equal(pageTypeRejected.body.code, 'INVALID_PAGE_SIZE');
 
-console.log('server-side Feishu credentials, 36-table identifier contract, default pagination and read-only gate passed');
+console.log('server-side Feishu credentials, 64-table identifier contract, default pagination and read-only gate passed');

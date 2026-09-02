@@ -11,6 +11,7 @@
     "feishu:schema:dry-run": "node --env-file=.env.local tools/feishu-schema-migrate.mjs",
     "feishu:schema:apply": "node --env-file=.env.local tools/feishu-schema-migrate.mjs --apply",
     "feishu:schema:verify": "node --env-file=.env.local tools/feishu-schema-migrate.mjs --verify",
+    "feishu:contract:refresh": "node --env-file=.env.local tools/refresh-feishu-identifier-contract.mjs",
     "feishu:test-record:verify": "node --env-file=.env.local tools/verify-live-test-record-crud.mjs",
     "feishu:write-operations:verify": "node --env-file=.env.local tools/verify-live-write-operations.mjs",
     "feishu:test-attachment:verify": "node --env-file=.env.local tools/verify-live-test-attachment.mjs",
