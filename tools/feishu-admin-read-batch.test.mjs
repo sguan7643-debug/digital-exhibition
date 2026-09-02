@@ -16,7 +16,9 @@ const rowsByName = new Map([
     { record_id: 'p3', fields: { 用户ID: 'ADMIN-1', 权限编码: 'admin.archive.view', 启用: true } },
     { record_id: 'p4', fields: { 用户ID: 'ADMIN-1', 权限编码: 'operations.dashboard.view', 启用: true } },
     { record_id: 'p5', fields: { 用户ID: 'ADMIN-1', 权限编码: 'operations.announcements.manage', 启用: true } },
-    { record_id: 'p6', fields: { 用户ID: 'ADMIN-1', 权限编码: 'operations.apps.manage', 启用: true } }
+    { record_id: 'p6', fields: { 用户ID: 'ADMIN-1', 权限编码: 'operations.apps.manage', 启用: true } },
+    { record_id: 'p7', fields: { 用户ID: 'ADMIN-1', 权限编码: 'admin.health.view', 启用: true } },
+    { record_id: 'p8', fields: { 用户ID: 'ADMIN-1', 权限编码: 'admin.permissions.view', 启用: true } }
   ]],
   ['消息通知', []], ['应用收藏', []], ['积分余额', []],
   ['多维表连接配置', [{ record_id: 'conn1', fields: { 连接编码: 'CONN-1', 环境: 'TEST', 'Base Token掩码': 'bas***123', 启用: true, 最后健康状态: 'HEALTHY', 版本号: 2 } }]],
@@ -32,6 +34,7 @@ const rowsByName = new Map([
   ['应用索引', [{ record_id: 'app1', fields: { 应用ID: 'APP-1', 应用名称: '采购助手', 应用类型: 'AI', 状态: 'ONLINE', 使用量: 10, 收藏数: 2 } }]],
   ['应用类型配置', [{ record_id: 'type1', fields: { 类型ID: 'AI', 类型编码: 'AI', 类型名称: 'AI智能体' } }]],
   ['业务域字典', []], ['场景字典', []], ['上架申请', []]
+  ,['公告关联对象', []], ['应用关联', []], ['附件资料', []], ['演示截图录屏', []], ['应用评论', []], ['外部成果提交记录', []], ['完整性差异记录', []], ['异常处理记录', []]
 ]);
 const tableNames = new Map([...identifierContract.byName.values()].map(table => [table.tableId, table.name]));
 const client = { async listRecords(tableId) { const items = rowsByName.get(tableNames.get(tableId)) || []; return { items, total: items.length, hasMore: false, nextPageToken: '' }; } };
@@ -60,8 +63,28 @@ responses.set('OAP-001', await service.execute('OAP-001', {}, context));
 assert.equal(responses.get('OAP-001').data.onlineCount, 1);
 responses.set('OAP-002', await service.execute('OAP-002', { page: 1, pageSize: 10 }, context));
 assert.equal(responses.get('OAP-002').data.items[0].appId, 'APP-1');
+responses.set('OAN-003', await service.execute('OAN-003', { announcementId: 'ANN-1' }, context));
+assert.equal(responses.get('OAN-003').data.editable, true);
+responses.set('OAN-008', await service.execute('OAN-008', { title: '预览', contentHtml: '<p>安全</p><script>bad()</script>', previewMode: 'DESKTOP' }, context));
+assert.equal(responses.get('OAN-008').data.warnings[0].code, 'UNSAFE_CONTENT_REMOVED');
+responses.set('OAP-003', await service.execute('OAP-003', { appId: 'APP-1' }, context));
+assert.equal(responses.get('OAP-003').data.editable, true);
+responses.set('OAP-006', await service.execute('OAP-006', { typeCode: 'AI', schemaVersion: 1, publicData: {}, typeExtension: {}, submissionChannel: 'INTERNAL', resourcePermissions: [] }, context));
+assert.equal(responses.get('OAP-006').data.valid, true);
+responses.set('OAP-008', await service.execute('OAP-008', { appId: 'APP-1', page: 1, pageSize: 10 }, context));
+assert.equal(responses.get('OAP-008').data.total, 0);
+responses.set('OAP-011', await service.execute('OAP-011', { typeCode: 'AI', usage: 'DETAIL' }, context));
+assert.equal(responses.get('OAP-011').data.typeCode, 'AI');
+responses.set('ADM-006', await service.execute('ADM-006', { period: 'DAY' }, context));
+assert.ok(Array.isArray(responses.get('ADM-006').data.integrations));
+responses.set('ADM-007', await service.execute('ADM-007', { subjectType: 'USER', subjectId: 'ADMIN-1', resourceType: 'ADMIN', resourceId: 'GLOBAL', permissionCode: 'admin.integrations.view' }, context));
+assert.equal(responses.get('ADM-007').data.allowed, true);
+responses.set('INT-003', await service.execute('INT-003', { dryRun: true, reason: 'test' }, context));
+assert.equal(responses.get('INT-003').data.checkedTables, 64);
+responses.set('INT-005', await service.execute('INT-005', { connectionCode: 'CONN-1', idempotencyKey: 'TEST-IDEM', sampleLimit: 100 }, context));
+assert.equal(responses.get('INT-005').data.status, 'SUCCEEDED');
 
-for (const operationId of ['INT-001', 'ADM-003', 'ADM-004', 'INT-004', 'ARC-002', 'OPS-001', 'OAN-001', 'OAN-002', 'OAP-001', 'OAP-002']) {
+for (const operationId of ['INT-001', 'ADM-003', 'ADM-004', 'INT-004', 'ARC-002', 'OPS-001', 'OAN-001', 'OAN-002', 'OAP-001', 'OAP-002', 'OAN-003', 'OAN-008', 'OAP-003', 'OAP-006', 'OAP-008', 'OAP-011', 'ADM-006', 'ADM-007', 'INT-003', 'INT-005']) {
   validateContractSchema(responses.get(operationId), contracts[operationId].successSchema, operationId);
   assert.equal(resolveRemoteReadOperation(operationId).remoteEnabled, true);
 }

@@ -957,7 +957,17 @@ export function createAdminReadOperationContracts() {
     'OAN-001': contract('OAN-001', pageRequest, openObject),
     'OAN-002': contract('OAN-002', pageRequest, publicItemList(openObject)),
     'OAP-001': contract('OAP-001', pageRequest, openObject),
-    'OAP-002': contract('OAP-002', pageRequest, publicItemList(openObject))
+    'OAP-002': contract('OAP-002', pageRequest, publicItemList(openObject)),
+    'OAN-003': contract('OAN-003', pageRequest, openObject),
+    'OAN-008': contract('OAN-008', pageRequest, openObject),
+    'OAP-003': contract('OAP-003', pageRequest, openObject),
+    'OAP-006': contract('OAP-006', pageRequest, openObject),
+    'OAP-008': contract('OAP-008', pageRequest, publicItemList(openObject)),
+    'OAP-011': contract('OAP-011', pageRequest, openObject),
+    'ADM-006': contract('ADM-006', pageRequest, openObject),
+    'ADM-007': contract('ADM-007', pageRequest, openObject),
+    'INT-003': contract('INT-003', pageRequest, openObject),
+    'INT-005': contract('INT-005', pageRequest, openObject)
   });
 }
 

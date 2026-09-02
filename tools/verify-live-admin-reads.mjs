@@ -37,7 +37,7 @@ async function cleanup() {
 }
 
 try {
-  for (const permissionCode of ['admin.integrations.view', 'admin.audit.view', 'admin.archive.view', 'operations.dashboard.view', 'operations.announcements.manage', 'operations.apps.manage']) {
+  for (const permissionCode of ['admin.integrations.view', 'admin.audit.view', 'admin.archive.view', 'admin.health.view', 'admin.permissions.view', 'operations.dashboard.view', 'operations.announcements.manage', 'operations.apps.manage']) {
     await create('用户权限', { 主键: marker(`PERMISSION_${permissionCode}`), 用户ID: userId, 权限编码: permissionCode, 启用: true });
   }
   await create('多维表连接配置', { 连接编码: marker('CONNECTION'), 连接名称: 'TEST_ 联调连接', 'Base Token掩码': 'TEST_bas***', 环境: 'TEST', 启用: true, 最后健康状态: 'HEALTHY', 版本号: 1 });
@@ -57,7 +57,29 @@ try {
     ['OAN-001', {}], ['OAN-002', { page: 1, pageSize: 10 }],
     ['OAP-001', {}], ['OAP-002', { page: 1, pageSize: 10 }]
   ];
+  const responseByOperation = new Map();
   for (const [operationId, input] of calls) {
+    const response = await readService.execute(operationId, input, context);
+    validateContractSchema(response, contracts[operationId].successSchema, operationId);
+    responseByOperation.set(operationId, response);
+    results.push({ operationId, passed: true });
+  }
+  const announcementId = responseByOperation.get('OAN-002')?.data?.items?.[0]?.announcementId;
+  const app = responseByOperation.get('OAP-002')?.data?.items?.[0];
+  if (!announcementId || !app?.appId || !app?.typeCode) throw new Error('真实公告或应用数据为空，无法完成详情读验证');
+  const detailCalls = [
+    ['OAN-003', { announcementId }],
+    ['OAN-008', { title: 'TEST_ 公告预览', contentHtml: '<p>TEST_ 安全内容</p>', previewMode: 'DESKTOP' }],
+    ['OAP-003', { appId: app.appId }],
+    ['OAP-006', { typeCode: app.typeCode, schemaVersion: 1, publicData: {}, typeExtension: {}, submissionChannel: 'INTERNAL', resourcePermissions: [] }],
+    ['OAP-008', { appId: app.appId, page: 1, pageSize: 10 }],
+    ['OAP-011', { typeCode: app.typeCode, usage: 'DETAIL' }],
+    ['ADM-006', { period: 'DAY' }],
+    ['ADM-007', { subjectType: 'USER', subjectId: userId, resourceType: 'ADMIN', resourceId: 'GLOBAL', permissionCode: 'admin.integrations.view' }],
+    ['INT-003', { dryRun: true, reason: 'TEST_ 结构核验' }],
+    ['INT-005', { connectionCode: marker('CONNECTION'), idempotencyKey: marker('DIFF_IDEMPOTENCY'), sampleLimit: 100 }]
+  ];
+  for (const [operationId, input] of detailCalls) {
     const response = await readService.execute(operationId, input, context);
     validateContractSchema(response, contracts[operationId].successSchema, operationId);
     results.push({ operationId, passed: true });
@@ -75,6 +97,6 @@ for (const target of created) {
     if (remaining.items.length) cleanupComplete = false;
   }
 }
-const passed = results.length === 10 && results.every(item => item.passed) && cleanupComplete;
-console.log(JSON.stringify({ passed, expected: 10, verified: results.length, cleanupComplete, results }, null, 2));
+const passed = results.length === 20 && results.every(item => item.passed) && cleanupComplete;
+console.log(JSON.stringify({ passed, expected: 20, verified: results.length, cleanupComplete, results }, null, 2));
 if (!passed) process.exitCode = 2;

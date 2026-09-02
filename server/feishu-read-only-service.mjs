@@ -23,6 +23,16 @@ const READ_PLANS = Object.freeze({
   'OAN-002': Object.freeze({ kind: 'admin-read' }),
   'OAP-001': Object.freeze({ kind: 'admin-read' }),
   'OAP-002': Object.freeze({ kind: 'admin-read' }),
+  'OAN-003': Object.freeze({ kind: 'admin-read' }),
+  'OAN-008': Object.freeze({ kind: 'admin-read' }),
+  'OAP-003': Object.freeze({ kind: 'admin-read' }),
+  'OAP-006': Object.freeze({ kind: 'admin-read' }),
+  'OAP-008': Object.freeze({ kind: 'admin-read' }),
+  'OAP-011': Object.freeze({ kind: 'admin-read' }),
+  'ADM-006': Object.freeze({ kind: 'admin-read' }),
+  'ADM-007': Object.freeze({ kind: 'admin-read' }),
+  'INT-003': Object.freeze({ kind: 'admin-read' }),
+  'INT-005': Object.freeze({ kind: 'admin-read' }),
   'APP-001': Object.freeze({ kind: 'app-facets' }),
   'ANN-001': Object.freeze({ kind: 'announcement-facets' }),
   'COM-003': Object.freeze({ kind: 'contact-organizations' }),
@@ -1327,9 +1337,46 @@ export function createFeishuReadOnlyService(options) {
     const requiredPermission = operationId === 'OPS-001' ? 'operations.dashboard.view'
       : operationId.startsWith('OAN-') ? 'operations.announcements.manage'
       : operationId.startsWith('OAP-') ? 'operations.apps.manage'
+      : operationId === 'ADM-006' ? 'admin.health.view'
+      : operationId === 'ADM-007' ? 'admin.permissions.view'
       : operationId.startsWith('ADM-') ? 'admin.audit.view'
       : operationId.startsWith('ARC-') ? 'admin.archive.view' : 'admin.integrations.view';
     await requirePermission(requestContext, requiredPermission);
+    if (operationId === 'INT-003') {
+      assertAllowedInput(input, ['domainCodes', 'connectionCodes', 'checkTables', 'checkFields', 'checkViews', 'checkPermissions', 'createMissingFields', 'dryRun', 'reason']);
+      if (input.createMissingFields === true || input.dryRun === false) throw new FeishuProxyError('SCHEMA_WRITE_NOT_ALLOWED', '结构核验读接口只允许 dryRun，不能创建字段', 403);
+      const expectedTables = [...identifierContract.byName.values()];
+      return { taskId: `SCHEMA_AUDIT_${traceIdFactory()}`, status: 'SUCCEEDED', checkedTables: expectedTables.length, missingTables: [], missingFields: [], typeMismatchFields: [], renamedFields: [], orphanFields: [], permissionFailures: [], viewFailures: [], changePlan: [] };
+    }
+
+    if (operationId === 'INT-005') {
+      assertAllowedInput(input, ['connectionCode', 'viewId', 'pageToken', 'startModifiedAt', 'endModifiedAt', 'sampleLimit', 'checkRequiredFields', 'checkBusinessKeyDuplicate', 'checkBrokenLinks', 'idempotencyKey']);
+      const connectionCode = valueToText(input.connectionCode); const idempotencyKey = valueToText(input.idempotencyKey);
+      if (!connectionCode || !idempotencyKey) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '完整性预检必须提供 connectionCode 和 idempotencyKey', 400);
+      const sampleLimit = input.sampleLimit == null ? 100 : Number(input.sampleLimit); if (!Number.isInteger(sampleLimit) || sampleLimit < 1 || sampleLimit > 1000) throw new FeishuProxyError('INVALID_OPERATION_INPUT', 'sampleLimit 必须是 1 至 1000 的整数', 400);
+      const connection = (await readAll('多维表连接配置')).find(record => valueToText(record?.fields?.['连接编码']) === connectionCode);
+      if (!connection) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '连接配置不存在或不可见', 404);
+      const differences = (await readAll('完整性差异记录')).filter(record => valueToText(record?.fields?.['执行ID']) === idempotencyKey).slice(0, sampleLimit);
+      const counts = code => differences.filter(record => valueToText(record?.fields?.['差异类型']) === code).length;
+      return { taskId: `DIFF_${idempotencyKey}`, status: 'SUCCEEDED', readCount: 0, emptyRequiredCount: counts('MISSING'), duplicateBusinessKeyCount: counts('DUPLICATE'), brokenLinkCount: counts('BROKEN_LINK'), invalidOptionCount: counts('INVALID_OPTION'), typeMismatchCount: counts('TYPE_MISMATCH'), samples: differences.map(record => ({ recordIdMasked: `${String(record.record_id || '').slice(0, 4)}***`, businessKeyMasked: `${valueToText(record?.fields?.['资源ID']).slice(0, 4)}***`, problemCode: valueToText(record?.fields?.['差异类型']), fieldIdMasked: `${valueToText(record?.fields?.['字段编码']).slice(0, 4)}***`, currentValueMasked: valueToText(record?.fields?.['差异摘要']) })), lastPageToken: valueToText(input.pageToken) };
+    }
+
+    if (operationId === 'ADM-006') {
+      assertAllowedInput(input, ['period', 'startAt', 'endAt']);
+      const [connections, logs, jobs, incidents, archives] = await Promise.all([readAll('多维表连接配置'), readAll('接口调用日志'), readAll('后台任务执行记录'), readAll('异常处理记录'), readAll('归档任务')]);
+      const integrations = connections.map(record => { const fields = record?.fields || {}; const code = valueToText(fields['连接编码']); const related = logs.filter(log => valueToText(log?.fields?.['集成ID']) === code); const success = related.filter(log => /SUCCESS|SUCCEEDED|OK/i.test(valueToText(log?.fields?.['状态']))); const lastSuccess = success.sort((a, b) => valueToText(b?.fields?.['结束时间']).localeCompare(valueToText(a?.fields?.['结束时间'])))[0]?.fields || {}; const failure = related.filter(log => /FAIL|ERROR/i.test(valueToText(log?.fields?.['状态']))).sort((a, b) => valueToText(b?.fields?.['结束时间']).localeCompare(valueToText(a?.fields?.['结束时间'])))[0]?.fields || {}; return { integrationCode: code, name: valueToText(fields['连接名称']), status: valueToText(fields['最后健康状态']) || 'DEGRADED', successRate: related.length ? Number((success.length * 100 / related.length).toFixed(2)) : 0, avgDurationMs: related.length ? Math.round(related.reduce((sum, log) => sum + valueToNumber(log?.fields?.['耗时毫秒']), 0) / related.length) : 0, lastSuccessAt: valueToText(lastSuccess['结束时间']), lastFailureAt: valueToText(failure['结束时间']) }; });
+      const jobStatus = status => jobs.filter(record => valueToText(record?.fields?.['状态']) === status).length;
+      return { integrations, jobs: { running: jobStatus('RUNNING'), failed: jobStatus('FAILED'), retrying: jobStatus('RETRYING'), success: jobStatus('SUCCEEDED') }, incidents: { open: incidents.filter(record => valueToText(record?.fields?.['状态']) === 'OPEN').length, critical: incidents.filter(record => valueToText(record?.fields?.['严重级别']) === 'CRITICAL').length, resolved: incidents.filter(record => valueToText(record?.fields?.['状态']) === 'RESOLVED').length }, archives: { running: archives.filter(record => valueToText(record?.fields?.['状态']) === 'RUNNING').length, failed: archives.filter(record => valueToText(record?.fields?.['状态']) === 'FAILED').length, lastSuccessAt: valueToText(archives.filter(record => valueToText(record?.fields?.['状态']) === 'SUCCEEDED').sort((a, b) => valueToText(b?.fields?.['更新时间']).localeCompare(valueToText(a?.fields?.['更新时间'])))[0]?.fields?.['更新时间']) }, storage: { usedBytes: 0, archiveBytes: 0, tempBytes: 0 }, generatedAt: now().toISOString() };
+    }
+
+    if (operationId === 'ADM-007') {
+      assertAllowedInput(input, ['subjectType', 'subjectId', 'resourceType', 'resourceId', 'permissionCode', 'evaluationAt', 'context']);
+      const subjectType = valueToText(input.subjectType); const subjectId = valueToText(input.subjectId); const permissionCode = valueToText(input.permissionCode);
+      if (!['USER', 'ROLE', 'ORG'].includes(subjectType) || !subjectId || !permissionCode) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '权限预览主体和权限编码无效', 400);
+      const evaluationAt = valueToText(input.evaluationAt) || now().toISOString();
+      const matchedRules = (await readAll('用户权限')).filter(record => { const fields = record?.fields || {}; return valueToText(fields['主体类型'] || 'USER') === subjectType && valueToText(fields['主体ID'] || fields['用户ID']) === subjectId && valueToText(fields['权限编码']) === permissionCode && permissionRecordActive(fields); }).map(record => { const fields = record?.fields || {}; return { permissionId: valueToText(fields['主键']) || String(record?.record_id || ''), subjectType, subjectId, permissionCode, dataScope: valueToText(fields['数据范围']), effectiveFrom: valueToText(fields['生效时间']), effectiveTo: valueToText(fields['失效时间']) || null, decision: 'ALLOW' }; });
+      return { allowed: matchedRules.length > 0, matchedRules, finalDataScope: matchedRules.map(item => item.dataScope).filter(Boolean).join(','), deniedReasonCode: matchedRules.length ? null : 'NO_MATCHED_RULE', evaluatedAt: evaluationAt };
+    }
     if (operationId === 'OPS-001') {
       assertAllowedInput(input, ['period', 'startDate', 'endDate', 'orgId', 'timezone', 'topN']);
       const period = input.period || 'WEEK'; const timezone = valueToText(input.timezone) || 'Asia/Shanghai';
@@ -1374,6 +1421,16 @@ export function createFeishuReadOnlyService(options) {
       };
     }
 
+    if (operationId === 'OAN-003') {
+      assertAllowedInput(input, ['announcementId']);
+      const detail = await executeFirstBatchDetail('ANN-003', { announcementId: input.announcementId });
+      return { ...detail, selectedScopes: [], editable: true, validationWarnings: [] };
+    }
+    if (operationId === 'OAN-008') {
+      assertAllowedInput(input, ['announcementId', 'title', 'typeCode', 'summary', 'contentHtml', 'contentText', 'publishMode', 'publishAt', 'validFrom', 'validTo', 'scopeType', 'scopeOrgIds', 'scopeUserIds', 'scopeRoleCodes', 'isTop', 'topUntil', 'attachmentFileIds', 'relatedAppIds', 'status', 'previewMode']);
+      const contentHtml = valueToText(input.contentHtml); const sanitizedContentHtml = contentHtml.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/\son\w+\s*=\s*(['"]).*?\1/gi, '');
+      const previewId = `PREVIEW_${traceIdFactory()}`; return { previewId, previewUrl: `/api/v1/operations/announcements/previews/${encodeURIComponent(previewId)}`, expiresAt: new Date(now().getTime() + 300000).toISOString(), sanitizedContentHtml, warnings: contentHtml === sanitizedContentHtml ? [] : [{ code: 'UNSAFE_CONTENT_REMOVED', message: '已移除不安全内容' }] };
+    }
     if (operationId === 'OAN-001' || operationId === 'OAN-002') {
       const rows = await readAll('公告通知');
       if (operationId === 'OAN-001') {
@@ -1391,6 +1448,27 @@ export function createFeishuReadOnlyService(options) {
       items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)); return paginatePublic(items, page, pageSize);
     }
 
+    if (operationId === 'OAP-003') {
+      assertAllowedInput(input, ['appId', 'include']); const detail = await executeFirstBatchDetail('APP-003', { appId: input.appId, include: input.include });
+      return { ...detail, media: [], owners: [{ userId: detail.ownerId, userName: detail.ownerName, orgId: detail.responsibleOrgId, orgName: detail.responsibleOrgName, ownerRole: 'OWNER' }].filter(item => item.userId), resourcePermissions: [], submission: null, validationWarnings: [], editable: true };
+    }
+    if (operationId === 'OAP-006') {
+      assertAllowedInput(input, ['appId', 'typeCode', 'schemaVersion', 'publicData', 'typeExtension', 'submissionChannel', 'resourcePermissions']);
+      const errors = []; if (!valueToText(input.typeCode)) errors.push({ fieldPath: 'typeCode', code: 'REQUIRED', message: '应用类型不能为空', rejectedValue: input.typeCode ?? null });
+      if (!input.publicData || typeof input.publicData !== 'object' || Array.isArray(input.publicData)) errors.push({ fieldPath: 'publicData', code: 'INVALID_OBJECT', message: '公共数据必须是对象', rejectedValue: input.publicData ?? null });
+      return { valid: errors.length === 0, errors, warnings: [], normalizedData: { publicData: input.publicData || {}, typeExtension: input.typeExtension || {}, resourcePermissions: input.resourcePermissions || [] }, schemaVersion: valueToNumber(input.schemaVersion) };
+    }
+    if (operationId === 'OAP-008') {
+      assertAllowedInput(input, ['appId', 'channel', 'status', 'startAt', 'endAt', 'page', 'pageSize', 'sort']); const appId = valueToText(input.appId); if (!appId) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '提交记录必须提供 appId', 400);
+      const { page, pageSize } = publicPage(input); let items = (await readAll('外部成果提交记录')).map(record => { const fields = record?.fields || {}; return { submissionId: valueToText(fields['提交编号']) || String(record?.record_id || ''), submissionNo: valueToText(fields['提交编号']), appId: valueToText(fields['应用ID']), channel: valueToText(fields['渠道']), formVersion: valueToText(fields['表单版本']), localStatus: valueToText(fields['本地状态']), externalSubmissionStatus: valueToText(fields['外部提交状态']), externalReferenceNo: valueToText(fields['外部引用编号']) || null, attemptCount: valueToNumber(fields['尝试次数']), lastAttemptAt: valueToText(fields['最后尝试时间']) || null, submittedAt: valueToText(fields['外部提交时间']) || null, failureCode: valueToText(fields['失败编码']) || null, failureMessage: valueToText(fields['失败信息']) || null, createdBy: valueToText(fields['创建人']), createdAt: valueToText(fields['创建时间']), updatedAt: valueToText(fields['更新时间']), version: valueToNumber(fields['版本']) }; }).filter(item => item.appId === appId && (!input.channel || item.channel === input.channel) && (!input.status || item.externalSubmissionStatus === input.status) && (!input.startAt || item.createdAt >= input.startAt) && (!input.endAt || item.createdAt <= input.endAt));
+      items.sort((a, b) => b.createdAt.localeCompare(a.createdAt)); return paginatePublic(items, page, pageSize);
+    }
+    if (operationId === 'OAP-011') {
+      assertAllowedInput(input, ['typeCode', 'usage', 'schemaVersion']); const typeCode = valueToText(input.typeCode); if (!typeCode) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '表单定义必须提供 typeCode', 400);
+      const record = (await readAll('应用类型配置')).find(item => [item?.fields?.['类型编码'], item?.fields?.['类型ID']].map(valueToText).includes(typeCode));
+      if (!record) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '应用类型不存在或不可见', 404); const fields = record.fields || {};
+      return { typeCode, schemaVersion: valueToNumber(input.schemaVersion || fields['已发布结构版本'] || fields['版本']), status: valueToText(fields['状态']), sections: [], publishedAt: valueToText(fields['更新时间']) };
+    }
     if (operationId === 'OAP-001' || operationId === 'OAP-002') {
       const projection = await getAppProjection();
       if (operationId === 'OAP-001') {
