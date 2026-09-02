@@ -943,6 +943,47 @@ const archiveDetailSchema = Object.freeze({
   type: 'object', required: ['archiveTaskId', 'status', 'stage', 'sourceCount', 'archivedCount', 'deletedCount', 'failedCount', 'sourceChecksum', 'archiveChecksum', 'archiveLocationMasked', 'verifiedAt', 'deletedAt', 'failureCode', 'failureMessage', 'executions'],
   properties: { archiveTaskId: identifier, status: optionalText, stage: optionalText, sourceCount: countInteger, archivedCount: countInteger, deletedCount: countInteger, failedCount: countInteger, sourceChecksum: optionalText, archiveChecksum: optionalText, archiveLocationMasked: optionalText, verifiedAt: nullableText, deletedAt: nullableText, failureCode: nullableText, failureMessage: nullableText, executions: openObjectList }, additionalProperties: false
 });
+const announcementPreviewRequestSchema = Object.freeze({
+  type: 'object',
+  properties: {
+    announcementId: identifier,
+    title: Object.freeze({ type: 'string', maxLength: 256 }),
+    typeCode: optionalText,
+    summary: Object.freeze({ type: 'string', maxLength: 2048 }),
+    contentHtml: Object.freeze({ type: 'string', maxLength: 100000 }),
+    contentText: Object.freeze({ type: 'string', maxLength: 100000 }),
+    publishMode: optionalText,
+    publishAt: optionalText,
+    validFrom: optionalText,
+    validTo: optionalText,
+    scopeType: optionalText,
+    scopeOrgIds: stringList,
+    scopeUserIds: stringList,
+    scopeRoleCodes: stringList,
+    isTop: booleanValue,
+    topUntil: optionalText,
+    attachmentFileIds: stringList,
+    relatedAppIds: stringList,
+    status: optionalText,
+    previewMode: Object.freeze({ enum: ['DESKTOP', 'MOBILE'] })
+  },
+  additionalProperties: false
+});
+const announcementPreviewWarningSchema = Object.freeze({
+  type: 'object', required: ['code', 'message'],
+  properties: { code: identifier, message: optionalText }, additionalProperties: false
+});
+const announcementPreviewSchema = Object.freeze({
+  type: 'object', required: ['previewId', 'previewUrl', 'expiresAt', 'sanitizedContentHtml', 'warnings'],
+  properties: {
+    previewId: identifier,
+    previewUrl: Object.freeze({ type: 'string', minLength: 1, maxLength: 2048 }),
+    expiresAt: optionalText,
+    sanitizedContentHtml: Object.freeze({ type: 'string', maxLength: 100000 }),
+    warnings: Object.freeze({ type: 'array', items: announcementPreviewWarningSchema, maxItems: 20 })
+  },
+  additionalProperties: false
+});
 
 export function createAdminReadOperationContracts() {
   const contract = (operationId, requestSchema, dataSchema) => Object.freeze({ operationId, requestSchema, successSchema: envelopeSchema(dataSchema), errorSchema: SYNTHETIC_ERROR_SCHEMA, contractStatus: 'server-projection-verified' });
@@ -959,7 +1000,7 @@ export function createAdminReadOperationContracts() {
     'OAP-001': contract('OAP-001', pageRequest, openObject),
     'OAP-002': contract('OAP-002', pageRequest, publicItemList(openObject)),
     'OAN-003': contract('OAN-003', pageRequest, openObject),
-    'OAN-008': contract('OAN-008', pageRequest, openObject),
+    'OAN-008': contract('OAN-008', announcementPreviewRequestSchema, announcementPreviewSchema),
     'OAP-003': contract('OAP-003', pageRequest, openObject),
     'OAP-006': contract('OAP-006', pageRequest, openObject),
     'OAP-008': contract('OAP-008', pageRequest, publicItemList(openObject)),

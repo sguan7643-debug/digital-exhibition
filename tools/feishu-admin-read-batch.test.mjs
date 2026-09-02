@@ -65,8 +65,12 @@ responses.set('OAP-002', await service.execute('OAP-002', { page: 1, pageSize: 1
 assert.equal(responses.get('OAP-002').data.items[0].appId, 'APP-1');
 responses.set('OAN-003', await service.execute('OAN-003', { announcementId: 'ANN-1' }, context));
 assert.equal(responses.get('OAN-003').data.editable, true);
-responses.set('OAN-008', await service.execute('OAN-008', { title: '预览', contentHtml: '<p>安全</p><script>bad()</script>', previewMode: 'DESKTOP' }, context));
+const previewInput = { title: '预览', contentHtml: '<p>安全</p><script>bad()</script>', previewMode: 'DESKTOP' };
+validateContractSchema(previewInput, contracts['OAN-008'].requestSchema, 'OAN-008 request');
+responses.set('OAN-008', await service.execute('OAN-008', previewInput, context));
 assert.equal(responses.get('OAN-008').data.warnings[0].code, 'UNSAFE_CONTENT_REMOVED');
+assert.equal(responses.get('OAN-008').data.sanitizedContentHtml, '<p>安全</p>');
+assert.throws(() => validateContractSchema({ ...previewInput, appSecret: 'must-not-pass' }, contracts['OAN-008'].requestSchema, 'OAN-008 request'));
 responses.set('OAP-003', await service.execute('OAP-003', { appId: 'APP-1' }, context));
 assert.equal(responses.get('OAP-003').data.editable, true);
 responses.set('OAP-006', await service.execute('OAP-006', { typeCode: 'AI', schemaVersion: 1, publicData: {}, typeExtension: {}, submissionChannel: 'INTERNAL', resourcePermissions: [] }, context));
