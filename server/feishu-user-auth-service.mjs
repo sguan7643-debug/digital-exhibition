@@ -78,6 +78,7 @@ export function createFeishuUserAuthService(options = {}) {
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   const now = options.now ?? Date.now;
   const randomId = options.randomId ?? randomUUID;
+  const onAuthorized = options.onAuthorized;
   const stateTtlSeconds = Number(options.stateTtlSeconds || 300);
   const sessionTtlSeconds = Number(options.sessionTtlSeconds || 8 * 60 * 60);
   const credentialsReady = Boolean(appId && appSecret && redirectUri);
@@ -167,6 +168,9 @@ export function createFeishuUserAuthService(options = {}) {
     const identity = await fetchUserInfo(accessToken);
     const sessionId = randomId();
     sessions.set(sessionId, { identity, expiresAt: now() + sessionTtlSeconds * 1000 });
+    if (typeof onAuthorized === 'function') {
+      await Promise.resolve(onAuthorized(identity)).catch(() => {});
+    }
     return Object.freeze({
       identity,
       redirectTo: pending.returnTo,

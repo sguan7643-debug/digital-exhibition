@@ -34,13 +34,15 @@ const fetchImpl = async (url, options = {}) => {
 };
 
 let sequence = 0;
+const authorizedIdentities = [];
 const service = createFeishuUserAuthService({
   appId: 'cli_test',
   appSecret: 'server-secret',
   redirectUri: 'http://127.0.0.1:4173/api/v1/auth/feishu/callback',
   fetchImpl,
   now: () => 1_000_000,
-  randomId: () => `random-${++sequence}`
+  randomId: () => `random-${++sequence}`,
+  onAuthorized: identity => authorizedIdentities.push(identity)
 });
 
 const start = service.beginAuthorization({ returnTo: '/workbench?from=login' });
@@ -82,6 +84,8 @@ assert.deepEqual(completed.identity, {
   identityType: 'user_id'
 });
 assert.doesNotMatch(JSON.stringify(completed), /user-token|server-secret|must-not-leak|13800000000/);
+assert.equal(authorizedIdentities.length, 1);
+assert.equal(authorizedIdentities[0].identityType, 'user_id');
 
 const tokenRequest = requests[0];
 assert.equal(tokenRequest.url, 'https://accounts.feishu.cn/oauth/v3/token');
