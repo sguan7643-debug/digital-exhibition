@@ -21,6 +21,7 @@
     "feishu:identity-details:verify": "node --env-file=.env.local tools/verify-live-identity-detail-reads.mjs",
     "feishu:personal-reads:verify": "node --env-file=.env.local tools/verify-live-personal-reads.mjs",
     "feishu:admin-reads:verify": "node --env-file=.env.local tools/verify-live-admin-reads.mjs",
+    "feishu:directory-talent:verify": "node --env-file=.env.local tools/verify-live-directory-talent-reads.mjs",
     "test:integration:server": "node tools/feishu-server-proxy.test.mjs",
     "test:integration:live-page": "node tools/verify-live-app-page.mjs && node tools/verify-live-announcement-page.mjs",
     "test:integration:bundle": "node tools/feishu-browser-bundle-contract.test.mjs",
