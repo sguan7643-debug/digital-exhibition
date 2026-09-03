@@ -1,5 +1,4 @@
 import { fileURLToPath } from 'node:url';
-import { writeFile } from 'node:fs/promises';
 import { loadFeishuIdentifierContract } from './feishu-identifier-contract.mjs';
 import { createFeishuOpenApiClient } from './feishu-open-api-client.mjs';
 import { createFeishuReadOnlyService } from './feishu-read-only-service.mjs';
@@ -11,6 +10,7 @@ import { createFeishuCompositeOperationService } from './feishu-composite-operat
 import { createFeishuUserAuthService } from './feishu-user-auth-service.mjs';
 import { createFeishuAuthNodeMiddleware } from './feishu-auth-middleware.mjs';
 import { createFeishuFileAccessService, createFeishuFileNodeMiddleware } from './feishu-file-access-service.mjs';
+import { createFeishuOAuthAuthorizedHandler, createFeishuOAuthWriteAcceptance } from './feishu-oauth-write-acceptance.mjs';
 
 export function feishuReadOnlyProxy(options = {}) {
   const contractPath = fileURLToPath(new URL('./contracts/feishu-base-identifiers.json', import.meta.url));
@@ -27,30 +27,16 @@ export function feishuReadOnlyProxy(options = {}) {
     browserWriteEnabled: options.browserWriteEnabled ?? process.env.FEISHU_BROWSER_TEST_WRITE_ENABLED === '1'
   });
   const oauthEvidencePath = options.oauthEvidencePath ?? process.env.FEISHU_OAUTH_EVIDENCE_PATH ?? '';
+  const oauthWriteAcceptanceEnabled = options.oauthWriteAcceptanceEnabled ?? process.env.FEISHU_OAUTH_TEST_WRITE_ACCEPTANCE === '1';
+  const oauthWriteAcceptance = createFeishuOAuthWriteAcceptance({ safeRecordService, compositeService: service });
   const authService = createFeishuUserAuthService({
     ...options,
-    onAuthorized: async identity => {
-      if (!oauthEvidencePath) return;
-      const evidence = {
-        verifiedAt: new Date().toISOString(), authenticated: true,
-        identityType: identity.identityType,
-        hasUserId: Boolean(identity.userId), hasOpenId: Boolean(identity.openId),
-        permissionLookupSucceeded: false, schemaVersion: '', permissionCount: 0,
-        hasWildcardExecute: false, hasAnyExecute: false, errorCode: ''
-      };
-      try {
-        const currentUser = await readService.execute('COM-001', {}, { identity });
-        const permissions = Array.isArray(currentUser?.data?.permissions) ? currentUser.data.permissions : [];
-        evidence.permissionLookupSucceeded = true;
-        evidence.schemaVersion = String(currentUser?.schemaVersion || '');
-        evidence.permissionCount = permissions.length;
-        evidence.hasWildcardExecute = permissions.includes('operation:*:execute');
-        evidence.hasAnyExecute = permissions.some(value => /^operation:.+:execute$/.test(String(value)));
-      } catch (error) {
-        evidence.errorCode = String(error?.code || error?.name || 'PERMISSION_LOOKUP_FAILED');
-      }
-      await writeFile(oauthEvidencePath, `${JSON.stringify(evidence, null, 2)}\n`, { encoding: 'utf8' });
-    }
+    onAuthorized: createFeishuOAuthAuthorizedHandler({
+      evidencePath: oauthEvidencePath,
+      writeAcceptanceEnabled: oauthWriteAcceptanceEnabled,
+      readService,
+      writeAcceptance: oauthWriteAcceptance
+    })
   });
   const authMiddleware = createFeishuAuthNodeMiddleware({ authService });
   const fileMiddleware = createFeishuFileNodeMiddleware({ fileAccessService, resolveIdentity: cookie => authService.resolveIdentity(cookie) });

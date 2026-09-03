@@ -12,13 +12,15 @@ const results=[];
 const renderedOperationIds=new Set();
 try{
   for(const contract of PAGE_INTEGRATION_MATRIX.filter(item=>item.actions.length)){
-    await page.goto(`${origin}${contract.route}`,{waitUntil:'networkidle',timeout:30000});
+    await page.goto(`${origin}${contract.route}`,{waitUntil:'domcontentloaded',timeout:30000});
     const panel=page.locator('.controlled-write-panel');
+    await panel.waitFor({state:'visible',timeout:10000});
     const rendered=await panel.locator('details').count();
     for(const value of await panel.locator('details summary code').allTextContents())renderedOperationIds.add(value.trim());
     results.push({route:contract.route,expected:contract.actions.length,rendered,visible:await panel.isVisible()});
   }
-  await page.goto(`${origin}/apps/report-001`,{waitUntil:'networkidle',timeout:30000});
+  await page.goto(`${origin}/apps/report-001`,{waitUntil:'domcontentloaded',timeout:30000});
+  await page.locator('.controlled-write-panel').waitFor({state:'visible',timeout:10000});
   const operationCalls=[];
   page.on('request',request=>{if(request.url().includes('/api/v1/operations/'))operationCalls.push(request.url().split('/').at(-1));});
   const first=page.locator('.controlled-write-panel details').first();
