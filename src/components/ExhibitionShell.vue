@@ -130,13 +130,7 @@ onBeforeUnmount(() => {
       <aside class="sidebar" aria-label="左侧导航">
         <p class="sr-only" aria-live="polite">{{ shellState.announcement }}</p>
         <div id="sidebar-content">
-        <template v-if="props.page.id === '10'">
-          <section class="catalogue-group report-catalogue"><div class="group-heading"><h2><AppIcon name="catalogue-materials" :size="24" />素材中心</h2></div><nav aria-label="素材中心分类"><a v-for="label in ['PPA','大屏','驾驶舱','可视化报表','指标','数据集','AI','海能work应用']" :key="`report-material-${label}`" href="/favorites">{{ label }}</a></nav></section>
-          <section class="catalogue-group app-group report-catalogue"><div class="group-heading"><h2><AppIcon name="catalogue-apps" :size="24" />应用中心</h2></div><nav aria-label="应用中心分类"><a v-for="label in ['PPA','大屏','资产','指标','数据开发','数据集','AI','数据中心(23)']" :key="`report-app-${label}`" href="/apps">{{ label }}</a></nav></section>
-          <section class="catalogue-group report-catalogue"><div class="group-heading"><h2>基础能力</h2></div><nav aria-label="基础能力"><a v-for="label in ['服务编排','连接器','事件流','智能生成','API','连接中心(18)']" :key="label" href="/apps">{{ label }}</a></nav></section>
-          <section class="scene-search report-scene" aria-label="场景化运营"><h2>场景化运营</h2><div><button v-for="label in ['经营分析决策大厅','安全管理','生产管理','设备管理','物资管理','HSE管理','HSE管理','人力资源','财务管理','党群管理','更多']" :key="label" type="button">{{ label }}</button></div></section>
-        </template>
-        <template v-else-if="isCatalogue">
+        <template v-if="isCatalogue">
           <section class="catalogue-group">
             <div class="group-heading"><h2><TypeLineIcon class="catalogue-line-icon heading-icon" name="materials" :size="20" />素材中心</h2><button class="group-toggle" type="button" :aria-expanded="String(shellState.materialsExpanded)" aria-controls="materials-group-menu" :aria-label="shellState.materialsExpanded?'收起素材中心子菜单':'展开素材中心子菜单'" @click="shellState.toggleGroup('materials')"><span class="group-chevron" aria-hidden="true"></span></button></div>
             <nav id="materials-group-menu" v-show="shellState.materialsExpanded" aria-label="素材中心子菜单">
@@ -200,10 +194,9 @@ main{min-width:0;min-height:0;overflow-y:auto;background:#fff;outline:none}.sr-o
 @media(min-width:761px) and (max-width:1000px){.topbar{padding-inline:4px}.brand{flex-basis:125px;font-size:12px}.primary-nav{overflow:hidden}.primary-nav a{min-width:0;flex:1 1 0;gap:2px;padding-inline:1px;font-size:8px}.nav-glyph{width:14px;height:16px}.top-actions{flex-basis:105px;gap:4px}.action-link{width:20px}.action-icon{width:18px;height:18px}.top-user{gap:4px;padding-left:4px}.top-user>img{width:26px;height:26px}.top-user strong{font-size:9px}}
 .certification-shell .page-frame{grid-template-columns:242px minmax(0,1fr)}
 main{background:#f7f9fc}
-.ui-update-report .report-catalogue nav a{padding-left:12px}
 .ui-update-workbench .page-frame{grid-template-columns:220px minmax(0,1fr)}.ui-update-workbench .sidebar{border-color:#d5dee8}.ui-update-workbench main{background:#f7f9fc}
 .ui-update-apps .page-frame{grid-template-columns:220px minmax(0,1fr)}.ui-update-apps .sidebar{border-color:#d5dee8}.ui-update-apps .catalogue-group{padding-top:11px;padding-bottom:10px}.ui-update-apps .catalogue-group nav :is(a,button){height:30px}.ui-update-apps .scene-search{padding-top:12px}.ui-update-apps main{background:#fff}
-.ui-update-report{height:auto;min-height:1492px;overflow:visible}.ui-update-report .page-frame{min-height:1423px;grid-template-columns:166px minmax(0,1fr);overflow:visible}.ui-update-report .sidebar,.ui-update-report main{overflow:visible}.ui-update-report .catalogue-group{padding:13px 17px 9px}.ui-update-report .catalogue-group h2{font-size:11px}.ui-update-report .report-catalogue nav a{height:30px;padding-left:12px;font-size:10px}.ui-update-report .report-scene{padding:12px 17px}.ui-update-report .report-scene>div{grid-template-columns:repeat(2,1fr);gap:5px}.ui-update-report .report-scene button{height:26px;padding:0 4px;font-size:8px}.ui-update-report main{background:#fff}
+.ui-update-report{height:100vh;overflow:hidden}.ui-update-report .page-frame{grid-template-columns:220px minmax(0,1fr)}.ui-update-report .sidebar{overflow-y:auto}.ui-update-report main{overflow-y:auto;background:#fff}
 .topbar{height:63px;padding:0 18px;background:#0060a6;border-bottom:1px solid #143f6b}
 .page-frame{background:#f5f7fa}
 .catalogue-group h2,.scene-search h2{height:34px;font-size:16px;font-weight:700}
