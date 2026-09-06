@@ -93,8 +93,8 @@
   /* Filters and editor forms */
   #main-content :is(
     .apps-filter,.materials-filter,.favorite-filters,.message-filters,.notice-filters,
-    .point-filter,.admin-list>form,.app-admin>form,.talent-filter,
-    .projects-body main>form,.progress-page>form,.form-grid,.basic-grid,.editor-split,
+    .point-filter,.admin-list>form,.app-admin>form,.talent-filter,.talent-body main>form,
+    .projects-body main>form,.progress-page>form,.progress-page>section>form,.form-grid,.basic-grid,.editor-split,
     .assets-form,.app-editor>form,.edit-main,.permission,.filters
   ) {
     width: 100%;
@@ -110,8 +110,8 @@
 
   #main-content :is(
     .apps-filter,.materials-filter,.favorite-filters,.message-filters,.notice-filters,
-    .point-filter,.admin-list>form,.app-admin>form,.talent-filter,
-    .projects-body main>form,.progress-page>form
+    .point-filter,.admin-list>form,.app-admin>form,.talent-filter,.talent-body main>form,
+    .projects-body main>form,.progress-page>form,.progress-page>section>form
   ) label {
     width: 100%;
     height: auto !important;
@@ -125,8 +125,8 @@
 
   #main-content :is(
     .apps-filter,.materials-filter,.favorite-filters,.message-filters,.notice-filters,
-    .point-filter,.admin-list>form,.app-admin>form,.talent-filter,
-    .projects-body main>form,.progress-page>form,.form-grid,.basic-grid,.editor-split,
+    .point-filter,.admin-list>form,.app-admin>form,.talent-filter,.talent-body main>form,
+    .projects-body main>form,.progress-page>form,.progress-page>section>form,.form-grid,.basic-grid,.editor-split,
     .assets-form,.edit-main
   ) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea,button) {
     width: 100% !important;

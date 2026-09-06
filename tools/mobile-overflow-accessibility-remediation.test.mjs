@@ -18,6 +18,9 @@ assert.match(shell, /\.topbar\{height:auto;min-height:63px;overflow:visible/,
   '移动顶栏必须按两行内容增高，不得裁掉横向导航');
 assert.match(shell, /\.certification-shell \.page-frame\{[^}]*grid-template-rows:minmax\(0,auto\) minmax\(0,1fr\)/,
   '移动侧栏与主内容必须分配可达的独立纵向区域');
+for (const selector of ['.talent-body main>form','.progress-page>section>form']) {
+  assert.ok(h5.includes(selector), `窄屏单列合同必须覆盖真实筛选表单 ${selector}`);
+}
 
 assert.match(shell, /function decorateHorizontalScrollRegions\(\)/,
   '共享壳必须统一增强宽表的局部滚动语义');

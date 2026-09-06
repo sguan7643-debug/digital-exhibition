@@ -32,7 +32,7 @@ try {
         return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
       };
       const overflowers = [...document.querySelectorAll('body *')].filter(element => {
-        if (!visible(element) || element.closest(localSelector)) return false;
+        if (!visible(element) || element.closest('.sr-only') || element.closest(localSelector)) return false;
         const rect = element.getBoundingClientRect();
         return rect.left < -0.5 || rect.right > document.documentElement.clientWidth + 0.5;
       }).slice(0, 20).map(element => ({ tag: element.tagName, className: String(element.className || ''), rect: element.getBoundingClientRect().toJSON() }));
