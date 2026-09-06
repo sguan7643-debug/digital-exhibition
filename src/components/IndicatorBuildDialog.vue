@@ -7,28 +7,32 @@ const emit = defineEmits(["submit"]);
 const dialog = ref(null);
 const formElement = ref(null);
 const firstField = ref(null);
+const returnFocus = ref(null);
 const draft = reactive({ name: "", objective: "", definition: "", scope: "", expectedDate: "", notes: "" });
 
 async function open() {
+  returnFocus.value = document.activeElement;
   dialog.value?.showModal();
   await nextTick();
   firstField.value?.focus();
 }
-function close() {
+async function close() {
   dialog.value?.close();
+  await nextTick();
+  returnFocus.value?.focus?.();
 }
-function submit() {
+async function submit() {
   if (!formElement.value?.reportValidity()) return;
   emit("submit", { ...draft });
   Object.assign(draft, { name: "", objective: "", definition: "", scope: "", expectedDate: "", notes: "" });
-  close();
+  await close();
 }
 
 defineExpose({ open, close });
 </script>
 
 <template>
-  <dialog ref="dialog" class="indicator-dialog" aria-labelledby="indicator-dialog-title" @cancel.prevent="close">
+  <dialog ref="dialog" class="indicator-dialog" role="dialog" aria-modal="true" aria-labelledby="indicator-dialog-title" @cancel.prevent="close">
     <form ref="formElement" @submit.prevent="submit">
       <header><span><TypeLineIcon name="metric" :size="27" /></span><div><h2 id="indicator-dialog-title">个性化指标构建</h2><p>基于“{{ appName }}”发起指标构建申请，提交后进入本地审批演示流程。</p></div><button type="button" aria-label="关闭个性化指标构建" @click="close">×</button></header>
       <div class="indicator-grid">

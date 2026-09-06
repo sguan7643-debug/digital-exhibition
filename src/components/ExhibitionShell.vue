@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import {
   BadgeCheck, BookOpenCheck, Boxes, ChartNoAxesCombined,
   House, LayoutGrid, Megaphone, ShieldCheck, Trophy, UsersRound
@@ -75,8 +75,33 @@ function syncShellFilters() {
   sceneDraft.value = query.get('scene') || '';
   selectedCategory.value = query.get('category') || '';
 }
-onMounted(() => window.addEventListener('popstate', syncShellFilters));
-onBeforeUnmount(() => window.removeEventListener('popstate', syncShellFilters));
+const tableRegionSelector = '.table-scroll,.talent-table-scroll,.talent-body main>section,.progress-table,.point-table,.admin-table,.app-admin-table,.notice-table,.log-panel';
+function decorateHorizontalScrollRegions() {
+  document.querySelectorAll('#main-content table').forEach((table,index) => {
+    const region = table.closest(tableRegionSelector) || table.parentElement;
+    if (!region) return;
+    const caption = table.querySelector('caption')?.textContent?.trim();
+    const heading = region.querySelector('h2')?.textContent?.trim();
+    region.classList.add('horizontal-scroll-region');
+    region.tabIndex = 0;
+    region.setAttribute('role', 'region');
+    region.setAttribute('aria-label', `${caption || heading || `数据表 ${index + 1}`}，可左右滚动`);
+  });
+}
+async function refreshHorizontalScrollRegions() {
+  await nextTick();
+  decorateHorizontalScrollRegions();
+}
+onMounted(() => {
+  window.addEventListener('popstate', syncShellFilters);
+  window.addEventListener('resize', decorateHorizontalScrollRegions);
+  refreshHorizontalScrollRegions();
+});
+watch(() => props.page.route, refreshHorizontalScrollRegions, { flush:'post' });
+onBeforeUnmount(() => {
+  window.removeEventListener('popstate', syncShellFilters);
+  window.removeEventListener('resize', decorateHorizontalScrollRegions);
+});
 </script>
 
 <template>
@@ -187,4 +212,5 @@ main{background:#f7f9fc}
 .scene-search button[aria-pressed=true]{color:#fff;background:#0060a6;border-color:#0060a6}
 main{background:#f5f7fa}
 @media(max-width:940px){.catalogue-group nav a,.catalogue-group nav button{font-size:14px}}
+@media(max-width:760px){.topbar{height:auto;min-height:63px;overflow:visible;padding:7px 10px}.brand{font-size:18px}.top-actions{max-width:158px;gap:6px}.top-user span{display:none}.page-frame,.standard-shell .page-frame,.ui-update-workbench .page-frame,.ui-update-apps .page-frame,.ui-update-report .page-frame,.certification-shell .page-frame{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,auto) minmax(0,1fr)}.sidebar{max-height:34dvh;overflow-x:hidden;overflow-y:auto}.standard-shell .sidebar,.certification-shell .sidebar{max-height:52px;overflow-y:hidden}.ui-update-report{height:100dvh;min-height:0;overflow:hidden}.ui-update-report .page-frame{min-height:0;overflow:hidden}.ui-update-report .sidebar{overflow-x:hidden;overflow-y:auto}.ui-update-report main{overflow-x:visible;overflow-y:auto}}
 </style>
