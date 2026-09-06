@@ -72,8 +72,8 @@ assert.doesNotMatch(shell, /\.certification-shell \.topbar/,
   '数字化认证页不得覆盖全站统一的 69px 新版头部');
 assert.match(shell, /\.certification-shell \.page-frame\{grid-template-columns:242px minmax\(0,1fr\)\}/,
   '数字化认证参考要求 242px 左侧导航宽度');
-assert.match(certification, /\.cert-page\{padding:17px 23px 17px 15px/,
-  '最低 SSIM 的数字化认证页必须按冻结参考保留左 15px、右 23px 内容边距');
+assert.match(certification, /\.cert-page\{min-height:100%;padding:18px 20px 28px/,
+  '数字化认证页必须采用 2026-09-04 视觉源的统一内容边距');
 assert.match(shell, /@media\(min-width:761px\) and \(max-width:1000px\)\{[\s\S]*\.primary-nav\{overflow:hidden\}/,
   '845–1000px 冻结参考必须完整展示顶栏目的地，不能出现横向滚动条');
 assert.match(shell, /@media\(min-width:761px\) and \(max-width:1000px\)\{[\s\S]*\.primary-nav a\{min-width:0;flex:1 1 0/,

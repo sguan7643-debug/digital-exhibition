@@ -9,10 +9,10 @@ assert.match(shell, /<component :is="icon" class="nav-glyph"/,
   '十个导航目的地必须渲染矢量组件');
 assert.doesNotMatch(shell, /<img class="nav-glyph"/,
   '顶部导航禁止继续使用模糊的截图裁切 PNG');
-assert.match(shell, /<Bell class="action-icon"/,
-  '消息入口必须使用透明矢量铃铛');
-assert.match(shell, /<Star class="action-icon"/,
-  '收藏入口必须使用透明矢量星标');
+assert.match(shell, /<TypeLineIcon name="message"/,
+  '消息入口必须使用透明的本地手绘矢量铃铛');
+assert.match(shell, /<TypeLineIcon name="favorite"/,
+  '收藏入口必须使用透明的本地手绘矢量星标');
 assert.doesNotMatch(shell, /top-message\.png|top-favorite(?:-active)?\.png/,
   '顶部快捷入口禁止继续使用带底色的截图素材');
 assert.match(shell, /\.nav-glyph\{[^}]*color:currentColor/,

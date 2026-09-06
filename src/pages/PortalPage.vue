@@ -47,7 +47,7 @@ const symbols = ['●', '◆', '■', '▲', '✦', '⬢', '▣', '◇'];
     </section>
 
     <section v-else-if="content.kind === 'profile'" class="profile-layout">
-      <section class="profile-card"><img src="/assets/user-avatar.png" width="74" height="74" alt="张三丰头像" /><div><h2>张三丰 <mark>已认证</mark></h2><p>员工编号：CNOOC-817　　组织：物资采购中心</p><p>岗位：采购数字化运营　　所在地：北京</p></div></section>
+      <section class="profile-card"><img src="/assets/user-avatar.png" width="74" height="74" alt="张三丰头像" /><div><h2>张三丰 <mark>已认证</mark></h2><p>员工编号：EMP-817　　组织：物资采购中心</p><p>岗位：采购数字化运营　　所在地：北京</p></div></section>
       <div class="profile-actions"><a v-for="(item, index) in content.items.slice(0,4)" :key="item.id" href="/profile"><span :class="`tone-${index}`">{{ symbols[index] }}</span><b>{{ item.name }}</b><i>›</i></a></div>
       <section class="profile-list"><h2>最近消息 / 待办任务</h2><ul><li v-for="item in content.items" :key="item.id"><span>{{ item.name }}</span><time :datetime="item.date">{{ item.date }}</time></li></ul></section>
     </section>
@@ -101,7 +101,7 @@ const symbols = ['●', '◆', '■', '▲', '✦', '⬢', '▣', '◇'];
     </section>
 
     <section v-else-if="content.kind === 'certification'" class="certification-layout">
-      <div class="cert-hero"><span>海油内唯一与软公司联合认证单位</span><p>{{ content.description }}</p><button type="button">了解更多</button></div>
+      <div class="cert-hero"><span>企业内唯一与帆软公司联合认证单位</span><p>{{ content.description }}</p><button type="button">了解更多</button></div>
       <div class="cert-grid"><article v-for="(item,index) in content.items" :key="item.id"><span :class="`tone-${index%4}`">{{ symbols[index] }}</span><h2>{{ item.name }}</h2><p>固定展示的认证服务与学习资源。</p><a href="#main-content">查看详情　›</a></article></div>
     </section>
   </article>

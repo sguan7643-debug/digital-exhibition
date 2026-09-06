@@ -1,3 +1,7 @@
+<style scoped>
+td { height: 74px; font-size: 14px; }
+.announcements-page > header{display:flex;align-items:flex-start;justify-content:space-between}.publish-notice{min-width:112px;height:40px;display:grid;place-items:center;color:#fff;background:#0060a6;border-radius:4px;font-weight:600}
+</style>
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { ANNOUNCEMENT_FIXTURES, createAnnouncementController } from '../state/announcement-controllers.js';
@@ -51,7 +55,7 @@ onBeforeUnmount(()=>window.clearTimeout(loadingTimer));
   <div class="announcements-page" :data-reference-sha="REFERENCE_SHA256" :data-state="state" :aria-busy="state === 'loading'">
     <p class="sr-only" aria-live="polite">{{ controller.announcement }}</p>
     <template v-if="contentVisible">
-      <header><h1>公告通知</h1><p>统一查看平台公告、应用上线通知与活动通知，及时获取公共信息</p></header>
+      <header><div><h1>公告通知</h1><p>统一查看平台公告、应用上线通知与活动通知，及时获取公共信息</p></div><a class="publish-notice" href="/operations/announcements/notice-001/edit">发布公告</a></header>
       <section class="notice-stats" aria-label="公告数据概览"><article><AppIcon name="notice-stat-unread" :size="67" /><div><strong>{{ remoteMode?'公告总数':'未读公告' }}</strong><b>{{ remoteMode?totalCount:controller.unreadCount }}</b><small>{{ remoteMode?'来自飞书公告表':'较昨日　↓ 5' }}</small></div></article><article><AppIcon name="notice-stat-new" :size="67" /><div><strong>本周新增</strong><b>{{ weekNew }}</b><small>{{ remoteMode?'按发布时间统计':'较上周　↑ 3' }}</small></div></article></section>
       <form class="notice-filters" aria-label="公告筛选" @submit.prevent="applyAnnouncementFilters">
         <label>公告类型：<select :value="controller.draft.type" :disabled="controlsDisabled" @change="updateFilter('type',$event)"><option value="">全部类型</option><option v-for="type in typeOptions" :key="type">{{ type }}</option></select></label>

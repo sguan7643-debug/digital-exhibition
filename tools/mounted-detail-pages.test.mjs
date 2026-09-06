@@ -21,6 +21,10 @@ const hostOps={
 const renderer=createRenderer(hostOps);
 const AppIconStub={props:['name','size','label'],render(){return h('span',{'data-app-icon':this.name,'aria-label':this.label||undefined});}};
 const vueUrl=new URL('../node_modules/vue/index.mjs',import.meta.url).href;
+const nestedSfcStubs=new Map([
+  ['BusinessPreviewGallery',{name:'BusinessPreviewGallery',props:['variant'],render(){return null;}}],
+  ['IndicatorBuildDialog',{name:'IndicatorBuildDialog',props:['open'],emits:['close','submit'],render(){return null;}}]
+]);
 
 async function mountSfc(file){
   const fileUrl=new URL(`../src/pages/${file}`,import.meta.url);
@@ -28,7 +32,11 @@ async function mountSfc(file){
   assert.deepEqual(errors,[]);
   let code=compileScript(descriptor,{id:`mounted-${file}`,inlineTemplate:true}).content;
   code=code.replace(/from\s+(['"])vue\1/g,`from '${vueUrl}'`);
+  for(const [name] of nestedSfcStubs){
+    code=code.replace(new RegExp(`import\\s+${name}\\s+from\\s+['"][^'"]+\\.vue['"];?`),`const ${name}=globalThis.__mountedDetailSfcStubs.get('${name}');`);
+  }
   code=code.replace(/from\s+(['"])(\.\.\/[^'"]+)\1/g,(_match,_quote,relative)=>`from '${new URL(relative,fileUrl).href}'`);
+  globalThis.__mountedDetailSfcStubs=nestedSfcStubs;
   const component=(await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)).default;
   const root={type:'root',children:[]};renderer.createApp(component).component('AppIcon',AppIconStub).mount(root);await nextTick();return root;
 }

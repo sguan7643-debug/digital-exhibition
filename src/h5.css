@@ -1,0 +1,1061 @@
+/*
+ * H5 adaptation layer
+ *
+ * Desktop page components intentionally keep their approved layout. This file
+ * is loaded last and turns the same semantic markup into a touch-friendly
+ * single-column experience at phone widths without changing route behavior.
+ */
+
+@media (max-width: 760px) {
+  :root {
+    --h5-gutter: 12px;
+    --h5-gap: 12px;
+    --h5-control: 44px;
+  }
+
+  html,
+  body,
+  #app {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  #main-content {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    font-size: 15px;
+  }
+
+  #main-content > * {
+    max-width: 100%;
+  }
+
+  #main-content :where(h1) {
+    font-size: clamp(23px, 6.3vw, 28px) !important;
+    line-height: 1.3 !important;
+  }
+
+  #main-content :where(h2) {
+    overflow-wrap: anywhere;
+  }
+
+  #main-content :where(p, li, dd, td, th, a, button, label, span) {
+    overflow-wrap: anywhere;
+  }
+
+  #main-content :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    min-width: 0;
+    max-width: 100%;
+    font-size: 16px !important;
+  }
+
+  #main-content :is(
+    .workbench-page,.messages-page,.favorites-page,.profile-page,.announcements-page,
+    .notice-page,.apps-page,.materials-page,.product-detail,.onboarding-page,.apply-page,
+    .points-page,.points-details,.training-page,.operations-page,.admin-list,.editor-page,
+    .app-admin,.app-editor,.backend-page,.cert-page,.talent-people,.talent-projects,.progress-page,
+    .portal-page,.generic-page
+  ) {
+    width: 100%;
+    min-width: 0;
+    padding: var(--h5-gutter) !important;
+  }
+
+  /* Page headings and top-level actions */
+  #main-content :is(
+    .apps-page>header,.materials-header,.favorites-page>header,.announcements-page>header,
+    .messages-page>header,.points-details>header,.operations-page>header,
+    .admin-list>header,.app-admin>header,.backend-page>header,
+    .talent-body main>header,.projects-body main>header,.apply-heading
+  ) {
+    height: auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  #main-content :is(
+    .onboarding-link,.publish-notice,.apps-page>header>a,.materials-header>button,
+    .admin-list>header>a,.app-admin>header>a,.back-link,.talent-body main>header>button,
+    .projects-body main>header>button
+  ) {
+    width: 100% !important;
+    min-height: var(--h5-control) !important;
+    align-self: stretch !important;
+    display: grid;
+    place-items: center;
+  }
+
+  /* Filters and editor forms */
+  #main-content :is(
+    .apps-filter,.materials-filter,.favorite-filters,.message-filters,.notice-filters,
+    .point-filter,.admin-list>form,.app-admin>form,.talent-filter,
+    .projects-body main>form,.progress-page>form,.form-grid,.basic-grid,.editor-split,
+    .assets-form,.app-editor>form,.edit-main,.permission,.filters
+  ) {
+    width: 100%;
+    height: auto !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 12px !important;
+    margin: 0 0 12px !important;
+  }
+
+  #main-content :is(
+    .apps-filter,.materials-filter,.favorite-filters,.message-filters,.notice-filters,
+    .point-filter,.admin-list>form,.app-admin>form,.talent-filter,
+    .projects-body main>form,.progress-page>form
+  ) label {
+    width: 100%;
+    height: auto !important;
+    min-width: 0;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    white-space: normal !important;
+  }
+
+  #main-content :is(
+    .apps-filter,.materials-filter,.favorite-filters,.message-filters,.notice-filters,
+    .point-filter,.admin-list>form,.app-admin>form,.talent-filter,
+    .projects-body main>form,.progress-page>form,.form-grid,.basic-grid,.editor-split,
+    .assets-form,.edit-main
+  ) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea,button) {
+    width: 100% !important;
+    min-height: var(--h5-control) !important;
+    margin: 0 !important;
+  }
+
+  #main-content :is(input[type="checkbox"],input[type="radio"]) {
+    width: 20px !important;
+    min-width: 20px !important;
+    height: 20px !important;
+    min-height: 20px !important;
+    flex: 0 0 20px;
+  }
+
+  #main-content .permission label {
+    min-height: var(--h5-control);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #main-content .app-editor>form>aside :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea,button) {
+    width: 100% !important;
+    min-height: var(--h5-control) !important;
+  }
+
+  #main-content :is(
+    .app-editor>form,.app-editor>form>*,.edit-main,.edit-main>section,.permission,.permission>*,
+    .talent-body>main,.projects-body>main
+  ) {
+    width: 100%;
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+
+  /* List toolbars */
+  #main-content :is(.apps-tools,.materials-tools,.favorite-tools) {
+    width: 100%;
+    height: auto !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px !important;
+    margin: 0 0 12px !important;
+  }
+
+  #main-content :is(.apps-tools,.materials-tools,.favorite-tools)>strong,
+  #main-content :is(.apps-tools,.materials-tools,.favorite-tools)>select {
+    grid-column: 1 / -1;
+  }
+
+  #main-content :is(.apps-tools,.materials-tools,.favorite-tools)>select {
+    width: 100% !important;
+    height: var(--h5-control) !important;
+    margin: 0 !important;
+    font-size: 16px !important;
+  }
+
+  #main-content :is(.apps-tools,.materials-tools,.favorite-tools)>button {
+    min-height: var(--h5-control);
+    border: 1px solid #cdd9e5;
+    border-radius: 5px;
+  }
+
+  /* Application, material, favorite and training cards */
+  #main-content :is(.apps-grid,.materials-grid,.favorite-grid,.course-grid,.content-cards,.mock-grid) {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: var(--h5-gap) !important;
+  }
+
+  #main-content :is(.apps-grid,.materials-grid,.favorite-grid,.course-grid)>article {
+    width: 100%;
+    min-width: 0;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 14px !important;
+  }
+
+  #main-content :is(.app-title-row,.material-title-row,.favorite-title-row,.app-tags,.favorite-tags) {
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  #main-content :is(.apps-grid,.materials-grid,.favorite-grid) h2 {
+    min-width: 0;
+    flex: 1 1 180px;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+
+  #main-content .materials-grid .material-title-row h2 {
+    width: 100%;
+    flex: 1 0 100%;
+  }
+
+  #main-content :is(.apps-grid,.materials-grid,.favorite-grid,.course-grid)>article h2 {
+    font-size: 17px !important;
+    line-height: 1.45 !important;
+  }
+
+  #main-content :is(.apps-grid,.materials-grid,.favorite-grid,.course-grid)>article :is(p,dt,dd) {
+    font-size: 13px !important;
+    line-height: 1.65 !important;
+  }
+
+  #main-content :is(.apps-grid,.materials-grid,.favorite-grid,.course-grid)>article :is(mark,small) {
+    font-size: 12px !important;
+  }
+
+  #main-content :is(.apps-grid,.materials-grid,.favorite-grid,.course-grid)>article :is(a,button) {
+    font-size: 14px !important;
+  }
+
+  #main-content :is(.apps-grid,.favorite-grid)>article>p,
+  #main-content .materials-grid header p {
+    min-height: 0 !important;
+    margin-block: 10px !important;
+  }
+
+  #main-content :is(.apps-grid,.favorite-grid) dl,
+  #main-content .materials-grid dl {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  #main-content :is(.apps-grid,.favorite-grid) footer {
+    display: grid !important;
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    gap: 8px !important;
+  }
+
+  #main-content :is(.apps-grid,.favorite-grid) footer :is(a,button) {
+    width: 100%;
+    min-height: var(--h5-control) !important;
+    padding-inline: 6px !important;
+  }
+
+  #main-content .materials-grid footer {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  #main-content .materials-grid footer :is(button) {
+    width: 100%;
+    min-height: var(--h5-control) !important;
+    margin: 0 !important;
+  }
+
+  #main-content :is(.apps-grid,.favorite-grid,.materials-grid).list-view>article {
+    display: flex !important;
+    flex-direction: column;
+  }
+
+  /* Shared pagination becomes compact and wraps instead of widening the page. */
+  #main-content .pagination-control {
+    width: 100%;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0;
+    display: grid !important;
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+    gap: 10px !important;
+    padding: 10px 0 !important;
+  }
+
+  #main-content .pagination-control>span {
+    margin: 0 !important;
+    text-align: center;
+  }
+
+  #main-content .pagination-control>label {
+    display: none !important;
+  }
+
+  #main-content .pagination-control>nav {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: minmax(88px,1fr) auto minmax(88px,1fr);
+    gap: 8px !important;
+  }
+
+  #main-content .pagination-control button {
+    min-height: var(--h5-control) !important;
+  }
+
+  #main-content .apps-pagination {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Workbench */
+  #main-content .workbench-page :is(.overview-panel,.usage-list) {
+    height: auto !important;
+  }
+
+  #main-content .workbench-page .hero-panel {
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-columns: 54px minmax(0,1fr);
+    padding: 16px 12px !important;
+  }
+
+  #main-content .workbench-page .hero-avatar {
+    width: 52px !important;
+    height: 52px !important;
+    margin: 0 !important;
+  }
+
+  #main-content .workbench-page .greeting {
+    min-width: 0;
+    margin: 0 !important;
+    padding: 0 0 0 10px !important;
+  }
+
+  #main-content .workbench-page .hero-ocean {
+    display: none;
+  }
+
+  #main-content .workbench-page .overview-list {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  }
+
+  #main-content .workbench-page .hot-list {
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content .workbench-page .overview-item {
+    height: auto !important;
+    min-height: 84px;
+  }
+
+  #main-content .workbench-page :is(.hot-card,.course-panel li,.usage-list article) {
+    height: auto !important;
+    min-height: 92px;
+  }
+
+  #main-content .workbench-page .hot-card :is(h3,p) {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  #main-content .workbench-page .notice-panel li a {
+    min-height: 54px;
+    height: auto !important;
+    grid-template-columns: auto minmax(0,1fr) !important;
+    gap: 8px;
+    padding-block: 7px;
+  }
+
+  #main-content .workbench-page .notice-panel mark {
+    min-width: 0 !important;
+  }
+
+  /* Message center uses stacked message cards instead of a 1100px table. */
+  #main-content .message-stats {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  #main-content .message-stats article {
+    height: auto !important;
+    min-height: 108px;
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+
+  #main-content .message-stats img {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  #main-content .message-panel {
+    width: 100%;
+    overflow: visible !important;
+  }
+
+  #main-content .message-panel :is(ul,.message-tabs,.pagination-control) {
+    min-width: 0 !important;
+  }
+
+  #main-content .message-tabs {
+    height: auto !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 10px !important;
+  }
+
+  #main-content .message-tabs nav {
+    grid-column: 1/-1;
+    display: grid !important;
+    grid-template-columns: repeat(3,1fr);
+    gap: 4px !important;
+  }
+
+  #main-content .message-tabs button {
+    min-height: 42px;
+  }
+
+  #main-content .message-panel ul {
+    padding: 0 10px !important;
+  }
+
+  #main-content .message-panel li {
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-columns: 42px auto minmax(0,1fr) auto !important;
+    grid-template-areas:
+      "icon type dot state"
+      "icon content content content"
+      ". time time action";
+    gap: 8px 10px !important;
+    padding: 12px 0;
+  }
+
+  #main-content .message-panel li>img { grid-area: icon; }
+  #main-content .message-panel li>.message-type { grid-area: type; min-width:0 !important; }
+  #main-content .message-panel li>i { grid-area: dot; align-self:center; }
+  #main-content .message-panel li>div { grid-area: content; }
+  #main-content .message-panel li>time { grid-area: time; }
+  #main-content .message-panel li>.message-state { grid-area: state; min-width:0 !important; }
+  #main-content .message-panel li>:is(a,button) {
+    grid-area: action;
+    min-width: 44px;
+    min-height: var(--h5-control);
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    align-self: center;
+  }
+  #main-content .message-panel li :is(strong,p) {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+
+  /* Details */
+  #main-content .product-detail {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  #main-content .product-detail>* {
+    grid-column: 1 !important;
+    min-width: 0;
+  }
+
+  #main-content .product-detail :is(.detail-hero,.detail-panel,.detail-comment) {
+    padding: 14px !important;
+  }
+
+  #main-content .product-detail .detail-hero-main,
+  #main-content .product-detail .detail-hero-side {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    justify-items: stretch;
+  }
+
+  #main-content .product-detail .detail-hero-side>* {
+    grid-column: 1 !important;
+    min-width: 0;
+  }
+
+  #main-content .product-detail .detail-logo {
+    width: 64px !important;
+    height: 64px !important;
+  }
+
+  #main-content .product-detail .detail-title h1 {
+    display: block;
+    margin: 0 0 8px !important;
+    font-size: 22px !important;
+  }
+
+  #main-content .product-detail .detail-hero-side :is(a,button),
+  #main-content .product-detail .metric-build-trigger {
+    width: 100% !important;
+    min-height: var(--h5-control) !important;
+  }
+
+  #main-content .product-detail .detail-illustration {
+    display: none !important;
+  }
+
+  #main-content .product-detail .detail-metrics {
+    position: static !important;
+    display: grid !important;
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    gap: 0 !important;
+    margin-top: 14px !important;
+  }
+
+  #main-content .product-detail .detail-metrics>div {
+    min-width: 0;
+    border-bottom: 1px solid #e1e8ef;
+  }
+
+  #main-content .product-detail :is(.info-grid,.feature-grid,.training-row,.related-row,.rpa-flow,.ead-flow) {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content .product-detail .info-grid>div {
+    grid-template-columns: 104px minmax(0,1fr) !important;
+    border-right: 0 !important;
+  }
+
+  #main-content .product-detail :is(.file-list,.metric-table,.ai-table) {
+    width: 100%;
+    max-width: 100%;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #main-content .product-detail .detail-comment label {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content .product-detail .detail-comment :is(input,button) {
+    min-height: var(--h5-control) !important;
+  }
+
+  #main-content .product-detail :is(
+    .detail-panel>header>a,.file-list a,.training-row a,.related-row a,
+    .rpa-flow a,.ead-flow a
+  ) {
+    min-height: var(--h5-control);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Application onboarding and generic editors */
+  #main-content .apply-form fieldset {
+    padding: 14px 12px !important;
+  }
+
+  #main-content .apply-form :is(.two-cols,.four-cols,.split-fields,.upload-grid,.upload-section) {
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content .apply-form .field-grid>label:not(.span-full) {
+    grid-template-columns: max-content max-content minmax(0,1fr) !important;
+  }
+
+  #main-content .apply-form :is(input,select) {
+    min-height: var(--h5-control) !important;
+  }
+
+  #main-content .form-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  #main-content .form-actions :is(a,button) {
+    width: 100%;
+    min-height: var(--h5-control) !important;
+  }
+
+  #main-content .editor-page form>footer,
+  #main-content .edit-main>footer {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    padding: 12px 0 !important;
+  }
+
+  #main-content :is(.editor-page form>footer,.edit-main>footer) button {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: var(--h5-control) !important;
+  }
+
+  /* Training, points, certification and profile */
+  #main-content .training-hero {
+    min-height: 0 !important;
+    grid-template-columns: 1fr !important;
+    padding: 16px !important;
+  }
+
+  #main-content .hero-illustration,
+  #main-content .cert-page .hero-visual {
+    display: none !important;
+  }
+
+  #main-content .hero-stats {
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content .training-tabs,
+  #main-content .point-tabs {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #main-content .point-tabs {
+    height: auto !important;
+    min-height: var(--h5-control);
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding-bottom: 2px;
+  }
+
+  #main-content .point-tabs button {
+    flex: 0 0 auto !important;
+    min-height: var(--h5-control) !important;
+    height: var(--h5-control) !important;
+    margin-left: 0 !important;
+    padding-inline: 13px !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+  }
+
+  #main-content .course-grid>article {
+    min-height: 0 !important;
+  }
+
+  #main-content .course-grid footer button {
+    min-height: var(--h5-control) !important;
+  }
+
+  #main-content .training-pagination {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  #main-content .training-pagination nav {
+    justify-content: center;
+  }
+
+  #main-content .training-pagination button {
+    min-height: var(--h5-control);
+  }
+
+  #main-content .point-layout,
+  #main-content .cert-layout,
+  #main-content .cert-main,
+  #main-content .cert-info,
+  #main-content .profile-bottom,
+  #main-content .profile-stats {
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content .dynamic-panel li {
+    height: auto !important;
+    min-height: 76px;
+    display: grid !important;
+    grid-template-columns: 36px minmax(0,1fr) auto !important;
+    grid-template-areas:
+      "icon copy points"
+      ". time time";
+    gap: 8px !important;
+    padding-block: 10px;
+  }
+
+  #main-content .dynamic-panel li>img { grid-area: icon; }
+  #main-content .dynamic-panel li>div { grid-area: copy; min-width: 0; }
+  #main-content .dynamic-panel li>b { grid-area: points; }
+  #main-content .dynamic-panel li>time { grid-area: time; justify-self: end; }
+
+  #main-content .source-panel footer,
+  #main-content .rule-panel {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content .cert-hero,
+  #main-content .platform-service {
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content .cert-hero-copy>div,
+  #main-content .learning-filters,
+  #main-content .booking-tags {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  #main-content .cert-page :is(.hero-primary,.booking,.learning-result a),
+  #main-content .cert-hero-copy>div>:is(a,button) {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: var(--h5-control) !important;
+  }
+
+  #main-content :is(.booking-dialog,.indicator-dialog) {
+    width: calc(100% - max(24px,env(safe-area-inset-left)) - max(24px,env(safe-area-inset-right))) !important;
+    max-width: none !important;
+    max-height: calc(100dvh - max(24px,env(safe-area-inset-top)) - max(24px,env(safe-area-inset-bottom)));
+    overflow-y: auto;
+    margin: auto;
+    padding: 16px !important;
+  }
+
+  #main-content :is(.booking-dialog,.indicator-dialog) :is(.indicator-grid,.booking-tags) {
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content :is(.booking-dialog,.indicator-dialog) header>button {
+    width: var(--h5-control) !important;
+    height: var(--h5-control) !important;
+    min-width: var(--h5-control) !important;
+  }
+
+  #main-content :is(.booking-dialog,.indicator-dialog) :is(input,select,textarea) {
+    min-height: var(--h5-control) !important;
+  }
+
+  #main-content :is(.booking-dialog,.indicator-dialog) footer button {
+    min-height: var(--h5-control) !important;
+  }
+
+  #main-content .profile-top .identity {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    justify-items: center;
+    gap: 12px !important;
+    text-align: center;
+  }
+
+  #main-content .profile-top .identity>img {
+    width: 88px !important;
+    height: 88px !important;
+  }
+
+  #main-content .profile-bottom>section,
+  #main-content .profile-bottom li,
+  #main-content .tasks li {
+    height: auto !important;
+    min-height: 60px;
+  }
+
+  #main-content .profile-bottom>section:first-child li {
+    grid-template-columns: auto minmax(0,1fr) !important;
+    grid-template-areas:
+      "tag content"
+      ". time";
+    gap: 6px !important;
+  }
+
+  #main-content .profile-bottom>section:first-child li>mark { grid-area: tag; }
+  #main-content .profile-bottom>section:first-child li>button { grid-area: content; min-width:0; }
+  #main-content .profile-bottom>section:first-child li>time { grid-area: time; justify-self: end; }
+
+  #main-content .profile-bottom>section>header {
+    height: auto !important;
+    min-height: 56px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  #main-content .profile-page .quick-panel img {
+    filter: sepia(.85) saturate(5) hue-rotate(171deg) brightness(.92);
+  }
+
+  #main-content .profile-bottom .tasks li {
+    grid-template-columns: 10px minmax(0,1fr) auto !important;
+    grid-template-areas: "dot content state";
+    gap: 8px !important;
+  }
+
+  #main-content .profile-bottom .tasks li>i { grid-area: dot; }
+  #main-content .profile-bottom .tasks li>span { grid-area: content; min-width:0; }
+  #main-content .profile-bottom .tasks li>mark { grid-area: state; }
+
+  #main-content .profile-bottom :is(header,footer)>:is(a,button),
+  #main-content .profile-bottom li>button {
+    min-height: var(--h5-control);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Tables remain complete and get their own deliberate horizontal scroll. */
+  #main-content :is(
+    .table-scroll,.talent-table-scroll,.admin-table,.app-admin-table,.point-table,
+    .progress-table,.notice-table,.log-panel
+  ) {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto !important;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #main-content .notice-table table { min-width: 1050px !important; }
+  #main-content .admin-table table { min-width: 960px !important; }
+  #main-content .app-admin-table table { min-width: 1200px !important; }
+  #main-content .point-table table { min-width: 1000px !important; }
+  #main-content .progress-table table { min-width: 1450px !important; }
+
+  #main-content :is(.config-grid,.ops-grid,.operations-layout,.admin-layout) {
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content :is(.ops-stats,.admin-stats,.app-admin-stats,.notice-stats,.detail-stats) {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  #main-content :is(.config-grid>section,.log-panel,.talent-body>main,.projects-body>main) {
+    padding: 12px !important;
+  }
+
+  #main-content :is(.talent-body>main,.projects-body>main)>section {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #main-content :is(.section-heading,.admin-table>footer,.app-admin-table>footer,.point-table>footer,.progress-table>footer) {
+    height: auto !important;
+    min-height: 0 !important;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  /* Talent form drawers become full-screen mobile sheets. */
+  #main-content :is(.talent-body,.projects-body,.projects-body.drawer-open,.talent-body.drawer-open) {
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content :is(.talent-body.drawer-open>aside,.projects-body.drawer-open>aside) {
+    width: auto;
+    max-width: none;
+    max-height: none !important;
+    position: fixed !important;
+    z-index: 80;
+    inset: calc(56px + env(safe-area-inset-top)) 0 0;
+    overflow-y: auto !important;
+    padding: 0 16px max(16px,env(safe-area-inset-bottom)) !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff;
+  }
+
+  #main-content :is(.talent-body>aside>header,.projects-body>aside>header) {
+    position: sticky !important;
+    top: 0;
+    z-index: 2;
+    background: #fff;
+  }
+
+  #main-content :is(.talent-create-form,.projects-body>aside form) {
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content :is(.talent-create-form,.projects-body>aside form) :is(input,select,textarea) {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: var(--h5-control) !important;
+    font-size: 16px !important;
+  }
+
+  #main-content :is(.talent-create-form,.projects-body>aside form) label {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+
+  #main-content :is(.talent-table-scroll,.projects-body .table-scroll) {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  #main-content :is(.talent-table-scroll,.projects-body .table-scroll) table {
+    width: max-content !important;
+  }
+
+  #main-content :is(.admin-table,.app-admin-table,.point-table,.progress-table,.notice-table) td :is(a,button),
+  #main-content .backend-page td button,
+  #main-content .projects-body td button {
+    min-width: 44px;
+    min-height: var(--h5-control);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #main-content :is(.admin-table,.app-admin-table,.point-table,.progress-table)>footer button,
+  #main-content :is(.admin-table,.app-admin-table,.point-table,.progress-table,.notice-table) footer button {
+    min-height: var(--h5-control) !important;
+  }
+
+  #main-content .operations-page :is(.ranking li,.ops-notices li,.distribution li) {
+    height: auto !important;
+    min-height: 44px;
+    overflow-wrap: normal !important;
+    white-space: normal;
+  }
+
+  #main-content .operations-page .period {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    gap: 8px !important;
+  }
+
+  #main-content .operations-page .period>button {
+    width: 100%;
+    min-width: 0;
+    min-height: var(--h5-control);
+    margin: 0 !important;
+  }
+
+  #main-content .operations-page .period>label {
+    grid-column: 1 / -1;
+    display: grid !important;
+    grid-template-columns: 72px minmax(0,1fr);
+    gap: 8px;
+    white-space: normal;
+  }
+
+  #main-content .operations-page .period>label input {
+    width: 100%;
+    min-width: 0;
+    min-height: var(--h5-control);
+  }
+
+  #main-content .operations-page .period>span {
+    display: none;
+  }
+
+  #main-content .operations-page .period>button:last-child {
+    grid-column: 1 / -1;
+  }
+
+  #main-content .operations-page .ranking li>b {
+    flex: 0 0 24px;
+    width: 24px !important;
+    height: 24px !important;
+    display: grid;
+    place-items: center;
+  }
+
+  #main-content .operations-page .ops-notices li {
+    grid-template-columns: minmax(0,1fr) auto !important;
+    gap: 8px;
+    padding-block: 8px;
+  }
+
+  #main-content .operations-page .ops-notices li>*:nth-child(2) {
+    grid-column: 1;
+  }
+
+  #main-content .operations-page .ops-notices li>*:last-child {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  #main-content :is(.talent-create-form footer,.projects-body>aside footer) {
+    position: sticky !important;
+    bottom: 0;
+    z-index: 2;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 12px 0 max(12px,env(safe-area-inset-bottom)) !important;
+    background: #fff;
+  }
+
+  #main-content :is(.talent-create-form footer,.projects-body>aside footer) button {
+    min-height: var(--h5-control) !important;
+    padding-inline: 8px !important;
+  }
+
+  #main-content :is(.close-icon,.drawer-close) {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  #main-content .platform-footer {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 430px) {
+  #main-content :is(.ops-stats,.admin-stats,.app-admin-stats,.notice-stats,.detail-stats) {
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content :is(.ops-stats,.admin-stats,.app-admin-stats,.notice-stats,.detail-stats)>article {
+    min-width: 0;
+    height: auto !important;
+    min-height: 106px;
+  }
+
+  #main-content :is(.ops-stats,.admin-stats,.app-admin-stats,.notice-stats,.detail-stats)>article>div {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 380px) {
+  #main-content .message-stats,
+  #main-content :is(.ops-stats,.admin-stats,.app-admin-stats,.notice-stats,.detail-stats) {
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content .product-detail .detail-metrics {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 760px) and (orientation: landscape) {
+  #main-content :is(.apps-grid,.materials-grid,.favorite-grid,.course-grid) {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #main-content *,
+  #main-content *::before,
+  #main-content *::after {
+    scroll-behavior: auto !important;
+  }
+}

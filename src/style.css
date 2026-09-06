@@ -9,6 +9,10 @@
   --form-control-disabled-bg:#f2f4f7;
   --form-control-disabled-text:#929dab;
   --form-control-error:#c62828;
+  --xlt-navy-900:#0060a6;
+  --xlt-font-caption: clamp(13px, .82vw, 14px);
+  --xlt-font-body: clamp(15px, .94vw, 16px);
+  --xlt-font-page-title: clamp(26px, 1.72vw, 32px);
   font-synthesis: none;
   text-rendering: geometricPrecision;
 }
@@ -22,6 +26,14 @@ a { color: inherit; text-decoration: none; }
 button, a { -webkit-tap-highlight-color: transparent; }
 img { display: block; max-width: 100%; }
 p { margin: 0; }
+
+select:not([multiple]){appearance:none;background-image:linear-gradient(45deg,transparent 50%,#0060a6 50%),linear-gradient(135deg,#0060a6 50%,transparent 50%);background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:30px}
+.notice-filters select:not([multiple]){border-color:#0060a6;color:#0060a6}
+.notice-filters input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(29%) sepia(94%) saturate(1249%) hue-rotate(176deg) brightness(84%) contrast(104%)}
+.detail-hero-side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}
+.detail-hero-side .metric-build-trigger{grid-column:1 / -1}
+.detail-hero-side .detail-illustration{grid-column:1 / -1}
+.report-detail .detail-hero-side>div{display:contents}
 
 :where(input:not([type="checkbox"]):not([type="radio"]),select,textarea){border-color:var(--form-control-border);transition:border-color .14s ease,box-shadow .14s ease,background-color .14s ease}
 :where(input:not([type="checkbox"]):not([type="radio"]),select,textarea):hover:not(:disabled){border-color:var(--form-control-hover)}

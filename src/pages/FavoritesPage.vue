@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, ref } from 'vue';
 import { FAVORITE_FIXTURES, createFavoritesController } from '../state/content-controllers.js';
+import { APP_FIXTURES } from '../fixtures/mock-data.js';
 import { routeSession } from '../state/session-store.js';
 import PaginationControl from '../components/PaginationControl.vue';
 import { mapRemoteApp } from '../integration/app-read-model.js';
@@ -24,6 +25,7 @@ const filteredCards=computed(()=>{
 const pagedCards=computed(()=>{const start=(controller.page-1)*controller.pageSize;return filteredCards.value.slice(start,start+controller.pageSize);});
 const types=computed(()=>[...new Set((remoteCards.value||FAVORITE_FIXTURES).map(item=>item.type).filter(Boolean))]);
 const domains=computed(()=>[...new Set((remoteCards.value||FAVORITE_FIXTURES).map(item=>item.domain).filter(Boolean))]);
+const departmentByRoute=new Map(APP_FIXTURES.map((app) => [app.route, app.department]));
 function submit(){controller.setFilter('query',queryDraft.value);}
 function clearFilters(){queryDraft.value='';controller.resetFilters();}
 const resultTitleRef=ref(null);
@@ -48,7 +50,7 @@ async function launch(card){
     <section class="favorite-stats" aria-label="收藏数据概览"><article v-for="([label,total,increase,icon]) in stats" :key="label"><AppIcon :name="icon" :size="67" /><div><strong>{{ label }}</strong><b>{{ remoteMode?total:(label==='收藏总数'?controller.activeCount:total) }}</b><small v-if="remoteMode">来自飞书当前用户收藏</small><small v-else-if="increase">较上周　<em>↑ {{ increase }}</em></small><small v-else>近7天使用的收藏应用</small></div></article></section>
     <form class="favorite-filters" aria-label="收藏筛选" @submit.prevent="submit" @reset.prevent="clearFilters"><label>应用名称关键词 <input v-model="queryDraft" type="search" placeholder="请输入应用名称" /></label><label>应用类型 <select :value="controller.filters.type" @change="controller.setFilter('type',$event.target.value)"><option value="">全部类型</option><option v-for="value in types" :key="value">{{ value }}</option></select></label><label>主题域 <select :value="controller.filters.domain" @change="controller.setFilter('domain',$event.target.value)"><option value="">全部主题域</option><option v-for="value in domains" :key="value">{{ value }}</option></select></label><label>标签 <select :value="controller.filters.tag" @change="controller.setFilter('tag',$event.target.value)"><option value="">全部标签</option><option v-for="value in domains" :key="value">{{ value }}</option></select></label><button type="button" @click="resetData">重置</button><button type="reset">清空筛选</button></form>
     <h2 ref="resultTitleRef" class="sr-only" tabindex="-1" data-state-result-heading>收藏应用列表，共 {{ controller.activeCount }} 个</h2><section class="favorite-grid" aria-label="收藏应用列表">
-      <article v-for="card in pagedCards" :key="card.id" :data-favorite-id="card.id"><header><AppIcon :name="card.image" :size="48" /><div><h2>{{ card.name }}</h2><mark>{{ card.type }}</mark><mark>{{ card.domain }}</mark></div><AppIcon class="heart" name="favorite-heart" :size="18" label="已收藏" /></header><p>{{ card.description }}</p><dl><div><dt>使用量</dt><dd>{{ card.usage }}</dd></div><div><dt>收藏</dt><dd>{{ card.favorites }}</dd></div><div><dt>所属部门</dt><dd>{{ card.domain||'—' }}</dd></div><div><dt>负责人</dt><dd>{{ card.owner||'—' }}</dd></div><div><dt>开发部门/单位</dt><dd>{{ card.developerDepartment||'—' }}</dd></div><div><dt>开发者</dt><dd>{{ card.developer||'—' }}</dd></div></dl><footer><button type="button" @click="launch(card)">立即使用</button><a :href="card.route" :data-session-focus="`favorite-detail-${card.id}`">查看详情</a><button class="cancel-favorite" type="button" :disabled="liveMode" :title="liveMode?'真实收藏取消写操作尚未开放':''" @click="cancelFavorite(card)">取消收藏</button></footer></article>
+      <article v-for="card in pagedCards" :key="card.id" :data-favorite-id="card.id"><header><AppIcon :name="card.image" :size="48" /><div class="favorite-title-row"><h2>{{ card.name }}</h2><mark>{{ card.type }}</mark><mark>{{ card.domain }}</mark></div><AppIcon class="heart" name="favorite-heart" :size="18" label="已收藏" /></header><p>{{ card.description }}</p><dl><div><dt>使用量</dt><dd>{{ card.usage }}</dd></div><div><dt>收藏</dt><dd>{{ card.favorites }}</dd></div><div><dt>负责部门</dt><dd>{{ card.department||departmentByRoute.get(card.route)||card.domain||'—' }}</dd></div><div><dt>负责人</dt><dd>{{ card.owner||'—' }}</dd></div><div><dt>开发部门/单位</dt><dd>{{ card.developerDepartment||'—' }}</dd></div><div><dt>开发者</dt><dd>{{ card.developer||'—' }}</dd></div></dl><footer><button type="button" @click="launch(card)">立即使用</button><a class="detail-action" :href="card.route" :data-session-focus="`favorite-detail-${card.id}`">查看详情</a><button class="cancel-favorite" type="button" :disabled="liveMode" :title="liveMode?'真实收藏取消写操作尚未开放':''" @click="cancelFavorite(card)">取消收藏</button></footer></article>
     </section>
     <p v-if="!filteredCards.length" class="favorite-empty" role="status">暂无符合条件的收藏应用</p><PaginationControl class="favorite-pagination" :total="filteredCards.length" :page="controller.page" :page-size="controller.pageSize" label="收藏分页" @update:page="changePage" @update:page-size="changePageSize" />
   </div>
@@ -60,4 +62,6 @@ async function launch(card){
 .favorite-pagination nav button:first-child,.favorite-pagination nav button:last-child{width:auto;padding:0 10px;white-space:nowrap}
 .favorite-empty{margin:0;padding:50px;text-align:center;background:#fff;color:#60718a}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .favorite-grid h2{font-size:16px}.favorite-grid>article>p{font-size:11px}.favorite-grid dl div{font-size:10px}.favorite-grid footer a,.favorite-grid footer button{font-size:11px}
+.favorite-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.favorite-grid footer .detail-action,.favorite-grid footer button:first-child{min-height:34px;display:grid;place-items:center;color:#fff;background:#0060a6;border:1px solid #0060a6;border-radius:4px}.favorite-grid footer{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.favorite-grid>article{height:auto;min-height:276px}@media(max-width:1000px){.favorite-grid footer{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.favorite-grid dd{font-weight:400}.favorite-title-row h2{font-weight:600}
 </style>

@@ -1,10 +1,11 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
-  BadgeCheck, Bell, BookOpenCheck, Boxes, ChartNoAxesCombined,
-  House, LayoutGrid, Megaphone, ShieldCheck, Star, Trophy, UsersRound
+  BadgeCheck, BookOpenCheck, Boxes, ChartNoAxesCombined,
+  House, LayoutGrid, Megaphone, ShieldCheck, Trophy, UsersRound
 } from '@lucide/vue';
 import { createShellController } from '../state/interaction-controllers.js';
+import TypeLineIcon from './TypeLineIcon.vue';
 
 const props = defineProps({ page: { type: Object, required: true } });
 const shellState = createShellController();
@@ -91,8 +92,8 @@ onBeforeUnmount(() => window.removeEventListener('popstate', syncShellFilters));
         </a>
       </nav>
       <div class="top-actions" aria-label="快捷操作">
-        <a class="action-link" href="/messages" aria-label="8 条未读消息"><Bell class="action-icon" :size="24" :stroke-width="1.8" aria-hidden="true" /></a>
-        <a class="action-link" href="/favorites" aria-label="收藏"><Star class="action-icon" :size="24" :stroke-width="1.8" :fill="props.page.id === '03' ? 'currentColor' : 'none'" aria-hidden="true" /></a>
+        <a class="action-link" href="/messages" aria-label="8 条未读消息"><TypeLineIcon name="message" :size="24" /></a>
+        <a class="action-link" href="/favorites" aria-label="收藏"><TypeLineIcon name="favorite" :size="23" /></a>
         <a class="top-user" href="/profile">
           <img src="/assets/top-avatar.png" width="38" height="38" alt="" />
           <span><strong>张三丰</strong><small>物资采购中心</small></span>
@@ -112,15 +113,15 @@ onBeforeUnmount(() => window.removeEventListener('popstate', syncShellFilters));
         </template>
         <template v-else-if="isCatalogue">
           <section class="catalogue-group">
-            <div class="group-heading"><h2><AppIcon name="catalogue-materials" :size="24" />{{ props.page.id === '07' ? '经典中心' : '素材中心' }}</h2><button class="group-toggle" type="button" :aria-expanded="String(shellState.materialsExpanded)" aria-controls="materials-group-menu" :aria-label="shellState.materialsExpanded?'收起素材中心子菜单':'展开素材中心子菜单'" @click="shellState.toggleGroup('materials')"><span class="group-chevron" aria-hidden="true"></span></button></div>
+            <div class="group-heading"><h2><TypeLineIcon class="catalogue-line-icon heading-icon" name="materials" :size="20" />素材中心</h2><button class="group-toggle" type="button" :aria-expanded="String(shellState.materialsExpanded)" aria-controls="materials-group-menu" :aria-label="shellState.materialsExpanded?'收起素材中心子菜单':'展开素材中心子菜单'" @click="shellState.toggleGroup('materials')"><span class="group-chevron" aria-hidden="true"></span></button></div>
             <nav id="materials-group-menu" v-show="shellState.materialsExpanded" aria-label="素材中心子菜单">
-              <a v-for="([label, icon]) in categories" :key="`material-${label}`" href="/favorites"><AppIcon :name="icon" :size="18" />{{ label }}</a>
+              <a v-for="([label], index) in categories" :key="`material-${label}`" href="/favorites"><TypeLineIcon class="catalogue-line-icon" :name="['rpa','visual','visual','report','metric','dataset','ai','work'][index]" :size="18" />{{ label }}</a>
             </nav>
           </section>
           <section class="catalogue-group app-group">
-            <div class="group-heading"><h2><AppIcon name="catalogue-apps" :size="24" />应用中心</h2><button class="group-toggle" type="button" :aria-expanded="String(shellState.appsExpanded)" aria-controls="apps-group-menu" :aria-label="shellState.appsExpanded?'收起应用中心子菜单':'展开应用中心子菜单'" @click="shellState.toggleGroup('apps')"><span class="group-chevron" aria-hidden="true"></span></button></div>
+            <div class="group-heading"><h2><TypeLineIcon class="catalogue-line-icon heading-icon" name="apps" :size="20" />应用中心</h2><button class="group-toggle" type="button" :aria-expanded="String(shellState.appsExpanded)" aria-controls="apps-group-menu" :aria-label="shellState.appsExpanded?'收起应用中心子菜单':'展开应用中心子菜单'" @click="shellState.toggleGroup('apps')"><span class="group-chevron" aria-hidden="true"></span></button></div>
             <nav id="apps-group-menu" v-show="shellState.appsExpanded" aria-label="应用分类">
-              <button v-for="([label, icon]) in categories" :key="`app-${label}`" type="button" :aria-pressed="selectedCategory === label" @click="setCategory(label)"><AppIcon :name="icon" :size="18" />{{ label }}</button>
+              <button v-for="([label], index) in categories" :key="`app-${label}`" type="button" :aria-pressed="selectedCategory === label" @click="setCategory(label)"><TypeLineIcon class="catalogue-line-icon" :name="['rpa','visual','visual','report','metric','dataset','ai','work'][index]" :size="18" />{{ label }}</button>
             </nav>
           </section>
           <section class="scene-search" aria-labelledby="scene-search-title">
@@ -178,4 +179,12 @@ main{background:#f7f9fc}
 .ui-update-workbench .page-frame{grid-template-columns:220px minmax(0,1fr)}.ui-update-workbench .sidebar{border-color:#d5dee8}.ui-update-workbench main{background:#f7f9fc}
 .ui-update-apps .page-frame{grid-template-columns:220px minmax(0,1fr)}.ui-update-apps .sidebar{border-color:#d5dee8}.ui-update-apps .catalogue-group{padding-top:11px;padding-bottom:10px}.ui-update-apps .catalogue-group nav :is(a,button){height:30px}.ui-update-apps .scene-search{padding-top:12px}.ui-update-apps main{background:#fff}
 .ui-update-report{height:auto;min-height:1492px;overflow:visible}.ui-update-report .page-frame{min-height:1423px;grid-template-columns:166px minmax(0,1fr);overflow:visible}.ui-update-report .sidebar,.ui-update-report main{overflow:visible}.ui-update-report .catalogue-group{padding:13px 17px 9px}.ui-update-report .catalogue-group h2{font-size:11px}.ui-update-report .report-catalogue nav a{height:30px;padding-left:12px;font-size:10px}.ui-update-report .report-scene{padding:12px 17px}.ui-update-report .report-scene>div{grid-template-columns:repeat(2,1fr);gap:5px}.ui-update-report .report-scene button{height:26px;padding:0 4px;font-size:8px}.ui-update-report main{background:#fff}
+.topbar{height:63px;padding:0 18px;background:#0060a6;border-bottom:1px solid #143f6b}
+.page-frame{background:#f5f7fa}
+.catalogue-group h2,.scene-search h2{height:34px;font-size:16px;font-weight:700}
+.catalogue-group nav a,.catalogue-group nav button{height:36px;font-size:15px;font-weight:400}
+.catalogue-line-icon{color:#173b63;stroke-width:1.8}.catalogue-line-icon.heading-icon{color:#102f54;stroke-width:1.9}
+.scene-search button[aria-pressed=true]{color:#fff;background:#0060a6;border-color:#0060a6}
+main{background:#f5f7fa}
+@media(max-width:940px){.catalogue-group nav a,.catalogue-group nav button{font-size:14px}}
 </style>
