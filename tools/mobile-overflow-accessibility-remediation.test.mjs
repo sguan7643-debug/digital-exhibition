@@ -21,6 +21,12 @@ assert.match(shell, /\.certification-shell \.page-frame\{[^}]*grid-template-rows
 for (const selector of ['.talent-body main>form','.progress-page>section>form']) {
   assert.ok(h5.includes(selector), `窄屏单列合同必须覆盖真实筛选表单 ${selector}`);
 }
+assert.match(h5, /#main-content \.point-stats\s*\{[^}]*grid-template-columns:\s*1fr\s*!important/,
+  '360px 积分统计卡必须归一为单列，不能由最小内容宽度撑开主区');
+assert.match(h5, /#main-content \.source-panel>div\s*\{\s*grid-template-columns:\s*1fr\s*!important/,
+  '积分来源卡必须在窄屏归一为单列');
+assert.match(h5, /#main-content \.point-tabs\s*\{[^}]*flex-wrap:\s*wrap\s*!important[^}]*overflow-x:\s*visible\s*!important/,
+  '积分明细页签必须在窄屏换行，不得把按钮放到不可见视口外');
 
 assert.match(shell, /function decorateHorizontalScrollRegions\(\)/,
   '共享壳必须统一增强宽表的局部滚动语义');

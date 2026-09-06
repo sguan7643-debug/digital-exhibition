@@ -640,13 +640,17 @@
   #main-content .point-tabs {
     height: auto !important;
     min-height: var(--h5-control);
+    display: flex !important;
+    flex-wrap: wrap !important;
     align-items: stretch !important;
     gap: 8px !important;
     padding-bottom: 2px;
+    overflow-x: visible !important;
   }
 
   #main-content .point-tabs button {
-    flex: 0 0 auto !important;
+    flex: 1 1 calc(50% - 4px) !important;
+    min-width: 0;
     min-height: var(--h5-control) !important;
     height: var(--h5-control) !important;
     margin-left: 0 !important;
@@ -683,6 +687,19 @@
   #main-content .cert-info,
   #main-content .profile-bottom,
   #main-content .profile-stats {
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content .point-stats {
+    grid-template-columns: 1fr !important;
+  }
+
+  #main-content .point-stats article,
+  #main-content .point-layout>* {
+    min-width: 0;
+  }
+
+  #main-content .source-panel>div {
     grid-template-columns: 1fr !important;
   }
 
