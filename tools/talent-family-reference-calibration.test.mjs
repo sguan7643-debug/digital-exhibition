@@ -44,7 +44,7 @@ for (const [source, marker, label] of [
 for (const [source, marker, label] of [
   [people, 'grid-template-columns:224px repeat(4,124px) 68px 68px;gap:16px', '人才库筛选'],
   [projects, 'grid-template-columns:316px repeat(4,128px) 80px 80px;gap:16px', '人才项目筛选'],
-  [progress, 'grid-template-columns:224px repeat(4,128px) 68px 68px;gap:16px', '项目进度筛选']
+  [progress, 'grid-template-columns:224px repeat(4,128px) repeat(3,68px);gap:16px', '项目进度筛选']
 ]) assert.ok(source.includes(marker), `${label}必须采用量化交接的独立列宽与 16px 间距`);
 
 console.log('人才三页冻结列、默认关闭抽屉、10条分页与紧凑表格密度合同通过');
