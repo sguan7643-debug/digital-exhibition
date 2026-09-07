@@ -38,8 +38,8 @@ for (const [name, source] of Object.entries({
 }
 assert.match(style, /--xlt-navy-900:\s*#0060a6/i,
   "全局主色变量必须统一为 #0060A6");
-assert.match(shell, /\.topbar\{[^}]*background:#0060a6/i,
-  "顶栏背景必须统一为 #0060A6");
+assert.match(shell, /\.topbar\{height:69px;[^}]*background:#00396e/i,
+  "顶栏必须遵循用户后续批准的 69px 深蓝统一新版样式");
 
 assert.doesNotMatch(shell, /top-(?:message|favorite(?:-active)?)\.png/,
   "顶栏消息与收藏不得继续使用包含文字和角标的位图");
