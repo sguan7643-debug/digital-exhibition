@@ -126,18 +126,16 @@ assert.match(admin, /class="sort-input"[\s\S]{0,90}type="number"[\s\S]{0,90}min=
 assert.doesNotMatch(training, /training-course-\d+\.png/);
 assert.match(training, /<dl class="course-status">[\s\S]*?报名人数[\s\S]*?活动形式/,
   "培训卡片必须分段展示报名状态");
-assert.match(training, /\.course-grid\s*>\s*article\s*\{[^}]*min-height:\s*340px/,
-  "培训卡片必须使用更方正、可容纳分段文字的最终高度");
+assert.match(training, /\.course-grid\s*>\s*article\s*\{[^}]*min-height:\s*224px/,
+  "培训卡片必须在保留分段文字的同时匹配冻结参考双行密度");
 assert.match(apps, /\.apps-grid\s*>\s*article\s*\{[^}]*min-height:\s*314px/,
   "应用卡片必须提高纵向比例");
-assert.match(favorites, /\.favorite-grid\s*\{[\s\S]*?repeat\(3,\s*minmax\(0,\s*1fr\)\)/,
-  "我的收藏必须与应用中心保持同一桌面三列卡片排版");
+assert.match(favorites, /\.favorite-grid\s*\{[\s\S]*?repeat\(4,\s*minmax\(0,\s*1fr\)\)/,
+  "我的收藏必须按其冻结参考保持桌面四列卡片排版");
 assert.match(favorites, /class="detail-action"[\s\S]{0,150}>查看详情<\/a/,
   "收藏卡片查看详情必须使用独立、可校准的操作类");
-assert.match(favorites, /\.favorite-grid footer \.detail-action,[\s\S]*?color:\s*#fff;[\s\S]*?background:\s*#0060a6/,
-  "收藏查看详情必须保持白字深蓝底的可读对比度");
-assert.match(favorites, /@media\s*\(max-width:\s*1000px\)[\s\S]*?\.favorite-grid footer\s*\{[^}]*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
-  "收藏操作区在中窄分辨率必须收敛为两列，避免文字被裁切");
+assert.match(favorites, /\.favorite-grid footer a,\.favorite-grid footer button\{[^}]*color:#0870e9;[^}]*background:transparent/,
+  "收藏查看详情必须保持冻结参考的轻量文字操作，并继续提供清晰蓝色对比");
 assert.match(points, /class="source-icon"[\s\S]{0,180}<AppIcon[^>]*:size="52"/,
   "积分来源的手绘矢量图标必须进入统一尺寸容器");
 assert.match(points, /\.source-icon\{width:64px;height:64px;display:grid;place-items:center;/,

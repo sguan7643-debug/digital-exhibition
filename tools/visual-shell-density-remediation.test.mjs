@@ -28,9 +28,9 @@ assert.match(favorites, /class="favorite-filters"[\s\S]*@click="resetData">重�
   '演示数据重置必须位于冻结筛选栏，而不是挤压分页');
 assert.doesNotMatch(favorites, /class="favorite-pagination"[\s\S]{0,220}@click="resetData"/,
   '分页栏不得包含冻结参考中不存在的演示重置按钮');
-assert.match(favorites, /grid-template-columns:repeat\(4,1fr\)/, '收藏首屏必须保留四列卡片');
+assert.match(favorites, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/, '收藏首屏必须保留可收缩的四列卡片');
 assert.match(favorites, /height:211px/, '收藏卡片高度必须保持冻结参考 211px');
-assert.match(favorites, /\.favorite-grid h2\{[^}]*font-size:16px/,
+assert.match(favorites, /\.favorite-grid h2\{[^}]*font-size:14px/,
   '收藏卡片标题字号必须匹配冻结参考层级');
 assert.match(favorites, /\.favorite-grid>article>p\{[^}]*font-size:11px/,
   '收藏卡片摘要字号必须匹配冻结参考层级');
