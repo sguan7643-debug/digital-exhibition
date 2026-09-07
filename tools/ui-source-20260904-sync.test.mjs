@@ -71,10 +71,12 @@ assert.match(dashboard, /BusinessPreviewGallery\s+variant="dashboard"/);
 assert.doesNotMatch(report + dashboard, /(?:report|dashboard)-previews\.png/);
 assert.match(preview, /收入与利润总览/);
 
-assert.match(apps, /const appTypeStats = computed/,
-  "应用中心必须根据应用数据生成类型统计");
-assert.match(apps, /class="app-type-overview"[\s\S]*?TypeLineIcon\s+:name="item\.icon"/,
-  "应用类型统计必须复用现有线稿图标体系");
+assert.doesNotMatch(apps, /class="app-type-overview"/,
+  "应用中心默认首屏不得保留后来被权威参考撤销的类型统计区");
+assert.match(apps, /props\.integrationData\?\.\['APP-001'\]/,
+  "应用中心仍须保留真实筛选元数据适配");
+assert.match(apps, /props\.integrationData\?\.\['APP-002'\]\?\.items/,
+  "应用中心仍须保留真实应用列表适配");
 assert.match(apps, /\.onboarding-link\s*\{[^}]*width:\s*176px;[^}]*height:\s*44px;[^}]*font-size:\s*15px;[^}]*font-weight:\s*700/s,
   "应用上架申请按钮必须更大、更醒目");
 assert.match(apps, /\.apps-filter label\s*\{[^}]*font-size:\s*14px;[^}]*font-weight:\s*600/s,
