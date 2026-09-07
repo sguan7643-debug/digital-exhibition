@@ -95,12 +95,12 @@ assert.match(points, /grid-template-columns:40px minmax\(0,1fr\) 108px 118px/,
   "最近积分动态必须为积分与时间保留稳定列宽");
 assert.match(points, /\.dynamic-panel li>b\{[^}]*white-space:nowrap/,
   "积分数值与单位不得断行");
-assert.match(talent, /grid-template-columns: minmax\(260px, 1\.5fr\) repeat\(4, minmax\(160px, 1fr\)\) 80px 80px/,
-  "人才筛选栏必须使用可读的弹性列宽");
-assert.match(talent, /grid-template-columns: minmax\(0, 1fr\) clamp\(520px, 38vw, 680px\)/,
+assert.match(talent, /grid-template-columns:224px repeat\(4,124px\) 68px 68px;gap:16px/,
+  "人才筛选栏必须使用量化交接的独立列宽");
+assert.match(talent, /grid-template-columns:minmax\(0,1fr\) clamp\(520px,38vw,680px\)/,
   "新增人才抽屉必须提供足够表单宽度");
-assert.match(talentProjects, /grid-template-columns:minmax\(280px,1\.5fr\) repeat\(4,minmax\(160px,1fr\)\) 80px 80px/,
-  "人才项目筛选栏必须使用可读的弹性列宽");
+assert.match(talentProjects, /grid-template-columns:316px repeat\(4,128px\) 80px 80px;gap:16px/,
+  "人才项目筛选栏必须使用量化交接的独立列宽");
 assert.match(operations, /\.ranking li\{[^}]*min-height:29px;[^}]*font-size:14px;line-height:1\.4/,
   "热门应用排行必须使用清晰字号与行距");
 assert.match(announcements, /td\s*\{[^}]*height:\s*74px;[^}]*font-size:\s*14px/s,
