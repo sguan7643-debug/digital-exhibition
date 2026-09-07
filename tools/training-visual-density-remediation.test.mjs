@@ -26,8 +26,8 @@ assert.match(source, /\.hero-stats article\{[^}]*background:rgba\(255,255,255,\.
   '培训统计卡必须使用新版通透蓝白表面');
 assert.match(source, /\.training-tabs\{[^}]*border-bottom:1px solid #dce5ef/,
   '培训分类分隔线必须使用新版层级');
-assert.match(source, /\.course-grid>article\{[^}]*min-height:224px;[^}]*background:#fff;[^}]*border:1px solid #dce5ef/,
-  '培训课程卡必须保留新版表面并恢复冻结参考双行密度');
+assert.match(source, /\.course-grid>article\{[^}]*min-height:340px;[^}]*background:#fff;[^}]*border:1px solid #dce5ef/,
+  '培训课程卡必须使用新版方正卡片比例');
 assert.match(source, /\.training-pagination button\{[^}]*border:1px solid #dce5ef/,
   '培训分页边框必须使用同一新版层级');
 
