@@ -54,12 +54,12 @@ assert.match(talent, /tbody tr\[aria-selected=true\]\{background:#eef5ff\}/,
   '人才库只能高亮用户实际选中的行，初始不得伪造首行选中');
 assert.doesNotMatch(talent, />×</);
 
-assert.match(shell, /@media\(min-width:761px\) and \(max-width:940px\)\{[^}]*grid-template-columns:150px/,
-  '845–932px 原生参考必须保留 150px 目录栏');
+assert.match(shell, /@media\(min-width:761px\) and \(max-width:940px\)\{[^}]*grid-template-columns:220px/,
+  '761–940px 必须保留用户批准的 220px 固定目录栏');
 assert.match(shell, /@media\(min-width:941px\) and \(max-width:1600px\)\{[^}]*grid-template-columns:220px/,
   '941–1600px 参考必须保留获批的 220px 固定目录栏');
-assert.match(shell, /\.exhibition-shell\{height:100vh;overflow:hidden;display:grid;grid-template-rows:auto minmax\(0,1fr\)\}/,
-  '页面壳必须锁定 viewport，禁止 document 整体纵向滚动');
+assert.match(shell, /\.exhibition-shell\{height:100vh;overflow:hidden;display:grid;grid-template-columns:minmax\(0,1fr\);grid-template-rows:auto minmax\(0,1fr\)\}/,
+  '页面壳必须锁定 viewport，并允许顶层网格在窄桌面视口内收缩');
 assert.match(shell, /\.page-frame\{min-height:0;[^}]*grid-template-columns:220px minmax\(0,1fr\)\}/,
   '固定顶栏下方区域必须允许右侧滚动容器收缩');
 assert.match(shell, /\.sidebar\{min-height:0;[^}]*overflow-y:auto/,
