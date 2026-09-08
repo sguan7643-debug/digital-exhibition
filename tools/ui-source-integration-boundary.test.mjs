@@ -19,5 +19,5 @@ for (const token of [
 assert.ok(pkg.scripts['test:integration'], '必须保留完整接口回归入口');
 assert.ok(pkg.scripts['test:browser:30-routes'], '必须保留 30 路由浏览器入口');
 assert.ok(!app.includes('MaterialsPage'), '不得加入范围外素材中心路由');
-assert.ok(!app.includes('OnboardingApplyPage'), '不得加入范围外上架申请路由');
+assert.ok(app.includes('OnboardingApplyPage'), '必须保留用户确认的应用上线申请表单路由');
 console.log('UI 同步接口保护合同通过');

@@ -44,9 +44,23 @@ export const PAGE_MATRIX = [
   definePage({ id: '30', reference: '20-人才管理-项目进度管理.png', route: '/talent/progress', role: '人才管理', title: '项目进度管理', width: 1672, height: 941, sha256: '1C66525AC285F0825E52CEB928093EB0CA7A412C4B526B51E181A5A16BC732C3', empty: true })
 ];
 
+// Restored application-form interaction. Keeping this page outside PAGE_MATRIX
+// preserves the frozen 30-page visual/SSIM accounting.
+const ONBOARDING_APPLY_PAGE = definePage({
+  id: '31',
+  reference: '新增-应用上架申请.png',
+  route: '/apps/onboarding/apply',
+  role: '申请人',
+  title: '应用上线申请',
+  width: 1672,
+  height: 941,
+  sha256: 'LOCAL-ONBOARDING-APPLY-FX-817'
+});
+
 export function resolvePage(input, state = 'normal') {
   const pathname = new URL(input, 'http://127.0.0.1').pathname.replace(/\/$/, '') || '/';
-  const page = PAGE_MATRIX.find(candidate => candidate.route === pathname);
+  const page = PAGE_MATRIX.find(candidate => candidate.route === pathname)
+    || (ONBOARDING_APPLY_PAGE.route === pathname ? ONBOARDING_APPLY_PAGE : undefined);
   if (!page) return undefined;
   const normalizedState=state==='empty'&&!page.empty?'normal':state;
   if (!page.states.includes(normalizedState)) return undefined;

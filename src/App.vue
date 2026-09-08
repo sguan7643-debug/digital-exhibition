@@ -25,6 +25,7 @@ import AiDetailPage from './pages/AiDetailPage.vue';
 import EadDetailPage from './pages/EadDetailPage.vue';
 import RpaDetailPage from './pages/RpaDetailPage.vue';
 import OnboardingPage from './pages/OnboardingPage.vue';
+import OnboardingApplyPage from './pages/OnboardingApplyPage.vue';
 import PointsPage from './pages/PointsPage.vue';
 import PointsDetailsPage from './pages/PointsDetailsPage.vue';
 import TrainingPage from './pages/TrainingPage.vue';
@@ -209,7 +210,11 @@ onBeforeUnmount(() => {
 });
 
 const page = computed(() => current.value);
-const integrationContract = computed(() => getPageIntegrationContract(page.value.route));
+const LOCAL_UI_ONLY_CONTRACT = Object.freeze({
+  readOperationIds: Object.freeze([]),
+  actions: Object.freeze([])
+});
+const integrationContract = computed(() => getPageIntegrationContract(page.value.route) || LOCAL_UI_ONLY_CONTRACT);
 const integrationEnvelope = ref({ mode: 'disabled', state: 'disabled', operationIds: [] });
 let integrationDataSource;
 
@@ -277,6 +282,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
       <ead-detail-page v-else-if="page.id === '15'" />
       <rpa-detail-page v-else-if="page.id === '16'" />
       <onboarding-page v-else-if="page.id === '17'" />
+      <onboarding-apply-page v-else-if="page.id === '31'" />
       <points-page v-else-if="page.id === '18'" :integration-data="integrationEnvelope.data" />
       <points-details-page v-else-if="page.id === '19'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <training-page v-else-if="page.id === '20'" />
