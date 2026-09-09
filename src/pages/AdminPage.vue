@@ -1,18 +1,365 @@
 <script setup>
 // Reference SHA-256: 91D03978BB5A413EBF79A2CDC25E00EABBF79499F65B672A267BFAB19596FB39
-import { reactive, ref } from 'vue';
-import TypeLineIcon from '../components/TypeLineIcon.vue';
-const types=reactive([['visual','可视化','VISUAL','大屏与驾驶舱可视化应用'],['report','报表','REPORT','报表设计、分析与导出应用'],['rpa','RPA','RPA','流程自动化与机器人应用'],['dataset','数据集','DATASET','标准数据资源集合与管理'],['metric','指标','METRIC','指标定义、口径与分析服务'],['ai','AI','AI_AGENT','智能交互、分析与协同应用'],['work','协同应用','WORK','企业协同办公应用'],['ead','EAD','EAD','企业架构设计与治理应用']].map((item,index)=>({icon:item[0],name:item[1],code:item[2],description:item[3],sort:index+1,enabled:true})));
-const domains=reactive([['visual','生产运营','可视化 / 报表 / 数据集'],['metric','市场营销','报表 / 指标'],['dataset','物资采购','数据集 / RPA / AI'],['report','财务管理','报表 / 指标 / RPA'],['work','人力资源','协同应用 / 报表'],['ead','安全环保','可视化 / 数据集 / EAD'],['tools','工程建设','数据集 / 其他工具'],['metric','成本控制','指标 / 报表'],['apps','综合管理','协同应用 / AI']].map((item,index)=>({icon:item[0],name:item[1],types:item[2],sort:index+1,enabled:true})));
-const logs=[['2026-09-01 09:45:17','/api/auth/login','登录','IAM 单点登录策略校验','待处理'],['2026-09-01 09:41:17','/api/data/sync','同步','采购主数据增量同步完成','待处理'],['2026-09-01 09:37:17','/api/report/export','导出','经营月报导出任务完成','已处理'],['2026-09-01 09:33:17','/api/file/upload','上传','应用上架资料完成安全扫描','已处理'],['2026-09-01 09:29:17','/api/user/info','查询','用户组织权限范围校验完成','已处理']];
-const announcement=ref('');
-function action(label,name){announcement.value=`${name}：${label}操作已记录为本地演示`;}
+import { reactive, ref } from "vue";
+import TypeLineIcon from "../components/TypeLineIcon.vue";
+
+const types = reactive([
+  {
+    icon: "visual",
+    name: "可视化",
+    code: "VISUAL",
+    description: "大屏与驾驶舱可视化应用",
+    sort: 1,
+    enabled: true,
+  },
+  {
+    icon: "report",
+    name: "报表",
+    code: "REPORT",
+    description: "报表设计、分析与导出应用",
+    sort: 2,
+    enabled: true,
+  },
+  {
+    icon: "rpa",
+    name: "RPA",
+    code: "RPA",
+    description: "流程自动化与机器人应用",
+    sort: 3,
+    enabled: true,
+  },
+  {
+    icon: "dataset",
+    name: "数据集",
+    code: "DATASET",
+    description: "标准数据资源集合与管理",
+    sort: 4,
+    enabled: true,
+  },
+  {
+    icon: "metric",
+    name: "指标",
+    code: "METRIC",
+    description: "指标定义、口径与分析服务",
+    sort: 5,
+    enabled: true,
+  },
+  {
+    icon: "ai",
+    name: "AI",
+    code: "AI_AGENT",
+    description: "智能交互、分析与协同应用",
+    sort: 6,
+    enabled: true,
+  },
+  {
+    icon: "work",
+    name: "海能work应用",
+    code: "HAINENG_WORK",
+    description: "海能work协同办公应用",
+    sort: 7,
+    enabled: true,
+  },
+  {
+    icon: "ead",
+    name: "EAD",
+    code: "EAD",
+    description: "企业架构设计与治理应用",
+    sort: 8,
+    enabled: true,
+  },
+  {
+    icon: "tools",
+    name: "其他工具",
+    code: "OTHER_TOOL",
+    description: "其他通用数字化工具",
+    sort: 9,
+    enabled: true,
+  },
+]);
+const domains = reactive([
+  {
+    icon: "visual",
+    name: "生产运营",
+    types: "可视化 / 报表 / 数据集",
+    sort: 1,
+    enabled: true,
+  },
+  {
+    icon: "metric",
+    name: "市场营销",
+    types: "报表 / 指标",
+    sort: 2,
+    enabled: true,
+  },
+  {
+    icon: "dataset",
+    name: "物资采购",
+    types: "数据集 / RPA / AI",
+    sort: 3,
+    enabled: true,
+  },
+  {
+    icon: "report",
+    name: "财务管理",
+    types: "报表 / 指标 / RPA",
+    sort: 4,
+    enabled: true,
+  },
+  {
+    icon: "work",
+    name: "人力资源",
+    types: "海能work应用 / 报表",
+    sort: 5,
+    enabled: true,
+  },
+  {
+    icon: "ead",
+    name: "安全环保",
+    types: "可视化 / 数据集 / EAD",
+    sort: 6,
+    enabled: true,
+  },
+  {
+    icon: "tools",
+    name: "工程建设",
+    types: "数据集 / 其他工具",
+    sort: 7,
+    enabled: true,
+  },
+  {
+    icon: "metric",
+    name: "成本控制",
+    types: "指标 / 报表",
+    sort: 8,
+    enabled: true,
+  },
+  {
+    icon: "apps",
+    name: "综合管理",
+    types: "海能work应用 / AI",
+    sort: 9,
+    enabled: true,
+  },
+]);
+const logRows = [
+  [
+    "2026-09-01 09:45:17",
+    "/api/auth/login",
+    "登录",
+    "IAM 单点登录策略校验，记录号 FX-817-0",
+    "待处理",
+  ],
+  [
+    "2026-09-01 09:41:17",
+    "/api/data/sync",
+    "同步",
+    "采购主数据增量同步完成，记录号 FX-817-1",
+    "待处理",
+  ],
+  [
+    "2026-09-01 09:37:17",
+    "/api/report/export",
+    "导出",
+    "经营月报导出任务完成，记录号 FX-817-2",
+    "已处理",
+  ],
+  [
+    "2026-09-01 09:33:17",
+    "/api/file/upload",
+    "上传",
+    "应用上架资料完成安全扫描，记录号 FX-817-3",
+    "已处理",
+  ],
+  [
+    "2026-09-01 09:29:17",
+    "/api/user/info",
+    "查询",
+    "用户组织权限范围校验完成，记录号 FX-817-4",
+    "已处理",
+  ],
+];
+const announcement = ref("");
+function action(label, name) {
+  announcement.value = `${name}：${label}操作已记录为本地演示`;
+}
 </script>
-<template><article class="backend-page" aria-labelledby="backend-title"><p class="sr-only" aria-live="polite">{{ announcement }}</p><nav>运营管理　/　后台管理</nav><header><h1 id="backend-title">后台管理</h1><p>管理应用类型、主题域与操作日志，保障平台配置一致、可追溯。</p></header><div class="config-grid">
-  <section><div class="section-heading"><h2>应用类型配置</h2><p>类型与前台分类共用同一套线稿图标和排序规则。</p></div><div class="table-scroll horizontal-scroll-region" tabindex="0" role="region" aria-label="应用类型配置表，可左右滚动"><table><thead><tr><th>应用类型名称</th><th>类型说明 / 描述</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="item in types" :key="item.code"><td><span class="table-icon"><TypeLineIcon :name="item.icon" :size="20" /></span><strong>{{ item.name }}</strong></td><td><b>{{ item.code }}</b><small>{{ item.description }}</small></td><td><input v-model.number="item.sort" class="sort-input" type="number" min="1" :max="types.length" :aria-label="`${item.name}排序`" /></td><td><label class="switch"><input v-model="item.enabled" type="checkbox" />{{ item.enabled?'启用':'停用' }}</label></td><td><button type="button" @click="action('编辑',item.name)">编辑</button><button type="button" @click="action('删除',item.name)">删除</button></td></tr></tbody></table></div></section>
-  <section><div class="section-heading"><h2>主题域配置</h2><p>图标按业务含义关联，保持大小、笔画与对齐一致。</p></div><div class="table-scroll horizontal-scroll-region" tabindex="0" role="region" aria-label="主题域配置表，可左右滚动"><table><thead><tr><th>图标</th><th>主题域名称</th><th>所属应用 / 类型</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="item in domains" :key="item.name"><td><span class="table-icon"><TypeLineIcon :name="item.icon" :size="20" /></span></td><td><strong>{{ item.name }}</strong></td><td>{{ item.types }}</td><td><input v-model.number="item.sort" class="sort-input" type="number" min="1" :max="domains.length" :aria-label="`${item.name}排序`" /></td><td><label class="switch"><input v-model="item.enabled" type="checkbox" />{{ item.enabled?'启用':'停用' }}</label></td><td><button type="button" @click="action('编辑',item.name)">编辑</button><button type="button" @click="action('删除',item.name)">删除</button></td></tr></tbody></table></div></section></div>
-  <section class="log-panel"><h2>后台操作日志 <span>未处理告警 2</span></h2><p>操作记录用于追溯配置变更。</p><div class="table-scroll horizontal-scroll-region" tabindex="0" role="region" aria-label="后台操作日志表，可左右滚动"><table><thead><tr><th>时间</th><th>操作对象</th><th>操作类型</th><th>详情信息</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="row in logs" :key="row[0]"><td v-for="cell in row" :key="cell">{{ cell }}</td><td><button type="button" @click="action('查看详情',row[1])">查看详情</button></td></tr></tbody></table></div></section>
-</article></template>
+
+<template>
+  <article class="backend-page" aria-labelledby="backend-title">
+    <p class="sr-only" aria-live="polite">{{ announcement }}</p>
+    <nav>运营管理　/　后台管理</nav>
+    <header>
+      <h1 id="backend-title">后台管理</h1>
+      <p>管理应用类型、主题域与操作日志，保障平台配置一致、可追溯。</p>
+    </header>
+    <div class="config-grid">
+      <section>
+        <div class="section-heading">
+          <div>
+            <h2>应用类型配置</h2>
+            <p>类型与前台分类共用同一套线稿图标和排序规则。</p>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>应用类型名称</th>
+                <th>类型说明 / 描述</th>
+                <th>排序</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in types" :key="item.code">
+                <td>
+                  <span class="table-icon"
+                    ><TypeLineIcon :name="item.icon" :size="20" /></span
+                  ><strong>{{ item.name }}</strong>
+                </td>
+                <td>
+                  <b>{{ item.code }}</b
+                  ><small>{{ item.description }}</small>
+                </td>
+                <td>
+                  <input
+                    v-model.number="item.sort"
+                    class="sort-input"
+                    type="number"
+                    min="1"
+                    :max="types.length"
+                    inputmode="numeric"
+                    :aria-label="`${item.name}排序`"
+                  />
+                </td>
+                <td>
+                  <label class="switch"
+                    ><input v-model="item.enabled" type="checkbox" />{{
+                      item.enabled ? "启用" : "停用"
+                    }}</label
+                  >
+                </td>
+                <td>
+                  <button type="button" @click="action('编辑', item.name)">
+                    编辑</button
+                  ><button type="button" @click="action('删除', item.name)">
+                    删除
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section>
+        <div class="section-heading">
+          <div>
+            <h2>主题域配置</h2>
+            <p>图标按业务含义关联，避免使用无关随机图标。</p>
+          </div>
+          <button type="button" @click="action('新增', '主题域')">
+            新增主题域
+          </button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>图标</th>
+                <th>主题域名称</th>
+                <th>所属应用 / 类型</th>
+                <th>排序</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in domains" :key="item.name">
+                <td>
+                  <span class="table-icon"
+                    ><TypeLineIcon :name="item.icon" :size="20"
+                  /></span>
+                </td>
+                <td>
+                  <strong>{{ item.name }}</strong>
+                </td>
+                <td>{{ item.types }}</td>
+                <td>
+                  <input
+                    v-model.number="item.sort"
+                    class="sort-input"
+                    type="number"
+                    min="1"
+                    :max="domains.length"
+                    inputmode="numeric"
+                    :aria-label="`${item.name}排序`"
+                  />
+                </td>
+                <td>
+                  <label class="switch"
+                    ><input v-model="item.enabled" type="checkbox" />{{
+                      item.enabled ? "启用" : "停用"
+                    }}</label
+                  >
+                </td>
+                <td>
+                  <button type="button" @click="action('编辑', item.name)">
+                    编辑</button
+                  ><button type="button" @click="action('删除', item.name)">
+                    删除
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+    <section class="log-panel">
+      <div class="section-heading">
+        <div>
+          <h2>后台操作日志</h2>
+          <p>记录 IAM 与平台服务的关键操作，便于审计与追溯。</p>
+        </div>
+        <span class="warning">未处理告警 2</span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>操作对象</th>
+              <th>操作类型</th>
+              <th>详情信息</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in logRows" :key="item[0] + item[1]">
+              <td>{{ item[0] }}</td>
+              <td>{{ item[1] }}</td>
+              <td class="operation-type">{{ item[2] }}</td>
+              <td>{{ item[3] }}</td>
+              <td :class="item[4] === '待处理' ? 'pending' : 'handled'">
+                {{ item[4] }}
+              </td>
+              <td>
+                <button type="button" @click="action('查看详情', item[1])">
+                  查看详情</button
+                ><button type="button" @click="action('处理记录', item[1])">
+                  处理记录
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+</template>
 
 <style scoped>
 .backend-page {

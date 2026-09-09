@@ -10,6 +10,7 @@ import ControlledWritePanel from './components/ControlledWritePanel.vue';
 import AnnouncementsPage from './pages/AnnouncementsPage.vue';
 import FavoritesPage from './pages/FavoritesPage.vue';
 import MessagesPage from './pages/MessagesPage.vue';
+import MaterialsPage from './pages/MaterialsPage.vue';
 import PortalPage from './pages/PortalPage.vue';
 import ProfilePage from './pages/ProfilePage.vue';
 import WorkbenchPage from './pages/WorkbenchPage.vue';
@@ -159,6 +160,14 @@ function restoreRouteSession(){
   const snapshot=routeSession.snapshot(activeEntryKey.value);
   if(!main)return;
   routeSession.restoreViewState(snapshot?.viewState);
+  const hashId=decodeURIComponent(window.location.hash.slice(1));
+  const hashTarget=hashId&&document.getElementById(hashId);
+  if(hashTarget){
+    main.scrollTop=0;
+    hashTarget.scrollIntoView({block:'start'});
+    hashTarget.focus({preventScroll:true});
+    return;
+  }
   main.scrollTop=snapshot?.scrollTop||0;
   const target=snapshot?.focusId&&(document.getElementById(snapshot.focusId)||document.querySelector(`[data-session-focus="${snapshot.focusId}"]`));
   (target||main).focus();
@@ -220,6 +229,11 @@ let integrationDataSource;
 
 async function syncIntegrationEnvelope() {
   const route = page.value.route;
+  if (!getPageIntegrationContract(route)) {
+    integrationDataSource = null;
+    integrationEnvelope.value = { mode: 'disabled', state: 'disabled', operationIds: [], data: {} };
+    return;
+  }
   integrationDataSource = createPageDataSource({
     route,
     runtime: integrationRuntime,
@@ -282,7 +296,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
       <ead-detail-page v-else-if="page.id === '15'" />
       <rpa-detail-page v-else-if="page.id === '16'" />
       <onboarding-page v-else-if="page.id === '17'" />
-      <onboarding-apply-page v-else-if="page.id === '31'" />
+      <onboarding-apply-page v-else-if="page.id === '32'" />
       <points-page v-else-if="page.id === '18'" :integration-data="integrationEnvelope.data" />
       <points-details-page v-else-if="page.id === '19'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <training-page v-else-if="page.id === '20'" />
@@ -299,6 +313,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
       />
       <talent-projects-page v-else-if="page.id === '29'" />
       <talent-progress-page v-else-if="page.id === '30'" />
+      <materials-page v-else-if="page.id === '31'" />
       <portal-page v-else :page="page" />
       <app-detail-live-sections v-if="Number(page.id) >= 8 && Number(page.id) <= 16"
         :integration-data="integrationEnvelope.data"

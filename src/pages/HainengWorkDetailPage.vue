@@ -1,26 +1,200 @@
 <script setup>
 // Reference SHA-256: 21D2FCC06638F323E7824176C53BB72DDE1050790E6B4E457D54CD2D7398431C
-import { nextTick, ref } from 'vue';
-import { createDetailController } from '../state/detail-controller.js';
-import { routeSession } from '../state/session-store.js';
-const metrics=[['创建日期','2025-09-08'],['应用类型','应用'],['所属业务域','数字化办公'],['开发单位','信息化管理部'],['负责人','张三丰'],['所属部门','物资采购中心'],['开发者','李四']];
-const training=['海能work应用功能介绍','海能work应用使用入门','海能work应用高级技巧','海能work应用常见问题解析'];
-const related=[['通用行业知识流程数据集','/apps/dataset-001','/assets/app-dataset.png'],['文本摘要RPA脚本','/apps/rpa-001','/assets/app-rpa.png'],['智能办公数据看板','/apps/dashboard-001','/assets/app-cockpit.png']];
-const detail=routeSession.controller('detail-haineng-work',()=>createDetailController('/apps/haineng-work-001',routeSession,{name:'海能work应用'}));
-const commentInput=ref(null);
-async function submitComment(){if(detail.submitComment()){await nextTick();commentInput.value?.focus();}}
+import { nextTick, ref } from "vue";
+import { createDetailController } from "../state/detail-controller.js";
+import { routeSession } from "../state/session-store.js";
+import TypeLineIcon from "../components/TypeLineIcon.vue";
+const metrics = [
+  ["创建日期", "2025-09-08"],
+  ["应用类型", "应用"],
+  ["所属业务域", "数字化办公"],
+  ["开发单位", "信息化管理部"],
+  ["负责人", "张三丰"],
+  ["所属部门", "物资采购中心"],
+  ["开发者", "李四"],
+];
+const training = [
+  "海能work应用功能介绍",
+  "海能work应用使用入门",
+  "海能work应用高级技巧",
+  "海能work应用常见问题解析",
+];
+const related = [
+  ["通用行业知识流程数据集", "/apps/dataset-001", "/assets/app-dataset.png"],
+  ["文本摘要RPA脚本", "/apps/rpa-001", "/assets/app-rpa.png"],
+  ["智能办公数据看板", "/apps/dashboard-001", "/assets/app-cockpit.png"],
+];
+const detail = routeSession.controller("detail-haineng-work", () =>
+  createDetailController("/apps/haineng-work-001", routeSession, {
+    name: "海能work应用",
+  }),
+);
+const commentInput = ref(null);
+async function submitComment() {
+  if (detail.submitComment()) {
+    await nextTick();
+    commentInput.value?.focus();
+  }
+}
 </script>
 <template>
-  <article class="product-detail work-detail" aria-labelledby="work-title"><p class="sr-only" aria-live="polite">{{ detail.announcement }}</p><nav class="detail-crumb" aria-label="面包屑"><a href="/apps?category=海能work应用" data-detail-return>应用中心</a>　/　海能 Work 应用　/　应用详情</nav>
-    <header class="detail-hero"><div class="detail-hero-main"><AppIcon class="detail-logo" name="work-logo" :size="70" label="海能work应用图标" /><div class="detail-title"><h1 id="work-title">海能work应用</h1><mark>应用</mark><mark>数字化办公</mark><mark>已上线</mark><p>集成企业核心业务应用，统一工作门户，提升协同效率，赋能数字化办公新体验。</p><p>应用URL地址：<b>本地受控演示</b></p><div class="detail-tags"><strong>应用关键词</strong><mark>协同办公</mark><mark>企业门户</mark><mark>多租户</mark><mark>流程审批</mark><mark>移动办公</mark></div></div><div class="detail-hero-side"><button type="button" :aria-pressed="detail.favorite" @click="detail.toggleFavorite">{{ detail.favorite?'已收藏':'收藏' }}</button><button type="button" @click="detail.apply('申请使用')">申请使用</button><button type="button" @click="detail.apply('申请复用')">申请复用</button><img class="detail-illustration" src="/assets/work-hero.png" width="250" height="135" alt="海能work应用插画" /></div></div><dl class="detail-metrics"><div v-for="([key,value],index) in metrics" :key="key"><b>{{ index+1 }}</b><dt>{{ key }}</dt><dd>{{ value }}</dd></div></dl></header>
-    <section class="detail-panel"><h2>应用基本信息</h2><dl class="info-grid work-info"><div><dt>版本号</dt><dd>海能work应用</dd></div><div><dt>应用编码</dt><dd>HAINENG-WORK-001</dd></div><div><dt>所属场景</dt><dd>供应链管理</dd></div><div><dt>应用描述</dt><dd>集成企业核心业务应用，统一工作门户，提升协同效率。</dd></div><div class="video-cell"><dt>应用图片或视频</dt><dd><img src="/assets/work-video.png" width="240" height="92" alt="海能work应用演示视频封面" /></dd></div></dl></section>
-    <section class="detail-panel"><h2>使用指南</h2><dl class="info-grid"><div><dt>使用功能</dt><dd>多租表格</dd></div><div><dt>使用说明</dt><dd><button class="text-action" type="button" @click="detail.mockDownload('海能work应用使用说明.pdf')">查看使用说明文档</button></dd></div></dl></section>
-    <section class="detail-panel"><h2>相关培训内容</h2><table class="file-list"><caption class="sr-only">海能 Work 相关培训内容</caption><thead class="sr-only"><tr><th scope="col">应用</th><th scope="col">课程名称</th><th scope="col">类型与时长</th><th scope="col">操作</th></tr></thead><tbody><tr v-for="(name,index) in training" :key="name"><td><AppIcon name="work-logo" :size="52" /></td><td>{{ name }}</td><td>视频　·　{{ 12+index }}:40</td><td><a href="/training" :aria-label="`学习：${name}`">去学习</a></td></tr></tbody></table></section>
-    <section class="detail-panel"><h2>关联素材</h2><div class="related-row"><article v-for="([item,route,image],index) in related" :key="item"><AppIcon :name="image" :size="48" /><div><h3><a :href="route">{{ item }}</a></h3><p>{{ 1275+index*1065 }} 次下载</p></div></article></div></section>
-    <form class="detail-comment" @submit.prevent="submitComment"><label>应用评论<input ref="commentInput" v-model="detail.commentDraft" placeholder="请输入您对该应用的评论..." /></label><button type="submit" :disabled="!detail.commentDraft.trim()">提交评论</button><ul v-if="detail.comments.length" aria-label="本地评论"><li v-for="comment in detail.comments" :key="comment.id" :data-comment-id="comment.id">{{ comment.text }}</li></ul></form>
+  <article class="product-detail work-detail" aria-labelledby="work-title">
+    <p class="sr-only" aria-live="polite">{{ detail.announcement }}</p>
+    <nav class="detail-crumb" aria-label="面包屑">
+      <a href="/apps?category=海能work应用" data-detail-return>应用中心</a
+      >　/　海能 Work 应用　/　应用详情
+    </nav>
+    <header class="detail-hero">
+      <div class="detail-hero-main">
+        <span class="detail-logo detail-type-icon" role="img" aria-label="海能work应用图标"><TypeLineIcon name="work" :size="34" /></span>
+        <div class="detail-title">
+          <h1 id="work-title">海能work应用</h1>
+          <mark>应用</mark><mark>数字化办公</mark><mark>已上线</mark>
+          <p>
+            集成企业核心业务应用，统一工作门户，提升协同效率，赋能数字化办公新体验。
+          </p>
+          <p>应用URL地址：<b>本地受控演示</b></p>
+          <div class="detail-tags">
+            <strong>应用关键词</strong><mark>协同办公</mark><mark>企业门户</mark
+            ><mark>多租户</mark><mark>流程审批</mark><mark>移动办公</mark>
+          </div>
+        </div>
+        <div class="detail-hero-side">
+          <button
+            type="button"
+            :aria-pressed="detail.favorite"
+            @click="detail.toggleFavorite"
+          >
+            {{ detail.favorite ? "已收藏" : "收藏" }}</button
+          ><button type="button" @click="detail.apply('申请使用')">
+            申请使用</button
+          ><button type="button" @click="detail.apply('申请复用')">申请复用</button>
+        </div>
+      </div>
+    </header>
+    <dl class="detail-metrics">
+      <div v-for="([key, value], index) in metrics" :key="key">
+        <b>{{ index + 1 }}</b>
+        <dt>{{ key }}</dt>
+        <dd>{{ value }}</dd>
+      </div>
+    </dl>
+    <section class="detail-panel detail-panel--half">
+      <h2>应用基本信息</h2>
+      <dl class="info-grid work-info">
+        <div>
+          <dt>版本号</dt>
+          <dd>海能work应用</dd>
+        </div>
+        <div>
+          <dt>应用编码</dt>
+          <dd>HAINENG-WORK-001</dd>
+        </div>
+        <div>
+          <dt>所属场景</dt>
+          <dd>供应链管理</dd>
+        </div>
+        <div>
+          <dt>应用描述</dt>
+          <dd>集成企业核心业务应用，统一工作门户，提升协同效率。</dd>
+        </div>
+        <div class="video-cell">
+          <dt>应用图片或视频</dt>
+          <dd>
+            <img
+              src="/assets/work-video.png"
+              width="240"
+              height="92"
+              alt="海能work应用演示视频封面"
+            />
+          </dd>
+        </div>
+      </dl>
+    </section>
+    <section id="usage" class="detail-panel detail-panel--half" tabindex="-1">
+      <h2>使用指南</h2>
+      <dl class="info-grid">
+        <div>
+          <dt>使用功能</dt>
+          <dd>多租表格</dd>
+        </div>
+        <div>
+          <dt>使用说明</dt>
+          <dd>
+            <button
+              class="text-action"
+              type="button"
+              @click="detail.mockDownload('海能work应用使用说明.pdf')"
+            >
+              查看使用说明文档
+            </button>
+          </dd>
+        </div>
+      </dl>
+    </section>
+    <section class="detail-panel detail-panel--half">
+      <h2>相关培训内容</h2>
+      <table class="file-list">
+        <caption class="sr-only">
+          海能 Work 相关培训内容
+        </caption>
+        <thead class="sr-only">
+          <tr>
+            <th scope="col">应用</th>
+            <th scope="col">课程名称</th>
+            <th scope="col">类型与时长</th>
+            <th scope="col">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(name, index) in training" :key="name">
+            <td>
+              <AppIcon name="work-logo" :size="40" />
+            </td>
+            <td>{{ name }}</td>
+            <td>视频　·　{{ 12 + index }}:40</td>
+            <td>
+              <a href="/training" :aria-label="`学习：${name}`">去学习</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    <section class="detail-panel detail-panel--half">
+      <h2>关联素材</h2>
+      <div class="related-row">
+        <article v-for="([item, route, image], index) in related" :key="item">
+          <AppIcon :name="image" :size="54" />
+          <div>
+            <h3>
+              <a :href="route">{{ item }}</a>
+            </h3>
+            <p>{{ 1275 + index * 1065 }} 次下载</p>
+          </div>
+        </article>
+      </div>
+    </section>
+    <form class="detail-comment" @submit.prevent="submitComment">
+      <label
+        >应用评论<input
+          ref="commentInput"
+          v-model="detail.commentDraft"
+          placeholder="请输入您对该应用的评论..." /></label
+      ><button type="submit" :disabled="!detail.commentDraft.trim()">
+        提交评论
+      </button>
+      <ul v-if="detail.comments.length" aria-label="本地评论">
+        <li
+          v-for="comment in detail.comments"
+          :key="comment.id"
+          :data-comment-id="comment.id"
+        >
+          {{ comment.text }}
+        </li>
+      </ul>
+    </form>
   </article>
 </template>
-
 <style scoped>
 .work-detail .detail-hero {
   min-height: 220px;

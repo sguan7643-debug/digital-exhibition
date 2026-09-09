@@ -20,10 +20,10 @@ for (const [id, [path, sha]] of Object.entries(files)) {
   assert.doesNotMatch(source, /[●◆■▲✦⬢▣◇]/u);
 }
 
-for (const asset of ['workbench', 'materials', 'talent', 'apps', 'training', 'points', 'certification', 'operations', 'announcements', 'admin']) {
-  assert.ok(shell.includes(`/assets/nav-${asset}.png`), `共享壳缺少 ASCII 同源图标：${asset}`);
+for (const icon of ['House', 'Camera', 'Users', 'LayoutGrid', 'BookOpen', 'Trophy', 'BadgeCheck', 'ChartNoAxesCombined', 'Megaphone', 'ShieldCheck']) {
+  assert.ok(shell.includes(icon), `共享壳缺少本地矢量图标：${icon}`);
 }
-assert.doesNotMatch(shell, /\/assets\/nav-[^'"/]*[\u3400-\u9fff]/u, '共享壳不能使用可能被静态服务器错误解码的 Unicode 资产 URL');
+assert.doesNotMatch(shell, /\/assets\/nav-/u, '共享壳不能回退到可能裁切或模糊的导航位图');
 assert.doesNotMatch(shell, /[●◆■▲✦⬢▣◇]/u);
 
 console.log('01–05 独立页面、参考 SHA 与同源图标合同测试通过');

@@ -8,7 +8,7 @@ from PIL import Image
 from skimage.metrics import structural_similarity
 
 ROOT = Path(__file__).resolve().parents[1]
-REFERENCE_ROOT = Path(r'C:\Users\20266\Desktop\海油\数智展厅')
+REFERENCE_ROOT = Path(r'C:\Users\20266\Desktop\海油\数智展厅\页面UI_0817')
 EVIDENCE_ROOT = ROOT / 'evidence' / 'phase-1-visual'
 
 
@@ -23,7 +23,7 @@ def load_rgb(path: Path) -> np.ndarray:
 
 source = (ROOT / 'src' / 'fixtures' / 'pages.js').read_text(encoding='utf-8')
 pattern = re.compile(
-    r"id: '(?P<id>\d{2})'.*?reference: '(?P<reference>[^']+)',\s*(?:referenceRoot: '(?P<reference_root>[^']+)',\s*)?route: '(?P<route>[^']+)'.*?"
+    r"id: '(?P<id>\d{2})'.*?reference: '(?P<reference>[^']+)'.*?route: '(?P<route>[^']+)'.*?"
     r"width: (?P<width>\d+), height: (?P<height>\d+), sha256: '(?P<sha>[A-F0-9]{64})'"
 )
 pages = [match.groupdict() for match in pattern.finditer(source)]
@@ -33,7 +33,7 @@ results = []
 
 for page in pages:
     capture = captures[page['id']]
-    reference_path = REFERENCE_ROOT / (page['reference_root'] or '页面UI_0817') / page['reference']
+    reference_path = REFERENCE_ROOT / page['reference']
     actual_path = EVIDENCE_ROOT / f"{page['id']}.png"
     reference_rgb = load_rgb(reference_path)
     actual_rgb = load_rgb(actual_path)

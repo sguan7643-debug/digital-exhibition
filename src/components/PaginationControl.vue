@@ -12,7 +12,19 @@ const props = defineProps({
 const emit = defineEmits(['update:page', 'update:pageSize']);
 const jump = ref(String(props.page));
 const totalPages = computed(() => Math.max(1, Math.ceil(props.total / props.pageSize)));
-const pages = computed(() => Array.from({ length: totalPages.value }, (_, index) => index + 1));
+const pageItems = computed(() => {
+  const last = totalPages.value;
+  if (last <= 7) return Array.from({ length: last }, (_, index) => index + 1);
+  const values = [...new Set([1, last, props.page - 1, props.page, props.page + 1])]
+    .filter((value) => value >= 1 && value <= last)
+    .sort((a, b) => a - b);
+  const items = [];
+  values.forEach((value, index) => {
+    if (index && value - values[index - 1] > 1) items.push(`ellipsis-${value}`);
+    items.push(value);
+  });
+  return items;
+});
 watch(() => props.page, value => { jump.value = String(value); });
 function setPage(value) {
   const next = Math.min(totalPages.value, Math.max(1, Number(value) || 1));
@@ -34,7 +46,11 @@ function setPageSize(event) {
     </label>
     <nav :aria-label="label">
       <button type="button" :disabled="disabled || page === 1" @click="setPage(page - 1)">上一页</button>
-      <button v-for="number in pages" :key="number" type="button" :disabled="disabled" :aria-current="page === number ? 'page' : undefined" :aria-label="`第 ${number} 页`" @click="setPage(number)">{{ number }}</button>
+      <template v-for="item in pageItems" :key="item">
+        <button v-if="typeof item === 'number'" class="page-number" type="button" :disabled="disabled" :aria-current="page === item ? 'page' : undefined" :aria-label="`第 ${item} 页`" @click="setPage(item)">{{ item }}</button>
+        <span v-else class="pagination-ellipsis" aria-hidden="true">…</span>
+      </template>
+      <span class="mobile-page-summary" aria-live="polite">第 {{ page }} / {{ totalPages }} 页</span>
       <button type="button" :disabled="disabled || page === totalPages" @click="setPage(page + 1)">下一页</button>
     </nav>
     <label>前往 <input v-model="jump" inputmode="numeric" :disabled="disabled" aria-label="前往页码" @keydown.enter.prevent="setPage(jump)" /> 页</label>

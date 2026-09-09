@@ -66,18 +66,102 @@ export function createMessagesController(fixtures) {
   });
 }
 
-export function createFavoritesController(fixtures, sharedFavorites=null) {
+export function createFavoritesController(fixtures, sharedFavorites = null) {
+  const asNumber = (value) => Number(String(value ?? 0).replaceAll(",", ""));
   return reactive({
-    fixtures:[...fixtures], removed:[], filters:{query:'',type:'',domain:'',tag:''},queryDraft:'',page:1,pageSize:10,announcement:'',
-    get activeCount(){return this.fixtures.filter(item=>!this.removed.includes(item.id)&&(!sharedFavorites||sharedFavorites.isFavoriteId(item.id))).length;},
-    get results(){ const q=normalize(this.filters.query); return this.fixtures.filter(item=>!this.removed.includes(item.id)&&(!sharedFavorites||sharedFavorites.isFavoriteId(item.id))&&(!q||normalize(`${item.name} ${item.description}`).includes(q))&&(!this.filters.type||item.type===this.filters.type)&&(!this.filters.domain||item.domain===this.filters.domain)&&(!this.filters.tag||item.tag===this.filters.tag)); },
-    get totalPages(){return Math.max(1,Math.ceil(this.results.length/this.pageSize));},
-    get pagedResults(){const start=(this.page-1)*this.pageSize;return this.results.slice(start,start+this.pageSize);},
-    setFilter(key,value){this.filters[key]=value;this.page=1;this.announcement=`筛选完成，共 ${this.results.length} 个收藏`;},
-    resetFilters(){Object.assign(this.filters,{query:'',type:'',domain:'',tag:''});this.queryDraft='';this.page=1;this.announcement=`已清空筛选，共 ${this.results.length} 个收藏`;},
-    cancel(id){if(!this.removed.includes(id))this.removed.push(id);if(sharedFavorites)sharedFavorites.setFavoriteId(id,false);this.page=Math.min(this.page,this.totalPages);this.announcement=`已取消收藏，剩余 ${this.activeCount} 个`;},
-    setPage(value){this.page=Math.min(this.totalPages,Math.max(1,Number(value)||1));this.announcement=`已切换到第 ${this.page} 页`;},
-    setPageSize(value){this.pageSize=[10,20,50].includes(Number(value))?Number(value):10;this.page=1;this.announcement=`已切换为每页 ${this.pageSize} 条`;},
-    resetData(){this.removed=[];this.fixtures.forEach(item=>sharedFavorites?.setFavoriteId(item.id,true));this.resetFilters();this.announcement='已恢复演示收藏数据';}
+    fixtures: [...fixtures],
+    removed: [],
+    filters: { query: "", type: "", domain: "", tag: "" },
+    queryDraft: "",
+    sort: "default",
+    view: "grid",
+    page: 1,
+    pageSize: 10,
+    announcement: "",
+    get activeCount() {
+      return this.fixtures.filter(
+        (item) =>
+          !this.removed.includes(item.id) &&
+          (!sharedFavorites || sharedFavorites.isFavoriteId(item.id)),
+      ).length;
+    },
+    get results() {
+      const query = normalize(this.filters.query);
+      const rows = this.fixtures.filter(
+        (item) =>
+          !this.removed.includes(item.id) &&
+          (!sharedFavorites || sharedFavorites.isFavoriteId(item.id)) &&
+          (!query ||
+            normalize(
+              `${item.name} ${item.description} ${item.owner} ${item.developer}`,
+            ).includes(query)) &&
+          (!this.filters.type || item.type === this.filters.type) &&
+          (!this.filters.domain || item.domain === this.filters.domain) &&
+          (!this.filters.tag || item.tag === this.filters.tag),
+      );
+      if (this.sort === "usage-desc")
+        return [...rows].sort(
+          (a, b) => asNumber(b.usage) - asNumber(a.usage) || a.id.localeCompare(b.id),
+        );
+      if (this.sort === "favorites-desc")
+        return [...rows].sort(
+          (a, b) =>
+            asNumber(b.favorites) - asNumber(a.favorites) ||
+            a.id.localeCompare(b.id),
+        );
+      if (this.sort === "name")
+        return [...rows].sort((a, b) => a.name.localeCompare(b.name, "zh-CN"));
+      return rows;
+    },
+    get totalPages() {
+      return Math.max(1, Math.ceil(this.results.length / this.pageSize));
+    },
+    get pagedResults() {
+      const start = (this.page - 1) * this.pageSize;
+      return this.results.slice(start, start + this.pageSize);
+    },
+    setFilter(key, value) {
+      this.filters[key] = value;
+      this.page = 1;
+      this.announcement = `筛选完成，共 ${this.results.length} 个收藏`;
+    },
+    setSort(value) {
+      this.sort = value;
+      this.page = 1;
+      this.announcement = "收藏应用排序已更新";
+    },
+    setView(value) {
+      this.view = value === "list" ? "list" : "grid";
+      this.announcement = `已切换为${this.view === "list" ? "列表" : "卡片"}视图`;
+    },
+    resetFilters() {
+      Object.assign(this.filters, { query: "", type: "", domain: "", tag: "" });
+      this.queryDraft = "";
+      this.sort = "default";
+      this.view = "grid";
+      this.page = 1;
+      this.announcement = `已清空筛选，共 ${this.results.length} 个收藏`;
+    },
+    cancel(id) {
+      if (!this.removed.includes(id)) this.removed.push(id);
+      if (sharedFavorites) sharedFavorites.setFavoriteId(id, false);
+      this.page = Math.min(this.page, this.totalPages);
+      this.announcement = `已取消收藏，剩余 ${this.activeCount} 个`;
+    },
+    setPage(value) {
+      this.page = Math.min(this.totalPages, Math.max(1, Number(value) || 1));
+      this.announcement = `已切换到第 ${this.page} 页`;
+    },
+    setPageSize(value) {
+      this.pageSize = [10, 20, 50].includes(Number(value)) ? Number(value) : 10;
+      this.page = 1;
+      this.announcement = `已切换为每页 ${this.pageSize} 条`;
+    },
+    resetData() {
+      this.removed = [];
+      this.fixtures.forEach((item) => sharedFavorites?.setFavoriteId(item.id, true));
+      this.resetFilters();
+      this.announcement = "已恢复演示收藏数据";
+    },
   });
 }

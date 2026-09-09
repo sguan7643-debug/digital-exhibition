@@ -1,26 +1,273 @@
 <script setup>
 // Reference SHA-256: 3A6FE5F2761C9AF32A5759879FDBF1F27AEE4056EEE4006FD0297B6ECA5866D6
-import { computed, ref } from 'vue';
-import TypeLineIcon from '../components/TypeLineIcon.vue';
-const directions=[['全部','apps'],['可视化','visual'],['报表','report'],['RPA','rpa'],['数据集','dataset'],['指标','metric'],['AI','ai'],['协同应用','work'],['EAD','ead']];
-const scenes=['全部场景域','生产运营','设备管理','设备分析','安全环保','供应链管理','人力资源','财务管理','市场营销'];
-const news=[['通知','2026年第三期数智化认证考试报名正式启动','09月01日'],['通知','数字化认证平台能力地图与学习路径更新说明','08月28日'],['培训','FineReport 高级认证专题培训课程预告','08月25日'],['资讯','AI 与驾驶舱联合认证案例分享活动通知','08月21日'],['通知','第三期认证考试地点及场次安排','08月18日']];
-const selectedDirection=ref('全部'),selectedScene=ref('全部场景域'),sceneQuery=ref(''),announcement=ref(''),bookingDialog=ref(null),bookingType=ref('报表');
-const filteredScenes=computed(()=>scenes.filter(item=>!sceneQuery.value||item.includes(sceneQuery.value.trim())));
-function chooseDirection(item){selectedDirection.value=item;announcement.value=`已选择认证方向：${item}`;}
-function chooseScene(item){selectedScene.value=item;announcement.value=`已选择场景域：${item}`;}
-function openBooking(item='报表'){bookingType.value=item;bookingDialog.value?.showModal();}
-function confirmBooking(){announcement.value=`已完成 ${bookingType.value} 认证考试的本地预约演示`;bookingDialog.value?.close();}
+import { computed, ref } from "vue";
+import TypeLineIcon from "../components/TypeLineIcon.vue";
+
+const directions = [
+  ["全部", "apps"],
+  ["可视化", "visual"],
+  ["报表", "report"],
+  ["RPA", "rpa"],
+  ["数据集", "dataset"],
+  ["指标", "metric"],
+  ["AI", "ai"],
+  ["海能work应用", "work"],
+  ["EAD", "ead"],
+];
+const scenes = [
+  "全部场景域",
+  "生产运营",
+  "设备管理",
+  "设备分析",
+  "安全环保",
+  "供应链管理",
+  "人力资源",
+  "财务管理",
+  "市场营销",
+];
+const news = [
+  ["通知", "2026年第三期数智化认证考试报名正式启动", "09月01日"],
+  ["通知", "数字化认证平台能力地图与学习路径更新说明", "08月28日"],
+  ["培训", "FineReport 高级认证专题培训课程预告", "08月25日"],
+  ["资讯", "AI 与驾驶舱联合认证案例分享活动通知", "08月21日"],
+  ["通知", "第三期认证考试地点及场次安排", "08月18日"],
+];
+const selectedDirection = ref("全部");
+const selectedScene = ref("全部场景域");
+const sceneQuery = ref("");
+const announcement = ref("");
+const bookingDialog = ref(null);
+const bookingType = ref("报表");
+const filteredScenes = computed(() =>
+  scenes.filter(
+    (item) => !sceneQuery.value || item.includes(sceneQuery.value.trim()),
+  ),
+);
+
+function chooseDirection(item) {
+  selectedDirection.value = item;
+  announcement.value = `已选择认证方向：${item}`;
+}
+function chooseScene(item) {
+  selectedScene.value = item;
+  announcement.value = `已选择场景域：${item}`;
+}
+function openBooking(item = "报表") {
+  bookingType.value = item;
+  bookingDialog.value?.showModal();
+}
+function confirmBooking() {
+  announcement.value = `已完成 ${bookingType.value} 认证考试的本地预约演示`;
+  bookingDialog.value?.close();
+}
 </script>
+
 <template>
   <article class="cert-page" aria-labelledby="cert-title">
     <p class="sr-only" aria-live="polite">{{ announcement }}</p>
-    <section class="cert-hero"><div class="cert-hero-copy"><span class="hero-kicker">数字化认证平台</span><h1 id="cert-title">企业内唯一与帆软公司联合认证单位</h1><p>依托帆软权威认证体系，提供 FineReport / FineBI 全方向培训与认证。</p><p>从学习到考试一站式完成，让认证成为你数智化能力的硬核证明。</p><div><a class="hero-primary" href="#study">工具学习</a><button type="button" @click="openBooking()">考试预约</button></div></div><div class="hero-visual"><img src="/assets/certification-hero-illustration.png" width="710" height="302" alt="蓝色认证盾牌与数字城市插图" /></div></section>
-    <div class="ticker" role="note"><strong>认证动态</strong><span>2026年第三期数智化认证考试报名已开启</span><i></i><span>FineReport 高级认证培训班招生中</span><i></i><span>第二期认证通过率达 92%</span></div>
-    <div class="cert-layout"><section class="cert-main" aria-label="认证动态与学习工具"><section class="news"><header><div><span>最新动态</span><h2>新闻公告</h2></div><a href="/announcements">查看全部</a></header><ul><li v-for="item in news" :key="item[1]"><mark>{{ item[0] }}</mark><span>{{ item[1] }}</span><time>{{ item[2] }}</time></li></ul></section>
-      <section id="study" class="learning-card" aria-labelledby="study-title"><header><span class="action-icon"><TypeLineIcon name="report" :size="28" /></span><div><small>认证学习中心</small><h2 id="study-title">工具学习</h2><p>选择认证方向和业务场景，获取匹配的课程、学习路径与能力测评。</p></div></header><div class="learning-filters"><section><h3>认证方向 / 应用类型</h3><div class="direction-tags"><button v-for="[item,icon] in directions" :key="item" type="button" :aria-pressed="selectedDirection===item" @click="chooseDirection(item)"><TypeLineIcon :name="icon" :size="18" />{{ item }}</button></div></section><section><h3>场景域搜索</h3><label class="scene-input"><span class="sr-only">搜索场景域</span><input v-model="sceneQuery" type="search" placeholder="搜索场景域" /></label><div class="scene-tags"><button v-for="item in filteredScenes" :key="item" type="button" :aria-pressed="selectedScene===item" @click="chooseScene(item)">{{ item }}</button></div><p v-if="!filteredScenes.length">未找到匹配场景域</p></section></div><footer class="learning-result"><div><span>当前筛选</span><strong>{{ selectedDirection }} · {{ selectedScene }}</strong><p>已为你匹配专题课程、案例复盘、能力测评和考试准备资料。</p></div><a href="/training">进入课堂　›</a></footer></section></section>
-      <aside class="cert-info"><section class="platform-service"><div class="info-block"><span class="info-icon"><TypeLineIcon name="apps" :size="24" /></span><div><small>平台与服务</small><h2>数字化认证平台</h2><p>企业内权威认证单位，培养数智化专业人才，助力业务创新与数字化转型。</p></div></div><div class="info-block service-block"><span class="info-icon"><TypeLineIcon name="work" :size="24" /></span><div><h3>认证服务</h3><p>工作日 09:00—17:30</p><p>平台内在线咨询</p></div></div></section><section id="booking" class="booking"><span class="action-icon"><TypeLineIcon name="ead" :size="28" /></span><div><small>线上预约服务</small><h2>考试预约</h2><p>选择认证类别并预约考试场次。</p><div class="booking-tags"><button v-for="item in ['RPA','可视化','驾驶舱','报表','数据集','AI']" :key="item" type="button" @click="openBooking(item)">{{ item }}</button></div></div></section></aside></div>
-    <dialog ref="bookingDialog" class="booking-dialog" aria-labelledby="booking-title"><form method="dialog" @submit.prevent="confirmBooking"><header><h2 id="booking-title">预约认证考试</h2><button type="button" aria-label="关闭" @click="bookingDialog.close()">×</button></header><p>当前预约类别：{{ bookingType }}</p><label>考试场次<select required><option value="">请选择考试场次</option><option>2026-09-18 14:00　总部考试中心</option><option>2026-09-25 09:30　线上监考场</option></select></label><label>联系电话<input value="139****5678" required /></label><footer><button type="button" @click="bookingDialog.close()">取消</button><button type="submit">确认预约</button></footer></form></dialog>
+    <section class="cert-hero">
+      <div class="cert-hero-copy">
+        <span class="hero-kicker">数字化认证平台</span>
+        <h1 id="cert-title">企业内唯一与帆软公司联合认证单位</h1>
+        <p>依托帆软权威认证体系，提供 FineReport / FineBI 全方向培训与认证。</p>
+        <p>从学习到考试一站式完成，让认证成为你数智化能力的硬核证明。</p>
+        <div>
+          <a class="hero-primary" href="#study">工具学习</a
+          ><button type="button" @click="openBooking()">考试预约</button>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <img
+          src="/assets/certification-hero-illustration.png"
+          width="710"
+          height="302"
+          alt="蓝色认证盾牌与数字城市插图"
+        />
+      </div>
+    </section>
+
+    <div class="ticker" role="note">
+      <strong>认证动态</strong
+      ><span>2026年第三期数智化认证考试报名已开启，截止日期为9月30日</span
+      ><i></i><span>FineReport 高级认证培训班招生中</span><i></i
+      ><span>第二期认证通过率达 92%</span>
+    </div>
+
+    <div class="cert-layout">
+      <section class="cert-main" aria-label="认证动态与学习工具">
+        <section class="news">
+          <header>
+            <div>
+              <span>最新动态</span>
+              <h2>新闻公告</h2>
+            </div>
+            <a href="/announcements">查看全部</a>
+          </header>
+          <ul>
+            <li v-for="item in news" :key="item[1]">
+              <mark>{{ item[0] }}</mark
+              ><span>{{ item[1] }}</span
+              ><time>{{ item[2] }}</time>
+            </li>
+          </ul>
+        </section>
+
+        <section id="study" class="learning-card" aria-labelledby="study-title">
+          <header>
+            <span class="action-icon"
+              ><TypeLineIcon name="report" :size="28"
+            /></span>
+            <div>
+              <small>认证学习中心</small>
+              <h2 id="study-title">工具学习</h2>
+              <p>
+                选择认证方向和业务场景，获取匹配的课程、学习路径与能力测评。
+              </p>
+            </div>
+          </header>
+          <div class="learning-filters">
+            <section aria-labelledby="direction-title">
+              <h3 id="direction-title">认证方向 / 应用类型</h3>
+              <div class="direction-tags">
+                <button
+                  v-for="[item, icon] in directions"
+                  :key="item"
+                  type="button"
+                  :aria-pressed="selectedDirection === item"
+                  @click="chooseDirection(item)"
+                >
+                  <TypeLineIcon :name="icon" :size="18" />{{ item }}
+                </button>
+              </div>
+            </section>
+            <section aria-labelledby="scene-title">
+              <h3 id="scene-title">场景域搜索</h3>
+              <label class="scene-input"
+                ><span class="sr-only">搜索场景域</span
+                ><input
+                  v-model="sceneQuery"
+                  type="search"
+                  placeholder="搜索场景域"
+              /></label>
+              <div class="scene-tags">
+                <button
+                  v-for="item in filteredScenes"
+                  :key="item"
+                  type="button"
+                  :aria-pressed="selectedScene === item"
+                  @click="chooseScene(item)"
+                >
+                  {{ item }}
+                </button>
+              </div>
+              <p v-if="!filteredScenes.length" class="no-result">
+                未找到匹配场景域
+              </p>
+            </section>
+          </div>
+          <footer class="learning-result">
+            <div>
+              <span>当前筛选</span
+              ><strong>{{ selectedDirection }} · {{ selectedScene }}</strong>
+              <p>已为你匹配专题课程、案例复盘、能力测评和考试准备资料。</p>
+            </div>
+            <a href="/training">进入课堂　›</a>
+          </footer>
+        </section>
+      </section>
+
+      <aside class="cert-info">
+        <section class="platform-service">
+          <div class="info-block">
+            <span class="info-icon"
+              ><TypeLineIcon name="apps" :size="24"
+            /></span>
+            <div>
+              <small>平台与服务</small>
+              <h2>数字化认证平台</h2>
+              <p>
+                企业内唯一与帆软联合的认证单位，依托权威体系培养数智化专业人才，助力业务创新与数字化转型。
+              </p>
+            </div>
+          </div>
+          <div class="info-block service-block">
+            <span class="info-icon"
+              ><TypeLineIcon name="work" :size="24"
+            /></span>
+            <div>
+              <h3>认证服务</h3>
+              <p>工作日 09:00—17:30</p>
+              <p>Cert@haiyou.com<br />010-8888-0000</p>
+            </div>
+          </div>
+        </section>
+        <section id="booking" class="booking">
+          <span class="action-icon"
+            ><TypeLineIcon name="ead" :size="28"
+          /></span>
+          <div>
+            <small>线上预约服务</small>
+            <h2>考试预约</h2>
+            <p>选择认证类别并预约考试场次。</p>
+            <div class="booking-tags">
+              <button
+                v-for="item in [
+                  'RPA',
+                  '可视化',
+                  '驾驶舱',
+                  '报表',
+                  '数据集',
+                  'AI',
+                ]"
+                :key="item"
+                type="button"
+                @click="openBooking(item)"
+              >
+                {{ item }}
+              </button>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <dialog
+      ref="bookingDialog"
+      class="booking-dialog"
+      aria-labelledby="booking-title"
+    >
+      <form method="dialog" @submit.prevent="confirmBooking">
+        <header>
+          <span class="dialog-icon"
+            ><TypeLineIcon name="ead" :size="26"
+          /></span>
+          <div>
+            <h2 id="booking-title">预约认证考试</h2>
+            <p>当前预约类别：{{ bookingType }}</p>
+          </div>
+          <button
+            type="button"
+            aria-label="关闭"
+            @click="bookingDialog.close()"
+          >
+            ×
+          </button>
+        </header>
+        <label
+          >考试场次<select required>
+            <option value="">请选择考试场次</option>
+            <option>2026-09-18 14:00　总部考试中心</option>
+            <option>2026-09-25 09:30　线上监考场</option>
+            <option>2026-10-16 14:00　总部考试中心</option>
+          </select></label
+        >
+        <label>联系电话<input value="139****5678" required /></label>
+        <footer>
+          <button type="button" @click="bookingDialog.close()">取消</button
+          ><button type="submit">确认预约</button>
+        </footer>
+      </form>
+    </dialog>
   </article>
 </template>
 

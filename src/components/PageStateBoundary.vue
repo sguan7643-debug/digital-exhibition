@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-const RESULT_SELECTOR='[data-state-result],.panel,.message-stats,.message-panel,.favorite-stats,.favorite-grid,.favorite-pagination,.notice-stats,.notice-table,.apps-tools,.apps-grid,.apps-empty,.apps-pagination,.point-stats,.point-layout,.rule-panel,.detail-stats,.point-tabs,.point-table,.course-grid,.training-pagination,.ops-stats,.ops-grid,.operations-page>footer,.admin-stats,.admin-table,.app-admin-stats,.app-admin-table,.config-grid,.log-panel,.talent-people main>section,.talent-projects main>section,.progress-table';
+const RESULT_SELECTOR='[data-state-result],.panel,.message-stats,.message-panel,.favorite-stats,.favorite-grid,.favorite-pagination,.notice-stats,.notice-table,.apps-tools,.apps-grid,.apps-empty,.apps-pagination,.materials-tools,.materials-grid,.materials-empty,.materials-pagination,.point-stats,.point-layout,.rule-panel,.detail-stats,.point-tabs,.point-table,.course-grid,.training-pagination,.ops-stats,.ops-grid,.operations-page>footer,.admin-stats,.admin-table,.app-admin-stats,.app-admin-table,.config-grid,.log-panel,.talent-people main>section,.talent-projects main>section,.progress-table';
 
 const props=defineProps({
   page:{type:Object,required:true},

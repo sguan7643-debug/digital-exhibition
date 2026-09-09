@@ -2,7 +2,7 @@ import { defineConfig, loadEnv } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { feishuReadOnlyProxy } from './server/feishu-vite-plugin.mjs';
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ command, mode }) => {
   const serverEnv = loadEnv(mode, process.cwd(), 'FEISHU_');
   return ({
   plugins: [vue(), feishuReadOnlyProxy({
@@ -17,7 +17,9 @@ export default defineConfig(({ mode }) => {
   esbuild: false,
   resolve: {
     alias: {
-      vue: 'vue/dist/vue.esm-browser.prod.js'
+      vue: command === 'serve'
+        ? 'vue/dist/vue.esm-browser.js'
+        : 'vue/dist/vue.esm-browser.prod.js'
     }
   },
   build: {

@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRenderer, h, nextTick } from 'vue';
-import { APP_FIXTURES, PEOPLE_FIXTURES } from '../src/fixtures/mock-data.js';
+import { APP_CATEGORIES, APP_FIXTURES, PEOPLE_FIXTURES } from '../src/fixtures/mock-data.js';
 import {
   createAppsController,
   createShellController,
   createSixStateController,
-  createTalentController
+  createTalentController,
+  normalizeAppCategory,
+  applicationAccessMode
 } from '../src/state/interaction-controllers.js';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
@@ -24,7 +26,13 @@ assert.equal(shell.appsExpanded, false);
 assert.equal(shell.announcement, '应用中心子菜单已收起');
 
 assert.deepEqual([...new Set(APP_FIXTURES.map(app => app.category))].sort(),
-  ['AI', 'RPA', '可视化报表', '大屏', '数据集', '指标', '海能work应用', '驾驶舱'].sort());
+  ['AI', 'EAD', 'RPA', '其他工具', '可视化报表', '大屏', '数据集', '指标', '海能work应用', '驾驶舱'].sort());
+for (const app of APP_FIXTURES) {
+  assert.ok(app.department?.trim(), `${app.name} 必须提供负责部门`);
+  assert.ok(app.developerDepartment?.trim(), `${app.name} 必须提供开发部门`);
+  assert.ok(['direct', 'apply'].includes(app.accessMode), `${app.name} 的访问模式必须有效`);
+  assert.equal(applicationAccessMode(app.route), app.accessMode, `${app.name} 的卡片和详情访问模式必须一致`);
+}
 const apps = createAppsController(APP_FIXTURES);
 assert.equal(apps.results.length, APP_FIXTURES.length);
 apps.setFilter('category', 'RPA');
@@ -33,6 +41,15 @@ apps.setFilter('query', '发票');
 assert.deepEqual(apps.results.map(app => app.id), ['app-rpa-001']);
 apps.setFilter('query', '不存在的应用');
 assert.equal(apps.results.length, 0);
+apps.reset();
+apps.setFilter('category', '可视化');
+assert.deepEqual(apps.results.map(app => app.category).sort(), ['大屏', '驾驶舱'].sort());
+assert.equal(normalizeAppCategory('可视化报表'), '报表');
+for (const category of APP_CATEGORIES) {
+  apps.reset();
+  apps.setFilter('category', category);
+  assert.ok(apps.results.length > 0, `${category} 分类必须至少展示一个应用`);
+}
 apps.reset();
 apps.setSort('usage-desc');
 assert.ok(apps.results[0].usage >= apps.results.at(-1).usage);
@@ -61,6 +78,25 @@ assert.equal(talent.pagedResults.length, 10);
 talent.setPage(2);
 assert.equal(talent.page, 2);
 assert.notEqual(talent.pagedResults[0].id, PEOPLE_FIXTURES[0].id);
+
+const talentCreate = createTalentController(PEOPLE_FIXTURES);
+talentCreate.openCreate();
+assert.equal(talentCreate.creating, true);
+assert.equal(talentCreate.drawerOpen, true);
+assert.equal(talentCreate.saveNew(), false);
+assert.ok(Object.keys(talentCreate.errors).length > 0);
+Object.assign(talentCreate.draft, {
+  name: '测试人才', age: '35', inPool: '是', type: '专业人才', department: '采购管理部',
+  domain: '供应链', office: '采购一室', tags: '采购,数据', direction: '数字化采购',
+  start: '2026-09-01', end: '2026-12-31'
+});
+const createdTalent = talentCreate.saveNew();
+assert.equal(createdTalent.id, 'person-local-033');
+assert.equal(createdTalent.age, 35);
+assert.equal(talentCreate.fixtures.length, PEOPLE_FIXTURES.length + 1);
+assert.equal(talentCreate.fixtures[0].id, createdTalent.id);
+assert.equal(talentCreate.drawerOpen, false);
+assert.equal(talentCreate.page, 1);
 
 const scheduled = [];
 const sixState = createSixStateController('error', (callback, delay) => scheduled.push({ callback, delay }));
@@ -126,8 +162,12 @@ for (const contract of ['createTalentController', 'role="dialog"', 'aria-modal="
 }
 for (const contract of ['xltTalentDrawer', 'window.history.pushState', 'window.history.back()', 'setBackgroundInert', 'focusDrawer'])
   assert.ok(talentSource.includes(contract), `人才抽屉 History/隔离合同缺失：${contract}`);
-for (const contract of ['pagedPeople', 'controller.setPage', '共 {{ controller.results.length }} 条'])
+for (const contract of ['pagedPeople', 'controller.setPage'])
   assert.ok(talentSource.includes(contract), `人才库真实分页合同缺失：${contract}`);
+assert.match(talentSource, /<PaginationControl[\s\S]*?:total="filteredPeople\.length"/,
+  '人才库分页总数必须来自当前筛选结果');
+for (const contract of ['@click="openCreate"', 'controller.openCreate()', 'updateDrawerQuery("create"', 'submitCreate'])
+  assert.ok(talentSource.includes(contract), `新增人才右侧填写合同缺失：${contract}`);
 assert.ok(!talentSource.includes('>更多<'), '人才库不得保留“更多”操作');
 for (const contract of ['handleInternalNavigation', 'window.history.pushState', 'restoreRouteSession', '(target||main).focus()'])
   assert.ok(appSource.includes(contract), `站内路由未保持壳层状态/焦点：${contract}`);

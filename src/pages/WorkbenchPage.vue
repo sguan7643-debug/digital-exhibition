@@ -29,17 +29,14 @@ async function runRemoteSearch(){
     searchState.value=error?.code==='AUTHENTICATION_REQUIRED'?'authentication-required':'error';
   }
 }
-function receiveWorkbenchFilter(event){
-  const {key,value}=event.detail;
-  if(key==='reset')controller.reset();else if(key==='query')controller.setQuery(value);else if(key==='scene')controller.setScene(value);
-  void runRemoteSearch();
-}
+function receiveWorkbenchFilter(event){const {key,value}=event.detail;if(key==='reset')controller.reset();else if(key==='query')controller.setQuery(value);else if(key==='scene')controller.setScene(value);void runRemoteSearch();}
 function overviewHref(label){const categories={'数据集':'数据集','帆软报表':'可视化报表','RPA机器人':'RPA','AI智能体':'AI'};return categories[label]?`/apps?category=${encodeURIComponent(categories[label])}`:'/apps';}
 onMounted(()=>window.addEventListener('xlt:workbench-filter',receiveWorkbenchFilter));
 onBeforeUnmount(()=>window.removeEventListener('xlt:workbench-filter',receiveWorkbenchFilter));
 const fallbackOverview = [
-  ['数据集', '186'], ['帆软报表', '92'], ['RPA机器人', '64'],
-  ['EAD应用', '18'], ['AI智能体', '27'], ['其他应用', '35']
+  ['数据集', '186', '/assets/overview-dataset.png'], ['帆软报表', '92', '/assets/overview-report.png'],
+  ['RPA机器人', '64', '/assets/overview-rpa.png'], ['EAD应用', '18', '/assets/overview-ead.png'],
+  ['AI智能体', '27', '/assets/overview-ai.png'], ['其他应用', '35', '/assets/overview-other.png']
 ];
 const overview=computed(()=>remote.value?.appTypeOverview?.length?remote.value.appTypeOverview.map(item=>[item.typeName||item.typeCode,Number(item.count||0).toLocaleString('zh-CN')]):fallbackOverview);
 const fallbackCourses = [
@@ -55,22 +52,23 @@ const fallbackNotices = [
 ];
 const notices=computed(()=>remote.value?.announcements?.length?remote.value.announcements.map(item=>[item.typeName,item.title,item.publishedAt?.replace('T',' ').slice(5,16)||'','blue',item.detailPath]):fallbackNotices.map((item,index)=>[...item,index===0?'/announcements/notice-001':'/announcements']));
 const fallbackUsage = [
-  ['应用使用数', '18', '12', 'up'], ['报表查看次数', '236', '8', 'up'],
-  ['数据查询次数', '326', '3', 'down'], ['收藏应用数', '12', '5', 'up']
+  ['应用使用数', '18', '12', 'up', '/assets/usage-visits.png'], ['报表查看次数', '236', '8', 'up', '/assets/usage-count.png'],
+  ['数据查询次数', '326', '3', 'down', '/assets/usage-users.png'], ['收藏应用数', '12', '5', 'up', '/assets/usage-favorites.png']
 ];
 const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value.usage.appVisitCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.visitChange||0),remote.value.usage.visitChange<0?'down':'up'],['应用使用次数',Number(remote.value.usage.appUseCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.useChange||0),remote.value.usage.useChange<0?'down':'up'],['收藏应用数',Number(remote.value.usage.favoriteAppCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.favoriteChange||0),remote.value.usage.favoriteChange<0?'down':'up'],['数据更新时间',remote.value.lastUpdatedAt?.replace('T',' ').slice(5,16)||'—','0','up']]:fallbackUsage);
 </script>
 
 <template>
-  <div class="workbench-page" data-visual-baseline="ui-update-0831-workbench"><p class="sr-only" aria-live="polite">{{ searchState==='loading'?'正在从飞书检索应用':searchState==='error'?'飞书检索失败，保留当前结果':controller.announcement }}</p>
+  <div class="workbench-page"><p class="sr-only" aria-live="polite">{{ searchState==='loading'?'正在从飞书检索应用':searchState==='error'?'飞书检索失败，保留当前结果':controller.announcement }}</p>
     <section class="hero-panel" aria-labelledby="greeting-title">
-      <img class="hero-avatar" src="/assets/user-avatar.png" width="78" height="78" :alt="`${remote?.profile.displayName||'当前用户'}头像`" />
+      <img class="hero-avatar" src="/assets/user-avatar.png" width="68" height="68" :alt="`${remote?.profile.displayName||'当前用户'}头像`" />
       <div class="greeting">
         <h1 id="greeting-title">{{ remote?.greeting.text||'上午好，张三丰' }}</h1>
         <p>{{ remote?.hero.subtitle||'欢迎来到数智产品展厅平台，探索更卓越的应用，助力业务高效运营！' }}</p>
         <small v-if="remote">数据截至：{{ remote.dataAsOf?.replace('T',' ').slice(0,16)||'—' }}　　最后更新：{{ remote.lastUpdatedAt?.replace('T',' ').slice(0,16)||'—' }}</small>
         <small v-else>数据截至：2025-05-08　　最后更新：10:18</small>
       </div>
+      <img class="hero-ocean" src="/assets/hero-ocean.png" width="827" height="136" alt="海上钻井平台、船舶与远山插图" />
     </section>
 
     <section class="panel overview-panel" aria-labelledby="overview-title">

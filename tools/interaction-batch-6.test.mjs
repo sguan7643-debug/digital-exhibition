@@ -23,7 +23,8 @@ assert.match(detail.comments[0].id,/comment-1$/);
 assert.equal(detail.commentDraft,'');
 
 const source=readFileSync(new URL('../src/pages/ToolDetailPage.vue',import.meta.url),'utf8');
-for(const contract of ['createDetailController','createDetailController(\'/apps/tool-001\',routeSession)','aria-pressed','mockDownload','watchTraining','submitComment','detail.comments'])assert.ok(source.includes(contract),`PP08 未接线：${contract}`);
+for(const contract of ['createDetailController','aria-pressed','mockDownload','watchTraining','submitComment','detail.comments'])assert.ok(source.includes(contract),`PP08 未接线：${contract}`);
+assert.match(source,/createDetailController\(\s*["']\/apps\/tool-001["']\s*,\s*routeSession/,'PP08 必须绑定工具详情路由状态');
 assert.doesNotMatch(source,/href="#main-content">下载/,'下载不得用假锚点冒充');
 
 console.log('第六批 interaction：工具详情收藏、申请、本地附件、培训和评论行为通过');

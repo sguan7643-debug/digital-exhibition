@@ -7,11 +7,11 @@ const appSource = await readFile(new URL('../src/App.vue', import.meta.url), 'ut
 const applySource = await readFile(new URL('../src/pages/OnboardingApplyPage.vue', import.meta.url), 'utf8');
 
 assert.equal(PAGE_MATRIX.length, 30, 'the frozen 30-page visual matrix must remain unchanged');
-assert.equal(resolvePage('/apps/onboarding/apply')?.id, '31');
+assert.equal(resolvePage('/apps/onboarding/apply')?.id, '32');
 assert.match(appsSource, /href=["']\/apps\/onboarding\/apply["']/);
 assert.doesNotMatch(appsSource, /应用上线申请为本地演示操作/);
 assert.match(appSource, /import OnboardingApplyPage from ['"]\.\/pages\/OnboardingApplyPage\.vue['"]/);
-assert.match(appSource, /<onboarding-apply-page v-else-if="page\.id === '31'"/);
+assert.match(appSource, /<onboarding-apply-page v-else-if="page\.id === '32'"/);
 assert.match(applySource, /<form[^>]*@submit\.prevent="submitApplication"/);
 assert.match(applySource, /href="\/apps"/);
 assert.match(applySource, /href="\/apps\/onboarding\/status"/);

@@ -18,7 +18,8 @@ assert.equal(detail.comments[0].text,'统一门户很方便');
 assert.match(detail.comments[0].id,/comment-1$/);
 
 const source=readFileSync(new URL('../src/pages/HainengWorkDetailPage.vue',import.meta.url),'utf8');
-for(const contract of ['createDetailController','createDetailController(\'/apps/haineng-work-001\',routeSession','aria-pressed','detail.mockDownload','detail.submitComment','detail.comments','href="/apps?category=海能work应用"'])assert.ok(source.includes(contract),`PP09 未接线：${contract}`);
+for(const contract of ['createDetailController','aria-pressed','detail.mockDownload','detail.submitComment','detail.comments','href="/apps?category=海能work应用"'])assert.ok(source.includes(contract),`PP09 未接线：${contract}`);
+assert.match(source,/createDetailController\(\s*["']\/apps\/haineng-work-001["']\s*,\s*routeSession/,'PP09 必须绑定海能 Work 详情路由状态');
 assert.doesNotMatch(source,/href="#main-content"/,'海能 Work 详情不得用假锚点冒充文档或外链');
 assert.doesNotMatch(source,/window\.open|location\.(?:assign|replace)/,'海能 Work 详情不得唤起真实外部应用');
 

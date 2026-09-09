@@ -11,9 +11,13 @@ globalThis.window = {
   fetch(input) { calls.push(['fetch', input]); return Promise.resolve({ ok: true }); },
   WebSocket
 };
-globalThis.navigator = {
-  sendBeacon(url) { calls.push(['beacon', url]); return true; }
-};
+Object.defineProperty(globalThis, 'navigator', {
+  configurable: true,
+  writable: true,
+  value: {
+    sendBeacon(url) { calls.push(['beacon', url]); return true; }
+  }
+});
 
 const { installLocalOnlyNetworkGuard } = await import('../src/runtime/network-guard.js');
 installLocalOnlyNetworkGuard();

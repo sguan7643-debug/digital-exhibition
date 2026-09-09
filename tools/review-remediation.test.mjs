@@ -8,8 +8,14 @@ const apps = read('src/pages/AppsPage.vue');
 const training = read('src/pages/TrainingPage.vue');
 const certification = read('src/pages/CertificationPage.vue');
 const shell = read('src/components/ExhibitionShell.vue');
+const typeLineIcon = read('src/components/TypeLineIcon.vue');
 const talent = read('src/pages/TalentPeoplePage.vue');
 const globalStyle = read('src/style.css');
+const detailSources = [
+  'ToolDetailPage.vue', 'HainengWorkDetailPage.vue', 'ReportDetailPage.vue',
+  'DashboardDetailPage.vue', 'DatasetDetailPage.vue', 'MetricDetailPage.vue',
+  'AiDetailPage.vue', 'EadDetailPage.vue', 'RpaDetailPage.vue'
+].map(file => read(`src/pages/${file}`));
 const calibration = JSON.parse(read('src/fixtures/visual-calibration-results.json'));
 const manifest = JSON.parse(read('src/fixtures/asset-manifest.json'));
 
@@ -34,32 +40,34 @@ for (const atomic of [
 
 assert.doesNotMatch(shell, /\.standard-shell \.topbar\s*\{/);
 assert.match(shell, /\.standard-shell \.page-frame\{grid-template-columns:220px/);
-assert.match(shell, /\.primary-nav\{overflow-x:auto/);
+assert.match(shell, /\.primary-nav\{[^}]*overflow-x:auto/);
 assert.doesNotMatch(shell, /primary-nav a:nth-child\(n\+7\)[^{]*\{[^}]*display\s*:\s*none/);
-for (const asset of ['category-rpa.png', 'category-screen.png', 'category-cockpit.png', 'category-report.png', 'category-metric.png', 'category-dataset.png', 'category-ai.png', 'category-work.png']) {
-  assert.match(shell, new RegExp(asset.replace('.', '\\.')));
+assert.match(shell, /TypeLineIcon/);
+for (const icon of ['materials', 'apps', 'visual', 'report', 'rpa', 'dataset', 'metric', 'ai', 'work', 'ead', 'tools']) {
+  assert.ok(typeLineIcon.includes(`name === '${icon}'`) || (icon === 'tools' && typeLineIcon.includes('v-else')), `统一线稿图标缺少：${icon}`);
 }
 assert.doesNotMatch(shell, /class="action-link"[^>]*>[\s\S]{0,180}<small>/);
 
 for (const text of ['应用名称或关键词', '请输入应用名称或关键词', '标签', '请选择标签', '应用类型', '请选择应用类型', '主题域', '请选择主题域']) {
   assert.ok(apps.includes(text), `应用中心筛选视觉合同缺少：${text}`);
 }
-assert.match(apps, /grid-template-columns:\s*350px 250px 265px 250px 64px 64px/);
+assert.match(apps, /grid-template-columns:\s*350px\s+250px\s+265px\s+250px\s+64px\s+64px/);
 
 for (const text of ['人才库', '所属部门：', '领域\/专业：', '责任科室：', '本期是否在库：', '轮岗计划-开始时间', '轮岗计划-结束时间', '人才详情']) {
   assert.ok(talent.includes(text), `人才库权威视觉合同缺少：${text}`);
 }
-assert.match(talent, /grid-template-columns:\s*minmax\(260px, 1\.5fr\) repeat\(4, minmax\(160px, 1fr\)\) 80px 80px 80px/);
-assert.match(talent, /tbody tr\[aria-selected="true"\]\s*\{\s*background:\s*#eef5ff/,
+assert.match(talent, /grid-template-columns:\s*minmax\(260px,\s*1\.5fr\)\s+repeat\(4,\s*minmax\(160px,\s*1fr\)\)\s+80px\s+80px/,
+  '人才筛选栏必须使用可读的弹性列宽，不得回退到早期窄列');
+assert.match(talent, /tbody tr\[aria-selected=(?:"true"|true)\]\s*\{\s*background:\s*#eef5ff/,
   '人才库只能高亮用户实际选中的行，初始不得伪造首行选中');
 assert.doesNotMatch(talent, />×</);
 
 assert.match(shell, /@media\(min-width:761px\) and \(max-width:940px\)\{[^}]*grid-template-columns:220px/,
-  '761–940px 必须保留用户批准的 220px 固定目录栏');
+  '窄桌面仍须保留统一的 220px 目录栏');
 assert.match(shell, /@media\(min-width:941px\) and \(max-width:1600px\)\{[^}]*grid-template-columns:220px/,
   '941–1600px 参考必须保留获批的 220px 固定目录栏');
 assert.match(shell, /\.exhibition-shell\{height:100vh;overflow:hidden;display:grid;grid-template-columns:minmax\(0,1fr\);grid-template-rows:auto minmax\(0,1fr\)\}/,
-  '页面壳必须锁定 viewport，并允许顶层网格在窄桌面视口内收缩');
+  '页面壳必须锁定 viewport，禁止 document 整体纵向滚动');
 assert.match(shell, /\.page-frame\{min-height:0;[^}]*grid-template-columns:220px minmax\(0,1fr\)\}/,
   '固定顶栏下方区域必须允许右侧滚动容器收缩');
 assert.match(shell, /\.sidebar\{min-height:0;[^}]*overflow-y:auto/,
@@ -68,16 +76,18 @@ assert.match(shell, /main\{min-width:0;min-height:0;overflow-y:auto/,
   '只有右侧主要内容区域可以纵向滚动');
 assert.match(shell, /'certification-shell': props\.page\.id === '27'/,
   '数字化认证必须有冻结参考专属的壳层视觉几何标识');
-assert.doesNotMatch(shell, /\.certification-shell \.topbar/,
-  '数字化认证页不得覆盖全站统一的 69px 新版头部');
+assert.doesNotMatch(shell, /\.certification-shell \.topbar\{/,
+  '数字化认证应直接继承全站 63px 顶部导航高度，不得单独覆盖');
 assert.match(shell, /\.certification-shell \.page-frame\{grid-template-columns:220px minmax\(0,1fr\)\}/,
-  '数字化认证必须沿用新版统一的 220px 左侧导航宽度');
-assert.match(certification, /:global\(#main-content\) > \.cert-page\s*\{\s*padding:\s*18px 20px 28px/,
-  '数字化认证页必须采用 2026-09-04 视觉源的统一内容边距');
-assert.match(shell, /@media\(min-width:761px\) and \(max-width:1000px\)\{[\s\S]*\.primary-nav\{overflow:hidden\}/,
-  '845–1000px 冻结参考必须完整展示顶栏目的地，不能出现横向滚动条');
-assert.match(shell, /@media\(min-width:761px\) and \(max-width:1000px\)\{[\s\S]*\.primary-nav a\{min-width:0;flex:1 1 0/,
-  '窄幅顶栏项目必须等比分配可用宽度且保持全部可达');
+  '数字化认证应与全站共享 220px 左侧导航宽度');
+assert.equal((shell.match(/\.certification-shell \.topbar\{/g) || []).length, 0,
+  '数字化认证壳层不得保留独立顶栏几何规则');
+assert.match(certification, /:global\(#main-content\)\s*>\s*\.cert-page\s*\{[\s\S]*?padding:\s*18px 20px 28px/,
+  '数字化认证页必须使用统一内容边距并让横幅充满可用区域');
+assert.match(shell, /@media\(min-width:761px\) and \(max-width:1000px\)\{[\s\S]*?\.primary-nav a\{[^}]*flex:0 0 auto/,
+  '中等分辨率顶栏必须保持不压缩的导航项，并通过基础横向滚动保持全部目的地可达');
+assert.doesNotMatch(shell, /@media\(min-width:761px\) and \(max-width:1000px\)[\s\S]*?font-size:(?:8|9)px/,
+  '中等分辨率下不得把顶栏文字压缩到 8–9px');
 assert.match(globalStyle, /\.product-detail \.file-list\{[^}]*table-layout:fixed/,
   '详情表格必须在右侧主内容宽度内布局，禁止撑出横向滚动');
 assert.match(globalStyle, /@media\(min-width:761px\) and \(max-width:1000px\)\{[\s\S]*\.product-detail \.detail-metrics div\{min-width:0;padding:0 4px\}/,
@@ -86,10 +96,14 @@ assert.match(globalStyle, /\.product-detail \.training-row article,\.product-det
   '详情卡片必须允许网格收缩，禁止右侧内容被裁掉');
 assert.doesNotMatch(globalStyle, /@media\(max-width:1000px\)\{\.product-detail/,
   '845–963px 原生详情参考不能触发产品详情堆叠，避免整页高度膨胀');
-assert.match(globalStyle, /grid-template-columns:86px minmax\(0,1fr\) 330px/,
-  '宽幅详情页必须为同排三按钮与插画预留 330px，避免 Hero 纵向膨胀');
-assert.match(globalStyle, /@media\(min-width:761px\) and \(max-width:1000px\)[\s\S]*grid-template-columns:72px minmax\(0,1fr\) 240px/,
-  '窄幅参考仍保持三栏，但操作区收敛为 240px');
+for (const source of detailSources) {
+  assert.match(source, /TypeLineIcon/, '每个应用详情必须使用统一线稿类型图标');
+  assert.doesNotMatch(source, /class="detail-illustration"/, '应用详情 Hero 不得保留装饰插图');
+}
+assert.match(globalStyle, /\.product-detail \.detail-logo\.detail-type-icon\s*\{[^}]*width:74px;[^}]*height:74px/,
+  '应用详情图标必须使用统一的 74px 方形线稿容器');
+assert.match(globalStyle, /\.product-detail\s*>\s*\.detail-hero\s*\{\s*min-height:0/,
+  '删除 Hero 插图后详情头部必须按内容自适应高度');
 assert.match(globalStyle, /@media\(min-width:761px\) and \(max-width:1000px\)[\s\S]*min-width:68px/,
   '窄幅详情操作按钮必须同排，不能因 92px 最小宽度换行');
 assert.match(globalStyle, /\.rpa-detail \.detail-hero\{min-height:218px;padding:11px 18px 4px\}/,

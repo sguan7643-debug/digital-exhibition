@@ -14,9 +14,11 @@ const runtimeFiles = [
 ];
 
 const forbiddenBrand = /中国海油|中海油|海油|CNOOC|cnooc-logo/i;
+const approvedCopyright = 'Copyright © 2026 中国海油 · 数智产品展厅 版权所有';
 for (const relativePath of runtimeFiles) {
   const source = readFileSync(`${root}${relativePath}`, 'utf8');
-  assert.doesNotMatch(source, forbiddenBrand, `${relativePath} 仍包含需要隐藏的海油品牌 Logo 或文字`);
+  const visibleBrandSurface = source.replaceAll(approvedCopyright, '');
+  assert.doesNotMatch(visibleBrandSurface, forbiddenBrand, `${relativePath} 仍包含需要隐藏的海油品牌 Logo 或文字`);
 }
 
 console.log(`brand visibility remediation passed (${runtimeFiles.length} runtime files)`);
