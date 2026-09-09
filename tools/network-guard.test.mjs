@@ -24,6 +24,7 @@ installLocalOnlyNetworkGuard();
 
 await window.fetch('/local-fixture.json');
 await window.fetch('http://localhost:4173/asset.png');
+await window.fetch('http://10.151.23.119:28080/api/processInstanceStart', { method: 'POST' });
 assert.throws(() => window.fetch('https://outside.invalid/business'), /已阻止外部网络请求/);
 
 const xhr = new XMLHttpRequest();
@@ -35,5 +36,5 @@ assert.throws(() => new window.WebSocket('wss://outside.invalid/socket'), /已�
 assert.equal(navigator.sendBeacon('/local-log', 'fixed'), true);
 assert.throws(() => navigator.sendBeacon('https://outside.invalid/log'), /已阻止外部网络请求/);
 
-assert.deepEqual(calls.map(call => call[0]), ['fetch', 'fetch', 'xhr', 'ws', 'beacon']);
+assert.deepEqual(calls.map(call => call[0]), ['fetch', 'fetch', 'fetch', 'xhr', 'ws', 'beacon']);
 console.log('本地请求放行与 HTTP/XHR/WebSocket/Beacon 外网阻断测试通过');

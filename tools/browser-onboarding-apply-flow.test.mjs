@@ -14,7 +14,35 @@ const origin = process.env.EXHIBITION_TEST_ORIGIN || 'http://127.0.0.1:4173';
 const browser = await chromium.launch({ headless: true, executablePath });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const errors = [];
+let approvalRequest = null;
 page.on('pageerror', error => errors.push(error.message));
+await page.route('**/api/processInstanceStart', async route => {
+  if (route.request().method() === 'OPTIONS') {
+    await route.fulfill({
+      status: 204,
+      headers: {
+        'access-control-allow-origin': '*',
+        'access-control-allow-methods': 'POST, OPTIONS',
+        'access-control-allow-headers': 'content-type'
+      }
+    });
+    return;
+  }
+  approvalRequest = {
+    method: route.request().method(),
+    body: route.request().postDataJSON()
+  };
+  await route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    headers: {
+      'access-control-allow-origin': '*',
+      'access-control-allow-methods': 'POST, OPTIONS',
+      'access-control-allow-headers': 'content-type'
+    },
+    body: JSON.stringify({ code: '0' })
+  });
+});
 
 try {
   await page.goto(`${origin}/apps`, { waitUntil: 'domcontentloaded' });
@@ -38,8 +66,12 @@ try {
   await page.waitForURL('**/apps/onboarding/apply');
   await page.locator('form.apply-form').waitFor();
   await page.locator('form.apply-form').evaluate(form => { form.noValidate = true; });
+  await page.getByLabel('应用类型*').selectOption('RPA');
   await page.getByRole('button', { name: '提交审核' }).click();
+  await page.getByRole('heading', { name: '申请已提交' }).waitFor();
   assert.equal(await page.getByRole('heading', { name: '申请已提交' }).count(), 1);
+  assert.equal(approvalRequest?.method, 'POST');
+  assert.equal(approvalRequest?.body?.type, 'RPA');
   await page.getByRole('link', { name: '查看审批状态' }).click();
   await page.waitForURL('**/apps/onboarding/status');
   await page.getByRole('heading', { name: '审批状态' }).waitFor();

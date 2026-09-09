@@ -26,6 +26,8 @@ const form = reactive({
 const files = reactive({ icon: "", materials: "", attachment: "" });
 const saved = ref(false);
 const submitted = ref(false);
+const submitting = ref(false);
+const submitError = ref("");
 const announcement = ref("");
 
 function rememberFile(key, event) {
@@ -39,10 +41,42 @@ function saveDraft() {
   saved.value = true;
   announcement.value = "申请草稿已保存在本地演示会话中";
 }
-function submitApplication() {
-  submitted.value = true;
-  saved.value = false;
-  announcement.value = "应用上架申请已提交，当前进入审批中状态";
+function buildRpaApprovalPayload() {
+  return {
+    ...form,
+    files: { ...files },
+  };
+}
+async function submitApplication() {
+  if (form.type !== "RPA") {
+    submitted.value = true;
+    saved.value = false;
+    announcement.value = "应用上架申请已提交，当前进入审批中状态";
+    return;
+  }
+
+  submitting.value = true;
+  submitError.value = "";
+  submitted.value = false;
+  announcement.value = "正在提交 RPA 应用审批";
+  try {
+    const response = await fetch("http://10.151.23.119:28080/api/processInstanceStart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(buildRpaApprovalPayload()),
+    });
+    if (!response.ok) {
+      throw new Error(`审批接口请求失败（${response.status}）`);
+    }
+    submitted.value = true;
+    saved.value = false;
+    announcement.value = "RPA 应用上架申请已提交，当前进入审批中状态";
+  } catch (error) {
+    submitError.value = error instanceof Error ? error.message : "审批接口请求失败";
+    announcement.value = submitError.value;
+  } finally {
+    submitting.value = false;
+  }
 }
 </script>
 
@@ -70,6 +104,9 @@ function submitApplication() {
         <p>申请编号 APP-REQ-20260901-017，审批进度可在状态页查看。</p>
       </div>
       <a href="/apps/onboarding/status">查看审批状态</a>
+    </section>
+    <section v-if="submitError" class="submit-error" role="alert">
+      {{ submitError }}，请检查网络后重试。
     </section>
 
     <form class="apply-form" @submit.prevent="submitApplication">
@@ -304,7 +341,9 @@ function submitApplication() {
 
       <footer class="form-actions">
         <button type="button" @click="saveDraft">保存草稿</button
-        ><a href="/apps">取消</a><button type="submit">提交审核</button
+        ><a href="/apps">取消</a
+        ><button type="submit" :disabled="submitting">
+          {{ submitting ? "提交中…" : "提交审核" }}</button
         ><span v-if="saved">草稿已保存</span>
       </footer>
     </form>
@@ -396,6 +435,14 @@ function submitApplication() {
 .submit-success a {
   color: #0060a6;
   font-weight: 700;
+}
+.submit-error {
+  margin-bottom: 14px;
+  padding: 12px 16px;
+  color: #a52222;
+  background: #fff5f5;
+  border: 1px solid #efb8b8;
+  border-radius: 7px;
 }
 .apply-form {
   display: grid;
@@ -576,6 +623,10 @@ function submitApplication() {
   color: #fff;
   background: #0060a6;
   border-color: #0060a6;
+}
+.form-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 .form-actions span {
   color: #19805c;
