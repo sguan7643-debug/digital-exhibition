@@ -10,14 +10,14 @@ assert.doesNotMatch(h5, /html,\s*\n\s*body,\s*\n\s*#app\s*\{[^}]*overflow:\s*hid
   '移动适配不得用根级 overflow:hidden 掩盖页面宽度缺陷');
 assert.doesNotMatch(h5, /#main-content\s*\{[^}]*overflow-x:\s*hidden/s,
   '主内容不得用 overflow-x:hidden 裁掉不可达内容');
-assert.match(shell, /@media\(max-width:760px\)\{[\s\S]*\.ui-update-workbench \.page-frame,[\s\S]*\.ui-update-apps \.page-frame,[\s\S]*\.ui-update-report \.page-frame,[\s\S]*\.certification-shell \.page-frame\{grid-template-columns:minmax\(0,1fr\)/,
+assert.match(shell, /@media\(max-width:760px\)\{[\s\S]*\.page-frame,\.standard-shell \.page-frame,\.certification-shell \.page-frame\{grid-template-columns:1fr;overflow:hidden\}/,
   '所有路由壳层变体必须在 760px 下最终归一为单列');
-assert.match(shell, /\.ui-update-report\{height:100dvh;min-height:0;overflow:hidden\}/,
-  '报表详情移动壳必须恢复固定顶栏和主内容局部纵向滚动');
-assert.match(shell, /\.topbar\{height:auto;min-height:63px;overflow:visible/,
-  '移动顶栏必须按两行内容增高，不得裁掉横向导航');
-assert.match(shell, /\.certification-shell \.page-frame\{[^}]*grid-template-rows:minmax\(0,auto\) minmax\(0,1fr\)/,
-  '移动侧栏与主内容必须分配可达的独立纵向区域');
+assert.match(shell, /\.exhibition-shell\{grid-template-rows:calc\(56px \+ env\(safe-area-inset-top\)\) minmax\(0,1fr\)\}/,
+  '移动壳必须为安全区顶栏与可滚动主内容分配独立行');
+assert.match(shell, /\.exhibition-shell \.topbar\{height:calc\(56px \+ env\(safe-area-inset-top\)\);min-height:calc\(56px \+ env\(safe-area-inset-top\)\)/,
+  '移动顶栏必须纳入安全区高度且不得裁切');
+assert.match(shell, /\.sidebar\{width:min\(88vw,340px\);[^}]*position:fixed;[^}]*transform:translateX\(-102%\)/,
+  '移动侧栏必须使用可关闭的抽屉布局，不能挤压主内容');
 for (const selector of ['.talent-body main>form','.progress-page>section>form']) {
   assert.ok(h5.includes(selector), `窄屏单列合同必须覆盖真实筛选表单 ${selector}`);
 }

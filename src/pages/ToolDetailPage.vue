@@ -21,4 +21,41 @@ async function submitComment(){if(detail.submitComment()){await nextTick();comme
     <form class="detail-comment" @submit.prevent="submitComment"><label>应用评价<input ref="commentInput" v-model="detail.commentDraft" placeholder="请输入您对该应用的评论..." /></label><button type="submit" :disabled="!detail.commentDraft.trim()">提交评论</button><ul v-if="detail.comments.length" aria-label="本地评论"><li v-for="comment in detail.comments" :key="comment.id" :data-comment-id="comment.id">{{ comment.text }}</li></ul></form>
   </article>
 </template>
-<style scoped>.tool-detail{max-width:100%}.tool-detail .detail-hero{min-height:385px}.training-row a,.training-row button,.file-list button{padding:0;border:0;color:#0870e8;background:transparent;font-size:9px}.detail-comment ul{margin:12px 0 0;padding-left:24px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}button:focus-visible,a:focus-visible{outline:3px solid #ff9f1a;outline-offset:2px}</style>
+
+<style scoped>
+.tool-detail {
+  max-width: 100%;
+}
+.tool-detail .detail-hero {
+  min-height: 385px;
+}
+.training-row a,
+.training-row button,
+.file-list button {
+  padding: 0;
+  border: 0;
+  color: #0060a6;
+  background: transparent;
+  font-size: 9px;
+}
+.detail-comment ul {
+  margin: 12px 0 0;
+  padding-left: 24px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #ff9f1a;
+  outline-offset: 2px;
+}
+</style>

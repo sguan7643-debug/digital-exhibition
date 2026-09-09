@@ -31,4 +31,43 @@ async function submitComment(){if(detail.submitComment()){await nextTick();comme
     <IndicatorBuildDialog ref="metricBuildDialog" app-name="经营管理驾驶舱" @submit="submitMetricBuild" />
   </article>
 </template>
-<style scoped>.dashboard-detail .detail-hero{min-height:350px}.dashboard-detail .preview-wide{background:#071838}.dashboard-detail figure{margin:0}.dashboard-detail figcaption{margin-top:10px;color:#536a84;font-size:10px}.text-action{padding:0;border:0;color:#0870e8;background:transparent}.detail-comment ul{margin:12px 0 0;padding-left:24px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}button:focus-visible,a:focus-visible{outline:3px solid #ff9f1a;outline-offset:2px}</style>
+
+<style scoped>
+.dashboard-detail .detail-hero {
+  min-height: 350px;
+}
+.dashboard-detail figure {
+  margin: 0;
+}
+.dashboard-detail figcaption {
+  margin-top: 12px;
+  color: #536a84;
+  font-size: 12px;
+}
+.text-action {
+  padding: 0;
+  border: 0;
+  color: #0060a6;
+  background: transparent;
+}
+.detail-comment ul {
+  margin: 12px 0 0;
+  padding-left: 24px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #ff9f1a;
+  outline-offset: 2px;
+}
+</style>

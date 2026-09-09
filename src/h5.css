@@ -637,6 +637,19 @@
     -webkit-overflow-scrolling: touch;
   }
 
+  #main-content .training-tabs {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    overflow-x: visible !important;
+  }
+
+  #main-content .training-tabs button {
+    min-width: 0;
+    flex: 1 1 calc(50% - 4px) !important;
+    margin: 0 !important;
+  }
+
   #main-content .point-tabs {
     height: auto !important;
     min-height: var(--h5-control);

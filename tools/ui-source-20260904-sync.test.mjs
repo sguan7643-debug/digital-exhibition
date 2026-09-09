@@ -38,8 +38,8 @@ for (const [name, source] of Object.entries({
 }
 assert.match(style, /--xlt-navy-900:\s*#0060a6/i,
   "全局主色变量必须统一为 #0060A6");
-assert.match(shell, /\.topbar\{height:69px;[^}]*background:#00396e/i,
-  "顶栏必须遵循用户后续批准的 69px 深蓝统一新版样式");
+assert.match(shell, /\.topbar\{height:63px;[^}]*background:#0060a6/i,
+  "顶栏必须遵循 2026-09-08 完整交付包确认的 63px、#0060A6 新版样式");
 
 assert.doesNotMatch(shell, /top-(?:message|favorite(?:-active)?)\.png/,
   "顶栏消息与收藏不得继续使用包含文字和角标的位图");
@@ -95,11 +95,11 @@ assert.match(points, /grid-template-columns:40px minmax\(0,1fr\) 108px 118px/,
   "最近积分动态必须为积分与时间保留稳定列宽");
 assert.match(points, /\.dynamic-panel li>b\{[^}]*white-space:nowrap/,
   "积分数值与单位不得断行");
-assert.match(talent, /grid-template-columns:224px repeat\(4,124px\) 68px 68px;gap:16px/,
+assert.match(talent, /grid-template-columns:\s*minmax\(260px,\s*1\.5fr\)\s*repeat\(4,\s*minmax\(160px,\s*1fr\)\)\s*80px\s*80px\s*80px/,
   "人才筛选栏必须使用量化交接的独立列宽");
-assert.match(talent, /grid-template-columns:minmax\(0,1fr\) clamp\(520px,38vw,680px\)/,
+assert.match(talent, /grid-template-columns:\s*minmax\(0,\s*1fr\)\s*clamp\(520px,\s*38vw,\s*680px\)/,
   "新增人才抽屉必须提供足够表单宽度");
-assert.match(talentProjects, /grid-template-columns:316px repeat\(4,128px\) 80px 80px;gap:16px/,
+assert.match(talentProjects, /grid-template-columns:minmax\(280px,1\.5fr\) repeat\(4,minmax\(160px,1fr\)\) 80px 80px/,
   "人才项目筛选栏必须使用量化交接的独立列宽");
 assert.match(operations, /\.ranking li\{[^}]*min-height:29px;[^}]*font-size:14px;line-height:1\.4/,
   "热门应用排行必须使用清晰字号与行距");
