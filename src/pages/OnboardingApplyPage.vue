@@ -22,16 +22,46 @@ const form = reactive({
   accessDepartment: "",
   roles: "",
   scope: "assigned",
+  remarks: "",
 });
 const files = reactive({ icon: "", materials: "", attachment: "" });
+const selectedFiles = { icon: [], materials: [], attachment: [] };
 const saved = ref(false);
 const submitted = ref(false);
 const submitting = ref(false);
 const submitError = ref("");
+const submitMessage = ref("");
 const announcement = ref("");
+
+const applicationTypes = [
+  { label: "可视化", value: "T007" },
+  { label: "报表", value: "T006" },
+  { label: "RPA", value: "T003" },
+  { label: "数据集", value: "T008" },
+  { label: "指标", value: "T009" },
+  { label: "AI", value: "T001" },
+  { label: "海能work应用", value: "T005" },
+  { label: "EAD", value: "T002" },
+  { label: "其他工具", value: "T004" },
+];
+const businessDomains = [
+  { label: "智能办公", value: "BD001" },
+  { label: "综合管理", value: "BD002" },
+  { label: "供应链管理", value: "BD003" },
+  { label: "经营分析", value: "BD004" },
+  { label: "数字化办公", value: "BD005" },
+];
+const departmentCodes = {
+  信息化管理部: "D001",
+  数据智能部: "D002",
+  供应链管理部: "D003",
+  物资采购中心: "D004",
+  经营管理部: "D005",
+};
 
 function rememberFile(key, event) {
   const selected = Array.from(event.target.files || []);
+  selectedFiles[key] = selected;
   files[key] = selected.map((file) => file.name).join("、");
   announcement.value = selected.length
     ? `已选择 ${selected.length} 个文件`
@@ -41,14 +71,41 @@ function saveDraft() {
   saved.value = true;
   announcement.value = "申请草稿已保存在本地演示会话中";
 }
-function buildRpaApprovalPayload() {
+function departmentId(value) {
+  return departmentCodes[value] || value;
+}
+function buildRpaApprovalRequest() {
   return {
-    ...form,
-    files: { ...files },
+    tableId: "tbl1Tvwl7t5RxcMs",
+    title: form.name,
+    fields: {
+      应用名称: form.name,
+      应用类型: "T003",
+      所属部门ID: departmentId(form.department),
+      所属业务域ID: form.domain,
+      摘要: form.summary,
+      应用简介: form.scenario,
+      开发合作方信息: form.collaboration,
+      应用URL地址: form.webAddress,
+      移动端地址: form.mobileAddress,
+      申请人AD账号: form.applicant,
+      接入人AD账号: form.contact,
+      联系电话: form.contactPhone,
+      联系邮箱: form.contactEmail,
+      适用用户AD账号: form.users,
+      适用部门ID: departmentId(form.accessDepartment),
+      适用角色: form.roles,
+      权限范围:
+        form.scope === "all" ? "全部组织可见" : "仅开放给部分部门/用户",
+      状态: "待审批",
+    },
+    detailFields: {
+      备注说明: form.remarks,
+    },
   };
 }
 async function submitApplication() {
-  if (form.type !== "RPA") {
+  if (form.type !== "T003") {
     submitted.value = true;
     saved.value = false;
     announcement.value = "应用上架申请已提交，当前进入审批中状态";
@@ -60,16 +117,25 @@ async function submitApplication() {
   submitted.value = false;
   announcement.value = "正在提交 RPA 应用审批";
   try {
+    const formData = new FormData();
+    formData.append("request", JSON.stringify(buildRpaApprovalRequest()));
+    Object.values(selectedFiles).flat().forEach((file) => {
+      formData.append("file", file, file.name);
+    });
     const response = await fetch("http://10.151.23.119:28080/api/processInstanceStart", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(buildRpaApprovalPayload()),
+      body: formData,
     });
     if (!response.ok) {
       throw new Error(`审批接口请求失败（${response.status}）`);
     }
+    const result = await response.json();
+    if (result.code !== "00000") {
+      throw new Error(result.message || "提交失败");
+    }
     submitted.value = true;
     saved.value = false;
+    submitMessage.value = result.message || "操作成功";
     announcement.value = "RPA 应用上架申请已提交，当前进入审批中状态";
   } catch (error) {
     submitError.value = error instanceof Error ? error.message : "审批接口请求失败";
@@ -101,7 +167,7 @@ async function submitApplication() {
       <span aria-hidden="true">✓</span>
       <div>
         <h2>申请已提交</h2>
-        <p>申请编号 APP-REQ-20260901-017，审批进度可在状态页查看。</p>
+        <p>{{ submitMessage }}，审批进度可在状态页查看。</p>
       </div>
       <a href="/apps/onboarding/status">查看审批状态</a>
     </section>
@@ -142,20 +208,11 @@ async function submitApplication() {
             ><select v-model="form.type" required>
               <option value="" disabled>请选择应用类型</option>
               <option
-                v-for="item in [
-                  '可视化',
-                  '报表',
-                  'RPA',
-                  '数据集',
-                  '指标',
-                  'AI',
-                  '海能work应用',
-                  'EAD',
-                  '其他工具',
-                ]"
-                :key="item"
+                v-for="item in applicationTypes"
+                :key="item.value"
+                :value="item.value"
               >
-                {{ item }}
+                {{ item.label }}
               </option>
             </select></label
           >
@@ -164,18 +221,11 @@ async function submitApplication() {
             ><select v-model="form.domain" required>
               <option value="" disabled>请选择所属应用域</option>
               <option
-                v-for="item in [
-                  '生产运营',
-                  '经营管理',
-                  '设备管理',
-                  '安全环保',
-                  '物资供应链',
-                  '财务管理',
-                  '人力资源',
-                ]"
-                :key="item"
+                v-for="item in businessDomains"
+                :key="item.value"
+                :value="item.value"
               >
-                {{ item }}
+                {{ item.label }}
               </option>
             </select></label
           >
@@ -331,6 +381,7 @@ async function submitApplication() {
         <legend><span>9</span>备注说明（选填）</legend>
         <label class="stacked">
           <textarea
+            v-model="form.remarks"
             maxlength="500"
             rows="3"
             placeholder="如无其他需要说明的内容，请留空"

@@ -30,7 +30,8 @@ await page.route('**/api/processInstanceStart', async route => {
   }
   approvalRequest = {
     method: route.request().method(),
-    body: route.request().postDataJSON()
+    contentType: route.request().headers()['content-type'],
+    body: route.request().postData()
   };
   await route.fulfill({
     status: 200,
@@ -40,7 +41,7 @@ await page.route('**/api/processInstanceStart', async route => {
       'access-control-allow-methods': 'POST, OPTIONS',
       'access-control-allow-headers': 'content-type'
     },
-    body: JSON.stringify({ code: '0' })
+    body: JSON.stringify({ code: '00000', message: '操作成功' })
   });
 });
 
@@ -66,12 +67,20 @@ try {
   await page.waitForURL('**/apps/onboarding/apply');
   await page.locator('form.apply-form').waitFor();
   await page.locator('form.apply-form').evaluate(form => { form.noValidate = true; });
-  await page.getByLabel('应用类型*').selectOption('RPA');
+  await page.getByLabel('应用类型*').selectOption('T003');
+  await page.locator('input[type="file"]').first().setInputFiles({
+    name: 'test-rpa-icon.svg',
+    mimeType: 'image/svg+xml',
+    buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>')
+  });
   await page.getByRole('button', { name: '提交审核' }).click();
   await page.getByRole('heading', { name: '申请已提交' }).waitFor();
   assert.equal(await page.getByRole('heading', { name: '申请已提交' }).count(), 1);
   assert.equal(approvalRequest?.method, 'POST');
-  assert.equal(approvalRequest?.body?.type, 'RPA');
+  assert.match(approvalRequest?.contentType || '', /^multipart\/form-data; boundary=/);
+  assert.match(approvalRequest?.body || '', /name="request"/);
+  assert.match(approvalRequest?.body || '', /"应用类型":"T003"/);
+  assert.match(approvalRequest?.body || '', /name="file"; filename="test-rpa-icon\.svg"/);
   await page.getByRole('link', { name: '查看审批状态' }).click();
   await page.waitForURL('**/apps/onboarding/status');
   await page.getByRole('heading', { name: '审批状态' }).waitFor();
