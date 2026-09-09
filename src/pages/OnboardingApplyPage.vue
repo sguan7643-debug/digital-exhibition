@@ -200,10 +200,10 @@ function submitApplication() {
       <fieldset>
         <legend><span>5</span>接入人信息</legend>
         <div class="field-grid four-cols">
+          <label>接入人<b>*</b><input v-model="form.contact" required /></label>
           <label
             >所属部门<b>*</b><input v-model="form.contactDepartment" required
           /></label>
-          <label>接入人<b>*</b><input v-model="form.contact" required /></label>
           <label
             >联系电话<b>*</b><input v-model="form.contactPhone" required
           /></label>
@@ -218,6 +218,9 @@ function submitApplication() {
         <legend><span>6</span>应用权限开通</legend>
         <div class="field-grid four-cols">
           <label
+            >适用用户<input v-model="form.users" placeholder="请输入适用用户"
+          /></label>
+          <label
             >适用部门<select v-model="form.accessDepartment">
               <option value="">请选择部门</option>
               <option>集团公司</option>
@@ -225,9 +228,6 @@ function submitApplication() {
               <option>直属单位</option>
             </select></label
           >
-          <label
-            >适用用户<input v-model="form.users" placeholder="请输入适用用户"
-          /></label>
           <label
             >适用角色<input v-model="form.roles" placeholder="请输入适用角色"
           /></label>
@@ -277,7 +277,7 @@ function submitApplication() {
           </div>
         </fieldset>
         <fieldset>
-          <legend><span>8</span>附件上传（选填）</legend>
+          <legend><span>8</span>组件上传（选填）</legend>
           <label class="upload-box"
             ><strong>附件</strong><span>＋ 点击上传</span
             ><small>支持常用文档及压缩格式，最多 5 个文件</small

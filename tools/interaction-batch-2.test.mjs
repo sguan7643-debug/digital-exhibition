@@ -43,6 +43,12 @@ favorites.cancel(removed);
 assert.ok(!favorites.results.some(item => item.id === removed));
 favorites.resetData();
 assert.ok(favorites.results.some(item => item.id === removed));
+favorites.setSort('usage-desc');
+assert.equal(favorites.results[0].usage, '2,891');
+favorites.setView('list');
+assert.equal(favorites.view, 'list');
+favorites.setView('grid');
+assert.equal(favorites.view, 'grid');
 favorites.setPage(3);
 assert.equal(favorites.pagedResults.length, 8);
 
@@ -51,7 +57,7 @@ const messageSource = read('src/pages/MessagesPage.vue');
 const favoriteSource = read('src/pages/FavoritesPage.vue');
 for (const contract of ['createMessagesController', 'role="tablist"', 'aria-selected', 'markAllRead', 'refresh', 'pagedMessages', 'controller.setPage'])
   assert.ok(messageSource.includes(contract), `PP02 未接线：${contract}`);
-for (const contract of ['createFavoritesController', 'pagedCards', 'cancelFavorite', 'resetData', 'controller.setPage'])
+for (const contract of ['createFavoritesController', 'pagedCards', 'cancelFavorite', 'resetData', 'controller.setPage', 'controller.setSort', 'controller.setView'])
   assert.ok(favoriteSource.includes(contract), `PP03 未接线：${contract}`);
 
 console.log('第二批 interaction：消息中心与收藏筛选、状态、复位行为通过');

@@ -1,83 +1,52 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { HOT_APP_FIXTURES, createWorkbenchController } from '../state/workbench-profile-controllers.js';
-import { mapRemoteApp } from '../integration/app-read-model.js';
-const props=defineProps({integrationData:{type:Object,default:null},operationExecutor:{type:Function,default:null}});
 const controller=createWorkbenchController(HOT_APP_FIXTURES);
-const remote=computed(()=>props.integrationData?.['WB-001']);
-const remoteSearch=ref(null);
-const searchState=ref('idle');
-let searchRevision=0;
-const remoteApps=computed(()=>remote.value?.hotApps?.map(item=>{const app=mapRemoteApp(item);return{id:app.id,name:app.name,type:app.category,scene:app.scene,description:app.description,count:Number(app.usage||0).toLocaleString('zh-CN'),route:app.route};})||null);
-const filteredHotApps=computed(()=>{
-  if(remoteSearch.value)return remoteSearch.value.map(item=>{const app=mapRemoteApp(item);return{id:app.id,name:app.name,type:app.category,scene:app.scene,description:app.description,count:Number(app.usage||0).toLocaleString('zh-CN'),route:app.route};});
-  if(!remoteApps.value)return controller.results;
-  const query=String(controller.query||'').toLocaleLowerCase('zh-CN');
-  return remoteApps.value.filter(item=>(!query||`${item.name} ${item.description}`.toLocaleLowerCase('zh-CN').includes(query))&&(!controller.scene||item.scene===controller.scene));
-});
-async function runRemoteSearch(){
-  if(!props.operationExecutor)return;
-  const revision=++searchRevision;
-  searchState.value='loading';
-  try{
-    const response=await props.operationExecutor('WB-002',{keyword:controller.query||'',scene:controller.scene||'',page:1,pageSize:20,sort:'RELEVANCE'});
-    if(revision!==searchRevision)return;
-    remoteSearch.value=response?.data?.items||[];
-    searchState.value='normal';
-  }catch(error){
-    if(revision!==searchRevision)return;
-    searchState.value=error?.code==='AUTHENTICATION_REQUIRED'?'authentication-required':'error';
-  }
-}
-function receiveWorkbenchFilter(event){
-  const {key,value}=event.detail;
-  if(key==='reset')controller.reset();else if(key==='query')controller.setQuery(value);else if(key==='scene')controller.setScene(value);
-  void runRemoteSearch();
-}
+const filteredHotApps=computed(()=>controller.results);
+function receiveWorkbenchFilter(event){const {key,value}=event.detail;if(key==='reset')controller.reset();else if(key==='query')controller.setQuery(value);else if(key==='scene')controller.setScene(value);}
 function overviewHref(label){const categories={'数据集':'数据集','帆软报表':'可视化报表','RPA机器人':'RPA','AI智能体':'AI'};return categories[label]?`/apps?category=${encodeURIComponent(categories[label])}`:'/apps';}
 onMounted(()=>window.addEventListener('xlt:workbench-filter',receiveWorkbenchFilter));
 onBeforeUnmount(()=>window.removeEventListener('xlt:workbench-filter',receiveWorkbenchFilter));
-const fallbackOverview = [
-  ['数据集', '186'], ['帆软报表', '92'], ['RPA机器人', '64'],
-  ['EAD应用', '18'], ['AI智能体', '27'], ['其他应用', '35']
+const overview = [
+  ['数据集', '186', '/assets/overview-dataset.png'], ['帆软报表', '92', '/assets/overview-report.png'],
+  ['RPA机器人', '64', '/assets/overview-rpa.png'], ['EAD应用', '18', '/assets/overview-ead.png'],
+  ['AI智能体', '27', '/assets/overview-ai.png'], ['其他应用', '35', '/assets/overview-other.png']
 ];
-const overview=computed(()=>remote.value?.appTypeOverview?.length?remote.value.appTypeOverview.map(item=>[item.typeName||item.typeCode,Number(item.count||0).toLocaleString('zh-CN')]):fallbackOverview);
-const fallbackCourses = [
+const courses = [
   ['数说心智 · 数智应用案例分享', '分享最新应用实践与创新案例', '/assets/training-ai.png', '立即参加'],
   ['取经会 · 采购合规效率交流会', '交流采购合规与提效经验', '/assets/training-procurement.png', '立即参加'],
   ['AI社区 · 大模型在采购场景的应用', '探讨AI赋能采购业务实践', '/assets/training-community.png', '进入活动']
 ];
-const courses=computed(()=>remote.value?.courses?.length?remote.value.courses.map(item=>[item.title,item.summary||`${item.category} · ${item.instructorName}`,item.coverUrl||'/assets/training-ai.png','查看课程',`/training?courseId=${encodeURIComponent(item.courseId)}`]):fallbackCourses.map(item=>[...item,'/training']));
-const fallbackNotices = [
-  ['系统上线', '【新应用上线】供应商风险预警应用已发布上线', '05-08 09:32', 'blue'],
-  ['系统更新', '【功能更新】库存分析看板新增多维度筛选功能', '05-07 16:20', 'blue'],
-  ['功能更新', '【系统维护】系统将于本周六凌晨进行维护升级', '05-06 18:15', 'blue']
+const notices = [
+  ['新应用上线', '【新应用上线】供应商风险预警应用已发布上线', '05-08 09:32', 'blue'],
+  ['新应用上线', '【新应用上线】采购合同执行分析看板V2.0版本发布', '05-07 16:18', 'blue'],
+  ['活动通知', '【活动通知】数智课堂“数说心智·数智应用案例分享”报名开启', '05-06 11:05', 'green'],
+  ['平台通知', '【平台通知】平台将于5月10日22:00-23:00进行系统维护', '05-05 17:42', 'red']
 ];
-const notices=computed(()=>remote.value?.announcements?.length?remote.value.announcements.map(item=>[item.typeName,item.title,item.publishedAt?.replace('T',' ').slice(5,16)||'','blue',item.detailPath]):fallbackNotices.map((item,index)=>[...item,index===0?'/announcements/notice-001':'/announcements']));
-const fallbackUsage = [
-  ['应用使用数', '18', '12', 'up'], ['报表查看次数', '236', '8', 'up'],
-  ['数据查询次数', '326', '3', 'down'], ['收藏应用数', '12', '5', 'up']
+const usage = [
+  ['应用访问次数', '128', '次', '18', '/assets/usage-visits.png'],
+  ['应用使用次数', '56', '次', '9', '/assets/usage-count.png'],
+  ['收藏应用数', '24', '个', '3', '/assets/usage-favorites.png']
 ];
-const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value.usage.appVisitCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.visitChange||0),remote.value.usage.visitChange<0?'down':'up'],['应用使用次数',Number(remote.value.usage.appUseCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.useChange||0),remote.value.usage.useChange<0?'down':'up'],['收藏应用数',Number(remote.value.usage.favoriteAppCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.favoriteChange||0),remote.value.usage.favoriteChange<0?'down':'up'],['数据更新时间',remote.value.lastUpdatedAt?.replace('T',' ').slice(5,16)||'—','0','up']]:fallbackUsage);
 </script>
 
 <template>
-  <div class="workbench-page" data-visual-baseline="ui-update-0831-workbench"><p class="sr-only" aria-live="polite">{{ searchState==='loading'?'正在从飞书检索应用':searchState==='error'?'飞书检索失败，保留当前结果':controller.announcement }}</p>
+  <div class="workbench-page"><p class="sr-only" aria-live="polite">{{ controller.announcement }}</p>
     <section class="hero-panel" aria-labelledby="greeting-title">
-      <img class="hero-avatar" src="/assets/user-avatar.png" width="78" height="78" :alt="`${remote?.profile.displayName||'当前用户'}头像`" />
+      <img class="hero-avatar" src="/assets/user-avatar.png" width="68" height="68" alt="张三丰头像" />
       <div class="greeting">
-        <h1 id="greeting-title">{{ remote?.greeting.text||'上午好，张三丰' }}</h1>
-        <p>{{ remote?.hero.subtitle||'欢迎来到数智产品展厅平台，探索更卓越的应用，助力业务高效运营！' }}</p>
-        <small v-if="remote">数据截至：{{ remote.dataAsOf?.replace('T',' ').slice(0,16)||'—' }}　　最后更新：{{ remote.lastUpdatedAt?.replace('T',' ').slice(0,16)||'—' }}</small>
-        <small v-else>数据截至：2025-05-08　　最后更新：10:18</small>
+        <h1 id="greeting-title">上午好，张三丰</h1>
+        <p>欢迎来到数智产品展厅平台，探索更卓越的应用，助力业务高效运营！</p>
+        <small>数据截至：2025-05-08　　最后更新：10:18</small>
       </div>
+      <img class="hero-ocean" src="/assets/hero-ocean.png" width="827" height="136" alt="海上钻井平台、船舶与远山插图" />
     </section>
 
     <section class="panel overview-panel" aria-labelledby="overview-title">
       <h2 id="overview-title">应用类型概览</h2>
       <div class="overview-list">
-        <a v-for="([label, total]) in overview" :key="label" :href="overviewHref(label)" class="overview-item">
-          <span><small>{{ label }}</small><strong>{{ total }}</strong></span>
+        <a v-for="([label, total, icon]) in overview" :key="label" :href="overviewHref(label)" class="overview-item">
+          <img :src="icon" width="68" height="68" alt="" /><span><small>{{ label }}</small><strong>{{ total }}</strong></span>
         </a>
       </div>
     </section>
@@ -87,19 +56,19 @@ const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value
         <header><h2 id="hot-title">热门应用推荐</h2><a href="/apps">查看更多　›</a></header>
         <div class="hot-list">
           <article v-for="app in filteredHotApps" :key="app.id" class="hot-card">
+            <img :src="app.image" width="55" height="55" alt="" />
             <h3>{{ app.name }}</h3><mark>{{ app.type }}</mark><p>{{ app.description }}</p><small>使用量　{{ app.count }}</small>
             <a :href="app.route" :aria-label="`立即使用 ${app.name}`">立即使用</a>
           </article>
-          <p v-if="searchState==='loading'" class="hot-empty" role="status">正在检索应用…</p>
-          <p v-else-if="!filteredHotApps.length" class="hot-empty" role="status">暂无符合条件的热门应用</p>
+          <p v-if="!filteredHotApps.length" class="hot-empty" role="status">暂无符合条件的热门应用</p>
         </div>
       </section>
 
       <section class="panel course-panel" aria-labelledby="course-title">
         <header><h2 id="course-title">培训课堂</h2><a href="/training">查看更多　›</a></header>
         <ul>
-          <li v-for="([name, description, icon, action, route]) in courses" :key="name">
-            <AppIcon :name="icon" :size="58" /><span><strong>{{ name }}</strong><small>{{ description }}</small></span><a :href="route">{{ action }}</a>
+          <li v-for="([name, description, icon, action]) in courses" :key="name">
+            <img :src="icon" width="58" height="60" alt="" /><span><strong>{{ name }}</strong><small>{{ description }}</small></span><a href="/training">{{ action }}</a>
           </li>
         </ul>
       </section>
@@ -107,8 +76,8 @@ const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value
       <section class="panel notice-panel" aria-labelledby="notice-title">
         <header><h2 id="notice-title">公告通知</h2><a href="/announcements">查看更多　›</a></header>
         <ul>
-          <li v-for="([type, title, time, tone, route]) in notices" :key="title">
-            <a :href="route">
+          <li v-for="([type, title, time, tone], index) in notices" :key="title">
+            <a :href="index === 0 ? '/announcements/notice-001' : '/announcements'">
               <mark :class="tone">{{ type }}</mark><span>{{ title }}</span><time :datetime="`2025-${time.replace(' ', 'T')}`">{{ time }}</time>
             </a>
           </li>
@@ -118,8 +87,8 @@ const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value
       <section class="panel usage-panel" aria-labelledby="usage-title">
         <header><h2 id="usage-title">我的使用统计</h2><a href="/profile">查看详情　›</a></header>
         <div class="usage-list">
-          <article v-for="([label, total, increase, direction]) in usage" :key="label">
-            <span><small>{{ label }}</small><strong>{{ total }}</strong><em>较上周 <i :class="direction">{{ direction === 'down' ? '↓' : '↑' }}</i> {{ increase }}%</em></span>
+          <article v-for="([label, total, unit, increase, icon]) in usage" :key="label">
+            <img :src="icon" width="58" height="58" alt="" /><span><small>{{ label }}</small><strong>{{ total }} <b>{{ unit }}</b></strong><em>较上周　<i>↑</i> {{ increase }}</em></span>
           </article>
         </div>
       </section>

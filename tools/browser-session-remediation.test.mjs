@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
-const base='http://127.0.0.1:4173';
+const base=process.env.BASE_URL || 'http://127.0.0.1:4174';
 const browser=await chromium.launch({executablePath:'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',headless:true});
 const context=await browser.newContext({viewport:{width:1280,height:800}});
 let externalRequests=0;
@@ -14,12 +14,12 @@ await context.route('**/*',route=>{
 try{
   const routeFavorite=await context.newPage();
   await routeFavorite.goto(`${base}/favorites`);
-  assert.equal(await routeFavorite.locator('.favorite-stats article').first().locator('b').textContent(),'28');
+  assert.match(await routeFavorite.locator('.favorite-tools strong').textContent(),/28/);
   await routeFavorite.locator('[data-favorite-id="favorite-001"] a[href="/apps/report-001"]').click();
   await routeFavorite.locator('.detail-hero-side button').filter({hasText:'已收藏'}).click();
   await routeFavorite.locator('[data-detail-return]').click();
   await routeFavorite.waitForURL(`${base}/favorites`);
-  assert.equal(await routeFavorite.locator('.favorite-stats article').first().locator('b').textContent(),'27','路由级取消只能移除 canonical 收藏 ID');
+  assert.match(await routeFavorite.locator('.favorite-tools strong').textContent(),/27/,'路由级取消只能移除 canonical 收藏 ID');
 
   const historyPage=await context.newPage();
   await historyPage.goto(`${base}/favorites`);

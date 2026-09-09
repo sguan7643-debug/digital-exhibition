@@ -3,40 +3,20 @@ import { computed, ref } from 'vue';
 import { MESSAGE_FIXTURES, createMessagesController } from '../state/content-controllers.js';
 import { routeSession } from '../state/session-store.js';
 import PaginationControl from '../components/PaginationControl.vue';
-const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'}});
 const REFERENCE_SHA256 = '8181F60BE17D8B4068A4B6432850FE5EB9489E954D379FD5B236A426F07B9F22';
 const controller=routeSession.controller('messages',()=>createMessagesController(MESSAGE_FIXTURES));
-const remoteStats=computed(()=>props.integrationData?.['MSG-001']);
-const remoteRows=computed(()=>props.integrationData?.['MSG-002']?.items?.map(item=>({
-  id:item.messageId,type:item.typeName||item.typeCode,title:item.title,copy:item.summary,
-  time:item.occurredAt?.replace('T',' ').slice(5,16)||'',read:item.isRead,today:item.isToday,
-  action:item.actionLabel||'查看',route:item.targetPath||''
-}))||null);
-const remoteMode=computed(()=>Array.isArray(remoteRows.value));
-const liveMode=computed(()=>props.integrationState!=='mock');
-const stats = computed(() => {
-  const value=remoteStats.value;
-  return [
-    ['全部消息', value?.totalCount??controller.totalCount, '', '/assets/msg-stat-all.png'], ['未读消息', value?.unreadCount??controller.unreadCount, '', '/assets/msg-stat-unread.png'],
-    ['已读消息', value?.readCount??controller.readCount, '', '/assets/msg-stat-read.png'], ['今日新增', value?.todayCount??controller.todayCount, '', '/assets/msg-stat-new.png']
-  ];
-});
+const stats = computed(() => [
+  ['全部消息', controller.totalCount, '18', '/assets/msg-stat-all.png'], ['未读消息', controller.unreadCount, '5', '/assets/msg-stat-unread.png'],
+  ['已读消息', controller.readCount, '13', '/assets/msg-stat-read.png'], ['今日新增', controller.todayCount, '3', '/assets/msg-stat-new.png']
+]);
 const queryDraft=computed({get:()=>controller.queryDraft,set:value=>{controller.queryDraft=value;}});
-const filteredMessages=computed(()=>{
-  if(!remoteMode.value)return controller.results;
-  const query=String(controller.filters.query||'').trim().toLocaleLowerCase('zh-CN');
-  const rows=remoteRows.value.filter(item=>(!controller.filters.type||item.type===controller.filters.type)&&(controller.filters.status==='all'||(controller.filters.status==='read')===item.read)&&(!query||`${item.title} ${item.copy}`.toLocaleLowerCase('zh-CN').includes(query)));
-  return controller.sort==='newest'?rows:[...rows].reverse();
-});
-const pagedMessages=computed(()=>{const start=(controller.page-1)*controller.pageSize;return filteredMessages.value.slice(start,start+controller.pageSize);});
-const types=computed(()=>[...new Set((remoteRows.value||MESSAGE_FIXTURES).map(item=>item.type).filter(Boolean))]);
+const filteredMessages=computed(()=>controller.results);
+const pagedMessages=computed(()=>controller.pagedResults);
+const types=[...new Set(MESSAGE_FIXTURES.map(item=>item.type))];
 function submit(){controller.setFilter('query',queryDraft.value);}
-function refresh(){queryDraft.value='';if(remoteMode.value){controller.setFilter('query','');controller.announcement='已清空本地筛选；真实消息保持飞书返回结果';}else controller.refresh();}
-function actionFor(item){return remoteMode.value&&item.route?{kind:'route',route:item.route}:controller.actionFor(item);}
-function activateMessage(item){if(remoteMode.value){controller.announcement='该真实消息没有可用的安全目标路径';return;}controller.activate(item);}
-function openMessage(item){if(!remoteMode.value)controller.markRead(item.id);}
-function changePage(value){const pages=Math.max(1,Math.ceil(filteredMessages.value.length/controller.pageSize));controller.setPage(Math.min(pages,Math.max(1,Number(value)||1)));}
-function changePageSize(value){controller.setPageSize([10,20,50].includes(Number(value))?Number(value):10);}
+function refresh(){queryDraft.value='';controller.refresh();}
+function actionFor(item){return controller.actionFor(item);}
+function activateMessage(item){controller.activate(item);}
 function moveTab(event,index){if(!['ArrowLeft','ArrowRight'].includes(event.key))return;event.preventDefault();const tabs=['all','unread','read'];const next=(index+(event.key==='ArrowRight'?1:2))%3;controller.setStatus(tabs[next]);event.currentTarget.parentElement.children[next].focus();}
 </script>
 
@@ -44,21 +24,21 @@ function moveTab(event,index){if(!['ArrowLeft','ArrowRight'].includes(event.key)
   <div class="messages-page" :data-reference-sha="REFERENCE_SHA256"><p class="sr-only" aria-live="polite">{{ controller.announcement }}</p>
     <header><h1>消息中心</h1><p>及时获取系统动态与业务通知，助力高效协同与决策</p></header>
     <section class="message-stats" aria-label="消息数据概览">
-      <article v-for="([label,total,increase,icon]) in stats" :key="label"><AppIcon :name="icon" :size="61" /><div><strong>{{ label }}</strong><b>{{ total }}</b><small v-if="remoteMode">来自飞书当前用户消息</small><small v-else>较昨日　<em>↑ {{ increase }}</em></small></div></article>
+      <article v-for="([label,total,increase,icon]) in stats" :key="label"><img :src="icon" width="61" height="61" alt="" /><div><strong>{{ label }}</strong><b>{{ total }}</b><small>较昨日　<em>↑ {{ increase }}</em></small></div></article>
     </section>
     <form class="message-filters" aria-label="消息筛选" @submit.prevent="submit">
-      <label>消息类型：<select :value="controller.filters.type" @change="controller.setFilter('type',$event.target.value)"><option value="">全部类型</option><option v-for="type in types" :key="type">{{ type }}</option></select></label><label>时间范围：<select disabled title="当前页面加载近100条消息"><option>当前结果</option></select></label>
-      <label class="keyword">关键词搜索：<input v-model="queryDraft" type="search" placeholder="请输入消息标题或内容关键词" /></label><button type="submit">查询</button><button type="button" :disabled="liveMode" :title="liveMode?'真实消息写操作尚未开放，不能伪造已读状态':''" @click="controller.markAllRead">全部标为已读</button>
+      <label>消息类型：<select :value="controller.filters.type" @change="controller.setFilter('type',$event.target.value)"><option value="">全部类型</option><option v-for="type in types" :key="type">{{ type }}</option></select></label><label>时间范围：<select disabled title="固定演示数据为近30天"><option>近30天</option></select></label>
+      <label class="keyword">关键词搜索：<input v-model="queryDraft" type="search" placeholder="请输入消息标题或内容关键词" /></label><button type="submit">查询</button><button type="button" @click="controller.markAllRead">全部标为已读</button>
     </form>
     <section class="message-panel">
       <div class="message-tabs"><nav role="tablist" aria-label="消息状态"><button v-for="(tab,index) in [['all','全部'],['unread','未读'],['read','已读']]" :key="tab[0]" type="button" role="tab" :aria-selected="controller.filters.status===tab[0]" @click="controller.setStatus(tab[0])" @keydown="moveTab($event,index)">{{ tab[1] }}</button></nav><button type="button" @click="refresh">刷新</button><button type="button" @click="controller.toggleSort">{{ controller.sort==='newest'?'最新优先':'最早优先' }}</button></div>
       <ul>
         <li v-for="(item,index) in pagedMessages" :key="item.id">
-          <AppIcon :name="`msg-row-${index%6+1}`" :size="42" /><small>{{ item.type }}</small><i v-if="!item.read" aria-label="未读"></i>
-          <div><strong>{{ item.title }}</strong><p>{{ item.copy }}</p></div><time :datetime="item.time.replace(' ','T')">{{ item.time }}</time><em>{{ item.read?'已读':'未读' }}</em><a v-if="actionFor(item).kind==='route'" :id="`message-${item.id}`" :data-session-focus="`message-${item.id}`" :href="actionFor(item).route" @click="openMessage(item)">{{ item.action }}　›</a><button v-else :id="`message-${item.id}`" type="button" @click="activateMessage(item)">{{ item.action }}　›</button>
+          <img :src="`/assets/msg-row-${index%6+1}.png`" width="42" height="42" alt="" /><small class="message-type">{{ item.type }}</small><i :class="{ placeholder: item.read }" :aria-hidden="item.read ? 'true' : undefined" :aria-label="item.read ? undefined : '未读'"></i>
+          <div><strong>{{ item.title }}</strong><p>{{ item.copy }}</p></div><time :datetime="`2025-${item.time.replace(' ','T')}`">{{ item.time }}</time><em class="message-state" :class="{ unread: !item.read }">{{ item.read?'已读':'未读' }}</em><a v-if="actionFor(item).kind==='route'" :id="`message-${item.id}`" :data-session-focus="`message-${item.id}`" :href="actionFor(item).route" @click="controller.markRead(item.id)">{{ item.action }}　›</a><button v-else :id="`message-${item.id}`" type="button" @click="activateMessage(item)">{{ item.action }}　›</button>
         </li>
       </ul>
-      <p v-if="!filteredMessages.length" class="message-empty" role="status">暂无符合条件的消息</p><PaginationControl :total="filteredMessages.length" :page="controller.page" :page-size="controller.pageSize" label="消息分页" @update:page="changePage" @update:page-size="changePageSize" />
+      <p v-if="!filteredMessages.length" class="message-empty" role="status">暂无符合条件的消息</p><PaginationControl :total="filteredMessages.length" :page="controller.page" :page-size="controller.pageSize" label="消息分页" @update:page="controller.setPage" @update:page-size="controller.setPageSize" />
     </section>
   </div>
 </template>

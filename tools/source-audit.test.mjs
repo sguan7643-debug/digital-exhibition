@@ -3,15 +3,19 @@ import { readFileSync } from 'node:fs';
 
 const root = new URL('../', import.meta.url);
 const sourceFiles = [
-  'src/App.vue', 'src/main.js', 'src/style.css', 'src/fixtures/pages.js',
+  'src/App.vue', 'src/main.js', 'src/style.css', 'src/h5.css', 'src/fixtures/pages.js', 'src/fixtures/mock-data.js',
   'src/fixtures/page-content.js', 'src/runtime/network-guard.js',
-  'src/components/ExhibitionShell.vue', 'src/pages/WorkbenchPage.vue',
+  'src/state/interaction-controllers.js',
+  'src/components/ExhibitionShell.vue', 'src/components/TypeLineIcon.vue',
+  'src/components/BusinessPreviewGallery.vue', 'src/components/IndicatorBuildDialog.vue',
+  'src/pages/WorkbenchPage.vue',
   'src/pages/MessagesPage.vue', 'src/pages/FavoritesPage.vue', 'src/pages/ProfilePage.vue',
   'src/pages/AnnouncementsPage.vue', 'src/pages/NoticeDetailPage.vue', 'src/pages/AppsPage.vue',
+  'src/pages/MaterialsPage.vue',
   'src/pages/ToolDetailPage.vue', 'src/pages/HainengWorkDetailPage.vue', 'src/pages/ReportDetailPage.vue',
   'src/pages/DashboardDetailPage.vue', 'src/pages/DatasetDetailPage.vue', 'src/pages/MetricDetailPage.vue',
   'src/pages/AiDetailPage.vue', 'src/pages/EadDetailPage.vue', 'src/pages/PortalPage.vue',
-  'src/pages/RpaDetailPage.vue', 'src/pages/OnboardingPage.vue', 'src/pages/PointsPage.vue',
+  'src/pages/RpaDetailPage.vue', 'src/pages/OnboardingPage.vue', 'src/pages/OnboardingApplyPage.vue', 'src/pages/PointsPage.vue',
   'src/pages/PointsDetailsPage.vue', 'src/pages/TrainingPage.vue', 'src/pages/OperationsPage.vue',
   'src/pages/AnnouncementAdminPage.vue', 'src/pages/AnnouncementEditorPage.vue',
   'src/pages/AppAdminPage.vue', 'src/pages/AppEditorPage.vue', 'src/pages/AdminPage.vue',

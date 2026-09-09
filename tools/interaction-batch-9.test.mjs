@@ -15,8 +15,10 @@ detail.commentDraft='预警摘要易于理解';
 assert.equal(detail.submitComment(),true);
 
 const source=readFileSync(new URL('../src/pages/DashboardDetailPage.vue',import.meta.url),'utf8');
-for(const contract of ['createDetailController','createDetailController(\'/apps/dashboard-001\',routeSession','aria-pressed','detail.mockDownload','detail.submitComment','detail.comments','figcaption','href="/training"'])assert.ok(source.includes(contract),`PP11 未接线：${contract}`);
+for(const contract of ['createDetailController','aria-pressed','detail.mockDownload','detail.submitComment','detail.comments','figcaption','href="/training"','IndicatorBuildDialog','openMetricBuild','submitMetricBuild','个性化指标构建'])assert.ok(source.includes(contract),`PP11 未接线：${contract}`);
+assert.match(source,/createDetailController\(\s*["']\/apps\/dashboard-001["']\s*,\s*routeSession/,'PP11 必须绑定驾驶舱详情路由状态');
+assert.doesNotMatch(source,/申请复用/,'驾驶舱详情不得保留旧的申请复用操作');
 assert.doesNotMatch(source,/href="#main-content"/,'驾驶舱预览和附件不得使用假锚点');
 assert.doesNotMatch(source,/window\.open|location\.(?:assign|replace)/,'驾驶舱详情不得进入真实或全屏驾驶舱');
 
-console.log('第九批 interaction：驾驶舱详情收藏、申请、预览摘要、附件和评论行为通过');
+console.log('第九批 interaction：驾驶舱详情收藏、指标构建、预览摘要、附件和评论行为通过');

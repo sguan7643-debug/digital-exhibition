@@ -1,13 +1,181 @@
 <script setup>
 // Reference SHA-256: 68508151B1490F117074C44F464732A6986DAE68DDE5C23296DB0529C2C12E86
-import { computed, ref } from 'vue';
-const courses=[['数说心智','09-04（周五）14:00','智能供应链需求预测案例分享','王海洋 · 数智与信息化中心','分享智能供应链在需求预测、库存优化和风险预警场景中的实施路径与复盘经验。','1,206','进入直播'],['取经会','09-11（周五）10:00','采购合规共享交流会','李明 · 采购管理部','围绕采购合规管理的重点难点，交流供应商准入、过程管控和审计留痕方法。','852','立即报名'],['AI社区','09-18（周五）15:00','大模型在采购场景的应用','陈文博 · AI创新实验室','解读大模型在需求洞察、供应商评估与合同审核等采购场景中的可靠应用。','1,532','立即报名'],['数说心智','09-25（周五）14:30','数字化采购转型路径与实践','周启航 · 数字化管理办公室','分享采购数字化转型的顶层设计、关键路径和落地方法。','967','立即报名'],['取经会','10-09（周五）10:00','供应商协同管理经验分享','张振宇 · 采购一部','分享供应商协同管理的机制建设、绩效评价和持续改进经验。','1,128','立即报名'],['AI社区','10-16（周五）15:00','AI赋能招标智能评审','陈文博 · AI创新实验室','介绍AI辅助招标评审的适用边界、审核机制与效果。','1,342','立即报名']].map(item=>({category:item[0],date:item[1],title:item[2],speaker:item[3],description:item[4],count:item[5],action:item[6]}));
-const tabs=[['全部',186],['数说心智',62],['取经会',58],['AI社区',66]],selected=ref('全部'),announcement=ref('');
-const visibleCourses=computed(()=>selected.value==='全部'?courses:courses.filter(course=>course.category===selected.value));
-function selectTab(tab){selected.value=tab;announcement.value=`已筛选${tab}培训，共 ${visibleCourses.value.length} 项近期活动`;}
-function act(course,label){announcement.value=`${course.title}：${label}为本地演示操作`;}
+import { computed, ref } from "vue";
+
+const courses = [
+  {
+    category: "数说心智",
+    date: "09-04（周五）14:00",
+    title: "智能供应链需求预测案例分享",
+    speaker: "王海洋 · 数智与信息化中心",
+    description:
+      "分享智能供应链在需求预测、库存优化和风险预警场景中的实施路径与复盘经验。",
+    count: "1,206",
+    action: "进入直播",
+  },
+  {
+    category: "取经会",
+    date: "09-11（周五）10:00",
+    title: "采购合规共享交流会",
+    speaker: "李明 · 采购管理部",
+    description:
+      "围绕采购合规管理的重点难点，交流供应商准入、过程管控和审计留痕方法。",
+    count: "852",
+    action: "立即报名",
+  },
+  {
+    category: "AI社区",
+    date: "09-18（周五）15:00",
+    title: "大模型在采购场景的应用",
+    speaker: "陈文博 · AI创新实验室",
+    description:
+      "解读大模型在需求洞察、供应商评估与合同审核等采购场景中的可靠应用。",
+    count: "1,532",
+    action: "立即报名",
+  },
+  {
+    category: "数说心智",
+    date: "09-25（周五）14:30",
+    title: "数字化采购转型路径与实践",
+    speaker: "周启航 · 数字化管理办公室",
+    description:
+      "分享采购数字化转型的顶层设计、关键路径和落地方法，助力企业高质量转型。",
+    count: "967",
+    action: "立即报名",
+  },
+  {
+    category: "取经会",
+    date: "10-09（周五）10:00",
+    title: "供应商协同管理经验分享",
+    speaker: "张振宇 · 采购一部",
+    description:
+      "分享供应商协同管理的机制建设、绩效评价和持续改进经验，推动合作共赢。",
+    count: "1,128",
+    action: "立即报名",
+  },
+  {
+    category: "AI社区",
+    date: "10-16（周五）15:00",
+    title: "AI赋能招标智能评审",
+    speaker: "陈文博 · AI创新实验室",
+    description:
+      "介绍AI辅助招标评审的适用边界、审核机制与效果，提升效率和判断准确性。",
+    count: "1,342",
+    action: "立即报名",
+  },
+];
+const tabs = [
+  ["全部", 186],
+  ["数说心智", 62],
+  ["取经会", 58],
+  ["AI社区", 66],
+];
+const selected = ref("全部");
+const announcement = ref("");
+const visibleCourses = computed(() =>
+  selected.value === "全部"
+    ? courses
+    : courses.filter((course) => course.category === selected.value),
+);
+function selectTab(tab) {
+  selected.value = tab;
+  announcement.value = `已筛选${tab}培训，共 ${visibleCourses.value.length} 项近期活动`;
+}
+function act(course, label) {
+  announcement.value = `${course.title}：${label}为本地演示操作`;
+}
 </script>
-<template><article class="training-page" aria-labelledby="training-title"><p class="sr-only" aria-live="polite">{{ announcement }}</p><section class="training-hero"><div class="hero-copy"><span>学习与交流</span><h1 id="training-title">培训课堂</h1><p>聚焦业务分享与专题活动，支持报名参与与直播学习，助力知识沉淀与能力提升。</p><div class="hero-stats"><article><AppIcon name="training-stat-total" :size="54" /><span>活动总数<strong>186</strong></span></article><article><AppIcon name="training-stat-registered" :size="54" /><span>报名中<strong>78</strong></span></article><article><AppIcon name="training-stat-soon" :size="54" /><span>即将开始<strong>28</strong></span></article></div></div><img class="hero-illustration" src="/assets/training-hero-illustration.png" width="610" height="226" alt="培训课堂蓝色书本与学士帽插图" /></section><nav class="training-tabs" aria-label="培训分类"><button v-for="[tab,total] in tabs" :key="tab" type="button" :aria-current="selected===tab?'page':undefined" @click="selectTab(tab)">{{ tab }}（{{ total }}）</button></nav><section class="course-grid" aria-label="近期培训活动"><article v-for="course in visibleCourses" :key="course.title"><header><div><mark>{{ course.category }}</mark><time>{{ course.date }}</time></div><h2>{{ course.title }}</h2><small>{{ course.speaker }}</small></header><p>{{ course.description }}</p><dl class="course-status"><div><dt>报名人数</dt><dd>{{ course.count }} 人</dd></div><div><dt>活动形式</dt><dd>{{ course.action==='进入直播'?'线上直播':'专题活动' }}</dd></div></dl><footer><button type="button" @click="act(course,'查看详情')">查看详情</button><button type="button" @click="act(course,course.action)">{{ course.action }}</button></footer></article></section><footer class="training-pagination"><strong>共 186 条</strong><nav aria-label="分页"><button type="button">上一页</button><button type="button" aria-current="page">1</button><button type="button">2</button><button type="button">3</button><button type="button">下一页</button></nav></footer></article></template>
+
+<template>
+  <article class="training-page" aria-labelledby="training-title">
+    <p class="sr-only" aria-live="polite">{{ announcement }}</p>
+    <section class="training-hero">
+      <div class="hero-copy">
+        <span class="hero-kicker">学习与交流</span>
+        <h1 id="training-title">培训课堂</h1>
+        <p>
+          聚焦业务分享与专题活动，支持报名参与与直播学习，助力知识沉淀与能力提升。
+        </p>
+        <div class="hero-stats">
+          <article>
+            <img src="/assets/training-stat-total.png" alt="" /><span
+              >活动总数<strong>186</strong></span
+            >
+          </article>
+          <article>
+            <img src="/assets/training-stat-registered.png" alt="" /><span
+              >报名中<strong>78</strong></span
+            >
+          </article>
+          <article>
+            <img src="/assets/training-stat-soon.png" alt="" /><span
+              >即将开始<strong>28</strong></span
+            >
+          </article>
+        </div>
+      </div>
+      <img
+        class="hero-illustration"
+        src="/assets/training-hero-illustration.png"
+        width="610"
+        height="226"
+        alt="培训课堂蓝色书本与学士帽插图"
+      />
+    </section>
+    <nav class="training-tabs" aria-label="培训分类">
+      <button
+        v-for="[tab, total] in tabs"
+        :key="tab"
+        type="button"
+        :aria-current="selected === tab ? 'page' : undefined"
+        @click="selectTab(tab)"
+      >
+        {{ tab }}（{{ total }}）
+      </button>
+    </nav>
+    <section class="course-grid" aria-label="近期培训活动">
+      <article v-for="course in visibleCourses" :key="course.title">
+        <header>
+          <div class="course-meta">
+            <mark>{{ course.category }}</mark
+            ><time>{{ course.date }}</time>
+          </div>
+          <h2>{{ course.title }}</h2>
+          <small>{{ course.speaker }}</small>
+        </header>
+        <p>{{ course.description }}</p>
+        <dl class="course-status">
+          <div>
+            <dt>报名人数</dt>
+            <dd>{{ course.count }} 人</dd>
+          </div>
+          <div>
+            <dt>活动形式</dt>
+            <dd>
+              {{ course.action === "进入直播" ? "线上直播" : "专题活动" }}
+            </dd>
+          </div>
+        </dl>
+        <footer>
+          <button type="button" @click="act(course, '查看详情')">
+            查看详情</button
+          ><button type="button" @click="act(course, course.action)">
+            {{ course.action }}
+          </button>
+        </footer>
+      </article>
+    </section>
+    <footer class="training-pagination">
+      <strong>共 186 条</strong>
+      <nav aria-label="分页">
+        <button type="button">上一页</button
+        ><button type="button" aria-current="page">1</button
+        ><button type="button">2</button><button type="button">3</button
+        ><button type="button">下一页</button>
+      </nav>
+    </footer>
+  </article>
+</template>
 
 <style scoped>
 .training-page {

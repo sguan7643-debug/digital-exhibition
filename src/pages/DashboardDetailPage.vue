@@ -1,37 +1,269 @@
 <script setup>
 // Reference SHA-256: 3D66270477C159EB9097CF74C904858A9158D9C9005A90C372B284AFB8980C43
-import { nextTick, ref } from 'vue';
-import { createDetailController } from '../state/detail-controller.js';
-import { routeSession } from '../state/session-store.js';
-import BusinessPreviewGallery from '../components/BusinessPreviewGallery.vue';
-import IndicatorBuildDialog from '../components/IndicatorBuildDialog.vue';
-const metrics=[['访问次数','3,562 次'],['应用类型','驾驶舱'],['所属业务域','经营分析'],['最近更新','2025-05-06'],['开发单位','数据智能部'],['负责人','李四强'],['开发者','王海峰']];
-const features=[['关键指标监控','实时展示核心经营指标完成情况'],['趋势预测分析','基于历史数据预测趋势，辅助决策'],['多维分析钻取','支持按维度、时间、业务进行切换分析'],['自定义看板','支持个性化配置看板与指标'],['预警与通知','指标异常自动预警，支持多渠道推送']];
-const attachments=['用户操作手册.pdf','快速使用指南.pdf','驾驶舱指标体系说明.xlsx','驾驶舱数据接口规范.docx'];
-const training=['经营管理驾驶舱操作介绍','指标监控与预警配置','多维钻取与联动分析','自定义看板配置实战'];
-const indicators=['营业收入完成率指标','成本费用控制率指标','年度经营目标达成率指标'];
-const detail=routeSession.controller('detail-dashboard',()=>createDetailController('/apps/dashboard-001',routeSession,{name:'经营管理驾驶舱'}));
-const commentInput=ref(null);
-const metricBuildDialog=ref(null);
-function openMetricBuild(){metricBuildDialog.value?.open();}
-function submitMetricBuild(payload){detail.apply(`个性化指标构建申请（${payload.name}）`);}
-async function submitComment(){if(detail.submitComment()){await nextTick();commentInput.value?.focus();}}
+import { nextTick, ref } from "vue";
+import { createDetailController } from "../state/detail-controller.js";
+import { routeSession } from "../state/session-store.js";
+import BusinessPreviewGallery from "../components/BusinessPreviewGallery.vue";
+import TypeLineIcon from "../components/TypeLineIcon.vue";
+import IndicatorBuildDialog from "../components/IndicatorBuildDialog.vue";
+const metrics = [
+  ["访问次数", "3,562 次"],
+  ["应用类型", "驾驶舱"],
+  ["所属业务域", "经营分析"],
+  ["最近更新", "2026-08-31"],
+  ["开发单位", "数据智能部"],
+  ["负责人", "李四强"],
+  ["开发者", "王海峰"],
+];
+const features = [
+  ["关键指标监控", "实时展示核心经营指标完成情况"],
+  ["趋势预测分析", "基于历史数据预测趋势，辅助决策"],
+  ["多维分析钻取", "支持按维度、时间、业务进行切换分析"],
+  ["自定义看板", "支持个性化配置看板与指标"],
+  ["预警与通知", "指标异常自动预警，支持多渠道推送"],
+];
+const attachments = [
+  "用户操作手册.pdf",
+  "快速使用指南.pdf",
+  "驾驶舱指标体系说明.xlsx",
+  "驾驶舱数据接口规范.docx",
+];
+const attachmentSizes = ["2.6 MB", "2.0 MB", "1.4 MB", "820 KB"];
+const training = [
+  "经营管理驾驶舱操作介绍",
+  "指标监控与预警配置",
+  "多维钻取与联动分析",
+  "自定义看板配置实战",
+];
+const indicators = [
+  "营业收入完成率指标",
+  "成本费用控制率指标",
+  "年度经营目标达成率指标",
+];
+const detail = routeSession.controller("detail-dashboard", () =>
+  createDetailController("/apps/dashboard-001", routeSession, {
+    name: "经营管理驾驶舱",
+  }),
+);
+const commentInput = ref(null);
+const metricBuildDialog = ref(null);
+function openMetricBuild() {
+  metricBuildDialog.value?.open();
+}
+function submitMetricBuild(payload) {
+  detail.apply(`个性化指标构建申请（${payload.name}）`);
+}
+async function submitComment() {
+  if (detail.submitComment()) {
+    await nextTick();
+    commentInput.value?.focus();
+  }
+}
 </script>
 <template>
-  <article class="product-detail dashboard-detail" aria-labelledby="dashboard-title"><p class="sr-only" aria-live="polite">{{ detail.announcement }}</p><nav class="detail-crumb" aria-label="面包屑"><a href="/apps?category=驾驶舱" data-detail-return>应用中心</a>　/　驾驶舱　/　应用详情</nav>
-    <header class="detail-hero"><div class="detail-hero-main"><AppIcon class="detail-logo" name="dashboard-logo" :size="81" label="经营管理驾驶舱图标" /><div class="detail-title"><h1 id="dashboard-title">经营管理驾驶舱</h1><mark>驾驶舱</mark><mark>经营分析</mark><p>面向经营管理场景，整合财务、运营、营销、合同等核心业务数据，提供关键指标实时监控、上屏预警与趋势分析。</p><p>应用URL地址　<b>本地受控演示</b></p><div class="detail-tags"><strong>应用关键词</strong><mark>经营管理</mark><mark>指标监控</mark><mark>经营分析</mark><mark>趋势预测</mark><mark>管理驾驶舱</mark></div></div><div class="detail-hero-side"><button type="button" :aria-pressed="detail.favorite" @click="detail.toggleFavorite">{{ detail.favorite?'已收藏':'收藏' }}</button><button type="button" @click="detail.apply('申请使用')">申请使用</button><button class="metric-build-trigger" type="button" @click="openMetricBuild">个性化指标构建</button><img class="detail-illustration" src="/assets/dashboard-hero.png" width="145" height="145" alt="经营管理驾驶舱插画" /></div></div><dl class="detail-metrics"><div v-for="([key,value],index) in metrics" :key="key"><b>{{ index+1 }}</b><dt>{{ key }}</dt><dd>{{ value }}</dd></div></dl></header>
-    <section class="detail-panel"><h2>应用简介</h2><dl class="info-grid"><div><dt>应用编码</dt><dd>APP-JYGL-001</dd></div><div><dt>集成数据</dt><dd>财务数据、采购数据、库存数据、合同数据、生产运营数据等</dd></div><div><dt>版本号</dt><dd>V1.3.0</dd></div><div><dt>数据更新频率</dt><dd>每小时更新</dd></div><div><dt>所属场景</dt><dd>经营管理</dd></div><div><dt>权限控制要求</dt><dd>支持基于角色和数据范围权限控制</dd></div><div><dt>适用对象</dt><dd>集团公司、专业分公司、直属单位</dd></div><div><dt>应用URL地址</dt><dd>本地受控演示</dd></div></dl></section>
-    <section class="detail-panel"><h2>核心功能</h2><div class="feature-grid"><article v-for="([name,text],index) in features" :key="name"><b>{{ index+1 }}</b><strong>{{ name }}</strong><p>{{ text }}</p></article></div></section>
-    <section class="detail-panel"><h2>演示截图</h2><figure><BusinessPreviewGallery variant="dashboard" /><figcaption>核心经营指标、趋势预测和多维分析三项只读驾驶舱预览；演示不连接实时业务数据。</figcaption></figure></section>
-    <section class="detail-panel"><h2>使用说明</h2><div class="related-row"><article><b>PDF</b><div><h3>经营管理驾驶舱-用户操作手册.pdf</h3><p>2.6 MB　2025-04-28</p></div></article><article><b>PDF</b><div><h3>经营管理驾驶舱-快速使用指南.pdf</h3><p>1.9 MB　2025-04-28</p></div></article></div></section>
-    <section class="detail-panel"><h2>附件资料</h2><table class="file-list"><caption class="sr-only">经营管理驾驶舱附件资料</caption><thead><tr><th scope="col">文件名称</th><th scope="col">文件大小</th><th scope="col">上传时间</th><th scope="col">上传人</th><th scope="col">操作</th></tr></thead><tbody><tr v-for="(name,index) in attachments" :key="name"><td>{{ name }}</td><td>{{ 2.6-index*.6 }} MB</td><td>2025-04-28 10:{{ 20+index }}:10</td><td>李四强</td><td><button class="text-action" type="button" :aria-label="`下载 ${name}`" @click="detail.mockDownload(name)">下载</button></td></tr></tbody></table></section>
-    <section class="detail-panel"><h2>相关培训内容 <a href="/training">查看全部培训</a></h2><div class="training-row"><article v-for="(name,index) in training" :key="name"><AppIcon name="dashboard-logo" :size="48" /><div><h3>{{ name }}</h3><p>时长：{{ 14+index }}:20</p><a href="/training" :aria-label="`学习：${name}`">去学习</a></div></article></div></section>
-    <section class="detail-panel"><h2>关联素材</h2><div class="related-row"><article v-for="name in indicators" :key="name"><AppIcon name="app-metric" :size="48" /><div><h3><a href="/apps/metric-001">{{ name }}</a></h3><p>经营分析　指标</p></div></article></div></section>
-    <form class="detail-comment" @submit.prevent="submitComment"><label>应用评论<input ref="commentInput" v-model="detail.commentDraft" placeholder="请输入您对该应用的评论..." /></label><button type="submit" :disabled="!detail.commentDraft.trim()">提交评论</button><ul v-if="detail.comments.length" aria-label="本地评论"><li v-for="comment in detail.comments" :key="comment.id" :data-comment-id="comment.id">{{ comment.text }}</li></ul></form>
+  <article
+    class="product-detail dashboard-detail"
+    aria-labelledby="dashboard-title"
+  >
+    <p class="sr-only" aria-live="polite">{{ detail.announcement }}</p>
+    <nav class="detail-crumb" aria-label="面包屑">
+      <a href="/apps?category=驾驶舱" data-detail-return>应用中心</a
+      >　/　驾驶舱　/　应用详情
+    </nav>
+    <header class="detail-hero">
+      <div class="detail-hero-main">
+        <span class="detail-logo detail-type-icon" role="img" aria-label="经营管理驾驶舱图标"><TypeLineIcon name="visual" :size="34" /></span>
+        <div class="detail-title">
+          <h1 id="dashboard-title">经营管理驾驶舱</h1>
+          <mark>驾驶舱</mark><mark>经营分析</mark>
+          <p>
+            面向经营管理场景，整合财务、运营、营销、合同等核心业务数据，提供关键指标实时监控、上屏预警与趋势分析。
+          </p>
+          <p>应用URL地址　<b>本地受控演示</b></p>
+          <div class="detail-tags">
+            <strong>应用关键词</strong><mark>经营管理</mark><mark>指标监控</mark
+            ><mark>经营分析</mark><mark>趋势预测</mark><mark>管理驾驶舱</mark>
+          </div>
+        </div>
+        <div class="detail-hero-side">
+          <button
+            type="button"
+            :aria-pressed="detail.favorite"
+            @click="detail.toggleFavorite"
+          >
+            {{ detail.favorite ? "已收藏" : "收藏" }}</button
+          ><button type="button" @click="detail.apply('申请使用')">
+            申请使用</button
+          ><button class="metric-build-trigger" type="button" @click="openMetricBuild">个性化指标构建</button>
+        </div>
+      </div>
+    </header>
+    <dl class="detail-metrics">
+      <div v-for="([key, value], index) in metrics" :key="key">
+        <b>{{ index + 1 }}</b>
+        <dt>{{ key }}</dt>
+        <dd>{{ value }}</dd>
+      </div>
+    </dl>
+    <section class="detail-panel detail-panel--half">
+      <h2>应用简介</h2>
+      <dl class="info-grid">
+        <div>
+          <dt>应用编码</dt>
+          <dd>APP-JYGL-001</dd>
+        </div>
+        <div>
+          <dt>集成数据</dt>
+          <dd>财务数据、采购数据、库存数据、合同数据、生产运营数据等</dd>
+        </div>
+        <div>
+          <dt>版本号</dt>
+          <dd>V1.3.0</dd>
+        </div>
+        <div>
+          <dt>数据更新频率</dt>
+          <dd>每小时更新</dd>
+        </div>
+        <div>
+          <dt>所属场景</dt>
+          <dd>经营管理</dd>
+        </div>
+        <div>
+          <dt>权限控制要求</dt>
+          <dd>支持基于角色和数据范围权限控制</dd>
+        </div>
+        <div>
+          <dt>适用对象</dt>
+          <dd>集团公司、专业分公司、直属单位</dd>
+        </div>
+        <div>
+          <dt>应用URL地址</dt>
+          <dd>本地受控演示</dd>
+        </div>
+      </dl>
+    </section>
+    <section class="detail-panel detail-panel--half">
+      <h2>核心功能</h2>
+      <div class="feature-grid">
+        <article v-for="([name, text], index) in features" :key="name">
+          <b>{{ index + 1 }}</b
+          ><strong>{{ name }}</strong>
+          <p>{{ text }}</p>
+        </article>
+      </div>
+    </section>
+    <section class="detail-panel detail-panel--full detail-panel--preview">
+      <h2>演示截图</h2>
+      <figure>
+        <BusinessPreviewGallery variant="dashboard" />
+        <figcaption>
+          核心经营指标、趋势预测和多维分析三项清晰的只读驾驶舱预览；数据为固定演示口径。
+        </figcaption>
+      </figure>
+    </section>
+    <section id="usage" class="detail-panel detail-panel--half" tabindex="-1">
+      <h2>使用说明</h2>
+      <div class="related-row">
+        <article>
+          <b>PDF</b>
+          <div>
+            <h3>经营管理驾驶舱-用户操作手册.pdf</h3>
+            <p>2.6 MB　2025-04-28</p>
+          </div>
+        </article>
+        <article>
+          <b>PDF</b>
+          <div>
+            <h3>经营管理驾驶舱-快速使用指南.pdf</h3>
+            <p>1.9 MB　2025-04-28</p>
+          </div>
+        </article>
+      </div>
+    </section>
+    <section class="detail-panel detail-panel--half">
+      <h2>附件资料</h2>
+      <table class="file-list">
+        <caption class="sr-only">
+          经营管理驾驶舱附件资料
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">文件名称</th>
+            <th scope="col">文件大小</th>
+            <th scope="col">上传时间</th>
+            <th scope="col">上传人</th>
+            <th scope="col">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(name, index) in attachments" :key="name">
+            <td>{{ name }}</td>
+            <td>{{ attachmentSizes[index] }}</td>
+            <td>2026-08-31 10:{{ 20 + index }}:10</td>
+            <td>李四强</td>
+            <td>
+              <button
+                class="text-action"
+                type="button"
+                :aria-label="`下载 ${name}`"
+                @click="detail.mockDownload(name)"
+              >
+                下载
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    <section class="detail-panel detail-panel--half">
+      <h2>相关培训内容 <a href="/training">查看全部培训</a></h2>
+      <div class="training-row">
+        <article v-for="(name, index) in training" :key="name">
+          <img src="/assets/dashboard-logo.png" alt="" />
+          <div>
+            <h3>{{ name }}</h3>
+            <p>时长：{{ 14 + index }}:20</p>
+            <a href="/training" :aria-label="`学习：${name}`">去学习</a>
+          </div>
+        </article>
+      </div>
+    </section>
+    <section class="detail-panel detail-panel--half">
+      <h2>关联素材</h2>
+      <div class="related-row">
+        <article v-for="name in indicators" :key="name">
+          <img src="/assets/app-metric.png" alt="" />
+          <div>
+            <h3>
+              <a href="/apps/metric-001">{{ name }}</a>
+            </h3>
+            <p>经营分析　指标</p>
+          </div>
+        </article>
+      </div>
+    </section>
+    <form class="detail-comment" @submit.prevent="submitComment">
+      <label
+        >应用评论<input
+          ref="commentInput"
+          v-model="detail.commentDraft"
+          placeholder="请输入您对该应用的评论..." /></label
+      ><button type="submit" :disabled="!detail.commentDraft.trim()">
+        提交评论
+      </button>
+      <ul v-if="detail.comments.length" aria-label="本地评论">
+        <li
+          v-for="comment in detail.comments"
+          :key="comment.id"
+          :data-comment-id="comment.id"
+        >
+          {{ comment.text }}
+        </li>
+      </ul>
+    </form>
     <IndicatorBuildDialog ref="metricBuildDialog" app-name="经营管理驾驶舱" @submit="submitMetricBuild" />
   </article>
 </template>
-
 <style scoped>
 .dashboard-detail .detail-hero {
   min-height: 350px;

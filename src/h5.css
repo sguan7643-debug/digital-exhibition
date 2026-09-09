@@ -18,12 +18,13 @@
   #app {
     width: 100%;
     max-width: 100%;
+    overflow: hidden;
   }
 
   #main-content {
     width: 100%;
     max-width: 100vw;
-    min-width: 0;
+    overflow-x: hidden;
     font-size: 15px;
   }
 
@@ -93,8 +94,8 @@
   /* Filters and editor forms */
   #main-content :is(
     .apps-filter,.materials-filter,.favorite-filters,.message-filters,.notice-filters,
-    .point-filter,.admin-list>form,.app-admin>form,.talent-filter,.talent-body main>form,
-    .projects-body main>form,.progress-page>form,.progress-page>section>form,.form-grid,.basic-grid,.editor-split,
+    .point-filter,.admin-list>form,.app-admin>form,.talent-filter,
+    .projects-body main>form,.progress-page>form,.form-grid,.basic-grid,.editor-split,
     .assets-form,.app-editor>form,.edit-main,.permission,.filters
   ) {
     width: 100%;
@@ -110,8 +111,8 @@
 
   #main-content :is(
     .apps-filter,.materials-filter,.favorite-filters,.message-filters,.notice-filters,
-    .point-filter,.admin-list>form,.app-admin>form,.talent-filter,.talent-body main>form,
-    .projects-body main>form,.progress-page>form,.progress-page>section>form
+    .point-filter,.admin-list>form,.app-admin>form,.talent-filter,
+    .projects-body main>form,.progress-page>form
   ) label {
     width: 100%;
     height: auto !important;
@@ -125,8 +126,8 @@
 
   #main-content :is(
     .apps-filter,.materials-filter,.favorite-filters,.message-filters,.notice-filters,
-    .point-filter,.admin-list>form,.app-admin>form,.talent-filter,.talent-body main>form,
-    .projects-body main>form,.progress-page>form,.progress-page>section>form,.form-grid,.basic-grid,.editor-split,
+    .point-filter,.admin-list>form,.app-admin>form,.talent-filter,
+    .projects-body main>form,.progress-page>form,.form-grid,.basic-grid,.editor-split,
     .assets-form,.edit-main
   ) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea,button) {
     width: 100% !important;
@@ -637,33 +638,16 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  #main-content .training-tabs {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-    overflow-x: visible !important;
-  }
-
-  #main-content .training-tabs button {
-    min-width: 0;
-    flex: 1 1 calc(50% - 4px) !important;
-    margin: 0 !important;
-  }
-
   #main-content .point-tabs {
     height: auto !important;
     min-height: var(--h5-control);
-    display: flex !important;
-    flex-wrap: wrap !important;
     align-items: stretch !important;
     gap: 8px !important;
     padding-bottom: 2px;
-    overflow-x: visible !important;
   }
 
   #main-content .point-tabs button {
-    flex: 1 1 calc(50% - 4px) !important;
-    min-width: 0;
+    flex: 0 0 auto !important;
     min-height: var(--h5-control) !important;
     height: var(--h5-control) !important;
     margin-left: 0 !important;
@@ -700,19 +684,6 @@
   #main-content .cert-info,
   #main-content .profile-bottom,
   #main-content .profile-stats {
-    grid-template-columns: 1fr !important;
-  }
-
-  #main-content .point-stats {
-    grid-template-columns: 1fr !important;
-  }
-
-  #main-content .point-stats article,
-  #main-content .point-layout>* {
-    min-width: 0;
-  }
-
-  #main-content .source-panel>div {
     grid-template-columns: 1fr !important;
   }
 
@@ -849,18 +820,13 @@
   /* Tables remain complete and get their own deliberate horizontal scroll. */
   #main-content :is(
     .table-scroll,.talent-table-scroll,.admin-table,.app-admin-table,.point-table,
-    .progress-table,.notice-table,.horizontal-scroll-region
+    .progress-table,.notice-table,.log-panel
   ) {
     width: 100%;
     max-width: 100%;
     overflow-x: auto !important;
     overscroll-behavior-inline: contain;
     -webkit-overflow-scrolling: touch;
-  }
-
-  #main-content .horizontal-scroll-region:focus-visible {
-    outline: 3px solid #1b77d2;
-    outline-offset: 2px;
   }
 
   #main-content .notice-table table { min-width: 1050px !important; }

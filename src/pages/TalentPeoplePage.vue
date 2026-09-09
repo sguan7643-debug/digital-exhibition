@@ -1,85 +1,568 @@
 <script setup>
 // Reference SHA-256: 3F38FEA2909904F070F5CFBF4FB110337856035CE5774519545689776FD4C558
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { PEOPLE_FIXTURES } from '../fixtures/mock-data.js';
-import { createTalentController } from '../state/interaction-controllers.js';
-import PaginationControl from '../components/PaginationControl.vue';
-import { mapRemoteTalentPerson } from '../integration/talent-read-model.js';
-
-const props=defineProps({
-  integrationData:{type:Object,default:null},
-  integrationState:{type:String,default:'mock'}
-});
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { PEOPLE_FIXTURES } from "../fixtures/mock-data.js";
+import { createTalentController } from "../state/interaction-controllers.js";
+import PaginationControl from "../components/PaginationControl.vue";
 
 const controller = createTalentController(PEOPLE_FIXTURES);
-const queryDraft = ref('');
+const queryDraft = ref("");
 const dialogRef = ref(null);
 const closeButtonRef = ref(null);
 const resultTitleRef = ref(null);
 let opener = null;
 let drawerScrollTop = 0;
+const backgroundInertState = new Map();
+
 const filteredPeople = computed(() => controller.results);
 const pagedPeople = computed(() => controller.pagedResults);
 const selectedPerson = computed(() => controller.selected);
-const remoteMode=computed(()=>Boolean(props.integrationData?.['TAL-001']));
-const remoteFacets=computed(()=>props.integrationData?.['TAL-005']);
-const departments = computed(() => remoteFacets.value?.departments?.map(item=>item.name).filter(Boolean)||[...new Set(controller.fixtures.map(person => person.department))]);
-const domains = computed(() => remoteFacets.value?.specialties?.map(item=>item.name).filter(Boolean)||[...new Set(controller.fixtures.map(person => person.domain))]);
-const offices = computed(() => [...new Set(controller.fixtures.map(person => person.office).filter(value=>value&&value!=='—'))]);
+const departments = [
+  ...new Set(PEOPLE_FIXTURES.map((person) => person.department)),
+];
+const domains = [...new Set(PEOPLE_FIXTURES.map((person) => person.domain))];
+const offices = [...new Set(PEOPLE_FIXTURES.map((person) => person.office))];
 
-watch(()=>props.integrationData?.['TAL-001']?.items,rows=>{
-  controller.fixtures=Array.isArray(rows)?rows.map(mapRemoteTalentPerson):[...PEOPLE_FIXTURES];
-  controller.page=1;controller.selectedId=null;
-},{immediate:true});
+function currentDrawerKey() {
+  return controller.creating ? "create" : controller.selectedId;
+}
 
-function updateDrawerQuery(id,mode='replace') {
+function updateDrawerQuery(id, mode = "replace") {
   const next = new URL(window.location.href);
-  id ? next.searchParams.set('drawer', id) : next.searchParams.delete('drawer');
-  const state=id?{...window.history.state,xltTalentDrawer:id}:{...window.history.state,xltTalentDrawer:undefined};
-  if(mode==='push')window.history.pushState(state, '', `${next.pathname}${next.search}`);
-  else window.history.replaceState(state, '', `${next.pathname}${next.search}`);
+  id ? next.searchParams.set("drawer", id) : next.searchParams.delete("drawer");
+  const state = id
+    ? { ...window.history.state, xltTalentDrawer: id }
+    : { ...window.history.state, xltTalentDrawer: undefined };
+  const target = `${next.pathname}${next.search}${next.hash}`;
+  if (mode === "push") window.history.pushState(state, "", target);
+  else window.history.replaceState(state, "", target);
 }
-function setBackgroundInert(value){
-  document.querySelectorAll('.topbar,.sidebar').forEach(node=>{node.inert=value;});
+
+function setBackgroundInert(value) {
+  // The drawer is a split-pane editor, not a page-blocking modal. Keep the
+  // global header, sidebar and local talent tabs available for navigation.
+  document.querySelectorAll(".talent-body > main").forEach((node) => {
+    if (value) {
+      if (!backgroundInertState.has(node)) backgroundInertState.set(node, node.hasAttribute("inert"));
+      node.setAttribute("inert", "");
+      return;
+    }
+    if (backgroundInertState.get(node)) node.setAttribute("inert", "");
+    else node.removeAttribute("inert");
+  });
+  if (!value) backgroundInertState.clear();
 }
-async function focusDrawer(){await nextTick();closeButtonRef.value?.focus();}
-async function restoreDrawerOrigin(){
+
+async function focusDrawer() {
   await nextTick();
-  const main=document.getElementById('main-content');if(main)main.scrollTop=drawerScrollTop;
-  if(opener?.isConnected)opener.focus();else resultTitleRef.value?.focus();
+  closeButtonRef.value?.focus();
 }
-async function openDetail(person, event) {
+
+async function restoreDrawerOrigin() {
+  await nextTick();
+  const main = document.getElementById("main-content");
+  if (main) main.scrollTop = drawerScrollTop;
+  if (opener?.isConnected) opener.focus();
+  else resultTitleRef.value?.focus();
+}
+
+function rememberOrigin(event) {
   opener = event?.currentTarget || null;
-  drawerScrollTop=document.getElementById('main-content')?.scrollTop||0;
+  drawerScrollTop = document.getElementById("main-content")?.scrollTop || 0;
+}
+
+async function openDetail(person, event) {
+  rememberOrigin(event);
   controller.open(person.id);
-  updateDrawerQuery(person.id,'push');
+  updateDrawerQuery(person.id, "push");
   setBackgroundInert(true);
   await focusDrawer();
 }
+
+async function openCreate(event) {
+  rememberOrigin(event);
+  controller.openCreate();
+  updateDrawerQuery("create", "push");
+  setBackgroundInert(true);
+  await focusDrawer();
+}
+
 async function closeDetail() {
-  if(window.history.state?.xltTalentDrawer===controller.selectedId&&window.history.length>1){window.history.back();return;}
-  updateDrawerQuery('');controller.close();setBackgroundInert(false);await restoreDrawerOrigin();
+  if (
+    window.history.state?.xltTalentDrawer === currentDrawerKey() &&
+    window.history.length > 1
+  ) {
+    window.history.back();
+    return;
+  }
+  updateDrawerQuery("");
+  controller.close();
+  setBackgroundInert(false);
+  await restoreDrawerOrigin();
 }
-function submitSearch() { controller.setFilter('query', queryDraft.value); }
-function setFilter(key, value) { controller.setFilter(key, value); }
-function resetFilters() { queryDraft.value = ''; controller.reset(); updateDrawerQuery(''); }
+
+async function submitCreate() {
+  const saved = controller.saveNew();
+  if (!saved) {
+    await nextTick();
+    dialogRef.value?.querySelector('[aria-invalid="true"]')?.focus();
+    return;
+  }
+  updateDrawerQuery("");
+  setBackgroundInert(false);
+  await restoreDrawerOrigin();
+}
+
+function submitSearch() {
+  controller.setFilter("query", queryDraft.value);
+}
+function setFilter(key, value) {
+  controller.setFilter(key, value);
+}
+function resetFilters() {
+  queryDraft.value = "";
+  controller.reset();
+  updateDrawerQuery("");
+}
+
 async function syncDrawer() {
-  const id = new URLSearchParams(window.location.search).get('drawer');
-  if (id) {controller.open(id);setBackgroundInert(true);await focusDrawer();}
-  else {const wasOpen=controller.drawerOpen;controller.close();setBackgroundInert(false);if(wasOpen)await restoreDrawerOrigin();}
+  const id = new URLSearchParams(window.location.search).get("drawer");
+  if (id === "create") controller.openCreate();
+  else if (id) controller.open(id);
+  else {
+    const wasOpen = controller.drawerOpen;
+    controller.close();
+    setBackgroundInert(false);
+    if (wasOpen) await restoreDrawerOrigin();
+    return;
+  }
+  if (!controller.drawerOpen) {
+    updateDrawerQuery("");
+    return;
+  }
+  setBackgroundInert(true);
+  await focusDrawer();
 }
+
 function trapFocus(event) {
-  if (event.key !== 'Tab' || !dialogRef.value) return;
-  const focusable = [...dialogRef.value.querySelectorAll('button,[href],[tabindex]:not([tabindex="-1"])')].filter(node => !node.disabled);
+  if (event.key !== "Tab" || !dialogRef.value) return;
+  const focusable = [
+    ...dialogRef.value.querySelectorAll(
+      'button,input,select,textarea,[href],[tabindex]:not([tabindex="-1"])',
+    ),
+  ].filter((node) => !node.disabled && !node.hidden);
   if (!focusable.length) return;
-  const first = focusable[0]; const last = focusable.at(-1);
-  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  const first = focusable[0];
+  const last = focusable.at(-1);
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
 }
-onMounted(() => { syncDrawer(); window.addEventListener('popstate', syncDrawer); });
-onBeforeUnmount(() => {window.removeEventListener('popstate', syncDrawer);setBackgroundInert(false);});
+
+onMounted(() => {
+  syncDrawer();
+  window.addEventListener("popstate", syncDrawer);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener("popstate", syncDrawer);
+  setBackgroundInert(false);
+});
 </script>
-<template><article class="talent-people" aria-labelledby="talent-title" @keydown.esc="controller.drawerOpen && closeDetail()"><p class="sr-only" aria-live="polite">{{ controller.announcement }}</p><p class="sr-only">支持按轮岗计划-开始时间和轮岗计划-结束时间筛选，日期条件由后端字段合同保留。</p><nav :inert="controller.drawerOpen">人才管理　/　人才库</nav><div class="talent-body" :class="{ 'drawer-open': controller.drawerOpen }"><main :inert="controller.drawerOpen"><header><div><h1 id="talent-title">人才库</h1><p>查看和管理组织内的人才信息，支持人才检索和筛选。<span v-if="remoteMode">数据来自飞书多维表格。</span></p></div><button type="button" disabled title="新增人才写接口尚未启用">+ 新增人才</button></header><form @submit.prevent="submitSearch" @reset.prevent="resetFilters"><label class="search-label"><span class="sr-only">人才搜索</span><input v-model="queryDraft" aria-label="搜索人才" placeholder="请输入员工姓名、工号或关键词"/></label><label>所属部门：<select :value="controller.filters.department" @change="setFilter('department',$event.target.value)"><option value="">全部</option><option v-for="value in departments" :key="value">{{ value }}</option></select></label><label>领域/专业：<select :value="controller.filters.domain" @change="setFilter('domain',$event.target.value)"><option value="">全部</option><option v-for="value in domains" :key="value">{{ value }}</option></select></label><label>责任科室：<select :value="controller.filters.office" @change="setFilter('office',$event.target.value)"><option value="">全部</option><option v-for="value in offices" :key="value">{{ value }}</option></select></label><label>本期是否在库：<select :value="controller.filters.inPool" @change="setFilter('inPool',$event.target.value)"><option value="">全部</option><option>是</option><option>否</option></select></label><button type="reset">重置</button><button type="button" disabled title="导出写接口尚未启用">导出</button></form><section aria-labelledby="talent-result-title"><h2 id="talent-result-title" ref="resultTitleRef" class="sr-only" tabindex="-1">人才查询结果，共 {{ controller.results.length }} 条</h2><div class="talent-table-scroll horizontal-scroll-region" tabindex="0" role="region" aria-label="人才库查询结果，可左右滚动"><table><caption class="sr-only">人才库查询结果</caption><thead><tr><th scope="col">员工姓名</th><th scope="col">年龄</th><th scope="col">本期是否在库</th><th scope="col">人员类型</th><th scope="col">所属部门</th><th scope="col">领域/专业</th><th scope="col">责任科室</th><th scope="col">能力标签-新</th><th scope="col">培养方向</th><th scope="col">轮岗计划-开始时间</th><th scope="col">轮岗计划-结束时间</th><th scope="col">操作</th></tr></thead><tbody><tr v-for="person in pagedPeople" :key="person.id" tabindex="0" :aria-selected="controller.selectedId === person.id" @click="openDetail(person,$event)" @keydown.enter.prevent="openDetail(person,$event)"><td>{{ person.name }}</td><td>{{ person.age }}</td><td><span class="pool-status" :class="person.inPool==='是'?'is-active':'is-inactive'">{{ person.inPool }}</span></td><td>{{ person.type }}</td><td>{{ person.department }}</td><td>{{ person.domain }}</td><td>{{ person.office }}</td><td><span class="talent-tags">{{ person.tags }}</span></td><td>{{ person.direction }}</td><td>{{ person.start }}</td><td>{{ person.end }}</td><td><button type="button" @click.stop="openDetail(person,$event)">查看详情</button></td></tr></tbody></table></div><p v-if="!controller.results.length" class="talent-empty" role="status">暂无符合条件的人才</p><PaginationControl :total="controller.results.length" :page="controller.page" :page-size="controller.pageSize" label="人才库分页" @update:page="controller.setPage" @update:page-size="controller.setPageSize" /></section></main><aside v-if="selectedPerson" id="drawer" ref="dialogRef" role="dialog" aria-modal="true" aria-labelledby="talent-detail-title" @keydown="trapFocus"><header><h2 id="talent-detail-title">人才详情：{{ selectedPerson.name }}</h2><button ref="closeButtonRef" class="close-icon" type="button" aria-label="关闭人才详情" @click="closeDetail"><span class="sr-only">关闭</span></button></header><h3>基本信息</h3><dl><div><dt>员工姓名：</dt><dd>{{ selectedPerson.name }}</dd></div><div><dt>工号：</dt><dd>{{ selectedPerson.employeeNo||'—' }}</dd></div><div><dt>人才状态：</dt><dd>{{ selectedPerson.status||selectedPerson.inPool }}</dd></div><div><dt>人员类型：</dt><dd>{{ selectedPerson.type }}</dd></div><div><dt>人才等级：</dt><dd>{{ selectedPerson.level||'—' }}</dd></div><div><dt>所属部门：</dt><dd>{{ selectedPerson.department }}</dd></div><div><dt>擅长领域：</dt><dd><mark v-for="tag in selectedPerson.specialties||[]" :key="tag">{{ tag }}</mark><span v-if="!selectedPerson.specialties?.length">—</span></dd></div></dl><footer><button type="button" @click="closeDetail">关闭</button></footer></aside></div></article></template>
+
+<template>
+  <article
+    class="talent-people"
+    aria-labelledby="talent-title"
+    @keydown.esc="controller.drawerOpen && closeDetail()"
+  >
+    <p class="sr-only" aria-live="polite">{{ controller.announcement }}</p>
+    <nav
+      class="talent-local-nav"
+      aria-label="人才管理页面"
+    >
+      <span>人才管理</span
+      ><a href="/talent/people" aria-current="page">人才库</a
+      ><a href="/talent/projects">人才项目管理</a
+      ><a href="/talent/progress">项目进度管理</a>
+    </nav>
+    <div class="talent-body" :class="{ 'drawer-open': controller.drawerOpen }">
+      <main :inert="controller.drawerOpen">
+        <header>
+          <div>
+            <h1 id="talent-title">人才库</h1>
+            <p>查看和管理组织内的人才信息，支持人才检索、筛选和数据维护。</p>
+          </div>
+          <button type="button" @click="openCreate">+ 新增人才</button>
+        </header>
+        <form
+          class="talent-filter"
+          @submit.prevent="submitSearch"
+          @reset.prevent="resetFilters"
+        >
+          <label class="search-label"
+            ><span class="sr-only">人才搜索</span
+            ><input
+              v-model="queryDraft"
+              aria-label="搜索人才"
+              placeholder="请输入员工姓名、工号或关键词"
+          /></label>
+          <label
+            >所属部门：<select
+              :value="controller.filters.department"
+              @change="setFilter('department', $event.target.value)"
+            >
+              <option value="">全部</option>
+              <option v-for="value in departments" :key="value">
+                {{ value }}
+              </option>
+            </select></label
+          >
+          <label
+            >领域/专业：<select
+              :value="controller.filters.domain"
+              @change="setFilter('domain', $event.target.value)"
+            >
+              <option value="">全部</option>
+              <option v-for="value in domains" :key="value">{{ value }}</option>
+            </select></label
+          >
+          <label
+            >责任科室：<select
+              :value="controller.filters.office"
+              @change="setFilter('office', $event.target.value)"
+            >
+              <option value="">全部</option>
+              <option v-for="value in offices" :key="value">{{ value }}</option>
+            </select></label
+          >
+          <label
+            >本期是否在库：<select
+              :value="controller.filters.inPool"
+              @change="setFilter('inPool', $event.target.value)"
+            >
+              <option value="">全部</option>
+              <option>是</option>
+              <option>否</option>
+            </select></label
+          >
+          <button class="search-submit" type="submit">查询</button
+          ><button type="reset">重置</button
+          ><button type="button" disabled title="当前演示不生成导出文件">
+            导出
+          </button>
+        </form>
+        <section aria-labelledby="talent-result-title">
+          <h2
+            id="talent-result-title"
+            ref="resultTitleRef"
+            class="sr-only"
+            tabindex="-1"
+          >
+            人才查询结果，共 {{ filteredPeople.length }} 条
+          </h2>
+          <div class="talent-table-scroll">
+            <table>
+              <caption class="sr-only">
+                人才库查询结果
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">员工姓名</th>
+                  <th scope="col">年龄</th>
+                  <th scope="col">本期是否在库</th>
+                  <th scope="col">人员类型</th>
+                  <th scope="col">所属部门</th>
+                  <th scope="col">领域/专业</th>
+                  <th scope="col">责任科室</th>
+                  <th scope="col">能力标签-新</th>
+                  <th scope="col">培养方向</th>
+                  <th scope="col">轮岗计划-开始时间</th>
+                  <th scope="col">轮岗计划-结束时间</th>
+                  <th scope="col">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="person in pagedPeople"
+                  :key="person.id"
+                  tabindex="0"
+                  :aria-selected="controller.selectedId === person.id"
+                  @click="openDetail(person, $event)"
+                  @keydown.enter.prevent="openDetail(person, $event)"
+                >
+                  <td>{{ person.name }}</td>
+                  <td>{{ person.age }}</td>
+                  <td>{{ person.inPool }}</td>
+                  <td>{{ person.type }}</td>
+                  <td>{{ person.department }}</td>
+                  <td>{{ person.domain }}</td>
+                  <td>{{ person.office }}</td>
+                  <td>{{ person.tags }}</td>
+                  <td>{{ person.direction }}</td>
+                  <td>{{ person.start }}</td>
+                  <td>{{ person.end }}</td>
+                  <td>
+                    <button
+                      type="button"
+                      @click.stop="openDetail(person, $event)"
+                    >
+                      查看详情
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p v-if="!filteredPeople.length" class="talent-empty" role="status">
+            暂无符合条件的人才
+          </p>
+          <PaginationControl
+            :total="filteredPeople.length"
+            :page="controller.page"
+            :page-size="controller.pageSize"
+            label="人才库分页"
+            @update:page="controller.setPage"
+            @update:page-size="controller.setPageSize"
+          />
+        </section>
+      </main>
+
+      <aside
+        v-if="controller.drawerOpen"
+        id="drawer"
+        ref="dialogRef"
+        role="dialog"
+        aria-modal="true"
+        :aria-labelledby="
+          controller.creating ? 'talent-create-title' : 'talent-detail-title'
+        "
+        @keydown="trapFocus"
+      >
+        <header>
+          <h2 v-if="controller.creating" id="talent-create-title">新增人才</h2>
+          <h2 v-else id="talent-detail-title">
+            人才详情：{{ selectedPerson?.name }}
+          </h2>
+          <button
+            ref="closeButtonRef"
+            class="close-icon"
+            type="button"
+            :aria-label="controller.creating ? '关闭新增人才' : '关闭人才详情'"
+            @click="closeDetail"
+          >
+            <span class="sr-only">关闭</span>
+          </button>
+        </header>
+
+        <form
+          v-if="controller.creating"
+          class="talent-create-form"
+          novalidate
+          @submit.prevent="submitCreate"
+        >
+          <p>请填写人才库列表中展示的基础字段，保存后将加入本地人才数据。</p>
+          <label
+            ><span>员工姓名<b>*</b></span
+            ><input
+              v-model="controller.draft.name"
+              :aria-invalid="Boolean(controller.errors.name)"
+            /><small v-if="controller.errors.name">{{
+              controller.errors.name
+            }}</small></label
+          >
+          <label
+            ><span>年龄<b>*</b></span
+            ><input
+              v-model="controller.draft.age"
+              type="number"
+              min="18"
+              max="70"
+              :aria-invalid="Boolean(controller.errors.age)"
+            /><small v-if="controller.errors.age">{{
+              controller.errors.age
+            }}</small></label
+          >
+          <label
+            ><span>本期是否在库<b>*</b></span
+            ><select v-model="controller.draft.inPool">
+              <option>是</option>
+              <option>否</option>
+            </select></label
+          >
+          <label
+            ><span>人员类型<b>*</b></span
+            ><input
+              v-model="controller.draft.type"
+              :aria-invalid="Boolean(controller.errors.type)"
+              placeholder="例如：业务骨干"
+            /><small v-if="controller.errors.type">{{
+              controller.errors.type
+            }}</small></label
+          >
+          <label
+            ><span>所属部门<b>*</b></span
+            ><input
+              v-model="controller.draft.department"
+              list="talent-departments"
+              :aria-invalid="Boolean(controller.errors.department)"
+            /><small v-if="controller.errors.department">{{
+              controller.errors.department
+            }}</small></label
+          >
+          <label
+            ><span>领域/专业<b>*</b></span
+            ><input
+              v-model="controller.draft.domain"
+              list="talent-domains"
+              :aria-invalid="Boolean(controller.errors.domain)"
+            /><small v-if="controller.errors.domain">{{
+              controller.errors.domain
+            }}</small></label
+          >
+          <label
+            ><span>责任科室<b>*</b></span
+            ><input
+              v-model="controller.draft.office"
+              list="talent-offices"
+              :aria-invalid="Boolean(controller.errors.office)"
+            /><small v-if="controller.errors.office">{{
+              controller.errors.office
+            }}</small></label
+          >
+          <label
+            ><span>能力标签-新<b>*</b></span
+            ><input
+              v-model="controller.draft.tags"
+              :aria-invalid="Boolean(controller.errors.tags)"
+              placeholder="多个标签用空格分隔"
+            /><small v-if="controller.errors.tags">{{
+              controller.errors.tags
+            }}</small></label
+          >
+          <label
+            ><span>培养方向<b>*</b></span
+            ><input
+              v-model="controller.draft.direction"
+              :aria-invalid="Boolean(controller.errors.direction)"
+            /><small v-if="controller.errors.direction">{{
+              controller.errors.direction
+            }}</small></label
+          >
+          <label
+            ><span>轮岗计划-开始时间<b>*</b></span
+            ><input
+              v-model="controller.draft.start"
+              type="date"
+              :aria-invalid="Boolean(controller.errors.start)"
+            /><small v-if="controller.errors.start">{{
+              controller.errors.start
+            }}</small></label
+          >
+          <label
+            ><span>轮岗计划-结束时间<b>*</b></span
+            ><input
+              v-model="controller.draft.end"
+              type="date"
+              :aria-invalid="Boolean(controller.errors.end)"
+            /><small v-if="controller.errors.end">{{
+              controller.errors.end
+            }}</small></label
+          >
+          <datalist id="talent-departments">
+            <option
+              v-for="value in departments"
+              :key="value"
+              :value="value"
+            /></datalist
+          ><datalist id="talent-domains">
+            <option
+              v-for="value in domains"
+              :key="value"
+              :value="value"
+            /></datalist
+          ><datalist id="talent-offices">
+            <option v-for="value in offices" :key="value" :value="value" />
+          </datalist>
+          <footer>
+            <button type="button" @click="closeDetail">取消</button
+            ><button type="submit">保存人才</button>
+          </footer>
+        </form>
+
+        <template v-else-if="selectedPerson">
+          <div class="talent-detail-content">
+            <section class="talent-detail-basic">
+              <h3>基本信息</h3>
+              <dl>
+            <div>
+              <dt>员工姓名：</dt>
+              <dd>{{ selectedPerson.name }}</dd>
+            </div>
+            <div>
+              <dt>年龄：</dt>
+              <dd>{{ selectedPerson.age }}</dd>
+            </div>
+            <div>
+              <dt>本期是否在库：</dt>
+              <dd>{{ selectedPerson.inPool }}</dd>
+            </div>
+            <div>
+              <dt>人员类型：</dt>
+              <dd>{{ selectedPerson.type }}</dd>
+            </div>
+            <div>
+              <dt>所属部门：</dt>
+              <dd>{{ selectedPerson.department }}</dd>
+            </div>
+            <div>
+              <dt>领域/专业：</dt>
+              <dd>{{ selectedPerson.domain }}</dd>
+            </div>
+            <div>
+              <dt>责任科室：</dt>
+              <dd>{{ selectedPerson.office }}</dd>
+            </div>
+            <div>
+              <dt>能力标签-新：</dt>
+              <dd>
+                <mark
+                  v-for="tag in selectedPerson.tags.split(' ')"
+                  :key="tag"
+                  >{{ tag }}</mark
+                >
+              </dd>
+            </div>
+            <div>
+              <dt>培养方向：</dt>
+              <dd>{{ selectedPerson.direction }}</dd>
+            </div>
+              </dl>
+            </section>
+            <section>
+              <h3>轮岗计划</h3>
+              <p>{{ selectedPerson.start }}　至　{{ selectedPerson.end }}</p>
+            </section>
+            <section>
+              <h3>2026年培训计划</h3>
+              <p>AI前沿技术培训计划　<mark>已参与</mark></p>
+            </section>
+            <section class="talent-detail-projects">
+              <h3>参与非柔性项目情况</h3>
+              <p>海上平台智能监测项目<br />数据中台建设项目<br />参与项目数量：3</p>
+            </section>
+          </div>
+          <footer>
+            <button type="button" @click="closeDetail">关闭</button>
+          </footer>
+        </template>
+      </aside>
+    </div>
+  </article>
+</template>
 
 <style scoped>
 .talent-people {

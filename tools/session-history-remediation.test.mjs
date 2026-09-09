@@ -24,7 +24,14 @@ const favorites=read('src/pages/FavoritesPage.vue');
 const messages=read('src/pages/MessagesPage.vue');
 for(const contract of ['captureRouteSession','restoreRouteSession','routeSession.snapshot'])assert.ok(app.includes(contract),`F04 路由会话缺失：${contract}`);
 assert.ok(apps.includes('routeSession.isRouteFavorite')&&apps.includes('routeSession.toggleRouteFavorite'),'应用中心必须通过 canonical route 映射使用收藏集合');
-assert.ok(favorites.includes('createFavoritesController(FAVORITE_FIXTURES,routeSession)'),'收藏页必须按唯一收藏 ID 使用共享集合');
+assert.match(favorites,/createFavoritesController\(\s*FAVORITE_FIXTURES\s*,\s*routeSession\s*\)/,
+  '收藏页必须按唯一收藏 ID 使用共享集合');
 for(const source of [apps,favorites,messages])assert.ok(source.includes('routeSession.controller'),'已实现页面必须复用共享控制器');
+for(const [label,contract] of [
+  ['hash 读取',/window\.location\.hash/],
+  ['目标定位',/document\.getElementById\(hashId\)/],
+  ['滚动定位',/scrollIntoView\(\{\s*block:\s*['"]start['"]\s*\}\)/],
+  ['焦点恢复',/focus\(\{\s*preventScroll:\s*true\s*\}\)/]
+]) assert.match(app,contract,`立即使用进入说明区的会话恢复合同缺失：${label}`);
 
 console.log('009 会话修复：筛选分页、滚动焦点快照与跨页收藏集合通过');
