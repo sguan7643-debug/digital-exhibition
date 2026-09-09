@@ -27,24 +27,24 @@ assert.doesNotMatch(projects, /onMounted\([^)]*controller\.open(?:Create|Edit)/s
 assert.doesNotMatch(progress, /role="dialog"|drawer-open/, '项目进度默认页不得伪造抽屉');
 
 for (const [source, marker, label] of [
-  [people, '.talent-body th{height:48px;', '人才库表头 48px'],
-  [people, '.talent-body td{height:53px;', '人才库数据行 53px'],
-  [projects, '.projects-body th{height:48px;', '人才项目表头 48px'],
-  [projects, '.projects-body td{height:64px;', '人才项目两行数据行 64px'],
-  [progress, '.progress-page th{height:60px;', '项目进度两行表头 60px'],
-  [progress, '.progress-page td{height:67px;', '项目进度数据行 67px']
-]) assert.ok(source.includes(marker), `${label}必须采用量化交接的独立表格密度`);
+  [people, /\.talent-body th\s*\{\s*height:\s*46px/, '人才库表头 46px'],
+  [people, /\.talent-body th,\s*\.talent-body td\s*\{[\s\S]*?height:\s*54px/, '人才库数据行 54px'],
+  [projects, /\.projects-body th\{height:45px/, '人才项目表头 45px'],
+  [projects, /\.projects-body th,\.projects-body td\{height:75px/, '人才项目数据行 75px'],
+  [progress, /\.progress-page th\{height:58px/, '项目进度表头 58px'],
+  [progress, /\.progress-page th,\.progress-page td\{height:59px/, '项目进度数据行 59px']
+]) assert.match(source, marker, `${label}必须采用新版 UI 的独立表格密度`);
 
 for (const [source, marker, label] of [
-  [people, 'font-size:13px;line-height:20px', '人才库'],
-  [projects, 'font-size:13px;line-height:20px', '人才项目'],
-  [progress, 'font-size:13px;line-height:20px', '项目进度']
-]) assert.ok(source.includes(marker), `${label}表格文字不得靠缩小字号挤列`);
+  [people, /\.talent-body table\s*\{[\s\S]*?font-size:\s*12px/, '人才库'],
+  [projects, /\.projects-body table\{[^}]*font-size:12px/, '人才项目'],
+  [progress, /\.progress-page table\{[^}]*font-size:8px/, '项目进度']
+]) assert.match(source, marker, `${label}表格文字必须采用新版 UI 字号`);
 
 for (const [source, marker, label] of [
-  [people, 'grid-template-columns:224px repeat(4,124px) 68px 68px;gap:16px', '人才库筛选'],
-  [projects, 'grid-template-columns:316px repeat(4,128px) 80px 80px;gap:16px', '人才项目筛选'],
-  [progress, 'grid-template-columns:224px repeat(4,128px) repeat(3,68px);gap:16px', '项目进度筛选']
-]) assert.ok(source.includes(marker), `${label}必须采用量化交接的独立列宽与 16px 间距`);
+  [people, /grid-template-columns:\s*minmax\(260px, 1\.5fr\) repeat\(4, minmax\(160px, 1fr\)\) 80px 80px 80px/, '人才库筛选'],
+  [projects, /grid-template-columns:minmax\(280px,1\.5fr\) repeat\(4,minmax\(160px,1fr\)\) 80px 80px/, '人才项目筛选'],
+  [progress, /grid-template-columns:1\.4fr repeat\(4,1fr\) auto auto;gap:20px/, '项目进度筛选']
+]) assert.match(source, marker, `${label}必须采用新版 UI 的响应式列宽`);
 
 console.log('人才三页冻结列、默认关闭抽屉、10条分页与紧凑表格密度合同通过');

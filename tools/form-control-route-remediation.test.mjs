@@ -27,9 +27,9 @@ assert.match(app, /function normalizeInitialRoute\(\)/,
 assert.match(app, /window\.location\.pathname === '\/'[\s\S]*history\.replaceState\([\s\S]*'\/workbench'/,
   '根路径必须用 replaceState 初始化为工作台，不能先渲染不存在页面');
 
-assert.match(globalStyle, /--form-control-focus:#086fe8/,
+assert.match(globalStyle, /--form-control-focus:#0060a6/,
   '全局表单焦点必须使用冻结蓝色体系');
-assert.match(globalStyle, /--form-control-ring:rgba\(8,112,232,\.18\)/,
+assert.match(globalStyle, /--form-control-ring:rgba\(0,96,166,\.18\)/,
   '全局表单焦点外环必须使用单层低对比蓝色');
 assert.match(globalStyle, /:where\(input:not\(\[type="checkbox"\]\):not\(\[type="radio"\]\),select,textarea\)\{[^}]*border-color:var\(--form-control-border\)/,
   'input/select/textarea 必须共享默认边框合同');

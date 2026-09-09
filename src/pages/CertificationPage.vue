@@ -23,6 +23,496 @@ function confirmBooking(){announcement.value=`已完成 ${bookingType.value} 认
     <dialog ref="bookingDialog" class="booking-dialog" aria-labelledby="booking-title"><form method="dialog" @submit.prevent="confirmBooking"><header><h2 id="booking-title">预约认证考试</h2><button type="button" aria-label="关闭" @click="bookingDialog.close()">×</button></header><p>当前预约类别：{{ bookingType }}</p><label>考试场次<select required><option value="">请选择考试场次</option><option>2026-09-18 14:00　总部考试中心</option><option>2026-09-25 09:30　线上监考场</option></select></label><label>联系电话<input value="139****5678" required /></label><footer><button type="button" @click="bookingDialog.close()">取消</button><button type="submit">确认预约</button></footer></form></dialog>
   </article>
 </template>
+
 <style scoped>
-.cert-page{min-height:100%;padding:18px 20px 28px;color:#17304f}.cert-hero{min-height:310px;display:grid;grid-template-columns:minmax(0,1fr) minmax(420px,1fr);overflow:hidden;background:linear-gradient(110deg,#eef5fd 0,#f7fbff 52%,#dcecff 100%);border:1px solid #d3e0ee;border-radius:8px}.cert-hero-copy{z-index:1;align-self:center;padding:36px 28px 36px 42px}.hero-kicker,.news header span,.learning-card small,.booking small,.info-block small{color:#0060a6;font-size:12px;font-weight:700}.cert-hero h1{margin:10px 0 18px;color:#102c50;font-size:clamp(26px,2vw,34px)}.cert-hero p{margin:7px 0;color:#344d69;font-size:15px;line-height:1.65}.cert-hero-copy>div{display:flex;gap:14px;margin-top:24px}.cert-hero-copy :is(a,button){min-width:136px;height:42px;display:grid;place-items:center;padding:0 18px;border:1px solid #0060a6;border-radius:4px}.hero-primary{color:#fff !important;background:#0060a6}.cert-hero-copy button{color:#0060a6;background:#fff}.hero-visual{min-width:0;min-height:310px;position:relative;overflow:hidden}.hero-visual img{width:100%;height:100%;position:absolute;inset:0;display:block;object-fit:cover;object-position:center}.ticker{min-height:48px;display:flex;align-items:center;gap:14px;margin-top:12px;padding:11px 16px;background:#fff;border:1px solid #d8e3ed;border-radius:6px;font-size:13px}.ticker i{width:1px;height:16px;background:#d8e1ea}.cert-layout{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(340px,.65fr);gap:12px;margin-top:12px}.cert-main,.cert-info{display:grid;align-content:start;gap:12px}.news,.learning-card,.cert-info>section{padding:18px;background:#fff;border:1px solid #d8e3ed;border-radius:7px}.cert-layout h2{margin:0;color:#163654;font-size:18px}.news header{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}.news ul{list-style:none;margin:0;padding:0}.news li{min-height:43px;display:grid;grid-template-columns:50px minmax(0,1fr) 72px;align-items:center;gap:8px;border-bottom:1px solid #e9eef3;font-size:13px}.news mark{justify-self:start;padding:3px 6px;color:#0060a6;background:#eaf3fc}.learning-card>header{display:grid;grid-template-columns:auto 1fr;gap:14px}.action-icon,.info-icon{width:48px;height:48px;display:grid;place-items:center;color:#0060a6;background:#f2f7fc;border:1px solid #d4e0ec;border-radius:6px}.learning-card p,.cert-info p{margin:7px 0;color:#5c7187;font-size:13px;line-height:1.65}.learning-filters{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px;padding-top:17px;border-top:1px solid #e4ebf2}.learning-filters h3{margin:0 0 11px;font-size:14px}.direction-tags,.scene-tags{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.direction-tags button,.scene-tags button{min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:7px;padding:7px 9px;color:#29445f;background:#fff;border:1px solid #d5e0ea;border-radius:4px}.direction-tags button[aria-pressed=true],.scene-tags button[aria-pressed=true]{color:#0060a6;background:#eaf3fd;border-color:#78aee2;font-weight:700}.scene-input{display:flex;margin-bottom:9px}.scene-input input{width:100%;height:38px;padding:0 11px;border:1px solid #cbd9e6}.learning-result{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:18px;padding:15px 16px;background:#f5f9fd;border:1px solid #d8e6f2}.learning-result div{display:grid;gap:3px}.learning-result a{min-width:132px;min-height:42px;display:inline-flex;align-items:center;justify-content:center;color:#fff;background:#0060a6}.platform-service{display:grid;gap:16px}.info-block{display:grid;grid-template-columns:auto 1fr;gap:13px}.service-block{padding-top:16px;border-top:1px solid #e4ebf2}.booking{grid-template-columns:auto 1fr}.booking-tags{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}.booking-tags button{min-height:36px;color:#0060a6;background:#fff;border:1px solid #aac2da}.booking-dialog{width:min(520px,calc(100% - 32px));padding:0;border:0}.booking-dialog form{display:grid;gap:15px;padding:20px}.booking-dialog header,.booking-dialog footer{display:flex;align-items:center;justify-content:space-between;gap:10px}.booking-dialog label{display:grid;gap:7px}.booking-dialog :is(select,input){height:40px}.cert-page :is(button,a):focus-visible{outline:3px solid #1b77d2;outline-offset:2px}.sr-only{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:1180px){.cert-layout{grid-template-columns:1fr}.cert-info{grid-template-columns:1.15fr .85fr}}@media(max-width:820px){.cert-hero,.cert-info,.learning-filters{grid-template-columns:1fr}.hero-visual{min-height:230px}}@media(max-width:600px){.cert-page{padding:10px}.direction-tags,.scene-tags{grid-template-columns:repeat(2,minmax(0,1fr))}}
+:global(#main-content) > .cert-page {
+  padding: 18px 20px 28px;
+}
+.cert-page {
+  min-height: 100%;
+  overflow: visible;
+  color: #17304f;
+}
+.cert-hero {
+  min-height: 310px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 1fr);
+  overflow: hidden;
+  background: linear-gradient(110deg, #eef5fd 0, #f7fbff 52%, #dcecff 100%);
+  border: 1px solid #d3e0ee;
+  border-radius: 8px;
+}
+.cert-hero-copy {
+  z-index: 1;
+  align-self: center;
+  padding: 36px 28px 36px 42px;
+}
+.hero-kicker {
+  display: inline-block;
+  margin-bottom: 10px;
+  color: #0060a6;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.cert-hero h1 {
+  max-width: 720px;
+  margin: 0 0 18px;
+  color: #102c50;
+  font-size: clamp(26px, 2vw, 34px);
+  line-height: 1.25;
+}
+.cert-hero p {
+  margin: 7px 0;
+  color: #344d69;
+  font-size: 15px;
+  line-height: 1.65;
+}
+.cert-hero-copy > div {
+  display: flex;
+  gap: 14px;
+  margin-top: 24px;
+}
+.cert-hero-copy :is(a, button) {
+  min-width: 136px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0 18px;
+  border: 1px solid #0060a6;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.cert-hero-copy .hero-primary {
+  color: #fff !important;
+  background: #0060a6;
+}
+.cert-hero-copy button {
+  color: #0060a6;
+  background: #fff;
+}
+.hero-visual {
+  min-width: 0;
+  min-height: 310px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-visual img {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+}
+.ticker {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+  padding: 11px 16px;
+  background: #fff;
+  border: 1px solid #d8e3ed;
+  border-radius: 6px;
+  color: #435d77;
+  font-size: 13px;
+}
+.ticker strong {
+  color: #0060a6;
+}
+.ticker i {
+  width: 1px;
+  height: 16px;
+  background: #d8e1ea;
+}
+.cert-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.65fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+.cert-main,
+.cert-info {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+.news,
+.learning-card,
+.cert-info > section {
+  padding: 18px;
+  background: #fff;
+  border: 1px solid #d8e3ed;
+  border-radius: 7px;
+}
+.cert-layout h2 {
+  margin: 0;
+  color: #163654;
+  font-size: 18px;
+}
+.news header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 9px;
+}
+.news header span,
+.learning-card small,
+.booking small,
+.info-block small {
+  color: #0060a6;
+  font-size: 12px;
+  font-weight: 700;
+}
+.news header h2 {
+  margin-top: 2px;
+}
+.news header a {
+  color: #0060a6;
+  font-size: 13px;
+  font-weight: 700;
+}
+.news ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.news li {
+  min-height: 43px;
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr) 72px;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #e9eef3;
+  font-size: 13px;
+}
+.news li:last-child {
+  border: 0;
+}
+.news mark {
+  justify-self: start;
+  padding: 3px 6px;
+  color: #0060a6;
+  background: #eaf3fc;
+  border-radius: 3px;
+}
+.news time {
+  color: #738599;
+  text-align: right;
+}
+.learning-card > header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+}
+.learning-card header p,
+.booking p,
+.cert-info p {
+  margin: 7px 0;
+  color: #5c7187;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.action-icon,
+.info-icon,
+.dialog-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 48px;
+  color: #0060a6;
+  background: #f2f7fc;
+  border: 1px solid #d4e0ec;
+  border-radius: 6px;
+}
+.learning-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 18px;
+  padding-top: 17px;
+  border-top: 1px solid #e4ebf2;
+}
+.learning-filters > section {
+  min-width: 0;
+}
+.learning-filters h3 {
+  margin: 0 0 11px;
+  color: #29445f;
+  font-size: 14px;
+}
+.direction-tags,
+.scene-tags {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.direction-tags button,
+.scene-tags button {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  padding: 7px 9px;
+  color: #29445f;
+  background: #fff;
+  border: 1px solid #d5e0ea;
+  border-radius: 4px;
+  text-align: left;
+  font-size: 12px;
+}
+.direction-tags button[aria-pressed="true"],
+.scene-tags button[aria-pressed="true"] {
+  color: #0060a6;
+  background: #eaf3fd;
+  border-color: #78aee2;
+  font-weight: 700;
+}
+.scene-input {
+  display: flex;
+  margin-bottom: 9px;
+}
+.scene-input input {
+  width: 100%;
+  height: 38px;
+  padding: 0 11px;
+  color: #344d68;
+  border: 1px solid #cbd9e6;
+  border-radius: 4px;
+}
+.scene-tags button {
+  justify-content: center;
+}
+.no-result {
+  color: #75869a;
+  text-align: center;
+}
+.learning-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 18px;
+  padding: 15px 16px;
+  background: #f5f9fd;
+  border: 1px solid #d8e6f2;
+  border-radius: 6px;
+}
+.learning-result div {
+  display: grid;
+  gap: 3px;
+}
+.learning-result span {
+  color: #6a7f94;
+  font-size: 12px;
+}
+.learning-result strong {
+  color: #163d66;
+  font-size: 15px;
+}
+.learning-result p {
+  margin: 0;
+  color: #5b7188;
+  font-size: 13px;
+}
+.learning-result a {
+  flex: 0 0 auto;
+  min-width: 132px;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  color: #fff !important;
+  background: #0060a6;
+  border: 1px solid #0060a6;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.cert-info > section {
+  display: grid;
+  gap: 16px;
+}
+.info-block {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 13px;
+}
+.service-block {
+  padding-top: 16px;
+  border-top: 1px solid #e4ebf2;
+}
+.service-block h3 {
+  margin: 0;
+  color: #173654;
+  font-size: 16px;
+}
+.cert-info .booking {
+  grid-template-columns: auto 1fr;
+}
+.booking-tags {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+.booking-tags button {
+  min-height: 36px;
+  color: #0060a6;
+  background: #fff;
+  border: 1px solid #aac2da;
+  border-radius: 4px;
+}
+.booking-tags button:hover {
+  background: #edf5fd;
+}
+.booking-dialog {
+  width: min(520px, calc(100% - 32px));
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(8, 32, 58, 0.25);
+}
+.booking-dialog::backdrop {
+  background: rgba(5, 29, 54, 0.42);
+}
+.booking-dialog form {
+  display: grid;
+  gap: 15px;
+  padding: 20px;
+}
+.booking-dialog header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+.booking-dialog header h2,
+.booking-dialog header p {
+  margin: 0;
+}
+.booking-dialog header p {
+  margin-top: 3px;
+  color: #64788e;
+}
+.booking-dialog header > button {
+  border: 0;
+  background: transparent;
+  font-size: 25px;
+}
+.booking-dialog label {
+  display: grid;
+  gap: 7px;
+  font-weight: 700;
+}
+.booking-dialog :is(select, input) {
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid #cbd9e6;
+  border-radius: 4px;
+}
+.booking-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.booking-dialog footer button {
+  min-width: 92px;
+  height: 38px;
+  color: #0060a6;
+  background: #fff;
+  border: 1px solid #8ab0d4;
+  border-radius: 4px;
+}
+.booking-dialog footer button:last-child {
+  color: #fff;
+  background: #0060a6;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+:is(button, a):focus-visible {
+  outline: 3px solid #ff9f1a;
+  outline-offset: 2px;
+}
+@media (max-width: 1180px) {
+  .cert-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
+  }
+  .cert-layout {
+    grid-template-columns: 1fr;
+  }
+  .cert-info {
+    grid-template-columns: 1.15fr 0.85fr;
+  }
+  .learning-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 820px) {
+  .cert-hero {
+    grid-template-columns: 1fr;
+  }
+  .hero-visual {
+    min-height: 230px;
+  }
+  .cert-layout,
+  .cert-info,
+  .learning-filters {
+    grid-template-columns: 1fr;
+  }
+  .ticker {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .ticker i {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  :global(#main-content) > .cert-page {
+    padding: 10px;
+  }
+  .cert-hero-copy {
+    padding: 26px 20px;
+  }
+  .cert-hero-copy > div {
+    flex-wrap: wrap;
+  }
+  .cert-hero-copy :is(a, button) {
+    flex: 1;
+  }
+  .direction-tags,
+  .scene-tags {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .news li {
+    grid-template-columns: 45px 1fr;
+  }
+  .news time {
+    grid-column: 2;
+  }
+  .learning-result {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .booking-tags {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 </style>

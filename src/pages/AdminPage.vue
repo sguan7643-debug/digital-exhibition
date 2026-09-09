@@ -13,6 +13,223 @@ function action(label,name){announcement.value=`${name}：${label}操作已记�
   <section><div class="section-heading"><h2>主题域配置</h2><p>图标按业务含义关联，保持大小、笔画与对齐一致。</p></div><div class="table-scroll horizontal-scroll-region" tabindex="0" role="region" aria-label="主题域配置表，可左右滚动"><table><thead><tr><th>图标</th><th>主题域名称</th><th>所属应用 / 类型</th><th>排序</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="item in domains" :key="item.name"><td><span class="table-icon"><TypeLineIcon :name="item.icon" :size="20" /></span></td><td><strong>{{ item.name }}</strong></td><td>{{ item.types }}</td><td><input v-model.number="item.sort" class="sort-input" type="number" min="1" :max="domains.length" :aria-label="`${item.name}排序`" /></td><td><label class="switch"><input v-model="item.enabled" type="checkbox" />{{ item.enabled?'启用':'停用' }}</label></td><td><button type="button" @click="action('编辑',item.name)">编辑</button><button type="button" @click="action('删除',item.name)">删除</button></td></tr></tbody></table></div></section></div>
   <section class="log-panel"><h2>后台操作日志 <span>未处理告警 2</span></h2><p>操作记录用于追溯配置变更。</p><div class="table-scroll horizontal-scroll-region" tabindex="0" role="region" aria-label="后台操作日志表，可左右滚动"><table><thead><tr><th>时间</th><th>操作对象</th><th>操作类型</th><th>详情信息</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="row in logs" :key="row[0]"><td v-for="cell in row" :key="cell">{{ cell }}</td><td><button type="button" @click="action('查看详情',row[1])">查看详情</button></td></tr></tbody></table></div></section>
 </article></template>
+
 <style scoped>
-.backend-page{padding:18px 22px;color:#17304f}.backend-page>nav{font-size:12px}.backend-page h1{margin:10px 0 4px;font-size:26px}.backend-page header p,.section-heading p,.log-panel>p{font-size:13px}.config-grid{display:grid;grid-template-columns:1fr 1.15fr;gap:16px;margin-top:14px}.config-grid>section,.log-panel{min-width:0;padding:18px;background:#fff;border:1px solid #dce5ef;border-radius:6px}.section-heading h2,.log-panel h2{margin:0;color:#0060a6;font-size:18px}.table-scroll{overflow:auto}.backend-page table {width:100%;margin-top:12px;border-collapse:collapse;font-size:14px}.backend-page th,.backend-page td{min-height:48px;padding:8px;border-bottom:1px solid #e1e8ef;text-align:left}.backend-page th{background:#f5f7fa}.backend-page td:first-child{display:flex;align-items:center;gap:9px}.backend-page td small{display:block;color:#677b90}.table-icon{width:36px;height:36px;display:grid;place-items:center;color:#0060a6;background:#f3f8fc;border:1px solid #dce5ef;border-radius:5px}.sort-input{width:54px;height:34px}.backend-page td button{margin-right:7px;color:#0060a6;background:none;border:0}.log-panel{margin-top:14px}.log-panel h2 span{float:right;padding:7px;color:#c62828;background:#fff0f0;font-size:12px}.backend-page :is(button,a,input):focus-visible{outline:3px solid #1b77d2;outline-offset:2px}.sr-only{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:1100px){.config-grid{grid-template-columns:1fr}}
+.backend-page {
+  min-height: 100%;
+  padding: 18px 22px 28px;
+  color: #17304f;
+}
+.backend-page > nav {
+  color: #6d8094;
+  font-size: 12px;
+}
+.backend-page > header {
+  margin: 11px 0 15px;
+}
+.backend-page h1 {
+  margin: 0;
+  color: #102d50;
+  font-size: 26px;
+}
+.backend-page > header p {
+  margin: 5px 0 0;
+  color: #61758b;
+  font-size: 13px;
+}
+.config-grid {
+  display: grid;
+  grid-template-columns: minmax(560px, 1fr) minmax(620px, 1.15fr);
+  gap: 14px;
+}
+.config-grid > section,
+.log-panel {
+  min-width: 0;
+  padding: 17px;
+  background: #fff;
+  border: 1px solid #d7e2ec;
+  border-radius: 7px;
+  box-shadow: 0 1px 3px rgba(26, 54, 82, 0.04);
+}
+.section-heading {
+  min-height: 54px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+}
+.section-heading h2 {
+  margin: 0;
+  color: #173b60;
+  font-size: 20px;
+  line-height: 1.4;
+}
+.section-heading p {
+  margin: 4px 0 0;
+  color: #6b7d91;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.section-heading > button {
+  height: 40px;
+  padding: 0 18px;
+  color: #fff;
+  background: #0060a6;
+  border: 1px solid #0060a6;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.backend-page table {
+  width: 100%;
+  min-width: 650px;
+  margin-top: 10px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.backend-page th,
+.backend-page td {
+  min-height: 50px;
+  padding: 10px 11px;
+  border-bottom: 1px solid #e1e8ef;
+  text-align: left;
+  vertical-align: middle;
+}
+.backend-page th {
+  height: 44px;
+  color: #38536d;
+  background: #f3f6f9;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.backend-page tbody tr:hover {
+  background: #f9fbfd;
+}
+.backend-page td:first-child {
+  white-space: nowrap;
+}
+.backend-page td strong {
+  font-size: 14px;
+}
+.backend-page td:nth-child(2) > b {
+  display: block;
+  color: #526b83;
+  font-size: 13px;
+}
+.backend-page td small {
+  display: block;
+  margin-top: 2px;
+  color: #657b90;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.table-icon {
+  width: 36px;
+  height: 36px;
+  display: inline-grid;
+  place-items: center;
+  margin-right: 8px;
+  color: #173f68;
+  background: #f6f9fb;
+  border: 1px solid #d5e0ea;
+  border-radius: 5px;
+  vertical-align: middle;
+}
+.sort-input {
+  width: 64px;
+  height: 38px;
+  padding: 0 7px;
+  color: #153b60;
+  background: #fff;
+  border: 1px solid #b8cada;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: 700;
+}
+.sort-input:focus {
+  border-color: #0060a6;
+  outline: 3px solid rgba(10, 101, 191, 0.13);
+}
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.switch input {
+  width: 16px;
+  height: 16px;
+  accent-color: #0060a6;
+}
+.backend-page td button {
+  min-height: 34px;
+  padding: 4px 7px;
+  color: #0060a6;
+  background: transparent;
+  border: 0;
+  font-size: 14px;
+}
+.backend-page td button + button {
+  margin-left: 4px;
+  color: #6d7d8d;
+}
+.log-panel {
+  margin-top: 14px;
+}
+.log-panel .warning {
+  padding: 7px 9px;
+  color: #c83a34;
+  background: #fff2f1;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.log-panel table {
+  min-width: 900px;
+}
+.operation-type {
+  color: #c7631a;
+  font-weight: 700;
+}
+.pending {
+  color: #bd6b18;
+}
+.handled {
+  color: #15845e;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+button:focus-visible {
+  outline: 3px solid #ff9f1a;
+  outline-offset: 2px;
+}
+@media (max-width: 1350px) {
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 760px) {
+  .backend-page {
+    padding: 10px;
+  }
+  .config-grid > section,
+  .log-panel {
+    padding: 12px;
+  }
+  .section-heading {
+    flex-wrap: wrap;
+  }
+}
 </style>

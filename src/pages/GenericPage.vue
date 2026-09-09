@@ -102,14 +102,14 @@ onBeforeUnmount(() => window.clearTimeout(loadingTimer));
 .state-card { min-height: 430px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; background: #fff; border: 1px solid #e8edf3; border-radius: 5px; }
 .state-card h1 { margin: 16px 0 7px; color: #30465c; font-size: 20px; }
 .state-card p { margin: 0 0 20px; color: #8794a1; font-size: 14px; }
-.state-card button, .state-card a { min-width: 104px; min-height: 38px; display: inline-grid; place-items: center; padding: 0 18px; border: 0; color: #fff; background: #1677df; border-radius: 4px; cursor: pointer; }
+.state-card button, .state-card a { min-width: 104px; min-height: 38px; display: inline-grid; place-items: center; padding: 0 18px; border: 0; color: #fff; background: #0060a6; border-radius: 4px; cursor: pointer; }
 .state-card button:disabled { color: #9ca6b1; background: #e8ebef; cursor: not-allowed; }
 .state-symbol { width: 60px; height: 60px; display: grid; place-items: center; color: #6c91b8; background: #edf4fb; border-radius: 50%; font-size: 30px; }
 .state-symbol.danger { color: #e26767; background: #fff0f0; }
-.spinner { width: 42px; height: 42px; border: 4px solid #dceafb; border-top-color: #1677df; border-radius: 50%; animation: spin .8s linear infinite; }
+.spinner { width: 42px; height: 42px; border: 4px solid #dceafb; border-top-color: #0060a6; border-radius: 50%; animation: spin .8s linear infinite; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 button:focus-visible, a:focus-visible { outline: 3px solid #ff9f1a; outline-offset: 3px; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .spinner { animation: none; border-top-color: #1677df; } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; border-top-color: #0060a6; } }
 @media (max-width: 760px) { .generic-page { padding: 12px; } .mock-grid { grid-template-columns: 1fr; } }
 </style>

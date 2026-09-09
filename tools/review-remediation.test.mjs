@@ -44,13 +44,13 @@ assert.doesNotMatch(shell, /class="action-link"[^>]*>[\s\S]{0,180}<small>/);
 for (const text of ['应用名称或关键词', '请输入应用名称或关键词', '标签', '请选择标签', '应用类型', '请选择应用类型', '主题域', '请选择主题域']) {
   assert.ok(apps.includes(text), `应用中心筛选视觉合同缺少：${text}`);
 }
-assert.match(apps, /grid-template-columns:345px 250px 275px 260px 68px 68px/);
+assert.match(apps, /grid-template-columns:\s*350px 250px 265px 250px 64px 64px/);
 
 for (const text of ['人才库', '所属部门：', '领域\/专业：', '责任科室：', '本期是否在库：', '轮岗计划-开始时间', '轮岗计划-结束时间', '人才详情']) {
   assert.ok(talent.includes(text), `人才库权威视觉合同缺少：${text}`);
 }
-assert.match(talent, /grid-template-columns:215px 128px 146px 132px 177px 60px 60px/);
-assert.match(talent, /tbody tr\[aria-selected=true\]\{background:#eef5ff\}/,
+assert.match(talent, /grid-template-columns:\s*minmax\(260px, 1\.5fr\) repeat\(4, minmax\(160px, 1fr\)\) 80px 80px 80px/);
+assert.match(talent, /tbody tr\[aria-selected="true"\]\s*\{\s*background:\s*#eef5ff/,
   '人才库只能高亮用户实际选中的行，初始不得伪造首行选中');
 assert.doesNotMatch(talent, />×</);
 
@@ -70,9 +70,9 @@ assert.match(shell, /'certification-shell': props\.page\.id === '27'/,
   '数字化认证必须有冻结参考专属的壳层视觉几何标识');
 assert.doesNotMatch(shell, /\.certification-shell \.topbar/,
   '数字化认证页不得覆盖全站统一的 69px 新版头部');
-assert.match(shell, /\.certification-shell \.page-frame\{grid-template-columns:242px minmax\(0,1fr\)\}/,
-  '数字化认证参考要求 242px 左侧导航宽度');
-assert.match(certification, /\.cert-page\{min-height:100%;padding:18px 20px 28px/,
+assert.match(shell, /\.certification-shell \.page-frame\{grid-template-columns:220px minmax\(0,1fr\)\}/,
+  '数字化认证必须沿用新版统一的 220px 左侧导航宽度');
+assert.match(certification, /:global\(#main-content\) > \.cert-page\s*\{\s*padding:\s*18px 20px 28px/,
   '数字化认证页必须采用 2026-09-04 视觉源的统一内容边距');
 assert.match(shell, /@media\(min-width:761px\) and \(max-width:1000px\)\{[\s\S]*\.primary-nav\{overflow:hidden\}/,
   '845–1000px 冻结参考必须完整展示顶栏目的地，不能出现横向滚动条');

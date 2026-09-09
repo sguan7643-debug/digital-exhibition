@@ -15,4 +15,51 @@ const rows=[['应用编码','AFP00012345','所属业务域','经营管理域'],[
     <form class="detail-comment" @submit.prevent><label>应用评论<input placeholder="请输入您对该应用的评论..." /></label><button type="submit">提交评论</button></form>
   </article>
 </template>
-<style scoped>.metric-detail .detail-hero{min-height:185px}.metric-detail .detail-logo{width:64px;height:64px}.metric-art{width:390px;max-width:100%;object-position:right}.metric-strip{padding:4px 0}.metric-strip .detail-metrics{grid-template-columns:repeat(6,1fr);margin:0;padding:8px 0;border:0}.metric-table{width:100%;border-collapse:collapse;font-size:9px}.metric-table th,.metric-table td{height:23px;padding:4px 10px;border:1px solid #dce4ed;text-align:left}.metric-table th{background:#f4f6f9}.metric-copy{font-size:10px;line-height:1.8}button:focus-visible,a:focus-visible{outline:3px solid #ff9f1a;outline-offset:2px}</style>
+
+<style scoped>
+.metric-detail .detail-hero {
+  min-height: 185px;
+}
+.metric-detail .detail-logo {
+  width: 64px;
+  height: 64px;
+}
+.metric-art {
+  width: 390px;
+  max-width: 100%;
+  object-position: right;
+}
+.metric-strip {
+  padding: 4px 0;
+}
+.metric-strip .detail-metrics {
+  grid-template-columns: repeat(6, 1fr);
+  margin: 0;
+  padding: 8px 0;
+  border: 0;
+}
+.metric-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9px;
+}
+.metric-table th,
+.metric-table td {
+  height: 23px;
+  padding: 4px 10px;
+  border: 1px solid #dce4ed;
+  text-align: left;
+}
+.metric-table th {
+  background: #f4f6f9;
+}
+.metric-copy {
+  font-size: 10px;
+  line-height: 1.8;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #ff9f1a;
+  outline-offset: 2px;
+}
+</style>

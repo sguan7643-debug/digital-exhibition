@@ -13,4 +13,34 @@ const training=['长文总结智能体功能介绍','长文总结智能体使用
     <form class="detail-comment" @submit.prevent><label>应用评论<input placeholder="请输入您对本应用的评论..." /></label><button type="submit">提交评论</button></form>
   </article>
 </template>
-<style scoped>.ai-detail .detail-hero{min-height:230px}.ai-table{width:100%;border-collapse:collapse;font-size:10px}.ai-table th,.ai-table td{height:24px;padding:4px 12px;border:1px solid #dce5ef;text-align:left}.ai-table th{width:160px;background:#f3f6fa}.ai-detail .training-row img{width:75px;height:56px}button:focus-visible,a:focus-visible{outline:3px solid #ff9f1a;outline-offset:2px}</style>
+
+<style scoped>
+.ai-detail .detail-hero {
+  min-height: 230px;
+}
+.ai-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+.ai-table th,
+.ai-table td {
+  height: 24px;
+  padding: 4px 12px;
+  border: 1px solid #dce5ef;
+  text-align: left;
+}
+.ai-table th {
+  width: 160px;
+  background: #f3f6fa;
+}
+.ai-detail .training-row img {
+  width: 75px;
+  height: 56px;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #ff9f1a;
+  outline-offset: 2px;
+}
+</style>
