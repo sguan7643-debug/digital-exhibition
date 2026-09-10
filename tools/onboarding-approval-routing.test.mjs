@@ -20,6 +20,8 @@ assert.equal(calls[0].options.headers['Content-Type'], 'application/json');
 const requestBody = JSON.parse(calls[0].options.body);
 assert.equal(requestBody.applicationType, 'T005');
 assert.equal(requestBody.title, 'TEST_海能Work');
+assert.equal(requestBody.applicationCode, 'TEST_HW_001');
+assert.equal(requestBody.resourceId, 'TEST_HW_001');
 assert.equal(requestBody.businessKey, 'TEST_T005_TEST_HW_001');
 assert.equal(requestBody.idempotencyKey, 'TEST_IDEM_T005_TEST_HW_001');
 assert.equal(requestBody.description, 'TEST_申请');
@@ -39,5 +41,18 @@ const feishuNoInstance = await submitOnboarding({ type: 'T005', name: 'TEST_应�
 assert.deepEqual(feishuNoInstance, { kind: 'feishu', instanceId: '', resourceId: 'TEST_HW_002', status: 'SUBMITTED_UNTRACKED', message: '已受理但暂无可查询编号，请稍后重试' });
 const feishuUnknownStatus = await submitOnboarding({ type: 'T005', name: 'TEST_应用', applicationCode: 'TEST_HW_003', summary: 'TEST_申请' }, [], async () => new Response(JSON.stringify({ instanceId: 'TEST_INSTANCE', status: 'WAITING_FOR_MAGIC' }), { status: 201 }));
 assert.equal(feishuUnknownStatus.status, 'ERROR');
+
+let normalizedRequest;
+const normalizedSubmission = await submitOnboarding(
+  { type: 'T005', name: 'TEST_海能Work', applicationCode: 'RPA-TEST-20260910', summary: 'TEST_申请' },
+  [],
+  async (_url, options) => {
+    normalizedRequest = JSON.parse(options.body);
+    return new Response(JSON.stringify({ instanceId: 'TEST_NORMALIZED_INSTANCE', status: 'PENDING' }), { status: 201 });
+  }
+);
+assert.equal(normalizedRequest.applicationCode, 'TEST_RPA-TEST-20260910');
+assert.equal(normalizedRequest.resourceId, 'TEST_RPA-TEST-20260910');
+assert.equal(normalizedSubmission.resourceId, 'TEST_RPA-TEST-20260910');
 
 console.log('onboarding type routing uses existing RPA backend, server-side Feishu approval, and real status queries');

@@ -110,6 +110,7 @@ try {
   await page.getByRole('heading', { name: '申请已提交' }).waitFor();
   assert.deepEqual(feishuApprovalRequest, {
     applicationType: 'T005', title: 'TEST_海能Work应用上架', applicationCode: 'TEST_HW_001',
+    resourceId: 'TEST_HW_001',
     businessKey: 'TEST_T005_TEST_HW_001', idempotencyKey: 'TEST_IDEM_T005_TEST_HW_001', description: 'TEST_RPA 应用上架审批联调'
   });
   await page.getByRole('link', { name: '查看审批状态' }).click();

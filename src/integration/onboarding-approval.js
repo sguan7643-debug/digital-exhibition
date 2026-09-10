@@ -28,13 +28,15 @@ export async function submitOnboarding(form, files = [], fetchImpl = globalThis.
       message: instanceId ? (result.message || '操作成功') : '已受理但暂无可查询编号，请稍后重试'
     });
   }
-  const applicationCode = String(form.applicationCode || 'TEST_UNSPECIFIED').replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 128);
+  const normalizedCode = String(form.applicationCode || 'UNSPECIFIED').replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 123);
+  const applicationCode = normalizedCode.startsWith('TEST_') ? normalizedCode : `TEST_${normalizedCode}`;
   const result = await readResult(await fetchImpl(transport.path, {
     method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       applicationType: 'T005', title: form.name,
-      applicationCode: form.applicationCode,
+      applicationCode,
+      resourceId: applicationCode,
       businessKey: `TEST_T005_${applicationCode}`,
       idempotencyKey: `TEST_IDEM_T005_${applicationCode}`,
       description: form.summary
