@@ -39,6 +39,7 @@ const statusHref = computed(() => {
   if (!approvalResult.value) return "/apps/onboarding/status";
   const query = new URLSearchParams({ source: approvalResult.value.kind });
   if (approvalResult.value.instanceId) query.set("instanceId", approvalResult.value.instanceId);
+  if (approvalResult.value.resourceId) query.set("resourceId", approvalResult.value.resourceId);
   return `/apps/onboarding/status?${query}`;
 });
 
@@ -130,7 +131,10 @@ async function submitApplication() {
     submitted.value = true;
     saved.value = false;
     submitMessage.value = approvalResult.value.message;
-    announcement.value = `${form.type === "T005" ? "海能Work" : "RPA"} 应用上架申请已提交，当前进入审批中状态`;
+    const trackingMessage = approvalResult.value.status === "PENDING"
+      ? "当前进入审批中状态"
+      : approvalResult.value.message;
+    announcement.value = `${form.type === "T005" ? "海能Work" : "RPA"} 应用上架申请已提交，${trackingMessage}`;
   } catch (error) {
     submitError.value = error instanceof Error ? error.message : "审批接口请求失败";
     announcement.value = submitError.value;

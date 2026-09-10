@@ -6,6 +6,8 @@ assert.match(source, /getOnboardingStatus/);
 assert.match(source, /new URLSearchParams\(window\.location\.search\)/);
 assert.match(source, /PENDING/);
 assert.match(source, /ACCEPTED_UNTRACKED/);
+assert.match(source, /SUBMITTED_UNTRACKED/);
+assert.match(source, /resourceId/);
 assert.match(source, /已受理但暂无可查询编号/);
 assert.match(source, /APPROVED/);
 assert.match(source, /REJECTED/);

@@ -35,7 +35,8 @@ export function createFeishuApprovalDispatcher({ service, resolveUserSession } =
   }
   if (typeof resolveUserSession !== 'function') throw new Error('飞书审批分发器缺少会话解析器');
   return async function dispatch(request = {}) {
-    const pathname = new URL(request.url || '/', 'http://localhost').pathname;
+    const parsedUrl = new URL(request.url || '/', 'http://localhost');
+    const pathname = parsedUrl.pathname;
     if (!pathname.startsWith(ROOT)) return null;
     if (!sameOrigin(request.headers)) return failure(new FeishuProxyError('CROSS_ORIGIN_REQUEST_BLOCKED', '已阻止跨源审批请求', 403));
     if (Number(request.bodyBytes || 0) > MAX_BODY_BYTES) return failure(new FeishuProxyError('REQUEST_TOO_LARGE', '请求体不能超过 256 KiB', 413));
@@ -58,10 +59,10 @@ export function createFeishuApprovalDispatcher({ service, resolveUserSession } =
       if (!match) return { status: 404, headers: JSON_HEADERS, body: { code: 'APPROVAL_ROUTE_NOT_FOUND', message: '审批接口不存在' } };
       if (match[2]) {
         if (request.method !== 'POST') return methodError();
-        return { status: 200, headers: JSON_HEADERS, body: await service.approveTestTask(match[1], session) };
+        return { status: 200, headers: JSON_HEADERS, body: await service.approveTestTask(match[1], session, { resourceId: String(request.body?.resourceId || '') }) };
       }
       if (request.method !== 'GET') return methodError();
-      return { status: 200, headers: JSON_HEADERS, body: await service.getInstance(match[1], session) };
+      return { status: 200, headers: JSON_HEADERS, body: await service.getInstance(match[1], session, { resourceId: parsedUrl.searchParams.get('resourceId') || '' }) };
     } catch (error) {
       return failure(error);
     }

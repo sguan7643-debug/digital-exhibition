@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { loadFeishuIdentifierContract } from './feishu-identifier-contract.mjs';
 import { createFeishuOpenApiClient } from './feishu-open-api-client.mjs';
 import { createFeishuReadOnlyService } from './feishu-read-only-service.mjs';
@@ -41,7 +42,8 @@ export function feishuReadOnlyProxy(options = {}) {
     })
   });
   const authMiddleware = createFeishuAuthNodeMiddleware({ authService });
-  const approvalService = createFeishuApprovalService({ client });
+  const approvalRegistryFile = options.approvalRegistryFile ?? process.env.FEISHU_APPROVAL_REGISTRY_PATH ?? join(process.cwd(), '.local', 'feishu-approval-registry.json');
+  const approvalService = createFeishuApprovalService({ client, registryFile: approvalRegistryFile });
   const approvalMiddleware = createFeishuApprovalNodeMiddleware({
     service: approvalService,
     resolveUserSession: request => authService.resolveSession(request.headers?.cookie || '')

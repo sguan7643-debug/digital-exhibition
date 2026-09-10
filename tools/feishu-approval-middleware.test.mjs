@@ -36,6 +36,8 @@ assert.deepEqual(calls[0], ['create', { applicationType: 'T005', title: 'TEST_æµ
 const status = await dispatch({ method: 'GET', url: '/api/v1/approvals/instances/TEST_INSTANCE', headers });
 assert.equal(status.status, 200);
 assert.equal(status.body.status, 'APPROVED');
+const resourceStatus = await dispatch({ method: 'GET', url: '/api/v1/approvals/instances/TEST_INSTANCE?resourceId=TEST_HW_001', headers });
+assert.equal(resourceStatus.status, 200);
 
 const approved = await dispatch({ method: 'POST', url: '/api/v1/approvals/instances/TEST_INSTANCE/approve', headers, body: {} });
 assert.equal(approved.status, 200);

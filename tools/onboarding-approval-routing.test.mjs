@@ -13,7 +13,7 @@ const fetchImpl = async (url, options = {}) => {
 };
 
 const submitted = await submitOnboarding({ type: 'T005', name: 'TEST_海能Work', applicationCode: 'TEST_HW_001', summary: 'TEST_申请' }, [], fetchImpl);
-assert.deepEqual(submitted, { kind: 'feishu', instanceId: 'TEST_INSTANCE', status: 'PENDING', message: '飞书审批已提交' });
+assert.deepEqual(submitted, { kind: 'feishu', instanceId: 'TEST_INSTANCE', resourceId: 'TEST_HW_001', status: 'PENDING', message: '飞书审批已提交' });
 assert.equal(calls[0].url, '/api/v1/approvals/instances');
 assert.equal(calls[0].options.credentials, 'same-origin');
 assert.equal(calls[0].options.headers['Content-Type'], 'application/json');
@@ -30,8 +30,14 @@ assert.deepEqual(status, { instanceId: 'TEST_INSTANCE', status: 'APPROVED' });
 assert.equal(calls[1].url, '/api/v1/approvals/instances/TEST_INSTANCE');
 assert.equal(calls[1].options.credentials, 'same-origin');
 await assert.rejects(() => getOnboardingStatus('../bad', fetchImpl), /审批实例标识非法/);
+const unknownStatus = await getOnboardingStatus('TEST_INSTANCE', async () => new Response(JSON.stringify({ status: 'WAITING_FOR_MAGIC' }), { status: 200 }));
+assert.deepEqual(unknownStatus, { instanceId: 'TEST_INSTANCE', status: 'ERROR' });
 
 const rpaNoInstance = await submitOnboarding({ type: 'T003', rpaRequest: {} }, [], async () => new Response(JSON.stringify({ code: '00000', message: '操作成功' }), { status: 200 }));
 assert.deepEqual(rpaNoInstance, { kind: 'rpa', instanceId: '', status: 'ACCEPTED_UNTRACKED', message: '已受理但暂无可查询编号，请稍后重试' });
+const feishuNoInstance = await submitOnboarding({ type: 'T005', name: 'TEST_应用', applicationCode: 'TEST_HW_002', summary: 'TEST_申请' }, [], async () => new Response(JSON.stringify({ instanceId: '', status: 'PENDING' }), { status: 201 }));
+assert.deepEqual(feishuNoInstance, { kind: 'feishu', instanceId: '', resourceId: 'TEST_HW_002', status: 'SUBMITTED_UNTRACKED', message: '已受理但暂无可查询编号，请稍后重试' });
+const feishuUnknownStatus = await submitOnboarding({ type: 'T005', name: 'TEST_应用', applicationCode: 'TEST_HW_003', summary: 'TEST_申请' }, [], async () => new Response(JSON.stringify({ instanceId: 'TEST_INSTANCE', status: 'WAITING_FOR_MAGIC' }), { status: 201 }));
+assert.equal(feishuUnknownStatus.status, 'ERROR');
 
 console.log('onboarding type routing uses existing RPA backend, server-side Feishu approval, and real status queries');

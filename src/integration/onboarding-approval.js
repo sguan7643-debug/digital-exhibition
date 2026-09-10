@@ -1,4 +1,5 @@
 const SAFE_INSTANCE_ID = /^[A-Za-z0-9_-]{1,256}$/;
+const APPROVAL_STATUSES = new Set(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']);
 
 export function resolveApprovalTransport(applicationType) {
   if (applicationType === 'T003') return Object.freeze({ kind: 'rpa', path: '/api/processInstanceStart', contentType: 'multipart/form-data' });
@@ -39,14 +40,20 @@ export async function submitOnboarding(form, files = [], fetchImpl = globalThis.
       description: form.summary
     })
   }));
-  return Object.freeze({ kind: 'feishu', instanceId: result.instanceId, status: result.status, message: '飞书审批已提交' });
+  const instanceId = String(result.instanceId || '');
+  const status = String(result.status || '').toUpperCase();
+  if (!instanceId) return Object.freeze({ kind: 'feishu', instanceId: '', resourceId: applicationCode, status: 'SUBMITTED_UNTRACKED', message: '已受理但暂无可查询编号，请稍后重试' });
+  if (!APPROVAL_STATUSES.has(status)) return Object.freeze({ kind: 'feishu', instanceId, resourceId: applicationCode, status: 'ERROR', message: '审批状态返回异常，请稍后重试' });
+  return Object.freeze({ kind: 'feishu', instanceId, resourceId: applicationCode, status, message: '飞书审批已提交' });
 }
 
-export async function getOnboardingStatus(instanceId, fetchImpl = globalThis.fetch) {
+export async function getOnboardingStatus(instanceId, fetchImpl = globalThis.fetch, resourceId = '') {
   const normalized = String(instanceId || '');
   if (!SAFE_INSTANCE_ID.test(normalized)) throw new Error('审批实例标识非法');
-  const result = await readResult(await fetchImpl(`/api/v1/approvals/instances/${encodeURIComponent(normalized)}`, {
+  const suffix = resourceId ? `?resourceId=${encodeURIComponent(resourceId)}` : '';
+  const result = await readResult(await fetchImpl(`/api/v1/approvals/instances/${encodeURIComponent(normalized)}${suffix}`, {
     method: 'GET', credentials: 'same-origin', headers: { Accept: 'application/json' }
   }));
-  return Object.freeze({ instanceId: normalized, status: String(result.status || 'PENDING').toUpperCase() });
+  const status = String(result.status || '').toUpperCase();
+  return Object.freeze({ instanceId: normalized, status: APPROVAL_STATUSES.has(status) ? status : 'ERROR' });
 }

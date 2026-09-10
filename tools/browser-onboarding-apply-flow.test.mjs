@@ -49,7 +49,7 @@ await page.route('**/api/v1/approvals/instances', async route => {
   feishuApprovalRequest = JSON.parse(route.request().postData() || '{}');
   await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ instanceId: 'TEST_INSTANCE', status: 'PENDING' }) });
 });
-await page.route('**/api/v1/approvals/instances/TEST_INSTANCE', async route => {
+await page.route('**/api/v1/approvals/instances/TEST_INSTANCE*', async route => {
   await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ instanceId: 'TEST_INSTANCE', status: 'APPROVED' }) });
 });
 
@@ -113,7 +113,7 @@ try {
     businessKey: 'TEST_T005_TEST_HW_001', idempotencyKey: 'TEST_IDEM_T005_TEST_HW_001', description: 'TEST_RPA 应用上架审批联调'
   });
   await page.getByRole('link', { name: '查看审批状态' }).click();
-  await page.waitForURL('**/apps/onboarding/status?source=feishu&instanceId=TEST_INSTANCE');
+  await page.waitForURL('**/apps/onboarding/status?source=feishu&instanceId=TEST_INSTANCE&resourceId=TEST_HW_001');
   await page.getByText('审批完成', { exact: true }).waitFor();
   assert.equal(await page.getByText('实例：TEST_INSTANCE').count(), 1);
   assert.deepEqual(errors, []);
