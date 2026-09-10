@@ -38,7 +38,7 @@ const service = createFeishuApprovalService({ client, now: () => 1_000_000 });
 const definition = await service.ensureTestDefinition(session);
 assert.equal(definition.approvalCode, 'TEST_APPROVAL_CODE');
 assert.match(calls[0][1].approvalName, /^TEST_/);
-assert.equal(calls[0][2].accessToken, 'user-token-server-only');
+assert.equal(calls[0][2]?.accessToken, undefined, 'Approval v4 定义创建必须使用服务端 tenant token，不得使用用户 OAuth token');
 
 const created = await service.createInstance({
   applicationType: 'T005',
@@ -51,7 +51,7 @@ const created = await service.createInstance({
 assert.deepEqual(created, { instanceId: 'TEST_INSTANCE', status: 'PENDING' });
 assert.equal(calls[1][1].applicantUserId, 'u_test');
 assert.equal(calls[1][1].approverUserId, 'u_test');
-assert.equal(calls[1][2].accessToken, 'user-token-server-only');
+assert.equal(calls[1][2]?.accessToken, undefined, 'Approval v4 实例创建必须使用服务端 tenant token，不得使用用户 OAuth token');
 assert.doesNotMatch(JSON.stringify(created), /user-token/);
 
 const repeated = await service.createInstance({
@@ -118,6 +118,7 @@ assert.equal(approved.instanceId, 'TEST_INSTANCE');
 assert.equal(approved.status, 'APPROVED');
 assert.equal(calls.find(call => call[0] === 'approve')[1].taskId, 'TASK-1');
 assert.equal(calls.find(call => call[0] === 'approve')[1].userId, 'u_test');
+assert.equal(calls.find(call => call[0] === 'approve')[2]?.accessToken, undefined, 'Approval v4 审批动作必须使用服务端 tenant token，不得使用用户 OAuth token');
 
 assert.equal(service.handleEvent, undefined, 'browser-facing approval events must not be exposed');
 

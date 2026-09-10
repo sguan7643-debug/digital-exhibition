@@ -119,7 +119,7 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
         approvalName: TEST_APPROVAL_NAME,
         description: 'TEST_仅用于数智展厅端到端验收，可安全清理',
         approverUserId: context.userId
-      }, { accessToken: context.accessToken });
+      });
       if (!created?.approvalCode) throw new FeishuProxyError('APPROVAL_DEFINITION_FAILED', '测试审批定义创建失败', 502);
       const definition = Object.freeze({ approvalCode: created.approvalCode, approvalName: TEST_APPROVAL_NAME, creatorUserId: context.userId, createdAt: new Date(now()).toISOString(), expiresAt: now() + REGISTRY_TTL_MS });
       testDefinitions.set(definitionKey, definition);
@@ -157,7 +157,7 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
           applicationCode,
           description: String(input.description || 'TEST_数智展厅端到端验收'),
           requestId: record.requestId
-        }, { accessToken: context.accessToken });
+        });
         const instanceId = validateInstanceId(created?.instanceCode);
         const status = normalizeStatus(created.status);
         registry.delete(`pending:${key}`);
@@ -178,7 +178,7 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
     const context = sessionContext(session);
     const normalized = validateInstanceId(instanceId);
     const record = recordFor(normalized, context, options);
-    const result = await client.getApprovalInstance(normalized, { accessToken: context.accessToken });
+    const result = await client.getApprovalInstance(normalized);
     if (result.approvalCode !== record.approvalCode) throw new FeishuProxyError('APPROVAL_DEFINITION_MISMATCH', '审批实例不属于本服务 TEST_ 定义', 403);
     record.status = normalizeStatus(result.status);
     persistRegistry();
@@ -190,7 +190,7 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
     const { userId } = context;
     const normalized = validateInstanceId(instanceId);
     const record = recordFor(normalized, context, options);
-    const current = await client.getApprovalInstance(normalized, { accessToken: context.accessToken });
+    const current = await client.getApprovalInstance(normalized);
     if (current.approvalCode !== record.approvalCode) throw new FeishuProxyError('APPROVAL_DEFINITION_MISMATCH', '审批实例不属于本服务 TEST_ 定义', 403);
     const task = (current.taskList || []).find(item => item.status === 'PENDING' && (!item.userId || item.userId === userId));
     if (!task?.id) throw new FeishuProxyError('APPROVAL_TASK_NOT_AVAILABLE', '当前用户没有可审批的测试任务', 409);
@@ -200,7 +200,7 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
       userId,
       taskId: task.id,
       comment: 'TEST_数智展厅端到端验收审批'
-    }, { accessToken: context.accessToken });
+    });
     record.status = 'APPROVED';
     persistRegistry();
     return Object.freeze({ instanceId: normalized, status: 'APPROVED' });

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createFeishuApprovalDispatcher } from '../server/feishu-approval-middleware.mjs';
+import { FeishuProxyError } from '../server/feishu-open-api-client.mjs';
 
 const calls = [];
 const session = { identity: { userId: 'u_test' }, accessToken: 'server-only' };
@@ -60,5 +61,17 @@ assert.equal(wrongContent.status, 415);
 
 const wrongMethod = await dispatch({ method: 'DELETE', url: '/api/v1/approvals/instances/TEST_INSTANCE', headers });
 assert.equal(wrongMethod.status, 405);
+
+const upstreamFailure = await createFeishuApprovalDispatcher({
+  service: {
+    async ensureTestDefinition() { throw new FeishuProxyError('FEISHU_APPROVAL_FAILED', '飞书审批服务暂不可用', 502, { upstreamCode: 99991663 }); },
+    async createInstance() { return {}; },
+    async getInstance() { return {}; },
+    async approveTestTask() { return {}; }
+  },
+  resolveUserSession: () => session
+})({ method: 'POST', url: '/api/v1/approvals/definitions/test', headers, body: {} });
+assert.equal(upstreamFailure.status, 502);
+assert.deepEqual(upstreamFailure.body, { code: 'FEISHU_APPROVAL_FAILED', message: '飞书审批服务暂不可用', upstreamCode: 99991663 });
 
 console.log('Feishu approval routes enforce same-origin JSON, authenticated sessions, 256 KiB bodies, methods, and exact route dispatch');
