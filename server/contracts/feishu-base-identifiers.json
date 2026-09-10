@@ -1,9 +1,9 @@
 {
   "schemaVersion": "feishu-base-identifiers.v2",
-  "sourceSha256": "84843E0E317C6B978561A77125AEDC330A27D1381990FA4F0A33F3CEF49960DD",
-  "generatedAt": "2026-09-02T14:40:19.831Z",
+  "sourceSha256": "1D49D201E48BBDF1125130D74325B222834A33E3605260C54D1C7A8DFD536998",
+  "generatedAt": "2026-09-10T15:16:53.952Z",
   "tableCount": 64,
-  "fieldCount": 1290,
+  "fieldCount": 1311,
   "tables": [
     {
       "name": "用户字典",
@@ -19,7 +19,7 @@
       "fields": [
         {
           "fieldId": "fld603KO5z",
-          "name": "用户ID",
+          "name": "AD账号",
           "type": 1,
           "uiType": "Text",
           "isPrimary": true,
@@ -954,7 +954,7 @@
           "type": "grid"
         }
       ],
-      "fieldCount": 53,
+      "fieldCount": 66,
       "fields": [
         {
           "fieldId": "fld37Sr5di",
@@ -991,7 +991,7 @@
         },
         {
           "fieldId": "fld5rqCIls",
-          "name": "子类型",
+          "name": "子类型（待定）",
           "type": 1,
           "uiType": "Text",
           "isPrimary": false,
@@ -1002,7 +1002,7 @@
         },
         {
           "fieldId": "flduXSaSAz",
-          "name": "应用简介",
+          "name": "摘要",
           "type": 1,
           "uiType": "Text",
           "isPrimary": false,
@@ -1013,9 +1013,31 @@
         },
         {
           "fieldId": "fld7wPrikl",
-          "name": "应用关键字",
+          "name": "应用关键字（待定）",
           "type": 3,
           "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldWBfL3xo",
+          "name": "应用简介",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldTULgAPt",
+          "name": "开发合作方信息",
+          "type": 1,
+          "uiType": "Text",
           "isPrimary": false,
           "formatter": null,
           "optionsType": null,
@@ -1034,8 +1056,195 @@
           "relationTargetTableId": null
         },
         {
+          "fieldId": "fldZ3TnHWR",
+          "name": "移动端地址",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
           "fieldId": "fld6YOPTfg",
           "name": "状态",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4RPFwOb",
+          "name": "所属部门ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldVJM0JXt",
+          "name": "接入人AD账号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldRLwJQlA",
+          "name": "接入人所属部门ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld3Rmhqgs",
+          "name": "联系电话",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldK1w97RO",
+          "name": "联系邮箱",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldYqO9YpX",
+          "name": "适用用户AD账号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldxLWuN65",
+          "name": "适用部门ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldkqufC9C",
+          "name": "适用角色",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldoyM3yLT",
+          "name": "权限范围",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldPMPJLuz",
+          "name": "应用图标",
+          "type": 17,
+          "uiType": "Attachment",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld15jwzz5",
+          "name": "申请人AD账号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld4blNvZL",
+          "name": "申请人所属部门ID",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldYGbb1re",
+          "name": "申请人联系电话",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldGtdwFRY",
+          "name": "申请人联系邮箱",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld1LWGkQi",
+          "name": "发布时间",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld7KouFzK",
+          "name": "创建日期",
           "type": 1,
           "uiType": "Text",
           "isPrimary": false,
@@ -1078,76 +1287,10 @@
           "relationTargetTableId": null
         },
         {
-          "fieldId": "fld1LWGkQi",
-          "name": "发布时间",
-          "type": 1,
-          "uiType": "Text",
-          "isPrimary": false,
-          "formatter": null,
-          "optionsType": null,
-          "options": [],
-          "relationTargetTableId": null
-        },
-        {
-          "fieldId": "fld7KouFzK",
-          "name": "创建日期",
-          "type": 1,
-          "uiType": "Text",
-          "isPrimary": false,
-          "formatter": null,
-          "optionsType": null,
-          "options": [],
-          "relationTargetTableId": null
-        },
-        {
           "fieldId": "fld500Vjnr",
           "name": "最近更新日期",
           "type": 1,
           "uiType": "Text",
-          "isPrimary": false,
-          "formatter": null,
-          "optionsType": null,
-          "options": [],
-          "relationTargetTableId": null
-        },
-        {
-          "fieldId": "fldVJM0JXt",
-          "name": "负责人ID",
-          "type": 3,
-          "uiType": "SingleSelect",
-          "isPrimary": false,
-          "formatter": null,
-          "optionsType": null,
-          "options": [],
-          "relationTargetTableId": null
-        },
-        {
-          "fieldId": "fld4RPFwOb",
-          "name": "所属部门ID",
-          "type": 1,
-          "uiType": "Text",
-          "isPrimary": false,
-          "formatter": null,
-          "optionsType": null,
-          "options": [],
-          "relationTargetTableId": null
-        },
-        {
-          "fieldId": "fld15jwzz5",
-          "name": "开发者ID",
-          "type": 1,
-          "uiType": "Text",
-          "isPrimary": false,
-          "formatter": null,
-          "optionsType": null,
-          "options": [],
-          "relationTargetTableId": null
-        },
-        {
-          "fieldId": "fld4blNvZL",
-          "name": "开发部门ID",
-          "type": 3,
-          "uiType": "SingleSelect",
           "isPrimary": false,
           "formatter": null,
           "optionsType": null,
@@ -1994,7 +2137,7 @@
           "type": "grid"
         }
       ],
-      "fieldCount": 7,
+      "fieldCount": 8,
       "fields": [
         {
           "fieldId": "fld4RLMlWP",
@@ -2032,6 +2175,17 @@
         {
           "fieldId": "fld5Rj1JHp",
           "name": "版本号",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldTWnv7Lx",
+          "name": "备注说明",
           "type": 1,
           "uiType": "Text",
           "isPrimary": false,
@@ -2603,7 +2757,7 @@
           "type": "grid"
         }
       ],
-      "fieldCount": 7,
+      "fieldCount": 8,
       "fields": [
         {
           "fieldId": "fldvr1n6l1",
@@ -2640,9 +2794,20 @@
         },
         {
           "fieldId": "fld5rcbaIG",
-          "name": "附件文件",
-          "type": 1,
-          "uiType": "Text",
+          "name": "资源压缩包",
+          "type": 17,
+          "uiType": "Attachment",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldywLpnAB",
+          "name": "附件",
+          "type": 17,
+          "uiType": "Attachment",
           "isPrimary": false,
           "formatter": null,
           "optionsType": null,
@@ -3921,7 +4086,12 @@
           "isPrimary": false,
           "formatter": null,
           "optionsType": null,
-          "options": [],
+          "options": [
+            {
+              "id": "opt144444282",
+              "name": "未读"
+            }
+          ],
           "relationTargetTableId": null
         },
         {
@@ -4795,7 +4965,7 @@
           "type": "grid"
         }
       ],
-      "fieldCount": 25,
+      "fieldCount": 27,
       "fields": [
         {
           "fieldId": "fld61iAJHi",
@@ -5071,6 +5241,37 @@
           "optionsType": null,
           "options": [],
           "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldZ3SNSrM",
+          "name": "审批来源",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [
+            {
+              "id": "optUoscUce",
+              "name": "飞书审批"
+            },
+            {
+              "id": "optOzsJA6f",
+              "name": "EAD审批"
+            }
+          ],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldDLjo1fS",
+          "name": "审批实例ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
         }
       ]
     },
@@ -5110,7 +5311,7 @@
         },
         {
           "fieldId": "fld6m32Dci",
-          "name": "用户ID",
+          "name": "AD账号",
           "type": 1,
           "uiType": "Text",
           "isPrimary": false,
@@ -5507,7 +5708,12 @@
           "isPrimary": false,
           "formatter": null,
           "optionsType": null,
-          "options": [],
+          "options": [
+            {
+              "id": "opt177240811",
+              "name": "2026-09"
+            }
+          ],
           "relationTargetTableId": null
         },
         {
@@ -5577,7 +5783,7 @@
           "type": "grid"
         }
       ],
-      "fieldCount": 9,
+      "fieldCount": 13,
       "fields": [
         {
           "fieldId": "fld2IcvZdw",
@@ -5670,6 +5876,59 @@
         {
           "fieldId": "fldfIUbGJQ",
           "name": "退回原因",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fld6GVEnlT",
+          "name": "审批来源",
+          "type": 3,
+          "uiType": "SingleSelect",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [
+            {
+              "id": "optoTpQSPq",
+              "name": "飞书审批"
+            },
+            {
+              "id": "optArrk2Gl",
+              "name": "EAD审批"
+            }
+          ],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldP00tv7w",
+          "name": "审批实例ID",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldLF6Gv6Z",
+          "name": "授权用户",
+          "type": 1,
+          "uiType": "Text",
+          "isPrimary": false,
+          "formatter": null,
+          "optionsType": null,
+          "options": [],
+          "relationTargetTableId": null
+        },
+        {
+          "fieldId": "fldAZHDTAk",
+          "name": "授权部门",
           "type": 1,
           "uiType": "Text",
           "isPrimary": false,
@@ -5879,7 +6138,12 @@
           "isPrimary": false,
           "formatter": null,
           "optionsType": null,
-          "options": [],
+          "options": [
+            {
+              "id": "opt177240811",
+              "name": "2026-09"
+            }
+          ],
           "relationTargetTableId": null
         },
         {
@@ -8667,6 +8931,14 @@
             {
               "id": "optHeELNbs",
               "name": "REVERSE"
+            },
+            {
+              "id": "opt1108690286",
+              "name": "INCOME"
+            },
+            {
+              "id": "opt1033292911",
+              "name": "EXPENSE"
             }
           ],
           "relationTargetTableId": null
@@ -10541,6 +10813,10 @@
             {
               "id": "opt6Mr1NxU",
               "name": "EXPIRED"
+            },
+            {
+              "id": "opt678277982",
+              "name": "COMPLETED"
             }
           ],
           "relationTargetTableId": null

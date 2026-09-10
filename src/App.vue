@@ -246,6 +246,14 @@ async function syncIntegrationEnvelope() {
     route, readOperationIds: integrationContract.value.readOperationIds,
     operationContracts: verifiedReadContracts, search: window.location.search
   });
+  if (route === '/apps' && integrationRuntime.mode === 'remote') {
+    await fetch('/api/v1/approvals/reconcile', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}'
+    }).catch(() => null);
+  }
   const pending = integrationDataSource.load({}, loadOptions);
   integrationEnvelope.value = integrationDataSource.snapshot();
   const result = await pending;

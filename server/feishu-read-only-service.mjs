@@ -280,6 +280,11 @@ export function createFeishuReadOnlyService(options) {
     return appProjectionPending;
   }
 
+  function invalidateAppProjection() {
+    appProjectionCache = null;
+    appProjectionExpiresAt = 0;
+  }
+
   async function readAnnouncementProjection() {
     const rows = await readAll('公告通知');
     const items = rows.map(record => {
@@ -2059,5 +2064,5 @@ export function createFeishuReadOnlyService(options) {
     };
   }
 
-  return Object.freeze({ execute });
+  return Object.freeze({ execute, invalidateAppProjection });
 }

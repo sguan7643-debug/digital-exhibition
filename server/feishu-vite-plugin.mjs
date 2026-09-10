@@ -14,6 +14,7 @@ import { createFeishuFileAccessService, createFeishuFileNodeMiddleware } from '.
 import { createFeishuOAuthAuthorizedHandler, createFeishuOAuthWriteAcceptance } from './feishu-oauth-write-acceptance.mjs';
 import { createFeishuApprovalService } from './feishu-approval-service.mjs';
 import { createFeishuApprovalNodeMiddleware } from './feishu-approval-middleware.mjs';
+import { createFeishuApprovedAppProjection } from './feishu-approved-app-projection.mjs';
 
 export function feishuReadOnlyProxy(options = {}) {
   const contractPath = fileURLToPath(new URL('./contracts/feishu-base-identifiers.json', import.meta.url));
@@ -43,7 +44,15 @@ export function feishuReadOnlyProxy(options = {}) {
   });
   const authMiddleware = createFeishuAuthNodeMiddleware({ authService });
   const approvalRegistryFile = options.approvalRegistryFile ?? process.env.FEISHU_APPROVAL_REGISTRY_PATH ?? join(process.cwd(), '.local', 'feishu-approval-registry.json');
-  const approvalService = createFeishuApprovalService({ client, registryFile: approvalRegistryFile });
+  const approvalAdminClient = createFeishuSchemaAdminClient({ ...options, recordWriteEnabled: true });
+  const approvalRecordService = createFeishuSafeTestRecordService({ client: approvalAdminClient });
+  const approvalProjection = createFeishuApprovedAppProjection({ safeRecordService: approvalRecordService });
+  const approvalService = createFeishuApprovalService({
+    client,
+    registryFile: approvalRegistryFile,
+    projectionService: approvalProjection,
+    onProjected: () => readService.invalidateAppProjection()
+  });
   const approvalMiddleware = createFeishuApprovalNodeMiddleware({
     service: approvalService,
     resolveUserSession: request => authService.resolveSession(request.headers?.cookie || '')

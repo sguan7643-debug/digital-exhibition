@@ -57,6 +57,11 @@ export function createFeishuApprovalDispatcher({ service, resolveUserSession } =
         if (request.method !== 'POST') return methodError();
         return { status: 201, headers: JSON_HEADERS, body: await service.createInstance(request.body || {}, session) };
       }
+      if (pathname === `${ROOT}reconcile`) {
+        if (request.method !== 'POST') return methodError();
+        if (!service.reconcile) throw new FeishuProxyError('APPROVAL_RECONCILE_UNAVAILABLE', '审批上架同步暂不可用', 503);
+        return { status: 200, headers: JSON_HEADERS, body: await service.reconcile(session) };
+      }
       const match = INSTANCE_ROUTE.exec(pathname);
       if (!match) return { status: 404, headers: JSON_HEADERS, body: { code: 'APPROVAL_ROUTE_NOT_FOUND', message: '审批接口不存在' } };
       if (match[2]) {

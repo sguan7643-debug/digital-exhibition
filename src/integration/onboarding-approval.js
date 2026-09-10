@@ -40,7 +40,31 @@ export async function submitOnboarding(form, files = [], fetchImpl = globalThis.
       resourceId,
       businessKey: `TEST_T005_${resourceId}`,
       idempotencyKey: `TEST_IDEM_T005_${resourceId}`,
-      description: form.summary
+      description: form.summary,
+      application: {
+        name: form.name,
+        applicationCode,
+        summary: form.summary,
+        description: form.description || form.summary,
+        scenario: form.scenario,
+        collaboration: form.collaboration,
+        webAddress: form.webAddress,
+        mobileAddress: form.mobileAddress,
+        applicant: form.applicant,
+        department: form.department,
+        contact: form.contact,
+        contactDepartment: form.contactDepartment,
+        contactPhone: form.contactPhone,
+        contactEmail: form.contactEmail,
+        phone: form.phone,
+        email: form.email,
+        domain: form.domain,
+        users: form.users,
+        accessDepartment: form.accessDepartment,
+        roles: form.roles,
+        scope: form.scope,
+        remarks: form.remarks
+      }
     })
   }));
   const instanceId = String(result.instanceId || '');

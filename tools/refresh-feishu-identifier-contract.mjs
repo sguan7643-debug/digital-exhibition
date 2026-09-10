@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createFeishuSchemaAdminClient } from '../server/feishu-schema-admin-client.mjs';
@@ -7,8 +7,10 @@ import { createFeishuSchemaAdminClient } from '../server/feishu-schema-admin-cli
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outputPath = path.join(root, 'server', 'contracts', 'feishu-base-identifiers.json');
 const client = createFeishuSchemaAdminClient();
-const liveTables = await client.listTables();
-if (liveTables.length !== 64) throw new Error(`测试 Base 表数量不是 64：${liveTables.length}`);
+const currentContract = JSON.parse(readFileSync(outputPath, 'utf8'));
+const expectedNames = new Set(currentContract.tables.map(table => table.name));
+const liveTables = (await client.listTables()).filter(table => expectedNames.has(table.name));
+if (liveTables.length !== currentContract.tableCount) throw new Error(`测试 Base 合同表数量不是 ${currentContract.tableCount}：${liveTables.length}`);
 
 const tables = [];
 const tableIds = new Set();
@@ -42,7 +44,7 @@ for (const liveTable of liveTables) {
     };
   });
   tables.push({ name: liveTable.name, tableId: liveTable.table_id, views, fieldCount: fields.length, fields });
-  console.log(`${tables.length}/64 ${liveTable.name} ${fields.length} fields`);
+  console.log(`${tables.length}/${currentContract.tableCount} ${liveTable.name} ${fields.length} fields`);
 }
 
 const canonical = JSON.stringify(tables);

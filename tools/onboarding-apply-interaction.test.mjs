@@ -79,6 +79,14 @@ assert.ok(
   '应用编码输入框必须紧随应用名称并位于应用类型之前'
 );
 assert.match(applySource, /:disabled="submitting"/);
+assert.match(applySource, /if \(submitting\.value\) return;/, '重复点击提交时必须复用当前请求，禁止重复发起审批');
+assert.match(applySource, /:aria-busy="submitting"/, '表单必须向辅助技术暴露提交中的忙碌状态');
+assert.match(applySource, /v-if="submitting"[^>]*class="submit-loading"/, '接口等待期间必须显示可见 loading');
+assert.match(applySource, /正在提交审批，请稍候/);
+assert.match(applySource, /class="submit-spinner"/);
+assert.match(applySource, /finally\s*\{[\s\S]*?submitting\.value = false;[\s\S]*?\}/, '请求结束后必须关闭 loading');
+assert.match(applySource, /v-if="submitted" class="submit-success" role="status"/, '成功后必须显示成功提示');
+assert.match(applySource, /v-if="submitError" class="submit-error" role="alert"/, '失败后必须显示失败提示');
 assert.match(applySource, /href="\/apps"/);
 assert.match(applySource, /:href="statusHref"/);
 assert.match(applySource, /const feishuAuthHref = computed\(/);

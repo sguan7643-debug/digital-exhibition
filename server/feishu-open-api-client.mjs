@@ -171,10 +171,20 @@ export function createFeishuOpenApiClient(options = {}) {
     const normalized = String(instanceCode || '');
     if (!/^[A-Za-z0-9_-]{1,256}$/.test(normalized)) throw new FeishuProxyError('INVALID_APPROVAL_INSTANCE_ID', '审批实例标识非法', 400);
     const data = await approvalRequest(`/approval/v4/instances/${encodeURIComponent(normalized)}`, { accessToken: options.accessToken });
+    let formValues = {};
+    try {
+      const form = typeof data.form === 'string' ? JSON.parse(data.form) : data.form;
+      if (Array.isArray(form)) formValues = Object.fromEntries(form
+        .filter(item => item && typeof item === 'object' && (item.custom_id || item.id))
+        .map(item => [String(item.custom_id || item.id), item.value]));
+    } catch {
+      formValues = {};
+    }
     return {
       instanceCode: String(data.instance_code || normalized),
       approvalCode: String(data.approval_code || ''),
       status: String(data.status || ''),
+      formValues,
       taskList: Array.isArray(data.task_list) ? data.task_list.map(task => ({
         id: String(task.id || task.task_id || ''), status: String(task.status || ''),
         userId: String(task.user_id || ''), openId: String(task.open_id || '')

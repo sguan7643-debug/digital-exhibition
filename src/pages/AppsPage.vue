@@ -25,8 +25,15 @@ const props = defineProps({
 const controller = routeSession.controller("apps", () =>
   createAppsController(APP_FIXTURES),
 );
+const remoteApps = computed(() => Array.isArray(props.integrationData?.['APP-002']?.items)
+  ? projectApplicationCards(props.integrationData['APP-002'].items.filter((item) =>
+      String(item.appId || item.id || '').startsWith('TEST_')
+      && ['已上架', '审核通过', 'ONLINE', 'PUBLISHED', 'APPROVED'].includes(String(item.status || '').toUpperCase())))
+  : []);
+const displayedApps = computed(() => [...APP_FIXTURES, ...remoteApps.value.filter((item) =>
+  !APP_FIXTURES.some((fixture) => fixture.id === item.id))]);
 watch(() => [props.integrationState, props.integrationData?.['APP-002']?.items], ([state, items]) => {
-  if (state !== 'mock' && Array.isArray(items)) controller.replaceFixtures(projectApplicationCards(items));
+  if (state !== 'mock' && Array.isArray(items)) controller.replaceFixtures(displayedApps.value);
 }, { immediate: true });
 const queryDraft = computed({
   get: () => controller.queryDraft,
@@ -40,7 +47,7 @@ const remoteMode = computed(() => props.integrationState !== 'mock' && Array.isA
 const appTypeStats = computed(() =>
   APP_CATEGORIES.map((category) => ({
     category,
-    count: APP_FIXTURES.filter(
+    count: (remoteMode.value ? displayedApps.value : APP_FIXTURES).filter(
       (app) => normalizeAppCategory(app.category) === category,
     ).length,
     icon: categoryIconName(category),

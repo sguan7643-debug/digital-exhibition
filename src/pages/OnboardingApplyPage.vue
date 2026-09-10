@@ -123,6 +123,7 @@ function buildRpaApprovalRequest() {
   };
 }
 async function submitApplication() {
+  if (submitting.value) return;
   submitting.value = true;
   submitError.value = "";
   submitted.value = false;
@@ -179,8 +180,15 @@ async function submitApplication() {
     <section v-if="submitError" class="submit-error" role="alert">
       {{ submitError }}，请检查网络后重试。
     </section>
+    <section v-if="submitting" class="submit-loading" role="status" aria-live="assertive">
+      <span class="submit-spinner" aria-hidden="true"></span>
+      <div>
+        <strong>正在提交审批，请稍候…</strong>
+        <p>正在创建审批并写入多维表格，请勿重复点击。</p>
+      </div>
+    </section>
 
-    <form class="apply-form" @submit.prevent="submitApplication">
+    <form class="apply-form" :aria-busy="submitting" @submit.prevent="submitApplication">
       <fieldset>
         <legend><span>1</span>申请人信息</legend>
         <div class="field-grid four-cols">
@@ -525,6 +533,37 @@ async function submitApplication() {
   background: #fff5f5;
   border: 1px solid #efb8b8;
   border-radius: 7px;
+}
+.submit-loading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 14px;
+  padding: 13px 16px;
+  color: #174a7a;
+  background: #eef6ff;
+  border: 1px solid #a9caeb;
+  border-radius: 7px;
+}
+.submit-loading p {
+  margin: 3px 0 0;
+  color: #5e7791;
+  font-size: 12px;
+}
+.submit-spinner {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border: 3px solid #b9d7f3;
+  border-top-color: #0060a6;
+  border-radius: 50%;
+  animation: submit-spin 0.75s linear infinite;
+}
+@keyframes submit-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .submit-spinner { animation-duration: 1.8s; }
 }
 .apply-form {
   display: grid;

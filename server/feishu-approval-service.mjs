@@ -28,7 +28,7 @@ function normalizeStatus(value) {
   return status;
 }
 
-export function createFeishuApprovalService({ client, now = Date.now, registry = new Map(), registryFile = '' } = {}) {
+export function createFeishuApprovalService({ client, now = Date.now, registry = new Map(), registryFile = '', projectionService = null, onProjected = null } = {}) {
   if (!client?.createApprovalDefinition || !client?.createApprovalInstance || !client?.getApprovalInstance || !client?.approveApprovalTask) {
     throw new Error('飞书审批服务缺少 Approval v4 客户端');
   }
@@ -36,6 +36,7 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
   const testDefinitions = new Map();
   const definitionPromises = new Map();
   const createPromises = new Map();
+  const projectionPromises = new Map();
 
   function persistRegistry() {
     if (!registryFile) return;
@@ -91,6 +92,49 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
     return `TEST_${digest}`;
   }
 
+  function normalizeApplication(input = {}, fallback = {}) {
+    const source = input && typeof input === 'object' ? input : {};
+    const result = {};
+    for (const key of ['name', 'applicationCode', 'summary', 'description', 'webAddress', 'mobileAddress', 'applicant', 'department', 'contact', 'contactDepartment', 'contactPhone', 'contactEmail', 'phone', 'email', 'domain', 'users', 'accessDepartment', 'roles', 'scope', 'collaboration', 'scenario', 'remarks']) {
+      const value = source[key] ?? fallback[key];
+      if (value != null) result[key] = String(value).trim().slice(0, 4000);
+    }
+    return result;
+  }
+
+  function hydrateApplication(record, result = {}) {
+    const form = result.formValues && typeof result.formValues === 'object' ? result.formValues : {};
+    record.application = normalizeApplication(record.application, {
+      name: form.application_name || record.title,
+      applicationCode: form.application_code || record.applicationCode,
+      summary: form.application_description || record.description,
+      description: form.application_description || record.description
+    });
+  }
+
+  async function syncProjection(record) {
+    if (!['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(record.status) || !projectionService?.publish) return;
+    if (record.projectionStatus === 'SYNCED' && record.projectedApprovalStatus === record.status) return;
+    const key = record.instanceId || record.registryKey;
+    if (!projectionPromises.has(key)) projectionPromises.set(key, (async () => {
+      try {
+        const projection = await projectionService.publish(record);
+        record.projectionStatus = 'SYNCED';
+        record.projectedApprovalStatus = record.status;
+        record.projection = projection;
+        record.projectedAt = now();
+        persistRegistry();
+        if (typeof onProjected === 'function') await onProjected(record, projection);
+      } catch (error) {
+        record.projectionStatus = 'FAILED';
+        record.projectionError = String(error?.code || error?.message || 'APPROVAL_PROJECTION_FAILED').slice(0, 240);
+        persistRegistry();
+        throw error;
+      }
+    })().finally(() => projectionPromises.delete(key)));
+    return projectionPromises.get(key);
+  }
+
   function recordFor(instanceId, context, { resourceId = '' } = {}) {
     const record = registry.get(instanceId);
     if (!record) throw new FeishuProxyError('APPROVAL_INSTANCE_NOT_REGISTERED', '审批实例不是本服务创建的 TEST_ 实例', 404);
@@ -142,10 +186,17 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
     const key = registryKey(context, businessKey, idempotencyKey);
     const existing = [...registry.values()].find(record => record.registryKey === key);
     if (existing && existing.expiresAt <= now()) throw new FeishuProxyError('APPROVAL_IDEMPOTENCY_EXPIRED', '测试审批幂等记录已过期', 409);
-    if (existing?.instanceId) return Object.freeze({ instanceId: existing.instanceId, status: existing.status });
+    if (existing?.instanceId) {
+      await syncProjection(existing);
+      return Object.freeze({ instanceId: existing.instanceId, status: existing.status });
+    }
     if (!createPromises.has(key)) createPromises.set(key, (async () => {
       const definition = await ensureTestDefinition(session);
-      const record = existing || { instanceId: '', approvalCode: definition.approvalCode, creatorUserId: userId, creatorSubject: context.subject, creatorOpenId: context.openId, tenantKey: context.tenantKey, orgId: context.orgId, resourceId, permissionSnapshot: context.permissionSnapshot, businessKey, idempotencyKey, registryKey: key, requestId: stableRequestId(context, key), createdAt: now(), expiresAt: now() + REGISTRY_TTL_MS, cleanupStatus: 'ACTIVE', status: 'PENDING' };
+      const record = existing || { instanceId: '', approvalCode: definition.approvalCode, creatorUserId: userId, creatorSubject: context.subject, creatorOpenId: context.openId, tenantKey: context.tenantKey, orgId: context.orgId, resourceId, permissionSnapshot: context.permissionSnapshot, businessKey, idempotencyKey, registryKey: key, requestId: stableRequestId(context, key), createdAt: now(), expiresAt: now() + REGISTRY_TTL_MS, cleanupStatus: 'ACTIVE', status: 'PENDING', projectionStatus: 'PENDING' };
+      record.title = title;
+      record.applicationCode = applicationCode;
+      record.description = String(input.description || 'TEST_数智展厅端到端验收');
+      record.application = normalizeApplication(input.application, { name: title, applicationCode, summary: record.description, description: record.description });
       if (!existing) registry.set(`pending:${key}`, record);
       persistRegistry();
       try {
@@ -165,6 +216,7 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
         record.status = status;
         registry.set(instanceId, record);
         persistRegistry();
+        await syncProjection(record);
         return Object.freeze({ instanceId, status });
       } catch (error) {
         persistRegistry();
@@ -181,7 +233,9 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
     const result = await client.getApprovalInstance(normalized);
     if (result.approvalCode !== record.approvalCode) throw new FeishuProxyError('APPROVAL_DEFINITION_MISMATCH', '审批实例不属于本服务 TEST_ 定义', 403);
     record.status = normalizeStatus(result.status);
+    hydrateApplication(record, result);
     persistRegistry();
+    await syncProjection(record);
     return Object.freeze({ instanceId: normalized, status: record.status });
   }
 
@@ -203,7 +257,31 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
     });
     record.status = 'APPROVED';
     persistRegistry();
+    await syncProjection(record);
     return Object.freeze({ instanceId: normalized, status: 'APPROVED' });
+  }
+
+  async function reconcile(session) {
+    const context = sessionContext(session);
+    let checked = 0;
+    let published = 0;
+    for (const record of registry.values()) {
+      if (!record?.instanceId || record.cleanupStatus !== 'ACTIVE') continue;
+      if (String(record.creatorSubject || record.creatorUserId || '') !== context.subject) continue;
+      if (record.tenantKey && record.tenantKey !== context.tenantKey) continue;
+      if (record.orgId && record.orgId !== context.orgId) continue;
+      if (record.status !== 'APPROVED' && record.status !== 'PENDING') continue;
+      checked += 1;
+      const current = await client.getApprovalInstance(record.instanceId);
+      if (current.approvalCode !== record.approvalCode) continue;
+      record.status = normalizeStatus(current.status);
+      hydrateApplication(record, current);
+      const wasSynced = record.projectionStatus === 'SYNCED' && record.projectedApprovalStatus === record.status;
+      persistRegistry();
+      await syncProjection(record);
+      if (!wasSynced && record.projectionStatus === 'SYNCED') published += 1;
+    }
+    return Object.freeze({ checked, published });
   }
 
   function cleanupExpired() {
@@ -213,5 +291,5 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
     return count;
   }
 
-  return Object.freeze({ ensureTestDefinition, createInstance, getInstance, approveTestTask, cleanupExpired });
+  return Object.freeze({ ensureTestDefinition, createInstance, getInstance, approveTestTask, reconcile, cleanupExpired });
 }
