@@ -83,6 +83,8 @@ assert.match(applySource, /href="\/apps"/);
 assert.match(applySource, /:href="statusHref"/);
 assert.match(applySource, /const feishuAuthHref = computed\(/);
 assert.match(applySource, /\/api\/v1\/auth\/feishu\/start\?returnTo=/);
+assert.match(applySource, /data-native-navigation[^>]*>飞书授权<\/a>/);
+assert.match(appSource, /anchor\.hasAttribute\(['"]data-native-navigation['"]\)/);
 const headingActions = applySource.match(/<div class="heading-actions">([\s\S]*?)<\/div>/)?.[1] || '';
 assert.ok(
   headingActions.indexOf('飞书授权') >= 0 &&

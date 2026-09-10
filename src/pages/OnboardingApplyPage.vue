@@ -163,7 +163,7 @@ async function submitApplication() {
         </p>
       </div>
       <div class="heading-actions">
-        <a class="feishu-auth-link" :href="feishuAuthHref">飞书授权</a>
+        <a class="feishu-auth-link" :href="feishuAuthHref" data-native-navigation>飞书授权</a>
         <a class="back-link" href="/apps">返回应用中心</a>
       </div>
     </header>

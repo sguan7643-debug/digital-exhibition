@@ -191,6 +191,7 @@ function handleInternalNavigation(event) {
   if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   const anchor = event.target.closest?.('a[href]');
   if (!anchor || anchor.target || anchor.hasAttribute('download')) return;
+  if (anchor.hasAttribute('data-native-navigation')) return;
   const next = new URL(anchor.href, window.location.href);
   if (next.origin !== window.location.origin) return;
   if (next.pathname === window.location.pathname && next.search === window.location.search && next.hash) return;
