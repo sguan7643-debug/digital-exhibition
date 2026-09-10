@@ -158,6 +158,11 @@ export function createAppsController(fixtures) {
     page: 1,
     pageSize: 10,
     announcement: "",
+    replaceFixtures(nextFixtures) {
+      this.fixtures = Array.isArray(nextFixtures) ? [...nextFixtures] : [];
+      this.page = 1;
+      this.announcement = `已载入 ${this.fixtures.length} 个应用`;
+    },
     get results() {
       const query = normalize(this.filters.query);
       const rows = this.fixtures.filter(

@@ -10,6 +10,10 @@ const versionRequiredOperationIds = new Set([
   'COM-007','MSG-003','MSG-004','MSG-005','FAV-004','TRN-005','ADM-005',
   'OAN-005','OAN-006','OAN-007','OAP-005','OAP-009','ARC-003'
 ]);
+const appDetailOperationIds = Object.freeze([
+  'APP-003','APP-009','APP-007','MAT-001','MAT-002','MAT-003','COM-008',
+  'FAV-003','FAV-004','APP-005','APP-006','APP-008'
+]);
 
 const define = (id, route, operationIds, fieldDomains, defaultMode = 'mock') => {
   const readOperationIds = operationIds.filter(operationId => getOperation(operationId)?.readOnly && !interactionReadOperationIds.has(operationId));
@@ -46,15 +50,15 @@ export const PAGE_INTEGRATION_MATRIX = Object.freeze([
   define('05','/announcements',['ANN-001','ANN-002'],['announcement','read-state']),
   define('06','/announcements/notice-001',['ANN-003','ANN-005','COM-008','ANN-004'],['announcement-detail','attachment','related-resource','file-download','read-state']),
   define('07','/apps',['APP-001','APP-002','APP-004'],['application-summary','application-filter','topic-domain','app-launch']),
-  define('08','/apps/tool-001',['APP-003','APP-009','APP-007','MAT-001','MAT-002','MAT-003','COM-008','APP-005','APP-006','APP-008'],['application-detail','training-relation','material-relation','comment','material-download','file-download','application-request','reuse-request']),
-  define('09','/apps/haineng-work-001',['APP-003','APP-009','APP-007','MAT-001','MAT-002','MAT-003','COM-008','APP-005','APP-006','APP-008'],['application-detail','training-relation','material-relation','comment','material-download','file-download','application-request','reuse-request']),
-  define('10','/apps/report-001',['APP-003','APP-009','APP-007','MAT-001','MAT-002','MAT-003','COM-008','APP-005','APP-006','APP-008'],['application-detail','report-metadata','related-resource','comment','material-download','file-download','application-request','reuse-request']),
-  define('11','/apps/dashboard-001',['APP-003','APP-009','APP-007','MAT-001','MAT-002','MAT-003','COM-008'],['application-detail','dashboard-metadata','related-resource','comment','material-download','file-download']),
-  define('12','/apps/dataset-001',['APP-003','APP-009','APP-007','MAT-001','MAT-002','MAT-003','COM-008'],['application-detail','dataset-metadata','related-resource','comment','material-download','file-download']),
-  define('13','/apps/metric-001',['APP-003','APP-009','APP-007','MAT-001','MAT-002','MAT-003','COM-008'],['application-detail','metric-metadata','related-resource','comment','material-download','file-download']),
-  define('14','/apps/ai-001',['APP-003','APP-009','APP-007','MAT-001','MAT-002','MAT-003','COM-008'],['application-detail','ai-metadata','related-resource','comment','material-download','file-download']),
-  define('15','/apps/ead-001',['APP-003','APP-009','APP-007','MAT-001','MAT-002','MAT-003','COM-008'],['application-detail','ead-metadata','related-resource','comment','material-download','file-download']),
-  define('16','/apps/rpa-001',['APP-003','APP-009','APP-007','MAT-001','MAT-002','MAT-003','COM-008'],['application-detail','rpa-metadata','related-resource','comment','material-download','file-download']),
+  define('08','/apps/tool-001',[...appDetailOperationIds],['application-detail','training-relation','material-relation','comment','material-download','file-download','favorite','application-request','reuse-request']),
+  define('09','/apps/haineng-work-001',[...appDetailOperationIds],['application-detail','training-relation','material-relation','comment','material-download','file-download','favorite','application-request','reuse-request']),
+  define('10','/apps/report-001',[...appDetailOperationIds],['application-detail','report-metadata','related-resource','comment','material-download','file-download','favorite','application-request','reuse-request']),
+  define('11','/apps/dashboard-001',[...appDetailOperationIds],['application-detail','dashboard-metadata','related-resource','comment','material-download','file-download','favorite','application-request','reuse-request']),
+  define('12','/apps/dataset-001',[...appDetailOperationIds],['application-detail','dataset-metadata','related-resource','comment','material-download','file-download','favorite','application-request','reuse-request']),
+  define('13','/apps/metric-001',[...appDetailOperationIds],['application-detail','metric-metadata','related-resource','comment','material-download','file-download','favorite','application-request','reuse-request']),
+  define('14','/apps/ai-001',[...appDetailOperationIds],['application-detail','ai-metadata','related-resource','comment','material-download','file-download','favorite','application-request','reuse-request']),
+  define('15','/apps/ead-001',[...appDetailOperationIds],['application-detail','ead-metadata','related-resource','comment','material-download','file-download','favorite','application-request','reuse-request']),
+  define('16','/apps/rpa-001',[...appDetailOperationIds],['application-detail','rpa-metadata','related-resource','comment','material-download','file-download','favorite','application-request','reuse-request']),
   define('17','/apps/onboarding/status',['APP-010','OAP-008','OAP-010'],['application-request','submission-record','permission-grant']),
   define('18','/points',['PTS-001','PTS-003','PTS-004'],['point-account','point-category','point-rule']),
   define('19','/points/details',['PTS-002','PTS-005'],['point-ledger','point-export']),

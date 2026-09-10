@@ -1,6 +1,15 @@
 <script setup>
 // Reference SHA-256: 68508151B1490F117074C44F464732A6986DAE68DDE5C23296DB0529C2C12E86
 import { computed, ref } from "vue";
+import { buildApplicationWriteInput } from "../integration/application-actions.js";
+
+const props = defineProps({
+  integrationData: { type: Object, default: null },
+  integrationState: { type: String, default: "mock" },
+  operationExecutor: { type: Function, default: null },
+  actionExecutor: { type: Function, default: null },
+  testWritesEnabled: { type: Boolean, default: false },
+});
 
 const courses = [
   {
@@ -72,17 +81,58 @@ const tabs = [
 ];
 const selected = ref("全部");
 const announcement = ref("");
+const remoteCourses = computed(() =>
+  props.integrationData?.['TRN-002']?.items?.map((course) => ({
+    id: course.courseId,
+    category: course.categoryName || course.categoryCode || "其他",
+    date: course.startAt || "时间待定",
+    title: course.title,
+    speaker: course.lecturerName || "讲师待定",
+    description: course.summary || "暂无课程简介",
+    count: String(course.registeredCount ?? 0),
+    action: String(course.statusCode).toUpperCase() === "LIVE" ? "进入直播" : "立即报名",
+    deliveryMode: course.deliveryMode,
+  })) || null,
+);
+const courseSource = computed(() => Array.isArray(remoteCourses.value) ? remoteCourses.value : courses);
 const visibleCourses = computed(() =>
   selected.value === "全部"
-    ? courses
-    : courses.filter((course) => course.category === selected.value),
+    ? courseSource.value
+    : courseSource.value.filter((course) => course.category === selected.value),
 );
 function selectTab(tab) {
   selected.value = tab;
   announcement.value = `已筛选${tab}培训，共 ${visibleCourses.value.length} 项近期活动`;
 }
-function act(course, label) {
-  announcement.value = `${course.title}：${label}为本地演示操作`;
+async function register(course) {
+  if (!props.testWritesEnabled || !props.actionExecutor || !course.id) {
+    announcement.value = `${course.title}：真实 TEST_ 报名通道未启用`;
+    return;
+  }
+  try {
+    const input = buildApplicationWriteInput('TRN-004', course.id);
+    await props.actionExecutor('TRN-004', input, { confirmed: true });
+    announcement.value = `${course.title}：TEST_ 报名已由服务端确认`;
+  } catch (error) {
+    announcement.value = `${course.title}：报名失败，${error.message || '请稍后重试'}`;
+  }
+}
+async function enterCourse(course) {
+  if (!props.operationExecutor || props.integrationState === 'mock' || !course.id) {
+    announcement.value = `${course.title}：真实课程入口未启用`;
+    return;
+  }
+  try {
+    const response = await props.operationExecutor('TRN-006', { courseId: course.id, sourcePage: '/training' });
+    if (!response.data.allowed || !response.data.launchUrl) {
+      announcement.value = `${course.title}：${response.data.reasonCode || '当前无访问权限'}`;
+      return;
+    }
+    window.open(response.data.launchUrl, '_blank', 'noopener,noreferrer');
+    announcement.value = `${course.title}：已通过服务端权限校验`;
+  } catch (error) {
+    announcement.value = `${course.title}：课程入口获取失败，${error.message || '请稍后重试'}`;
+  }
 }
 </script>
 
@@ -134,7 +184,7 @@ function act(course, label) {
       </button>
     </nav>
     <section class="course-grid" aria-label="近期培训活动">
-      <article v-for="course in visibleCourses" :key="course.title">
+      <article v-for="course in visibleCourses" :key="course.id || course.title">
         <header>
           <div class="course-meta">
             <mark>{{ course.category }}</mark
@@ -157,9 +207,9 @@ function act(course, label) {
           </div>
         </dl>
         <footer>
-          <button type="button" @click="act(course, '查看详情')">
-            查看详情</button
-          ><button type="button" @click="act(course, course.action)">
+          <a v-if="course.id" :href="`/training?courseId=${encodeURIComponent(course.id)}`">查看详情</a
+          ><button v-else type="button" disabled>查看详情</button
+          ><button type="button" @click="course.action === '进入直播' ? enterCourse(course) : register(course)">
             {{ course.action }}
           </button>
         </footer>

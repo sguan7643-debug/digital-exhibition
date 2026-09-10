@@ -18,6 +18,8 @@ const props = defineProps({
   integrationData: { type: Object, default: null },
   integrationState: { type: String, default: "mock" },
   operationExecutor: { type: Function, default: null },
+  actionExecutor: { type: Function, default: null },
+  testWritesEnabled: { type: Boolean, default: false },
 });
 
 const REFERENCE_SHA256 =
@@ -41,6 +43,7 @@ const remoteCards = computed(
         type: app.category,
         tag: app.tag,
         favoritedAt: item.favoritedAt,
+        favoriteVersion: Number(item.favoriteVersion || 0),
       };
     }) || null,
 );
@@ -108,8 +111,22 @@ function clearFilters() {
 const resultTitleRef = ref(null);
 
 async function cancelFavorite(card) {
-  if (liveMode.value) {
-    controller.announcement = "真实收藏取消写操作尚未开放";
+  if (remoteMode.value) {
+    if (!props.testWritesEnabled || !props.actionExecutor || !String(card.id).startsWith("TEST_") || !card.favoriteVersion) {
+      controller.announcement = "仅允许取消当前联调创建的 TEST_ 收藏";
+      return;
+    }
+    try {
+      await props.actionExecutor("FAV-004", {
+        businessKey: card.id,
+        idempotencyKey: `TEST_IDEM_APP_UNFAVORITE_${window.crypto.randomUUID()}`,
+        ifMatch: card.favoriteVersion,
+        fields: {},
+      }, { confirmed: true });
+      controller.announcement = `${card.name}：TEST_ 收藏已由服务端取消`;
+    } catch (error) {
+      controller.announcement = `${card.name}：取消失败，${error.message || "请稍后重试"}`;
+    }
     return;
   }
   const rows = [...controller.pagedResults];
@@ -340,8 +357,8 @@ async function launch(card) {
           ><button
             class="cancel-favorite"
             type="button"
-            :disabled="liveMode"
-            :title="liveMode ? '真实收藏取消写操作尚未开放' : ''"
+            :disabled="remoteMode && (!testWritesEnabled || !String(card.id).startsWith('TEST_') || !card.favoriteVersion)"
+            :title="remoteMode && (!String(card.id).startsWith('TEST_') || !card.favoriteVersion) ? '只可清理 TEST_ 联调收藏' : ''"
             @click="cancelFavorite(card)"
           >
             取消收藏</button

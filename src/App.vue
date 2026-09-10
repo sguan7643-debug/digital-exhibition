@@ -270,7 +270,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
     <page-state-boundary :page="page" :state="page.state" @restore="restoreNormal">
       <workbench-page v-if="page.id === '01'" :integration-data="integrationEnvelope.data" :operation-executor="executeReadOperation" />
       <messages-page v-else-if="page.id === '02'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
-      <favorites-page v-else-if="page.id === '03'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
+      <favorites-page v-else-if="page.id === '03'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :test-writes-enabled="integrationRuntime.testWritesEnabled" />
       <profile-page v-else-if="page.id === '04'" />
       <announcements-page v-else-if="page.id === '05'"
         :integration-data="integrationEnvelope.data"
@@ -281,6 +281,8 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
         :integration-data="integrationEnvelope.data"
         :integration-state="integrationEnvelope.state"
         :operation-executor="executeReadOperation"
+        :action-executor="executePageWriteOperation"
+        :test-writes-enabled="integrationRuntime.testWritesEnabled"
       />
       <tool-detail-page v-else-if="page.id === '08'" />
       <haineng-work-detail-page v-else-if="page.id === '09'" />
@@ -299,7 +301,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
       <onboarding-apply-page v-else-if="page.id === '32'" />
       <points-page v-else-if="page.id === '18'" :integration-data="integrationEnvelope.data" />
       <points-details-page v-else-if="page.id === '19'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
-      <training-page v-else-if="page.id === '20'" />
+      <training-page v-else-if="page.id === '20'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :test-writes-enabled="integrationRuntime.testWritesEnabled" />
       <operations-page v-else-if="page.id === '21'" />
       <announcement-admin-page v-else-if="page.id === '22'" />
       <announcement-editor-page v-else-if="page.id === '23'" :operation-executor="executeReadOperation" />
@@ -320,7 +322,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
         :integration-state="integrationEnvelope.state"
         :operation-executor="executeReadOperation"
         :action-executor="executePageWriteOperation"
-        :test-writes-enabled="integrationRuntime.testWritesEnabled && integrationContract.actions.some(action => ['APP-005','APP-006','APP-008'].includes(action.operationId))"
+        :test-writes-enabled="integrationRuntime.testWritesEnabled && integrationContract.actions.some(action => ['FAV-003','FAV-004','APP-005','APP-006','APP-008'].includes(action.operationId))"
       />
       <profile-live-sections v-if="page.id === '04'" :integration-data="integrationEnvelope.data" />
       <operational-detail-status v-if="page.id === '26'" :operation-executor="executeReadOperation" />

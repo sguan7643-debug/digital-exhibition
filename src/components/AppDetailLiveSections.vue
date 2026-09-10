@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { startFeishuLogin, startSameOriginDownload } from '../integration/secure-download.js';
+import { buildApplicationWriteInput, launchApplication, resolveDownloadFileId, resolveLiveApplicationId } from '../integration/application-actions.js';
 
 const props=defineProps({
   integrationData:{type:Object,default:null}, integrationState:{type:String,default:'mock'}, operationExecutor:{type:Function,default:null},
@@ -8,7 +9,8 @@ const props=defineProps({
 });
 const announcement=ref('');
 const testComment=ref('');
-let testWriteSequence=0;
+const favoriteRecord=ref(null);
+const appId=computed(()=>resolveLiveApplicationId(props.integrationData));
 const comments=computed(()=>props.integrationData?.['APP-007']?.items||[]);
 const materials=computed(()=>props.integrationData?.['MAT-002']?.items||[]);
 const attachments=computed(()=>props.integrationData?.['APP-003']?.attachments||[]);
@@ -19,7 +21,9 @@ async function download(material){
   if(!props.operationExecutor||props.integrationState==='mock'){announcement.value='当前素材只有展示数据，无法下载';return;}
   announcement.value=`正在准备下载 ${material.name}`;
   try{
-    const response=await props.operationExecutor('MAT-003',{materialId:material.materialId,fileId:material.materialId,purpose:'USER_DOWNLOAD',sourcePage:window.location.pathname,clientOccurredAt:props.integrationData?.['APP-003']?.updatedAt||'2026-09-03T00:00:00.000Z'});
+    const fileId=resolveDownloadFileId(material);
+    if(!fileId){announcement.value=`${material.name} 暂无可下载文件`;return;}
+    const response=await props.operationExecutor('MAT-003',{materialId:material.materialId,fileId,purpose:'USER_DOWNLOAD',sourcePage:window.location.pathname,clientOccurredAt:props.integrationData?.['APP-003']?.updatedAt||new Date().toISOString()});
     startSameOriginDownload(response.data.accessUrl,file.name);
   }catch(error){
     if(error?.status===401){startFeishuLogin();return;}
@@ -34,24 +38,35 @@ async function downloadAttachment(file){
     startSameOriginDownload(response.data.url,file.name);
   }catch(error){announcement.value=`${file.name} 下载失败，请稍后重试`;}
 }
-function nextTestKeys(label){
-  testWriteSequence+=1;
-  const suffix=`${String(testWriteSequence).padStart(3,'0')}_${window.crypto.randomUUID()}`;
-  return {businessKey:`TEST_${label}_${suffix}`,idempotencyKey:`TEST_IDEM_${label}_${suffix}`};
-}
-async function executeTestWrite(operationId,fields,label){
-  if(!props.testWritesEnabled||!props.actionExecutor){announcement.value='测试写入通道未启用';return;}
-  const keys=nextTestKeys(label);
+async function executeTestWrite(operationId,input){
+  if(!props.testWritesEnabled||!props.actionExecutor){announcement.value='测试写入通道未启用';return null;}
   announcement.value=`${operationId} 正在写入隔离测试记录`;
   try{
-    const response=await props.actionExecutor(operationId,{...keys,fields},{confirmed:true});
+    const response=await props.actionExecutor(operationId,input,{confirmed:true});
     announcement.value=`${operationId} 已写入 TEST_ 记录，版本 ${response.data.version}`;
     if(operationId==='APP-008')testComment.value='';
-  }catch(error){announcement.value=`${operationId} 联调失败：${error.message||'未知错误'}`;}
+    return response;
+  }catch(error){announcement.value=`${operationId} 联调失败：${error.message||'未知错误'}`;return null;}
 }
-const requestUse=()=>executeTestWrite('APP-005',{应用ID:'APP006',申请理由:'页面 TEST_ 联调',状态:'待处理',申请时间:'2026-09-03T00:00:00.000Z'},'APP_USE');
-const requestReuse=()=>executeTestWrite('APP-006',{应用ID:'APP006',申请类型:'复用',申请原因:'页面 TEST_ 联调',本地状态:'待处理',提交时间:'2026-09-03T00:00:00.000Z'},'APP_REUSE');
-const submitTestComment=()=>executeTestWrite('APP-008',{应用ID:'APP006',评论内容:testComment.value,评论时间:'2026-09-03T00:00:00.000Z'},'APP_COMMENT');
+const requestUse=()=>executeTestWrite('APP-005',buildApplicationWriteInput('APP-005',appId.value,{reason:'TEST_页面申请使用'}));
+const requestReuse=()=>executeTestWrite('APP-006',buildApplicationWriteInput('APP-006',appId.value,{reason:'TEST_页面申请复用'}));
+const submitTestComment=()=>executeTestWrite('APP-008',buildApplicationWriteInput('APP-008',appId.value,{comment:testComment.value}));
+async function toggleFavorite(){
+  if(!favoriteRecord.value){
+    const input=buildApplicationWriteInput('FAV-003',appId.value);
+    const response=await executeTestWrite('FAV-003',input);
+    if(response)favoriteRecord.value={businessKey:input.businessKey,version:response.data.version};
+    return;
+  }
+  const input={businessKey:favoriteRecord.value.businessKey,idempotencyKey:`TEST_IDEM_APP_UNFAVORITE_${window.crypto.randomUUID()}`,ifMatch:favoriteRecord.value.version,fields:{}};
+  const response=await executeTestWrite('FAV-004',input);
+  if(response)favoriteRecord.value=null;
+}
+async function launch(){
+  if(!appId.value){announcement.value='真实应用标识尚未载入';return;}
+  try{const result=await launchApplication(props.operationExecutor,appId.value);announcement.value=result.message;}
+  catch(error){if(error?.status===401){startFeishuLogin();return;}announcement.value=error.message||'应用启动失败';}
+}
 </script>
 
 <template>
@@ -78,7 +93,7 @@ const submitTestComment=()=>executeTestWrite('APP-008',{应用ID:'APP006',评论
       <p v-else class="empty-copy">暂无已发布评论</p>
       <form v-if="testWritesEnabled" class="test-write-form" aria-label="应用写接口联调" @submit.prevent="submitTestComment">
         <strong>TEST_ 安全联调</strong>
-        <div><button type="button" @click="requestUse">测试申请使用</button><button type="button" @click="requestReuse">测试申请复用</button></div>
+        <div><button type="button" :disabled="!appId" @click="launch">权限校验后使用</button><button type="button" :disabled="!appId" @click="requestUse">测试申请使用</button><button type="button" :disabled="!appId" @click="requestReuse">测试申请复用</button><button type="button" :disabled="!appId" :aria-pressed="Boolean(favoriteRecord)" @click="toggleFavorite">{{ favoriteRecord?'取消测试收藏':'测试收藏' }}</button></div>
         <label>测试评论<input v-model="testComment" required maxlength="200" placeholder="仅写入 TEST_ 隔离记录" /></label>
         <button type="submit" :disabled="!testComment.trim()">提交测试评论</button>
       </form>

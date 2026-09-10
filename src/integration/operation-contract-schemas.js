@@ -624,7 +624,7 @@ export function createPersonalReadOperationContracts() {
     properties: {
       items: Object.freeze({ type: 'array', maxItems: 100, items: Object.freeze({
         type: 'object', required: ['favoriteId', 'resourceType', 'resourceId', 'favoritedAt', 'lastUsedAt', 'resource'],
-        properties: { favoriteId: identifier, resourceType: Object.freeze({ enum: ['APP'] }), resourceId: identifier, favoritedAt: optionalText, lastUsedAt: nullableText, resource: appItemSchema }, additionalProperties: false
+        properties: { favoriteId: identifier, favoriteVersion: countInteger, resourceType: Object.freeze({ enum: ['APP'] }), resourceId: identifier, favoritedAt: optionalText, lastUsedAt: nullableText, resource: appItemSchema }, additionalProperties: false
       }) }), ...personalPaginationProperties, sort: Object.freeze({ enum: ['favoritedAt,desc', 'favoritedAt,asc'] }),
       filtersApplied: Object.freeze({
         type: 'object', required: ['resourceType', 'keyword', 'typeCode', 'domainId', 'tagCode', 'recentlyUsed'],

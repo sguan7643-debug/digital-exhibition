@@ -1,6 +1,6 @@
 <script setup>
 // Reference SHA-256: E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD
-import { computed, onBeforeUnmount, onMounted } from "vue";
+import { computed, onBeforeUnmount, onMounted, watch } from "vue";
 import { APP_CATEGORIES, APP_FIXTURES } from "../fixtures/mock-data.js";
 import {
   categoryIconName,
@@ -11,10 +11,23 @@ import {
 import { routeSession } from "../state/session-store.js";
 import PaginationControl from "../components/PaginationControl.vue";
 import TypeLineIcon from "../components/TypeLineIcon.vue";
+import { projectApplicationCards } from "../integration/app-read-model.js";
+import { buildApplicationWriteInput, launchApplication } from "../integration/application-actions.js";
+
+const props = defineProps({
+  integrationData: { type: Object, default: null },
+  integrationState: { type: String, default: 'mock' },
+  operationExecutor: { type: Function, default: null },
+  actionExecutor: { type: Function, default: null },
+  testWritesEnabled: { type: Boolean, default: false },
+});
 
 const controller = routeSession.controller("apps", () =>
   createAppsController(APP_FIXTURES),
 );
+watch(() => [props.integrationState, props.integrationData?.['APP-002']?.items], ([state, items]) => {
+  if (state !== 'mock' && Array.isArray(items)) controller.replaceFixtures(projectApplicationCards(items));
+}, { immediate: true });
 const queryDraft = computed({
   get: () => controller.queryDraft,
   set: (value) => {
@@ -23,6 +36,7 @@ const queryDraft = computed({
 });
 const filteredApps = computed(() => controller.results);
 const pagedApps = computed(() => controller.pagedResults);
+const remoteMode = computed(() => props.integrationState !== 'mock' && Array.isArray(props.integrationData?.['APP-002']?.items));
 const appTypeStats = computed(() =>
   APP_CATEGORIES.map((category) => ({
     category,
@@ -66,6 +80,35 @@ function toggleFavorite(route) {
 }
 function localAction(label, app) {
   controller.announcement = `${app.name}：${label}为本地演示操作`;
+}
+async function launch(app) {
+  if (!remoteMode.value) {
+    localAction('立即使用', app);
+    return;
+  }
+  try {
+    const result = await launchApplication(props.operationExecutor, app.appId || app.id, { sourcePage: '/apps' });
+    controller.announcement = `${app.name}：${result.message}`;
+  } catch (error) {
+    controller.announcement = `${app.name}：${error.message || '应用启动失败'}`;
+  }
+}
+async function requestUse(app) {
+  if (!remoteMode.value) {
+    localAction('申请使用', app);
+    return;
+  }
+  if (!props.testWritesEnabled || !props.actionExecutor) {
+    controller.announcement = `${app.name}：TEST_ 申请通道未启用`;
+    return;
+  }
+  try {
+    const input = buildApplicationWriteInput('APP-005', app.appId || app.id, { reason: 'TEST_应用中心申请使用' });
+    await props.actionExecutor('APP-005', input, { confirmed: true });
+    controller.announcement = `${app.name}：TEST_ 申请已由服务端确认`;
+  } catch (error) {
+    controller.announcement = `${app.name}：申请失败，${error.message || '请稍后重试'}`;
+  }
 }
 function receiveCategory(event) {
   setCategory(event.detail);
@@ -238,11 +281,11 @@ onBeforeUnmount(() => {
             :href="app.route"
             >查看详情</a
           ><a
-            v-if="applicationAccessMode(app.route) === 'direct'"
+            v-if="!remoteMode && applicationAccessMode(app.route) === 'direct'"
             class="access-action"
             :href="`${app.route}#usage`"
             >立即使用</a
-          ><button v-else class="access-action" type="button" disabled>
+          ><button v-else class="access-action" type="button" :disabled="remoteMode && !operationExecutor" @click="launch(app)">
             立即使用</button
           ><button
             class="favorite-action"
@@ -257,7 +300,7 @@ onBeforeUnmount(() => {
             v-if="applicationAccessMode(app.route) === 'apply'"
             class="access-action"
             type="button"
-            @click="localAction('申请使用', app)"
+            @click="requestUse(app)"
           >
             申请使用</button
           ><button v-else class="access-action" type="button" disabled>
