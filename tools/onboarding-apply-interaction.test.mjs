@@ -81,6 +81,14 @@ assert.ok(
 assert.match(applySource, /:disabled="submitting"/);
 assert.match(applySource, /href="\/apps"/);
 assert.match(applySource, /:href="statusHref"/);
+assert.match(applySource, /const feishuAuthHref = computed\(/);
+assert.match(applySource, /\/api\/v1\/auth\/feishu\/start\?returnTo=/);
+const headingActions = applySource.match(/<div class="heading-actions">([\s\S]*?)<\/div>/)?.[1] || '';
+assert.ok(
+  headingActions.indexOf('飞书授权') >= 0 &&
+    headingActions.indexOf('飞书授权') < headingActions.indexOf('返回应用中心'),
+  '飞书授权按钮必须位于返回应用中心左侧'
+);
 
 const contactSection = applySource.match(/<legend><span>5<\/span>接入人信息<\/legend>([\s\S]*?)<\/fieldset>/)?.[1] || '';
 assert.ok(contactSection.indexOf('所属部门') < contactSection.indexOf('接入人'), '所属部门必须排在接入人之前');

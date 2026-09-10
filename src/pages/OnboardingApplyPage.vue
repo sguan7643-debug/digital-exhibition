@@ -42,6 +42,10 @@ const statusHref = computed(() => {
   if (approvalResult.value.resourceId) query.set("resourceId", approvalResult.value.resourceId);
   return `/apps/onboarding/status?${query}`;
 });
+const feishuAuthHref = computed(() => {
+  const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  return `/api/v1/auth/feishu/start?returnTo=${encodeURIComponent(returnTo)}`;
+});
 
 const applicationTypes = [
   { label: "可视化", value: "T007" },
@@ -158,7 +162,10 @@ async function submitApplication() {
           <b>*</b> 的项目为必填项。提交后可在审批状态页查看进度。
         </p>
       </div>
-      <a class="back-link" href="/apps">返回应用中心</a>
+      <div class="heading-actions">
+        <a class="feishu-auth-link" :href="feishuAuthHref">飞书授权</a>
+        <a class="back-link" href="/apps">返回应用中心</a>
+      </div>
     </header>
 
     <section v-if="submitted" class="submit-success" role="status">
@@ -457,6 +464,23 @@ async function submitApplication() {
   border: 1px solid #9bb9d7;
   border-radius: 4px;
 }
+.heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.feishu-auth-link {
+  padding: 9px 14px;
+  color: #fff;
+  background: #0060a6;
+  border: 1px solid #0060a6;
+  border-radius: 4px;
+}
+.feishu-auth-link:hover,
+.feishu-auth-link:focus-visible {
+  background: #004e8a;
+  border-color: #004e8a;
+}
 .submit-success {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -704,8 +728,9 @@ async function submitApplication() {
     grid-template-columns: 1fr;
     gap: 10px;
   }
-  .back-link {
+  .heading-actions {
     justify-self: start;
+    flex-wrap: wrap;
   }
 }
 @media (max-width: 780px) {
