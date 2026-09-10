@@ -56,7 +56,9 @@ const approvalDefinitionClient = createFeishuOpenApiClient({
     if (String(url).endsWith('/auth/v3/tenant_access_token/internal')) {
       return Response.json({ code: 0, tenant_access_token: 'server-only-token', expire: 7200 });
     }
-    if (String(url).endsWith('/approval/v4/approvals')) {
+    if (new URL(url).pathname.endsWith('/approval/v4/approvals')) {
+      assert.equal(new URL(url).searchParams.get('department_id_type'), 'open_department_id');
+      assert.equal(new URL(url).searchParams.get('user_id_type'), 'user_id');
       approvalDefinitionBodies.push(JSON.parse(options.body));
       return Response.json({ code: 0, data: { approval_code: 'TEST_APPROVAL_CODE' } });
     }
@@ -69,6 +71,11 @@ await approvalDefinitionClient.createApprovalDefinition({
   approverUserId: 'u_test'
 });
 const approvalBody = approvalDefinitionBodies[0];
+assert.equal(Object.hasOwn(approvalBody, 'approval_status'), false);
+assert.deepEqual(approvalBody.settings, {});
+assert.deepEqual(approvalBody.config, {});
+assert.equal(approvalBody.icon, 0);
+assert.equal(approvalBody.i18n_resources[0].is_default, true);
 assert.equal(approvalBody.approval_name, '@i18n@approval_name');
 assert.equal(approvalBody.description, '@i18n@description');
 assert.deepEqual(approvalBody.process_manager_ids, []);

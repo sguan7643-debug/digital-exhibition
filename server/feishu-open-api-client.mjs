@@ -101,11 +101,13 @@ export function createFeishuOpenApiClient(options = {}) {
   async function createApprovalDefinition(input, options = {}) {
     const approverUserId = String(input?.approverUserId || '');
     if (!approverUserId) throw new FeishuProxyError('APPROVER_REQUIRED', '测试审批人不能为空', 400);
-    const data = await approvalRequest('/approval/v4/approvals', {
+    const data = await approvalRequest('/approval/v4/approvals?department_id_type=open_department_id&user_id_type=user_id', {
       method: 'POST', accessToken: options.accessToken,
       body: {
         approval_name: '@i18n@approval_name',
-        approval_status: 'ACTIVE',
+        settings: {},
+        config: {},
+        icon: 0,
         description: '@i18n@description',
         process_manager_ids: [],
         viewers: [{ viewer_type: 'TENANT' }],
@@ -121,6 +123,7 @@ export function createFeishuOpenApiClient(options = {}) {
         ],
         i18n_resources: [{
           locale: 'zh-CN',
+          is_default: true,
           texts: [
             { key: '@i18n@approval_name', value: input.approvalName },
             { key: '@i18n@description', value: input.description },
