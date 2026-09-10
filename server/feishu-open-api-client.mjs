@@ -59,6 +59,100 @@ export function createFeishuOpenApiClient(options = {}) {
     return cachedTenantToken;
   }
 
+  async function approvalRequest(pathname, { method = 'GET', body, accessToken } = {}) {
+    requireCredentials();
+    const token = accessToken || await getTenantToken();
+    const response = await fetchImpl(`${API_ROOT}${pathname}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+        ...(body == null ? {} : { 'Content-Type': 'application/json' })
+      },
+      body: body == null ? undefined : JSON.stringify(body)
+    });
+    const result = await safeJson(response);
+    if (!response.ok || result.code !== 0 || !result.data || typeof result.data !== 'object') {
+      const status = response.status === 401 ? 401 : response.status === 403 ? 403 : response.status === 429 ? 429 : 502;
+      throw new FeishuProxyError('FEISHU_APPROVAL_FAILED', '飞书审批服务暂不可用', status, {
+        upstreamCode: Number.isInteger(result.code) ? result.code : undefined
+      });
+    }
+    return result.data;
+  }
+
+  async function createApprovalDefinition(input, options = {}) {
+    const approverUserId = String(input?.approverUserId || '');
+    if (!approverUserId) throw new FeishuProxyError('APPROVER_REQUIRED', '测试审批人不能为空', 400);
+    const data = await approvalRequest('/approval/v4/approvals', {
+      method: 'POST', accessToken: options.accessToken,
+      body: {
+        approval_name: input.approvalName,
+        approval_status: 'ACTIVE',
+        description: input.description,
+        viewers: [{ viewer_type: 'TENANT' }],
+        form: { form_content: JSON.stringify([
+          { id: 'application_name', name: '应用名称', type: 'input', required: true },
+          { id: 'application_code', name: '应用编码', type: 'input', required: true },
+          { id: 'application_description', name: '申请说明', type: 'textarea', required: true }
+        ]) },
+        node_list: [
+          { id: 'START', name: '发起', node_type: 'START' },
+          { id: 'TEST_APPROVAL_NODE', name: '测试审批', node_type: 'APPROVAL', approver: [{ type: 'USER', user_id: approverUserId }] },
+          { id: 'END', name: '结束', node_type: 'END' }
+        ]
+      }
+    });
+    return { approvalCode: String(data.approval_code || '') };
+  }
+
+  async function createApprovalInstance(input, options = {}) {
+    const data = await approvalRequest('/approval/v4/instances', {
+      method: 'POST', accessToken: options.accessToken,
+      body: {
+        approval_code: input.approvalCode,
+        user_id: input.applicantUserId,
+        form: JSON.stringify([
+          { id: 'application_name', type: 'input', value: input.title },
+          { id: 'application_code', type: 'input', value: input.applicationCode },
+          { id: 'application_description', type: 'textarea', value: input.description }
+        ]),
+        node_approver_user_id_list: [{ key: 'TEST_APPROVAL_NODE', value: [input.approverUserId] }],
+        uuid: input.requestId
+      }
+    });
+    return { instanceCode: String(data.instance_code || ''), status: 'PENDING' };
+  }
+
+  async function getApprovalInstance(instanceCode, options = {}) {
+    const normalized = String(instanceCode || '');
+    if (!/^[A-Za-z0-9_-]{1,256}$/.test(normalized)) throw new FeishuProxyError('INVALID_APPROVAL_INSTANCE_ID', '审批实例标识非法', 400);
+    const data = await approvalRequest(`/approval/v4/instances/${encodeURIComponent(normalized)}`, { accessToken: options.accessToken });
+    return {
+      instanceCode: String(data.instance_code || normalized),
+      approvalCode: String(data.approval_code || ''),
+      status: String(data.status || ''),
+      taskList: Array.isArray(data.task_list) ? data.task_list.map(task => ({
+        id: String(task.id || task.task_id || ''), status: String(task.status || ''),
+        userId: String(task.user_id || ''), openId: String(task.open_id || '')
+      })) : []
+    };
+  }
+
+  async function approveApprovalTask(input, options = {}) {
+    await approvalRequest('/approval/v4/tasks/approve?user_id_type=user_id', {
+      method: 'POST', accessToken: options.accessToken,
+      body: {
+        approval_code: input.approvalCode,
+        instance_code: input.instanceCode,
+        user_id: input.userId,
+        task_id: input.taskId,
+        comment: input.comment || 'TEST_自动化验收审批'
+      }
+    });
+    return { ok: true };
+  }
+
   async function listRecords(tableId, query = {}) {
     requireCredentials();
     if (!/^tbl[A-Za-z0-9]+$/.test(tableId || '')) throw new FeishuProxyError('INVALID_TABLE_ID', '飞书表标识非法', 400);
@@ -172,5 +266,9 @@ export function createFeishuOpenApiClient(options = {}) {
     return { items: body.data?.items || [], hasMore: Boolean(body.data?.has_more), nextPageToken: body.data?.page_token || '' };
   };
 
-  return Object.freeze({ credentialsReady, listRecords, downloadMedia, listDepartmentChildren, listUsersByDepartment: listUsersByDepartmentWithId });
+  return Object.freeze({
+    credentialsReady, listRecords, downloadMedia, listDepartmentChildren,
+    listUsersByDepartment: listUsersByDepartmentWithId,
+    createApprovalDefinition, createApprovalInstance, getApprovalInstance, approveApprovalTask
+  });
 }

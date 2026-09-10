@@ -24,7 +24,8 @@ installLocalOnlyNetworkGuard();
 
 await window.fetch('/local-fixture.json');
 await window.fetch('http://localhost:4173/asset.png');
-await window.fetch('http://10.151.23.119:28080/api/processInstanceStart', { method: 'POST' });
+await window.fetch('/api/processInstanceStart', { method: 'POST' });
+assert.throws(() => window.fetch('http://10.151.23.119:28080/api/processInstanceStart', { method: 'POST' }), /已阻止外部网络请求/);
 assert.throws(() => window.fetch('https://outside.invalid/business'), /已阻止外部网络请求/);
 
 const xhr = new XMLHttpRequest();

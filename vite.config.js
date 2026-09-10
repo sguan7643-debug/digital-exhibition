@@ -4,6 +4,7 @@ import { feishuReadOnlyProxy } from './server/feishu-vite-plugin.mjs';
 
 export default defineConfig(({ command, mode }) => {
   const serverEnv = loadEnv(mode, process.cwd(), 'FEISHU_');
+  const approvalBackendUrl = serverEnv.FEISHU_APPROVAL_BACKEND_URL || 'http://10.151.23.119:28080';
   return ({
   plugins: [vue(), feishuReadOnlyProxy({
     appId: serverEnv.FEISHU_APP_ID,
@@ -29,6 +30,12 @@ export default defineConfig(({ command, mode }) => {
     host: '127.0.0.1',
     port: 4173,
     strictPort: true,
+    proxy: {
+      '/api/processInstanceStart': {
+        target: approvalBackendUrl,
+        changeOrigin: true
+      }
+    },
     fs: {
       deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/server/**', '**/tools/**']
     }

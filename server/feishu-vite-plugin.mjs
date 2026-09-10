@@ -11,6 +11,8 @@ import { createFeishuUserAuthService } from './feishu-user-auth-service.mjs';
 import { createFeishuAuthNodeMiddleware } from './feishu-auth-middleware.mjs';
 import { createFeishuFileAccessService, createFeishuFileNodeMiddleware } from './feishu-file-access-service.mjs';
 import { createFeishuOAuthAuthorizedHandler, createFeishuOAuthWriteAcceptance } from './feishu-oauth-write-acceptance.mjs';
+import { createFeishuApprovalService } from './feishu-approval-service.mjs';
+import { createFeishuApprovalNodeMiddleware } from './feishu-approval-middleware.mjs';
 
 export function feishuReadOnlyProxy(options = {}) {
   const contractPath = fileURLToPath(new URL('./contracts/feishu-base-identifiers.json', import.meta.url));
@@ -39,6 +41,11 @@ export function feishuReadOnlyProxy(options = {}) {
     })
   });
   const authMiddleware = createFeishuAuthNodeMiddleware({ authService });
+  const approvalService = createFeishuApprovalService({ client });
+  const approvalMiddleware = createFeishuApprovalNodeMiddleware({
+    service: approvalService,
+    resolveUserSession: request => authService.resolveSession(request.headers?.cookie || '')
+  });
   const fileMiddleware = createFeishuFileNodeMiddleware({ fileAccessService, resolveIdentity: cookie => authService.resolveIdentity(cookie) });
   const middleware = createFeishuNodeMiddleware({
     service,
@@ -57,6 +64,7 @@ export function feishuReadOnlyProxy(options = {}) {
   });
   const install = server => {
     server.middlewares.use(authMiddleware);
+    server.middlewares.use(approvalMiddleware);
     server.middlewares.use(fileMiddleware);
     server.middlewares.use(middleware);
   };

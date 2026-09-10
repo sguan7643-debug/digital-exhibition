@@ -100,6 +100,11 @@ assert.equal(tokenBody.get('redirect_uri'), 'http://127.0.0.1:4173/api/v1/auth/f
 const identity = service.resolveIdentity('exhibition_feishu_session=random-2');
 assert.deepEqual(identity, completed.identity);
 assert.equal(service.resolveIdentity('exhibition_feishu_session=unknown'), null);
+const serverSession = service.resolveSession('exhibition_feishu_session=random-2');
+assert.deepEqual(serverSession.identity, completed.identity);
+assert.equal(serverSession.accessToken, 'user-token-must-stay-server-side');
+assert.doesNotMatch(JSON.stringify(completed), /accessToken|user-token/);
+assert.equal(service.resolveSession('exhibition_feishu_session=unknown'), null);
 
 await assert.rejects(
   service.completeAuthorization({ code: 'code-valid', state: 'random-1', cookieHeader: 'exhibition_feishu_oauth_state=random-1' }),

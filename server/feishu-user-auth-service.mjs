@@ -167,7 +167,7 @@ export function createFeishuUserAuthService(options = {}) {
     const accessToken = await exchangeCode(validateCode(code));
     const identity = await fetchUserInfo(accessToken);
     const sessionId = randomId();
-    sessions.set(sessionId, { identity, expiresAt: now() + sessionTtlSeconds * 1000 });
+    sessions.set(sessionId, { identity, accessToken, expiresAt: now() + sessionTtlSeconds * 1000 });
     if (typeof onAuthorized === 'function') {
       await Promise.resolve(onAuthorized(identity)).catch(() => {});
     }
@@ -180,12 +180,16 @@ export function createFeishuUserAuthService(options = {}) {
   }
 
   function resolveIdentity(cookieHeader = '') {
-    removeExpired();
-    const sessionId = parseCookies(cookieHeader)[SESSION_COOKIE];
-    return sessionId ? sessions.get(sessionId)?.identity || null : null;
+    return resolveSession(cookieHeader)?.identity || null;
   }
 
-  return Object.freeze({ credentialsReady, beginAuthorization, completeAuthorization, resolveIdentity });
+  function resolveSession(cookieHeader = '') {
+    removeExpired();
+    const sessionId = parseCookies(cookieHeader)[SESSION_COOKIE];
+    return sessionId ? sessions.get(sessionId) || null : null;
+  }
+
+  return Object.freeze({ credentialsReady, beginAuthorization, completeAuthorization, resolveIdentity, resolveSession });
 }
 
 export const FEISHU_AUTH_PATHS = Object.freeze({

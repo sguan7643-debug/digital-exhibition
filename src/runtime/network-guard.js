@@ -1,12 +1,9 @@
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]']);
-const ALLOWED_EXTERNAL_REQUESTS = new Set([
-  'http://10.151.23.119:28080/api/processInstanceStart'
-]);
 
 function assertLocalTarget(input) {
   const raw = input instanceof Request ? input.url : String(input);
   const target = new URL(raw, window.location.href);
-  if (!LOOPBACK_HOSTS.has(target.hostname) && !ALLOWED_EXTERNAL_REQUESTS.has(target.href)) {
+  if (!LOOPBACK_HOSTS.has(target.hostname)) {
     throw new TypeError(`R3 本地样机已阻止外部网络请求：${target.origin}`);
   }
   return target;

@@ -1,28 +1,30 @@
 <script setup>
-import { reactive, ref } from "vue";
+import { computed, reactive, ref } from "vue";
+import { submitOnboarding } from "../integration/onboarding-approval.js";
 
 const form = reactive({
-  applicant: "张三丰",
+  applicant: "linmm",
   department: "物资采购中心",
-  phone: "139****5678",
-  email: "zhangsan@enterprise.local",
-  name: "",
-  type: "",
-  domain: "",
-  summary: "",
-  scenario: "",
-  collaboration: "",
-  webAddress: "",
-  mobileAddress: "",
-  contact: "",
-  contactDepartment: "",
-  contactPhone: "",
-  contactEmail: "",
-  users: "",
-  accessDepartment: "",
-  roles: "",
+  phone: "13900000000",
+  email: "linmm@example.com",
+  name: "TEST_RPA_应用上架联调",
+  applicationCode: "RPA-TEST-20260910",
+  type: "T003",
+  domain: "BD003",
+  summary: "TEST_RPA 应用上架审批联调",
+  scenario: "用于验证数智展厅 RPA 应用上架审批流程",
+  collaboration: "TEST_内部研发联调",
+  webAddress: "http://127.0.0.1:4174/rpa-test",
+  mobileAddress: "app://test-rpa",
+  contact: "linmm",
+  contactDepartment: "物资采购中心",
+  contactPhone: "13800000000",
+  contactEmail: "linmm@example.com",
+  users: "linmm",
+  accessDepartment: "物资采购中心",
+  roles: "测试用户",
   scope: "assigned",
-  remarks: "",
+  remarks: "TEST_应用上架联调记录",
 });
 const files = reactive({ icon: "", materials: "", attachment: "" });
 const selectedFiles = { icon: [], materials: [], attachment: [] };
@@ -32,6 +34,13 @@ const submitting = ref(false);
 const submitError = ref("");
 const submitMessage = ref("");
 const announcement = ref("");
+const approvalResult = ref(null);
+const statusHref = computed(() => {
+  if (!approvalResult.value) return "/apps/onboarding/status";
+  const query = new URLSearchParams({ source: approvalResult.value.kind });
+  if (approvalResult.value.instanceId) query.set("instanceId", approvalResult.value.instanceId);
+  return `/apps/onboarding/status?${query}`;
+});
 
 const applicationTypes = [
   { label: "可视化", value: "T007" },
@@ -89,7 +98,10 @@ function buildRpaApprovalRequest() {
       应用URL地址: form.webAddress,
       移动端地址: form.mobileAddress,
       申请人AD账号: form.applicant,
+      申请人联系电话: form.phone,
+      申请人联系邮箱: form.email,
       接入人AD账号: form.contact,
+      接入人所属部门ID: departmentId(form.contactDepartment),
       联系电话: form.contactPhone,
       联系邮箱: form.contactEmail,
       适用用户AD账号: form.users,
@@ -100,43 +112,25 @@ function buildRpaApprovalRequest() {
       状态: "待审批",
     },
     detailFields: {
+      应用编码: form.applicationCode,
       备注说明: form.remarks,
     },
   };
 }
 async function submitApplication() {
-  if (form.type !== "T003") {
-    submitted.value = true;
-    saved.value = false;
-    announcement.value = "应用上架申请已提交，当前进入审批中状态";
-    return;
-  }
-
   submitting.value = true;
   submitError.value = "";
   submitted.value = false;
-  announcement.value = "正在提交 RPA 应用审批";
+  announcement.value = form.type === "T005" ? "正在提交海能Work飞书审批" : "正在提交 RPA 应用审批";
   try {
-    const formData = new FormData();
-    formData.append("request", JSON.stringify(buildRpaApprovalRequest()));
-    Object.values(selectedFiles).flat().forEach((file) => {
-      formData.append("file", file, file.name);
-    });
-    const response = await fetch("http://10.151.23.119:28080/api/processInstanceStart", {
-      method: "POST",
-      body: formData,
-    });
-    if (!response.ok) {
-      throw new Error(`审批接口请求失败（${response.status}）`);
-    }
-    const result = await response.json();
-    if (result.code !== "00000") {
-      throw new Error(result.message || "提交失败");
-    }
+    approvalResult.value = await submitOnboarding(
+      { ...form, rpaRequest: buildRpaApprovalRequest() },
+      Object.values(selectedFiles).flat()
+    );
     submitted.value = true;
     saved.value = false;
-    submitMessage.value = result.message || "操作成功";
-    announcement.value = "RPA 应用上架申请已提交，当前进入审批中状态";
+    submitMessage.value = approvalResult.value.message;
+    announcement.value = `${form.type === "T005" ? "海能Work" : "RPA"} 应用上架申请已提交，当前进入审批中状态`;
   } catch (error) {
     submitError.value = error instanceof Error ? error.message : "审批接口请求失败";
     announcement.value = submitError.value;
@@ -169,7 +163,7 @@ async function submitApplication() {
         <h2>申请已提交</h2>
         <p>{{ submitMessage }}，审批进度可在状态页查看。</p>
       </div>
-      <a href="/apps/onboarding/status">查看审批状态</a>
+      <a :href="statusHref">查看审批状态</a>
     </section>
     <section v-if="submitError" class="submit-error" role="alert">
       {{ submitError }}，请检查网络后重试。
@@ -202,6 +196,13 @@ async function submitApplication() {
               maxlength="50"
               placeholder="请输入应用名称（不超过50个字）"
               required
+          /></label>
+          <label
+            >应用编码
+            <input
+              v-model="form.applicationCode"
+              maxlength="100"
+              placeholder="请输入应用编码，例如 RPA-SCM-VENDOR-001"
           /></label>
           <label
             >应用类型<b>*</b
@@ -307,9 +308,11 @@ async function submitApplication() {
           <label
             >适用部门<select v-model="form.accessDepartment">
               <option value="">请选择部门</option>
-              <option>集团公司</option>
-              <option>专业分公司</option>
-              <option>直属单位</option>
+              <option>信息化管理部</option>
+              <option>数据智能部</option>
+              <option>供应链管理部</option>
+              <option>物资采购中心</option>
+              <option>经营管理部</option>
             </select></label
           >
           <label
