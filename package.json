@@ -37,6 +37,7 @@
     "test:browser:talent-narrow": "node tools/browser-talent-narrow-layout.test.mjs",
     "feishu:oauth:preflight": "node tools/verify-feishu-oauth-preflight.mjs",
     "feishu:oauth:write-acceptance": "node --env-file=.env.local tools/verify-live-oauth-write-acceptance.mjs",
+    "feishu:approval:verify": "node --env-file=.env.local tools/verify-live-feishu-approval-flow.mjs",
     "test:browser-shell-groups": "node tools/browser-shell-groups.test.mjs",
     "preview": "node --require ./tools/vite-sandbox-shim.cjs ./node_modules/vite/bin/vite.js preview --configLoader runner --host 127.0.0.1"
   },
