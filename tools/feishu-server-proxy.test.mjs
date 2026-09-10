@@ -33,6 +33,55 @@ await assert.rejects(() => missingCredentials.listRecords('tbl-safe', { pageSize
 });
 assert.doesNotMatch(JSON.stringify(missingCredentials), /appSecret|tenant_access_token|authorization/i);
 
+const approvalFailureClient = createFeishuOpenApiClient({
+  appId: 'cli-test', appSecret: 'secret-test', baseToken: 'base-test',
+  fetchImpl: async url => String(url).endsWith('/auth/v3/tenant_access_token/internal')
+    ? Response.json({ code: 0, tenant_access_token: 'server-only-token', expire: 7200 })
+    : Response.json({ code: 99992402, msg: 'field validation failed: approval_name', data: {} }, { status: 200 })
+});
+await assert.rejects(
+  approvalFailureClient.createApprovalDefinition({ approvalName: 'TEST_审批', description: 'TEST_', approverUserId: 'u_test' }),
+  error => {
+    assert.equal(error.code, 'FEISHU_APPROVAL_FAILED');
+    assert.equal(error.upstreamCode, 99992402);
+    assert.equal(error.upstreamMessage, 'field validation failed: approval_name');
+    return true;
+  }
+);
+
+const approvalDefinitionBodies = [];
+const approvalDefinitionClient = createFeishuOpenApiClient({
+  appId: 'cli-test', appSecret: 'secret-test', baseToken: 'base-test',
+  fetchImpl: async (url, options = {}) => {
+    if (String(url).endsWith('/auth/v3/tenant_access_token/internal')) {
+      return Response.json({ code: 0, tenant_access_token: 'server-only-token', expire: 7200 });
+    }
+    if (String(url).endsWith('/approval/v4/approvals')) {
+      approvalDefinitionBodies.push(JSON.parse(options.body));
+      return Response.json({ code: 0, data: { approval_code: 'TEST_APPROVAL_CODE' } });
+    }
+    throw new Error(`unexpected approval definition request: ${url}`);
+  }
+});
+await approvalDefinitionClient.createApprovalDefinition({
+  approvalName: 'TEST_数智展厅海能Work应用上架审批',
+  description: 'TEST_仅用于数智展厅端到端验收',
+  approverUserId: 'u_test'
+});
+const approvalBody = approvalDefinitionBodies[0];
+assert.equal(approvalBody.approval_name, '@i18n@approval_name');
+assert.equal(approvalBody.description, '@i18n@description');
+assert.deepEqual(approvalBody.process_manager_ids, []);
+assert.equal(approvalBody.node_list[0].id, 'START');
+assert.equal(Object.hasOwn(approvalBody.node_list[0], 'node_type'), false);
+assert.equal(approvalBody.node_list[1].node_type, 'OR');
+assert.deepEqual(approvalBody.node_list[1].approver, [{ type: 'Free' }]);
+assert.equal(approvalBody.node_list.at(-1).id, 'END');
+assert.equal(Object.hasOwn(approvalBody.node_list.at(-1), 'node_type'), false);
+assert.match(approvalBody.form.form_content, /@i18n@application_name/);
+const i18nTextKeys = approvalBody.i18n_resources.flatMap(resource => resource.texts.map(text => text.key)).sort();
+assert.deepEqual(i18nTextKeys, ['@i18n@application_code', '@i18n@application_description', '@i18n@application_name', '@i18n@approval_name', '@i18n@approver_node', '@i18n@description'].sort());
+
 const emptyTableClient = createFeishuOpenApiClient({
   appId: 'app-test', appSecret: 'secret-test', baseToken: 'base-test',
   fetchImpl: async url => String(url).endsWith('/auth/v3/tenant_access_token/internal')

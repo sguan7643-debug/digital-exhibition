@@ -17,6 +17,20 @@ function safeJson(response) {
   });
 }
 
+function safeUpstreamDetails(value) {
+  if (!value || typeof value !== 'object') return undefined;
+  const allowed = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (!/field|error|request|log|detail|reason/i.test(key)) continue;
+    if (/token|secret|authorization|cookie|credential/i.test(key)) continue;
+    allowed[key] = typeof entry === 'object' ? JSON.parse(JSON.stringify(entry, (nestedKey, nestedValue) => {
+      if (/token|secret|authorization|cookie|credential/i.test(nestedKey)) return '[REDACTED]';
+      return typeof nestedValue === 'string' ? nestedValue.slice(0, 240) : nestedValue;
+    })) : String(entry).slice(0, 240);
+  }
+  return Object.keys(allowed).length ? allowed : undefined;
+}
+
 function normalizePageSize(value) {
   const pageSize = value == null ? 10 : Number(value);
   if (!PAGE_SIZES.has(pageSize)) throw new FeishuProxyError('INVALID_PAGE_SIZE', '页容量仅支持 10、20、50、100', 400);
@@ -75,7 +89,10 @@ export function createFeishuOpenApiClient(options = {}) {
     if (!response.ok || result.code !== 0 || !result.data || typeof result.data !== 'object') {
       const status = response.status === 401 ? 401 : response.status === 403 ? 403 : response.status === 429 ? 429 : 502;
       throw new FeishuProxyError('FEISHU_APPROVAL_FAILED', '飞书审批服务暂不可用', status, {
-        upstreamCode: Number.isInteger(result.code) ? result.code : undefined
+        upstreamCode: Number.isInteger(result.code) ? result.code : undefined,
+        upstreamMessage: String(result.msg || result.error_msg || '').slice(0, 240),
+        upstreamRequestId: String(result.request_id || result.RequestId || '').slice(0, 120),
+        upstreamDetails: safeUpstreamDetails(result.data)
       });
     }
     return result.data;
@@ -87,20 +104,32 @@ export function createFeishuOpenApiClient(options = {}) {
     const data = await approvalRequest('/approval/v4/approvals', {
       method: 'POST', accessToken: options.accessToken,
       body: {
-        approval_name: input.approvalName,
+        approval_name: '@i18n@approval_name',
         approval_status: 'ACTIVE',
-        description: input.description,
+        description: '@i18n@description',
+        process_manager_ids: [],
         viewers: [{ viewer_type: 'TENANT' }],
         form: { form_content: JSON.stringify([
-          { id: 'application_name', name: '应用名称', type: 'input', required: true },
-          { id: 'application_code', name: '应用编码', type: 'input', required: true },
-          { id: 'application_description', name: '申请说明', type: 'textarea', required: true }
+          { id: 'application_name', name: '@i18n@application_name', type: 'input', required: true },
+          { id: 'application_code', name: '@i18n@application_code', type: 'input', required: true },
+          { id: 'application_description', name: '@i18n@application_description', type: 'textarea', required: true }
         ]) },
         node_list: [
-          { id: 'START', name: '发起', node_type: 'START' },
-          { id: 'TEST_APPROVAL_NODE', name: '测试审批', node_type: 'APPROVAL', approver: [{ type: 'USER', user_id: approverUserId }] },
-          { id: 'END', name: '结束', node_type: 'END' }
-        ]
+          { id: 'START' },
+          { id: 'TEST_APPROVAL_NODE', name: '@i18n@approver_node', node_type: 'OR', approver: [{ type: 'Free' }] },
+          { id: 'END' }
+        ],
+        i18n_resources: [{
+          locale: 'zh-CN',
+          texts: [
+            { key: '@i18n@approval_name', value: input.approvalName },
+            { key: '@i18n@description', value: input.description },
+            { key: '@i18n@application_name', value: '应用名称' },
+            { key: '@i18n@application_code', value: '应用编码' },
+            { key: '@i18n@application_description', value: '申请说明' },
+            { key: '@i18n@approver_node', value: '测试审批' }
+          ]
+        }]
       }
     });
     return { approvalCode: String(data.approval_code || '') };

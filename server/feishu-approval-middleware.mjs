@@ -19,10 +19,11 @@ function sameOrigin(headers = {}) {
 function failure(error) {
   const controlled = error instanceof FeishuProxyError;
   const upstreamCode = controlled && Number.isInteger(error.upstreamCode) ? { upstreamCode: error.upstreamCode } : {};
+  const upstreamMessage = controlled && error.upstreamMessage ? { upstreamMessage: String(error.upstreamMessage).slice(0, 240) } : {};
   return {
     status: controlled ? error.status : 500,
     headers: JSON_HEADERS,
-    body: { code: controlled ? error.code : 'INTERNAL_APPROVAL_ERROR', message: controlled ? error.message : '飞书审批暂不可用', ...upstreamCode }
+    body: { code: controlled ? error.code : 'INTERNAL_APPROVAL_ERROR', message: controlled ? error.message : '飞书审批暂不可用', ...upstreamCode, ...upstreamMessage }
   };
 }
 

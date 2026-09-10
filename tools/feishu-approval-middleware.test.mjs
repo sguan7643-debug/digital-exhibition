@@ -64,7 +64,7 @@ assert.equal(wrongMethod.status, 405);
 
 const upstreamFailure = await createFeishuApprovalDispatcher({
   service: {
-    async ensureTestDefinition() { throw new FeishuProxyError('FEISHU_APPROVAL_FAILED', '飞书审批服务暂不可用', 502, { upstreamCode: 99991663 }); },
+    async ensureTestDefinition() { throw new FeishuProxyError('FEISHU_APPROVAL_FAILED', '飞书审批服务暂不可用', 502, { upstreamCode: 99991663, upstreamMessage: 'field validation failed' }); },
     async createInstance() { return {}; },
     async getInstance() { return {}; },
     async approveTestTask() { return {}; }
@@ -72,6 +72,6 @@ const upstreamFailure = await createFeishuApprovalDispatcher({
   resolveUserSession: () => session
 })({ method: 'POST', url: '/api/v1/approvals/definitions/test', headers, body: {} });
 assert.equal(upstreamFailure.status, 502);
-assert.deepEqual(upstreamFailure.body, { code: 'FEISHU_APPROVAL_FAILED', message: '飞书审批服务暂不可用', upstreamCode: 99991663 });
+assert.deepEqual(upstreamFailure.body, { code: 'FEISHU_APPROVAL_FAILED', message: '飞书审批服务暂不可用', upstreamCode: 99991663, upstreamMessage: 'field validation failed' });
 
 console.log('Feishu approval routes enforce same-origin JSON, authenticated sessions, 256 KiB bodies, methods, and exact route dispatch');
