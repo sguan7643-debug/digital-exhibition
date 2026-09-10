@@ -98,6 +98,7 @@ try {
   await page.waitForURL('**/apps/onboarding/status*');
   await page.getByRole('heading', { name: '审批状态' }).waitFor();
   assert.equal(await page.getByRole('heading', { name: '审批状态' }).count(), 1);
+  assert.equal(await page.getByText('已受理但暂无可查询编号', { exact: false }).count(), 1);
 
   await page.goto(`${origin}/apps/onboarding/apply`, { waitUntil: 'domcontentloaded' });
   await page.locator('form.apply-form').waitFor();
@@ -108,7 +109,8 @@ try {
   await page.getByRole('button', { name: '提交审核' }).click();
   await page.getByRole('heading', { name: '申请已提交' }).waitFor();
   assert.deepEqual(feishuApprovalRequest, {
-    applicationType: 'T005', title: 'TEST_海能Work应用上架', applicationCode: 'TEST_HW_001', description: 'TEST_RPA 应用上架审批联调'
+    applicationType: 'T005', title: 'TEST_海能Work应用上架', applicationCode: 'TEST_HW_001',
+    businessKey: 'TEST_T005_TEST_HW_001', idempotencyKey: 'TEST_IDEM_T005_TEST_HW_001', description: 'TEST_RPA 应用上架审批联调'
   });
   await page.getByRole('link', { name: '查看审批状态' }).click();
   await page.waitForURL('**/apps/onboarding/status?source=feishu&instanceId=TEST_INSTANCE');

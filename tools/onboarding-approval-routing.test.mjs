@@ -17,7 +17,12 @@ assert.deepEqual(submitted, { kind: 'feishu', instanceId: 'TEST_INSTANCE', statu
 assert.equal(calls[0].url, '/api/v1/approvals/instances');
 assert.equal(calls[0].options.credentials, 'same-origin');
 assert.equal(calls[0].options.headers['Content-Type'], 'application/json');
-assert.deepEqual(JSON.parse(calls[0].options.body), { applicationType: 'T005', title: 'TEST_海能Work', applicationCode: 'TEST_HW_001', description: 'TEST_申请' });
+const requestBody = JSON.parse(calls[0].options.body);
+assert.equal(requestBody.applicationType, 'T005');
+assert.equal(requestBody.title, 'TEST_海能Work');
+assert.equal(requestBody.businessKey, 'TEST_T005_TEST_HW_001');
+assert.equal(requestBody.idempotencyKey, 'TEST_IDEM_T005_TEST_HW_001');
+assert.equal(requestBody.description, 'TEST_申请');
 assert.doesNotMatch(calls[0].options.body, /token|secret/i);
 
 const status = await getOnboardingStatus('TEST_INSTANCE', fetchImpl);
@@ -25,5 +30,8 @@ assert.deepEqual(status, { instanceId: 'TEST_INSTANCE', status: 'APPROVED' });
 assert.equal(calls[1].url, '/api/v1/approvals/instances/TEST_INSTANCE');
 assert.equal(calls[1].options.credentials, 'same-origin');
 await assert.rejects(() => getOnboardingStatus('../bad', fetchImpl), /审批实例标识非法/);
+
+const rpaNoInstance = await submitOnboarding({ type: 'T003', rpaRequest: {} }, [], async () => new Response(JSON.stringify({ code: '00000', message: '操作成功' }), { status: 200 }));
+assert.deepEqual(rpaNoInstance, { kind: 'rpa', instanceId: '', status: 'ACCEPTED_UNTRACKED', message: '已受理但暂无可查询编号，请稍后重试' });
 
 console.log('onboarding type routing uses existing RPA backend, server-side Feishu approval, and real status queries');

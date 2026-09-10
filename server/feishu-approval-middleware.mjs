@@ -30,7 +30,7 @@ function methodError() {
 }
 
 export function createFeishuApprovalDispatcher({ service, resolveUserSession } = {}) {
-  if (!service?.createInstance || !service?.getInstance || !service?.approveTestTask || !service?.ensureTestDefinition || !service?.handleEvent) {
+  if (!service?.createInstance || !service?.getInstance || !service?.approveTestTask || !service?.ensureTestDefinition) {
     throw new Error('飞书审批分发器缺少服务');
   }
   if (typeof resolveUserSession !== 'function') throw new Error('飞书审批分发器缺少会话解析器');
@@ -53,10 +53,6 @@ export function createFeishuApprovalDispatcher({ service, resolveUserSession } =
       if (pathname === `${ROOT}instances`) {
         if (request.method !== 'POST') return methodError();
         return { status: 201, headers: JSON_HEADERS, body: await service.createInstance(request.body || {}, session) };
-      }
-      if (pathname === `${ROOT}events`) {
-        if (request.method !== 'POST') return methodError();
-        return { status: 200, headers: JSON_HEADERS, body: await service.handleEvent(request.body || {}) };
       }
       const match = INSTANCE_ROUTE.exec(pathname);
       if (!match) return { status: 404, headers: JSON_HEADERS, body: { code: 'APPROVAL_ROUTE_NOT_FOUND', message: '审批接口不存在' } };

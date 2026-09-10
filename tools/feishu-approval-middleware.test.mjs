@@ -8,7 +8,6 @@ const service = {
   async createInstance(body, value) { calls.push(['create', body, value]); return { instanceId: 'TEST_INSTANCE', status: 'PENDING' }; },
   async getInstance(id, value) { calls.push(['get', id, value]); return { instanceId: id, status: 'APPROVED' }; },
   async approveTestTask(id, value) { calls.push(['approve', id, value]); return { instanceId: id, status: 'APPROVED' }; },
-  async handleEvent(body) { calls.push(['event', body]); return { accepted: true, duplicate: false }; }
 };
 const dispatch = createFeishuApprovalDispatcher({
   service,
@@ -28,11 +27,11 @@ assert.equal(crossOrigin.body.code, 'CROSS_ORIGIN_REQUEST_BLOCKED');
 
 const created = await dispatch({
   method: 'POST', url: '/api/v1/approvals/instances', headers,
-  body: { applicationType: 'T005', title: 'TEST_海能Work' }, bodyBytes: 72
+  body: { applicationType: 'T005', title: 'TEST_海能Work', businessKey: 'TEST_BUSINESS_001', idempotencyKey: 'TEST_IDEM_001' }, bodyBytes: 72
 });
 assert.equal(created.status, 201);
 assert.deepEqual(created.body, { instanceId: 'TEST_INSTANCE', status: 'PENDING' });
-assert.deepEqual(calls[0], ['create', { applicationType: 'T005', title: 'TEST_海能Work' }, session]);
+assert.deepEqual(calls[0], ['create', { applicationType: 'T005', title: 'TEST_海能Work', businessKey: 'TEST_BUSINESS_001', idempotencyKey: 'TEST_IDEM_001' }, session]);
 
 const status = await dispatch({ method: 'GET', url: '/api/v1/approvals/instances/TEST_INSTANCE', headers });
 assert.equal(status.status, 200);
@@ -47,7 +46,8 @@ assert.equal(definition.status, 200);
 assert.equal(definition.body.approvalCode, 'TEST_CODE');
 
 const event = await dispatch({ method: 'POST', url: '/api/v1/approvals/events', headers, body: { eventId: 'evt-1', instanceId: 'TEST_INSTANCE', status: 'APPROVED' } });
-assert.equal(event.status, 200);
+assert.equal(event.status, 404);
+assert.equal(event.body.code, 'APPROVAL_ROUTE_NOT_FOUND');
 
 const oversized = await dispatch({ method: 'POST', url: '/api/v1/approvals/instances', headers, body: {}, bodyBytes: 256 * 1024 + 1 });
 assert.equal(oversized.status, 413);

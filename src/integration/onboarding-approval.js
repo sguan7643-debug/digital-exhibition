@@ -20,17 +20,22 @@ export async function submitOnboarding(form, files = [], fetchImpl = globalThis.
     files.forEach(file => body.append('file', file, file.name));
     const result = await readResult(await fetchImpl(transport.path, { method: 'POST', body, credentials: 'same-origin' }));
     if (result.code !== '00000') throw new Error(result.message || '提交失败');
+    const instanceId = String(result.instanceId || result.data?.instanceId || '');
     return Object.freeze({
-      kind: 'rpa', instanceId: String(result.instanceId || result.data?.instanceId || ''),
-      status: 'PENDING', message: result.message || '操作成功'
+      kind: 'rpa', instanceId,
+      status: instanceId ? 'PENDING' : 'ACCEPTED_UNTRACKED',
+      message: instanceId ? (result.message || '操作成功') : '已受理但暂无可查询编号，请稍后重试'
     });
   }
+  const applicationCode = String(form.applicationCode || 'TEST_UNSPECIFIED').replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 128);
   const result = await readResult(await fetchImpl(transport.path, {
     method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       applicationType: 'T005', title: form.name,
       applicationCode: form.applicationCode,
+      businessKey: `TEST_T005_${applicationCode}`,
+      idempotencyKey: `TEST_IDEM_T005_${applicationCode}`,
       description: form.summary
     })
   }));

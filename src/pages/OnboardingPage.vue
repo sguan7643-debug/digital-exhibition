@@ -6,15 +6,16 @@ import { getOnboardingStatus } from '../integration/onboarding-approval.js';
 const query = new URLSearchParams(window.location.search);
 const instanceId = query.get('instanceId') || '';
 const source = query.get('source') || '';
-const status = ref(instanceId ? 'LOADING' : source ? 'PENDING' : 'NOT_STARTED');
+const status = ref(instanceId ? 'LOADING' : source === 'rpa' ? 'ACCEPTED_UNTRACKED' : source ? 'ERROR' : 'NOT_STARTED');
 const error = ref('');
 const labels = Object.freeze({
   NOT_STARTED: ['待申请', '尚未发起申请'], LOADING: ['查询中', '正在读取真实审批状态'],
   PENDING: ['审批中', '审批流程进行中'], APPROVED: ['审批完成', '审批已通过'],
   REJECTED: ['审批退回', '审批未通过，已退回'], CANCELLED: ['审批取消', '审批申请已取消'],
-  ERROR: ['查询失败', '暂时无法读取审批状态']
+  ERROR: ['查询失败', '暂时无法读取审批状态'],
+  ACCEPTED_UNTRACKED: ['已受理', '已受理但暂无可查询编号，请稍后重试']
 });
-const current = computed(() => labels[status.value] || labels.PENDING);
+const current = computed(() => labels[status.value] || labels.ERROR);
 
 async function loadStatus() {
   if (!instanceId) return;
