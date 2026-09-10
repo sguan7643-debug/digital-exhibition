@@ -135,8 +135,8 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
     const title = String(input.title || '');
     if (!title.startsWith('TEST_')) throw new FeishuProxyError('TEST_PREFIX_REQUIRED', '审批测试数据必须使用 TEST_ 前缀', 400);
     const applicationCode = String(input.applicationCode || '');
-    const resourceId = String(input.resourceId || applicationCode);
-    if (!TEST_KEY_PATTERN.test(applicationCode) || !resourceId || resourceId !== applicationCode) throw new FeishuProxyError('TEST_RESOURCE_REQUIRED', '测试审批必须绑定 TEST_ 应用资源', 400);
+    const resourceId = String(input.resourceId || '');
+    if (!applicationCode || applicationCode.length > 128 || !TEST_KEY_PATTERN.test(resourceId)) throw new FeishuProxyError('TEST_RESOURCE_REQUIRED', '测试审批必须绑定 TEST_ 应用资源', 400);
     const businessKey = assertTestKey(input.businessKey);
     const idempotencyKey = assertTestKey(input.idempotencyKey);
     const key = registryKey(context, businessKey, idempotencyKey);

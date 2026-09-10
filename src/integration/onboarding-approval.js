@@ -28,25 +28,26 @@ export async function submitOnboarding(form, files = [], fetchImpl = globalThis.
       message: instanceId ? (result.message || '操作成功') : '已受理但暂无可查询编号，请稍后重试'
     });
   }
-  const normalizedCode = String(form.applicationCode || 'UNSPECIFIED').replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 123);
-  const applicationCode = normalizedCode.startsWith('TEST_') ? normalizedCode : `TEST_${normalizedCode}`;
+  const applicationCode = String(form.applicationCode || 'UNSPECIFIED').trim().slice(0, 128);
+  const normalizedCode = applicationCode.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 123);
+  const resourceId = normalizedCode.startsWith('TEST_') ? normalizedCode : `TEST_${normalizedCode}`;
   const result = await readResult(await fetchImpl(transport.path, {
     method: 'POST', credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       applicationType: 'T005', title: form.name,
       applicationCode,
-      resourceId: applicationCode,
-      businessKey: `TEST_T005_${applicationCode}`,
-      idempotencyKey: `TEST_IDEM_T005_${applicationCode}`,
+      resourceId,
+      businessKey: `TEST_T005_${resourceId}`,
+      idempotencyKey: `TEST_IDEM_T005_${resourceId}`,
       description: form.summary
     })
   }));
   const instanceId = String(result.instanceId || '');
   const status = String(result.status || '').toUpperCase();
-  if (!instanceId) return Object.freeze({ kind: 'feishu', instanceId: '', resourceId: applicationCode, status: 'SUBMITTED_UNTRACKED', message: '已受理但暂无可查询编号，请稍后重试' });
-  if (!APPROVAL_STATUSES.has(status)) return Object.freeze({ kind: 'feishu', instanceId, resourceId: applicationCode, status: 'ERROR', message: '审批状态返回异常，请稍后重试' });
-  return Object.freeze({ kind: 'feishu', instanceId, resourceId: applicationCode, status, message: '飞书审批已提交' });
+  if (!instanceId) return Object.freeze({ kind: 'feishu', instanceId: '', resourceId, status: 'SUBMITTED_UNTRACKED', message: '已受理但暂无可查询编号，请稍后重试' });
+  if (!APPROVAL_STATUSES.has(status)) return Object.freeze({ kind: 'feishu', instanceId, resourceId, status: 'ERROR', message: '审批状态返回异常，请稍后重试' });
+  return Object.freeze({ kind: 'feishu', instanceId, resourceId, status, message: '飞书审批已提交' });
 }
 
 export async function getOnboardingStatus(instanceId, fetchImpl = globalThis.fetch, resourceId = '') {

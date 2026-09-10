@@ -51,7 +51,7 @@ const normalizedSubmission = await submitOnboarding(
     return new Response(JSON.stringify({ instanceId: 'TEST_NORMALIZED_INSTANCE', status: 'PENDING' }), { status: 201 });
   }
 );
-assert.equal(normalizedRequest.applicationCode, 'TEST_RPA-TEST-20260910');
+assert.equal(normalizedRequest.applicationCode, 'RPA-TEST-20260910');
 assert.equal(normalizedRequest.resourceId, 'TEST_RPA-TEST-20260910');
 assert.equal(normalizedSubmission.resourceId, 'TEST_RPA-TEST-20260910');
 

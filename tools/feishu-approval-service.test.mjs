@@ -43,19 +43,20 @@ assert.equal(calls[0][2]?.accessToken, undefined, 'Approval v4 定义创建必�
 const created = await service.createInstance({
   applicationType: 'T005',
   title: 'TEST_海能Work应用上架',
-  applicationCode: 'TEST_HW_001',
+  applicationCode: 'HW-001',
   description: 'TEST_端到端审批实例',
   businessKey: 'TEST_BUSINESS_001', resourceId: 'TEST_HW_001',
   idempotencyKey: 'TEST_IDEM_001'
 }, session);
 assert.deepEqual(created, { instanceId: 'TEST_INSTANCE', status: 'PENDING' });
 assert.equal(calls[1][1].applicantUserId, 'u_test');
+assert.equal(calls[1][1].applicationCode, 'HW-001');
 assert.equal(calls[1][1].approverUserId, 'u_test');
 assert.equal(calls[1][2]?.accessToken, undefined, 'Approval v4 实例创建必须使用服务端 tenant token，不得使用用户 OAuth token');
 assert.doesNotMatch(JSON.stringify(created), /user-token/);
 
 const repeated = await service.createInstance({
-  applicationType: 'T005', title: 'TEST_海能Work应用上架', applicationCode: 'TEST_HW_001',
+  applicationType: 'T005', title: 'TEST_海能Work应用上架', applicationCode: 'HW-001',
   description: 'TEST_端到端审批实例', businessKey: 'TEST_BUSINESS_001', resourceId: 'TEST_HW_001', idempotencyKey: 'TEST_IDEM_001'
 }, session);
 assert.deepEqual(repeated, created, 'same TEST_ business/idempotency must replay one instance');
