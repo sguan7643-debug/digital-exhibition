@@ -72,18 +72,31 @@ await approvalDefinitionClient.createApprovalDefinition({
 });
 const approvalBody = approvalDefinitionBodies[0];
 assert.equal(Object.hasOwn(approvalBody, 'approval_status'), false);
-assert.deepEqual(approvalBody.settings, {});
-assert.deepEqual(approvalBody.config, {});
+assert.deepEqual(approvalBody.settings, { revert_interval: 0 });
+assert.deepEqual(approvalBody.config, {
+  can_update_viewer: false,
+  can_update_form: false,
+  can_update_process: false,
+  can_update_revert: false
+});
 assert.equal(approvalBody.icon, 0);
 assert.equal(approvalBody.i18n_resources[0].is_default, true);
 assert.equal(approvalBody.approval_name, '@i18n@approval_name');
 assert.equal(approvalBody.description, '@i18n@description');
 assert.deepEqual(approvalBody.process_manager_ids, []);
 assert.equal(approvalBody.node_list[0].id, 'START');
+assert.deepEqual(approvalBody.node_list[0].privilege_field, {
+  writable: ['application_name', 'application_code', 'application_description'],
+  readable: ['application_name', 'application_code', 'application_description']
+});
 assert.equal(Object.hasOwn(approvalBody.node_list[0], 'node_type'), false);
 assert.equal(approvalBody.node_list[1].node_type, 'OR');
 assert.deepEqual(approvalBody.node_list[1].approver, [{ type: 'Free' }]);
 assert.equal(approvalBody.node_list.at(-1).id, 'END');
+assert.deepEqual(approvalBody.node_list.at(-1).privilege_field, {
+  writable: [],
+  readable: ['application_name', 'application_code', 'application_description']
+});
 assert.equal(Object.hasOwn(approvalBody.node_list.at(-1), 'node_type'), false);
 assert.match(approvalBody.form.form_content, /@i18n@application_name/);
 const i18nTextKeys = approvalBody.i18n_resources.flatMap(resource => resource.texts.map(text => text.key)).sort();

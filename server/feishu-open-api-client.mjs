@@ -105,8 +105,13 @@ export function createFeishuOpenApiClient(options = {}) {
       method: 'POST', accessToken: options.accessToken,
       body: {
         approval_name: '@i18n@approval_name',
-        settings: {},
-        config: {},
+        settings: { revert_interval: 0 },
+        config: {
+          can_update_viewer: false,
+          can_update_form: false,
+          can_update_process: false,
+          can_update_revert: false
+        },
         icon: 0,
         description: '@i18n@description',
         process_manager_ids: [],
@@ -117,9 +122,15 @@ export function createFeishuOpenApiClient(options = {}) {
           { id: 'application_description', name: '@i18n@application_description', type: 'textarea', required: true }
         ]) },
         node_list: [
-          { id: 'START' },
+          { id: 'START', privilege_field: {
+            writable: ['application_name', 'application_code', 'application_description'],
+            readable: ['application_name', 'application_code', 'application_description']
+          } },
           { id: 'TEST_APPROVAL_NODE', name: '@i18n@approver_node', node_type: 'OR', approver: [{ type: 'Free' }] },
-          { id: 'END' }
+          { id: 'END', privilege_field: {
+            writable: [],
+            readable: ['application_name', 'application_code', 'application_description']
+          } }
         ],
         i18n_resources: [{
           locale: 'zh-CN',
