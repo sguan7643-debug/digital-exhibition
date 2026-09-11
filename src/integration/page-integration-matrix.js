@@ -5,7 +5,7 @@ const collectionOperationIds = new Set([
   'TRN-002','CER-002','OAN-002','OAP-002','ADM-003','ADM-004','ADM-005','TAL-001','TAL-002',
   'TAL-003','MAT-002','INT-004','INT-005'
 ]);
-const interactionReadOperationIds = new Set(['OAN-008', 'APP-004', 'MAT-003', 'COM-008', 'COM-010', 'ARC-002']);
+const interactionReadOperationIds = new Set(['OAN-008', 'APP-004', 'MAT-003', 'COM-008', 'COM-010']);
 const versionRequiredOperationIds = new Set([
   'COM-007','MSG-003','MSG-004','MSG-005','FAV-004','TRN-005','ADM-005',
   'OAN-005','OAN-006','OAN-007','OAP-005','OAP-009','ARC-003'

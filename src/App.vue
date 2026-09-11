@@ -242,10 +242,17 @@ async function syncIntegrationEnvelope() {
     client: integrationClient,
     operationResolver: resolveRemoteOperation
   });
-  const loadOptions = buildPageReadRequestPlan({
+  let loadOptions = buildPageReadRequestPlan({
     route, readOperationIds: integrationContract.value.readOperationIds,
     operationContracts: verifiedReadContracts, search: window.location.search
   });
+  if (route === '/admin' && isRemoteRuntime(integrationRuntime)) {
+    const allowedAdminReads = new Set(['ADM-003', 'ADM-004', 'INT-001', 'INT-004', 'ARC-002']);
+    loadOptions = {
+      ...loadOptions,
+      operationIds: loadOptions.operationIds.filter((operationId) => allowedAdminReads.has(operationId))
+    };
+  }
   if (route === '/apps' && isRemoteRuntime(integrationRuntime)) {
     await fetch('/api/v1/approvals/reconcile', {
       method: 'POST',
@@ -316,7 +323,11 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
       <announcement-editor-page v-else-if="page.id === '23'" :operation-executor="executeReadOperation" />
       <app-admin-page v-else-if="page.id === '24'" />
       <app-editor-page v-else-if="page.id === '25'" />
-      <admin-page v-else-if="page.id === '26'" />
+      <admin-page
+        v-else-if="page.id === '26'"
+        :integration-data="integrationEnvelope.data"
+        :integration-state="integrationEnvelope.state"
+      />
       <certification-page v-else-if="page.id === '27'"
         :integration-data="integrationEnvelope.data"
         :integration-state="integrationEnvelope.state"
