@@ -92,6 +92,7 @@ export function createFeishuOpenApiClient(options = {}) {
         upstreamCode: Number.isInteger(result.code) ? result.code : undefined,
         upstreamMessage: String(result.msg || result.error_msg || '').slice(0, 240),
         upstreamRequestId: String(result.request_id || result.RequestId || '').slice(0, 120),
+        upstreamPath: pathname,
         upstreamDetails: safeUpstreamDetails(result.data)
       });
     }

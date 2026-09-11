@@ -37,7 +37,7 @@ const approvalFailureClient = createFeishuOpenApiClient({
   appId: 'cli-test', appSecret: 'secret-test', baseToken: 'base-test',
   fetchImpl: async url => String(url).endsWith('/auth/v3/tenant_access_token/internal')
     ? Response.json({ code: 0, tenant_access_token: 'server-only-token', expire: 7200 })
-    : Response.json({ code: 99992402, msg: 'field validation failed: approval_name', data: {} }, { status: 200 })
+    : Response.json({ code: 99992402, msg: 'field validation failed: approval_name', request_id: 'req-approval-001', data: {} }, { status: 200 })
 });
 await assert.rejects(
   approvalFailureClient.createApprovalDefinition({ approvalName: 'TEST_审批', description: 'TEST_', approverUserId: 'u_test' }),
@@ -45,6 +45,8 @@ await assert.rejects(
     assert.equal(error.code, 'FEISHU_APPROVAL_FAILED');
     assert.equal(error.upstreamCode, 99992402);
     assert.equal(error.upstreamMessage, 'field validation failed: approval_name');
+    assert.equal(error.upstreamPath, '/approval/v4/approvals?department_id_type=open_department_id&user_id_type=user_id');
+    assert.equal(error.upstreamRequestId, 'req-approval-001');
     return true;
   }
 );
