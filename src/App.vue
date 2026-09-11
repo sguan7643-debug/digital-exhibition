@@ -320,7 +320,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
       <training-page v-else-if="page.id === '20'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :test-writes-enabled="integrationRuntime.testWritesEnabled" />
       <operations-page v-else-if="page.id === '21'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <announcement-admin-page v-else-if="page.id === '22'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
-      <announcement-editor-page v-else-if="page.id === '23'" :operation-executor="executeReadOperation" />
+      <announcement-editor-page v-else-if="page.id === '23'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <app-admin-page v-else-if="page.id === '24'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <app-editor-page v-else-if="page.id === '25'" />
       <admin-page

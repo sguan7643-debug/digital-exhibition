@@ -31,6 +31,7 @@ const remoteState = computed(() => props.integrationState);
 const remoteFailed = computed(() => remoteState.value === "error" || remoteState.value === "authentication-required");
 const remoteFacets = computed(() => props.integrationData?.['ANN-001'] || {});
 const remoteList = computed(() => props.integrationData?.['ANN-002'] || {});
+const publishConfigured = computed(() => !remoteMode.value || props.integrationData?.['ANN-004']?.configured === true);
 const remoteStats = computed(() => ({
   unread: remoteFacets.value.readStateAvailable
     ? Number(remoteFacets.value.unread ?? remoteFacets.value.unreadCount ?? 0)
@@ -114,6 +115,12 @@ function markAllRead() {
   }
   controller.markAllRead();
 }
+function explainPublishBlocked(event) {
+  if (!publishConfigured.value) {
+    event?.preventDefault?.();
+    controller.announcement = "正式公告发布合同尚未配置，当前不可发布";
+  }
+}
 function rememberDetail(item, event) {
   if (controlsDisabled.value) {
     event.preventDefault();
@@ -168,10 +175,12 @@ onBeforeUnmount(() => window.clearTimeout(loadingTimer));
           <p>统一查看平台公告、应用上线通知与活动通知，及时获取公共信息</p>
         </div>
         <a
+          v-if="publishConfigured"
           class="publish-notice"
           href="/operations/announcements/notice-001/edit"
           >发布公告</a
         >
+        <button v-else type="button" class="publish-notice" disabled aria-disabled="true" @click="explainPublishBlocked">发布公告（未配置）</button>
       </header>
       <section class="notice-stats" aria-label="公告数据概览">
         <article>

@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const certification=readFileSync(new URL('../src/pages/CertificationPage.vue',import.meta.url),'utf8');
+const announcements=readFileSync(new URL('../src/pages/AnnouncementsPage.vue',import.meta.url),'utf8');
+const editor=readFileSync(new URL('../src/pages/AnnouncementEditorPage.vue',import.meta.url),'utf8');
+assert.match(certification,/remoteBookingBlocked/,'认证远程预约必须有独立阻断状态');
+assert.match(certification,/预约服务尚未配置|正式预约写入合同尚未提供/,'认证阻断需给出明确文案');
+assert.match(certification,/bookingDialog.*disabled|:disabled="remoteBookingBlocked"/s,'远程预约入口必须禁用');
+assert.match(announcements,/publishConfigured|公告发布合同尚未配置/,'公告发布入口必须有配置门禁');
+assert.match(editor,/remoteMode|publishConfigured/,'公告编辑页必须感知远程运行模式');
+assert.match(editor,/保存草稿|预览|发布/,'公告编辑动作必须保留语义入口');
+console.log('remote certification and announcement write blocking contract passed');

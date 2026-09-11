@@ -55,6 +55,8 @@ const remoteBlocked = computed(
 const remoteOverview = computed(() => props.integrationData?.['CER-001'] || {});
 const remoteList = computed(() => props.integrationData?.['CER-002'] || {});
 const remoteDetail = computed(() => props.integrationData?.['CER-003'] || null);
+const remoteBookingConfigured = computed(() => props.integrationData?.['CER-004']?.configured === true);
+const remoteBookingBlocked = computed(() => remoteMode.value && !remoteBookingConfigured.value);
 
 function valueText(value, fallback = "") {
   return String(value ?? fallback).trim();
@@ -189,10 +191,18 @@ function chooseScene(item) {
   announcement.value = `已选择场景域：${item}`;
 }
 function openBooking(item = "报表") {
+  if (remoteBookingBlocked.value) {
+    announcement.value = "正式预约写入合同尚未提供，当前仅可查看认证信息";
+    return;
+  }
   bookingType.value = item;
   bookingDialog.value?.showModal();
 }
 function confirmBooking() {
+  if (remoteBookingBlocked.value) {
+    announcement.value = "正式预约写入合同尚未提供，未提交预约";
+    return;
+  }
   announcement.value = `已完成 ${bookingType.value} 认证考试的本地预约演示`;
   bookingDialog.value?.close();
 }
@@ -209,7 +219,7 @@ function confirmBooking() {
         <p>从学习到考试一站式完成，让认证成为你数智化能力的硬核证明。</p>
         <div>
           <a class="hero-primary" href="#study">工具学习</a
-          ><button type="button" @click="openBooking()">考试预约</button>
+          ><button type="button" :disabled="remoteBookingBlocked" :aria-disabled="remoteBookingBlocked" @click="openBooking()">考试预约</button>
         </div>
       </div>
       <div class="hero-visual">
@@ -359,11 +369,13 @@ function confirmBooking() {
             <small>线上预约服务</small>
             <h2>考试预约</h2>
             <p>选择认证类别并预约考试场次。</p>
-            <div class="booking-tags">
+            <p v-if="remoteBookingBlocked" class="booking-blocked" role="status">正式预约写入合同尚未提供，预约入口已禁用。</p><div class="booking-tags">
               <button
                 v-for="item in bookingTypes"
                 :key="item"
                 type="button"
+                :disabled="remoteBookingBlocked"
+                :aria-disabled="remoteBookingBlocked"
                 @click="openBooking(item)"
               >
                 {{ item }}
@@ -407,7 +419,7 @@ function confirmBooking() {
         <label>联系电话<input value="139****5678" required /></label>
         <footer>
           <button type="button" @click="bookingDialog.close()">取消</button
-          ><button type="submit">确认预约</button>
+          ><button type="submit" :disabled="remoteBookingBlocked">确认预约</button>
         </footer>
       </form>
     </dialog>
