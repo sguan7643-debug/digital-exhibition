@@ -317,7 +317,10 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
       <app-admin-page v-else-if="page.id === '24'" />
       <app-editor-page v-else-if="page.id === '25'" />
       <admin-page v-else-if="page.id === '26'" />
-      <certification-page v-else-if="page.id === '27'" />
+      <certification-page v-else-if="page.id === '27'"
+        :integration-data="integrationEnvelope.data"
+        :integration-state="integrationEnvelope.state"
+      />
       <talent-people-page v-else-if="page.id === '28'"
         :integration-data="integrationEnvelope.data"
         :integration-state="integrationEnvelope.state"

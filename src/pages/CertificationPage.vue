@@ -3,6 +3,11 @@
 import { computed, ref } from "vue";
 import TypeLineIcon from "../components/TypeLineIcon.vue";
 
+const props = defineProps({
+  integrationData: { type: Object, default: null },
+  integrationState: { type: String, default: "mock" },
+});
+
 const directions = [
   ["全部", "apps"],
   ["可视化", "visual"],
@@ -38,8 +43,139 @@ const sceneQuery = ref("");
 const announcement = ref("");
 const bookingDialog = ref(null);
 const bookingType = ref("报表");
+
+const remoteMode = computed(() => props.integrationState !== "mock");
+const remoteState = computed(() => props.integrationState);
+const remoteBlocked = computed(
+  () =>
+    remoteState.value === "error" ||
+    remoteState.value === "authentication-required" ||
+    remoteState.value === "empty",
+);
+const remoteOverview = computed(() => props.integrationData?.['CER-001'] || {});
+const remoteList = computed(() => props.integrationData?.['CER-002'] || {});
+const remoteDetail = computed(() => props.integrationData?.['CER-003'] || null);
+
+function valueText(value, fallback = "") {
+  return String(value ?? fallback).trim();
+}
+
+function itemName(item, fallback = "") {
+  if (typeof item === "string") return item;
+  return valueText(
+    item?.name ??
+      item?.label ??
+      item?.title ??
+      item?.directionName ??
+      item?.sceneName ??
+      item?.categoryName ??
+      item?.code ??
+      item?.id,
+    fallback,
+  );
+}
+
+function iconFor(name) {
+  const text = String(name).toLowerCase();
+  if (text.includes("rpa")) return "rpa";
+  if (text.includes("ai")) return "ai";
+  if (text.includes("数据")) return "dataset";
+  if (text.includes("指标")) return "metric";
+  if (text.includes("驾驶")) return "dashboard";
+  if (text.includes("报表")) return "report";
+  if (text.includes("可视")) return "visual";
+  if (text.includes("work")) return "work";
+  if (text.includes("ead")) return "ead";
+  return "apps";
+}
+
+function unique(values) {
+  return [...new Set(values.map((item) => item.trim()).filter(Boolean))];
+}
+
+const remoteDirections = computed(() => {
+  if (remoteBlocked.value) return [];
+  const rows = Array.isArray(remoteOverview.value.directions)
+    ? remoteOverview.value.directions
+    : [];
+  const mapped = unique(rows.map((item) => itemName(item))).map((name) => [
+    name,
+    iconFor(name),
+  ]);
+  return mapped.length ? [["全部", "apps"], ...mapped] : [];
+});
+
+const remoteScenes = computed(() => {
+  if (remoteBlocked.value) return [];
+  const rows = Array.isArray(remoteOverview.value.sceneTags)
+    ? remoteOverview.value.sceneTags
+    : [];
+  const mapped = unique(rows.map((item) => itemName(item)));
+  return mapped.length ? ["全部场景域", ...mapped] : [];
+});
+
+const remoteNews = computed(() => {
+  if (remoteBlocked.value) return [];
+  const rows = Array.isArray(remoteOverview.value.news)
+    ? remoteOverview.value.news
+    : [];
+  return rows
+    .map((item) => [
+      valueText(item?.type ?? item?.category ?? item?.statusName, "动态"),
+      valueText(item?.title ?? item?.name ?? item?.summary, "认证动态"),
+      valueText(item?.publishedAt ?? item?.date ?? item?.updatedAt),
+    ])
+    .filter((item) => item[1]);
+});
+
+const remoteBookingTypes = computed(() => {
+  if (remoteBlocked.value) return [];
+  const rows = Array.isArray(remoteList.value.items) ? remoteList.value.items : [];
+  const detailName = itemName(remoteDetail.value);
+  return unique([detailName, ...rows.map((item) => itemName(item))]).slice(0, 8);
+});
+
+const displayedDirections = computed(() =>
+  remoteMode.value ? remoteDirections.value : directions,
+);
+const displayedScenes = computed(() =>
+  remoteMode.value ? remoteScenes.value : scenes,
+);
+const displayedNews = computed(() => (remoteMode.value ? remoteNews.value : news));
+const bookingTypes = computed(() =>
+  remoteMode.value
+    ? remoteBookingTypes.value
+    : ["RPA", "可视化", "驾驶舱", "报表", "数据集", "AI"],
+);
+const tickerItems = computed(() =>
+  displayedNews.value.length
+    ? displayedNews.value.slice(0, 3).map((item) => item[1])
+    : ["认证数据正在等待同步"],
+);
+const remoteBoundaryVisible = computed(
+  () =>
+    remoteMode.value &&
+    (remoteState.value === "error" ||
+      remoteState.value === "authentication-required" ||
+      remoteState.value === "empty" ||
+      (!displayedDirections.value.length &&
+        !displayedScenes.value.length &&
+        !displayedNews.value.length)),
+);
+const remoteBoundaryTitle = computed(() =>
+  remoteState.value === "error" || remoteState.value === "authentication-required"
+    ? "认证数据加载失败"
+    : "暂无认证数据",
+);
+const remoteBoundaryDescription = computed(() =>
+  remoteState.value === "authentication-required"
+    ? "当前账号暂未获得查看认证数据的权限。"
+    : remoteState.value === "error"
+      ? "远程认证数据暂不可用，请稍后重试。"
+      : "当前筛选下暂无认证方向、场景域或动态。",
+);
 const filteredScenes = computed(() =>
-  scenes.filter(
+  displayedScenes.value.filter(
     (item) => !sceneQuery.value || item.includes(sceneQuery.value.trim()),
   ),
 );
@@ -88,10 +224,24 @@ function confirmBooking() {
 
     <div class="ticker" role="note">
       <strong>认证动态</strong
-      ><span>2026年第三期数智化认证考试报名已开启，截止日期为9月30日</span
-      ><i></i><span>FineReport 高级认证培训班招生中</span><i></i
-      ><span>第二期认证通过率达 92%</span>
+      ><template v-for="(item, index) in tickerItems" :key="item"
+        ><span>{{ item }}</span
+        ><i v-if="index < tickerItems.length - 1"></i
+      ></template>
     </div>
+
+    <section
+      v-if="remoteBoundaryVisible"
+      class="cert-remote-state"
+      role="status"
+      aria-live="polite"
+    >
+      <TypeLineIcon name="ead" :size="30" />
+      <div>
+        <h2>{{ remoteBoundaryTitle }}</h2>
+        <p>{{ remoteBoundaryDescription }}</p>
+      </div>
+    </section>
 
     <div class="cert-layout">
       <section class="cert-main" aria-label="认证动态与学习工具">
@@ -104,7 +254,7 @@ function confirmBooking() {
             <a href="/announcements">查看全部</a>
           </header>
           <ul>
-            <li v-for="item in news" :key="item[1]">
+            <li v-for="item in displayedNews" :key="item[1]">
               <mark>{{ item[0] }}</mark
               ><span>{{ item[1] }}</span
               ><time>{{ item[2] }}</time>
@@ -130,7 +280,7 @@ function confirmBooking() {
               <h3 id="direction-title">认证方向 / 应用类型</h3>
               <div class="direction-tags">
                 <button
-                  v-for="[item, icon] in directions"
+                  v-for="[item, icon] in displayedDirections"
                   :key="item"
                   type="button"
                   :aria-pressed="selectedDirection === item"
@@ -160,9 +310,9 @@ function confirmBooking() {
                   {{ item }}
                 </button>
               </div>
-              <p v-if="!filteredScenes.length" class="no-result">
-                未找到匹配场景域
-              </p>
+            <p v-if="!filteredScenes.length" class="no-result">
+              未找到匹配场景域
+            </p>
             </section>
           </div>
           <footer class="learning-result">
@@ -211,14 +361,7 @@ function confirmBooking() {
             <p>选择认证类别并预约考试场次。</p>
             <div class="booking-tags">
               <button
-                v-for="item in [
-                  'RPA',
-                  '可视化',
-                  '驾驶舱',
-                  '报表',
-                  '数据集',
-                  'AI',
-                ]"
+                v-for="item in bookingTypes"
                 :key="item"
                 type="button"
                 @click="openBooking(item)"
@@ -373,6 +516,27 @@ function confirmBooking() {
   width: 1px;
   height: 16px;
   background: #d8e1ea;
+}
+.cert-remote-state {
+  min-height: 92px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+  padding: 18px 20px;
+  background: #fff;
+  border: 1px solid #d8e3ed;
+  border-radius: 7px;
+  color: #50677f;
+}
+.cert-remote-state h2 {
+  margin: 0 0 6px;
+  color: #17304f;
+  font-size: 18px;
+}
+.cert-remote-state p {
+  margin: 0;
+  font-size: 14px;
 }
 .cert-layout {
   display: grid;
