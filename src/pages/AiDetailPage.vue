@@ -3,6 +3,7 @@
 import TypeLineIcon from "../components/TypeLineIcon.vue";
 import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
 import AppDetailRemoteFacts from "../components/AppDetailRemoteFacts.vue";
+import AppDetailAuthoritativeBody from "../components/AppDetailAuthoritativeBody.vue";
 const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});const projection=useAppDetailProjection(props,{name:'长文总结智能体',summary:''});
 const metrics = [
   ["最近更新日期", "2026-08-28"],
@@ -44,7 +45,7 @@ const attachmentSizes = ["2.45 MB", "1.75 MB", "1.05 MB"];
           ><button type="button">申请复用</button>
         </div>
       </div>
-    </header><AppDetailRemoteFacts :projection="projection" />
+    </header><AppDetailRemoteFacts :projection="projection" /><AppDetailAuthoritativeBody :projection="projection" />
     <dl class="detail-metrics">
       <div v-for="([key, value], index) in metrics" :key="key">
         <b>{{ index + 1 }}</b>

@@ -6,6 +6,7 @@ import { routeSession } from "../state/session-store.js";
 import TypeLineIcon from "../components/TypeLineIcon.vue";
 import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";
 import AppDetailRemoteFacts from "../components/AppDetailRemoteFacts.vue";
+import AppDetailAuthoritativeBody from "../components/AppDetailAuthoritativeBody.vue";
 import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
 const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});
 const projection=useAppDetailProjection(props,{name:'海能work应用',summary:''});
@@ -78,7 +79,7 @@ async function submitComment() {
         </div>
       </div>
     </header>
-    <AppDetailRemoteFacts :projection="projection" /><dl class="detail-metrics">
+    <AppDetailRemoteFacts :projection="projection" /><AppDetailAuthoritativeBody :projection="projection" /><dl class="detail-metrics">
       <div v-for="([key, value], index) in metrics" :key="key">
         <b>{{ index + 1 }}</b>
         <dt>{{ key }}</dt>

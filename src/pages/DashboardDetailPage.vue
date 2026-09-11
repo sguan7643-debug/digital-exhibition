@@ -8,6 +8,7 @@ import TypeLineIcon from "../components/TypeLineIcon.vue";
 import IndicatorBuildDialog from "../components/IndicatorBuildDialog.vue";
 import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
 import AppDetailRemoteFacts from "../components/AppDetailRemoteFacts.vue";
+import AppDetailAuthoritativeBody from "../components/AppDetailAuthoritativeBody.vue";
 const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});const projection=useAppDetailProjection(props,{name:'经营管理驾驶舱',summary:''});
 const metrics = [
   ["访问次数", "3,562 次"],
@@ -101,7 +102,7 @@ async function submitComment() {
         </div>
       </div>
     </header>
-    <AppDetailRemoteFacts :projection="projection" /><dl class="detail-metrics">
+    <AppDetailRemoteFacts :projection="projection" /><AppDetailAuthoritativeBody :projection="projection" /><dl class="detail-metrics">
       <div v-for="([key, value], index) in metrics" :key="key">
         <b>{{ index + 1 }}</b>
         <dt>{{ key }}</dt>
