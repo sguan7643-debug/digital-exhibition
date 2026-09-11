@@ -287,7 +287,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
       <workbench-page v-if="page.id === '01'" :integration-data="integrationEnvelope.data" :operation-executor="executeReadOperation" />
       <messages-page v-else-if="page.id === '02'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <favorites-page v-else-if="page.id === '03'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :test-writes-enabled="integrationRuntime.testWritesEnabled" />
-      <profile-page v-else-if="page.id === '04'" />
+      <profile-page v-else-if="page.id === '04'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <announcements-page v-else-if="page.id === '05'"
         :integration-data="integrationEnvelope.data"
         :integration-state="integrationEnvelope.state"
@@ -350,7 +350,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
         :action-executor="executePageWriteOperation"
         :test-writes-enabled="integrationRuntime.testWritesEnabled && integrationContract.actions.some(action => ['FAV-003','FAV-004','APP-005','APP-006','APP-008'].includes(action.operationId))"
       />
-      <profile-live-sections v-if="page.id === '04'" :integration-data="integrationEnvelope.data" />
+      <profile-live-sections v-if="page.id === '04'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <operational-detail-status v-if="page.id === '26'" :operation-executor="executeReadOperation" />
       <controlled-write-panel
         :actions="integrationContract.actions"

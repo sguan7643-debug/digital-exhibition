@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { compileScript, parse } from '@vue/compiler-sfc';
+import { createRenderer, nextTick } from 'vue';
+
+globalThis.window={location:{origin:'http://127.0.0.1:4173'}};
+const flatten=node=>[node,...(node.children||[]).flatMap(flatten)];
+const textOf=node=>[node?.text||'',...(node?.children||[]).map(textOf)].join('');
+const hostOps={createElement:type=>({type,props:{},children:[]}),createText:text=>({type:'#text',text}),createComment:text=>({type:'#comment',text}),setText:(node,text)=>{node.text=text;},setElementText:(node,text)=>{node.text=text;node.children=[];},parentNode:node=>node.parent||null,nextSibling:()=>null,insert:(child,parent)=>{child.parent=parent;parent.children.push(child);},remove:child=>{if(child.parent)child.parent.children=child.parent.children.filter(node=>node!==child);},patchProp:(node,key,_old,value)=>{node.props[key]=value;},insertStaticContent:(content,parent)=>{const node={type:'#static',text:content,parent};parent.children.push(node);return[node,node];}};
+const fileUrl=new URL('../src/pages/ProfilePage.vue',import.meta.url);
+const {descriptor,errors}=parse(readFileSync(fileUrl,'utf8'),{filename:fileUrl.pathname});
+assert.deepEqual(errors,[]);
+let code=compileScript(descriptor,{id:'mounted-profile-projection',inlineTemplate:true}).content;
+const vueUrl=new URL('../node_modules/vue/index.mjs',import.meta.url).href;
+code=code.replace(/from\s+(['"])vue\1/g,`from '${vueUrl}'`).replace(/from\s+(['"])(\.\.\/[^'"]+)\1/g,(_m,_q,relative)=>`from '${new URL(relative,fileUrl).href}'`);
+const component=(await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)).default;
+const renderer=createRenderer(hostOps);
+const remoteData={'WB-003':{user:{displayName:'受控用户甲',employeeNo:'E-007',orgName:'受控组织',departmentName:'受控部门',avatarUrl:'https://evil.example/avatar.png'},stats:{pointBalance:91,favoriteCount:3,appVisitCount:8,appUseCount:5,pointMonthIncrease:2},quickEntries:[{name:'安全入口',description:'本地目标',path:'/messages',enabled:true},{name:'外部入口',description:'禁止目标',path:'https://evil.example',enabled:true}],recentMessages:[{messageId:'m1',typeName:'通知',title:'受控消息',occurredAt:'2026-09-11',targetPath:'/messages'}],todos:[]},'WB-004':{items:[{todoId:'t1',title:'受控待办',submittedAt:'2026-09-11',statusName:'处理中',detailPath:'/profile'}]}};
+const root={type:'root',children:[]};
+renderer.createApp(component,{integrationState:'normal',integrationData:remoteData}).mount(root);await nextTick();
+assert.match(textOf(root),/受控用户甲/);assert.match(textOf(root),/受控组织/);assert.match(textOf(root),/91/);assert.match(textOf(root),/受控消息/);assert.match(textOf(root),/受控待办/);
+assert.doesNotMatch(textOf(root),/张三丰/,'remote normal must not leak mock identity');
+const links=flatten(root).filter(node=>node.type==='a').map(node=>node.props.href).filter(Boolean);
+assert.ok(links.includes('/messages'));assert.ok(!links.some(href=>String(href).includes('evil.example')),'external quick/avatar URL must not render as a link');
+const blocked=flatten(root).find(node=>node.type==='button'&&textOf(node).includes('外部入口'));assert.equal(blocked?.props.disabled,true);
+
+const denied={type:'root',children:[]};
+renderer.createApp(component,{integrationState:'permission-denied',integrationData:remoteData}).mount(denied);await nextTick();
+assert.match(textOf(denied),/需要完成飞书授权/);assert.doesNotMatch(textOf(denied),/受控用户甲|张三丰|受控消息|受控待办/);
+console.log('真实 ProfilePage mounted：远程投影、安全导航与权限态零 fixture 泄露通过');
