@@ -4,7 +4,6 @@ import ExhibitionShell from './components/ExhibitionShell.vue';
 import PageStateBoundary from './components/PageStateBoundary.vue';
 import IntegrationAuthBanner from './components/IntegrationAuthBanner.vue';
 import AppDetailLiveSections from './components/AppDetailLiveSections.vue';
-import AppDetailRemoteProjection from './components/AppDetailRemoteProjection.vue';
 import ProfileLiveSections from './components/ProfileLiveSections.vue';
 import OperationalDetailStatus from './components/OperationalDetailStatus.vue';
 import ControlledWritePanel from './components/ControlledWritePanel.vue';
@@ -301,20 +300,19 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
         :action-executor="executePageWriteOperation"
         :test-writes-enabled="integrationRuntime.testWritesEnabled"
       />
-      <app-detail-remote-projection v-if="Number(page.id) >= 8 && Number(page.id) <= 16 && integrationEnvelope.state !== 'mock'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
-      <tool-detail-page v-else-if="page.id === '08'" />
-      <haineng-work-detail-page v-else-if="page.id === '09'" />
+      <tool-detail-page v-else-if="page.id === '08'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
+      <haineng-work-detail-page v-else-if="page.id === '09'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <report-detail-page v-else-if="page.id === '10'"
         :integration-data="integrationEnvelope.data"
         :integration-state="integrationEnvelope.state"
         :operation-executor="executeReadOperation"
       />
-      <dashboard-detail-page v-else-if="page.id === '11'" />
+      <dashboard-detail-page v-else-if="page.id === '11'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <dataset-detail-page v-else-if="page.id === '12'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
-      <metric-detail-page v-else-if="page.id === '13'" />
-      <ai-detail-page v-else-if="page.id === '14'" />
-      <ead-detail-page v-else-if="page.id === '15'" />
-      <rpa-detail-page v-else-if="page.id === '16'" />
+      <metric-detail-page v-else-if="page.id === '13'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
+      <ai-detail-page v-else-if="page.id === '14'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
+      <ead-detail-page v-else-if="page.id === '15'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
+      <rpa-detail-page v-else-if="page.id === '16'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <onboarding-page v-else-if="page.id === '17'" />
       <onboarding-apply-page v-else-if="page.id === '32'" />
       <points-page v-else-if="page.id === '18'" :integration-data="integrationEnvelope.data" />
