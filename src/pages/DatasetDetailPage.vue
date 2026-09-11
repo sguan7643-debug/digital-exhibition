@@ -50,8 +50,8 @@ const fields = [
             ><mark>数据分析</mark>
           </div>
         </div>
-        <div class="detail-hero-side">
-          <button type="button">收藏</button><button type="button">申请使用</button>
+        <div v-if="!projection.remoteMode" class="detail-hero-side">
+          <button type="button">收藏</button><button v-if="!projection.remoteMode" type="button">申请使用</button>
         </div>
       </div>
     </header>

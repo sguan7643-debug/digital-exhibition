@@ -39,10 +39,10 @@ const attachmentSizes = ["2.45 MB", "1.75 MB", "1.05 MB"];
           </div>
           <p>应用URL地址：<b>本地受控演示</b></p>
         </div>
-        <div class="detail-hero-side">
+        <div v-if="!projection.remoteMode" class="detail-hero-side">
           <button type="button">收藏</button
-          ><button type="button">申请使用</button
-          ><button type="button">申请复用</button>
+            ><button v-if="!projection.remoteMode" type="button">申请使用</button
+            ><button v-if="!projection.remoteMode" type="button">申请复用</button>
         </div>
       </div>
     </header><AppDetailRemoteFacts :projection="projection" /><AppDetailAuthoritativeBody :projection="projection" />

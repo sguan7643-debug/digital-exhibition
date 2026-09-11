@@ -40,7 +40,7 @@ Base token、tableId、viewId 或 fieldId。
 ## 仍需外部闭合的边界
 
 - 12 个当前用户接口需要飞书应用登记 OAuth 回调并完成真实用户登录证据；没有用户会话时统一返回 401。
-- 36 个写接口只允许双重服务端开关下操作 `TEST_` 记录，常规运行不会自动写入。
+- operation registry 当前共 101 项：65 个只读接口与 36 个仅允许在双重服务端开关下操作 `TEST_` 记录，常规运行不会自动写入。
 - Vite 中间件只服务本地开发与 preview；生产环境必须由后端或网关挂载同一分发器。
 
 ## 浏览器 TEST_ 写入门禁
@@ -60,5 +60,5 @@ Base token、tableId、viewId 或 fieldId。
 
 本地服务启动后可运行 `pnpm feishu:oauth:preflight` 自动检查授权入口、官方授权地址和回调白名单。该命令不会输出一次性 state 或访问令牌；`passed=false` 且 `error20029=true` 表示仍需在飞书开发者后台登记上述回调地址。
 
-运行 `pnpm test:integration:server` 可验证 36 表/271 字段标识契约、服务端令牌缓存、
+运行 `pnpm test:integration:server` 可验证 64 表/1311 字段标识契约、服务端令牌缓存、
 默认分页、同源路由、错误脱敏和只读门禁。

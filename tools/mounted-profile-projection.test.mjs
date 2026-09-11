@@ -14,7 +14,7 @@ let code=compileScript(descriptor,{id:'mounted-profile-projection',inlineTemplat
 const vueUrl=new URL('../node_modules/vue/index.mjs',import.meta.url).href;
 code=code.replace(/from\s+(['"])vue\1/g,`from '${vueUrl}'`).replace(/from\s+(['"])(\.\.\/[^'"]+)\1/g,(_m,_q,relative)=>`from '${new URL(relative,fileUrl).href}'`);
 const component=(await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)).default;
-const renderer=createRenderer(hostOps);
+const renderer=createRenderer(hostOps);const createApp=renderer.createApp.bind(renderer);renderer.createApp=(...args)=>{const app=createApp(...args);app.component('AppIcon',{template:'<span />'});return app;};
 const remoteData={'WB-003':{user:{displayName:'受控用户甲',employeeNo:'E-007',orgName:'受控组织',departmentName:'受控部门',avatarUrl:'https://evil.example/avatar.png'},stats:{pointBalance:91,favoriteCount:3,appVisitCount:8,appUseCount:5,pointMonthIncrease:2},quickEntries:[{name:'安全入口',description:'本地目标',path:'/messages',enabled:true},{name:'外部入口',description:'禁止目标',path:'https://evil.example',enabled:true}],recentMessages:[{messageId:'m1',typeName:'通知',title:'受控消息',occurredAt:'2026-09-11',targetPath:'/messages'}],todos:[]},'WB-004':{items:[{todoId:'t1',title:'受控待办',submittedAt:'2026-09-11',statusName:'处理中',detailPath:'/profile'}]}};
 const root={type:'root',children:[]};
 renderer.createApp(component,{integrationState:'normal',integrationData:remoteData}).mount(root);await nextTick();

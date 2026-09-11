@@ -35,7 +35,7 @@ async function mountSfc(file){
   code=code.replace(/from\s+(['"])vue\1/g,`from '${vueUrl}'`);
   code=code.replace(/from\s+(['"])(\.\.\/[^'"]+)\1/g,(_match,_quote,relative)=>`from '${new URL(relative,fileUrl).href}'`);
   const component=(await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)).default;
-  const root={type:'root',children:[]};renderer.createApp(component).mount(root);await nextTick();return root;
+  const root={type:'root',children:[]};const app=renderer.createApp(component,{integrationState:'mock'});app.component('AppIcon',{template:'<span />'});app.mount(root);await nextTick();return root;
 }
 
 for(const file of ['ToolDetailPage.vue','HainengWorkDetailPage.vue','ReportDetailPage.vue','DashboardDetailPage.vue']){

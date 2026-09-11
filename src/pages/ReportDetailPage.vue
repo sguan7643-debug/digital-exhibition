@@ -87,16 +87,16 @@ async function submitComment() {
             ><mark>多维分析</mark>
           </div>
         </div>
-        <div class="detail-hero-side">
+        <div v-if="!projection.remoteMode" class="detail-hero-side">
           <button
             type="button"
             :aria-pressed="detail.favorite"
             @click="detail.toggleFavorite"
           >
             {{ detail.favorite ? "已收藏" : "收藏" }}</button
-          ><button type="button" @click="detail.apply('申请使用')">
+          ><button v-if="!projection.remoteMode" type="button" @click="detail.apply('申请使用')">
             申请使用</button
-          ><button class="metric-build-trigger" type="button" @click="openMetricBuild">个性化指标构建</button>
+          ><button v-if="!projection.remoteMode" class="metric-build-trigger" type="button" @click="openMetricBuild">个性化指标构建</button>
         </div>
       </div>
     </header>

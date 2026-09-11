@@ -91,9 +91,10 @@ async function launch(){
         <li v-for="comment in comments" :key="comment.commentId"><strong>{{ comment.user.displayName||'匿名用户' }}</strong><span v-if="comment.rating">{{ comment.rating }} / 5</span><p>{{ comment.content }}</p><small>{{ comment.createdAt||'—' }}</small></li>
       </ul>
       <p v-else class="empty-copy">暂无已发布评论</p>
+      <button v-if="integrationState==='normal' && appId" type="button" class="secure-launch" @click="launch">权限校验后使用</button>
       <form v-if="testWritesEnabled" class="test-write-form" aria-label="应用写接口联调" @submit.prevent="submitTestComment">
         <strong>TEST_ 安全联调</strong>
-        <div><button type="button" :disabled="!appId" @click="launch">权限校验后使用</button><button type="button" :disabled="!appId" @click="requestUse">测试申请使用</button><button type="button" :disabled="!appId" @click="requestReuse">测试申请复用</button><button type="button" :disabled="!appId" :aria-pressed="Boolean(favoriteRecord)" @click="toggleFavorite">{{ favoriteRecord?'取消测试收藏':'测试收藏' }}</button></div>
+        <div><button type="button" :disabled="!appId" @click="requestUse">测试申请使用</button><button type="button" :disabled="!appId" @click="requestReuse">测试申请复用</button><button type="button" :disabled="!appId" :aria-pressed="Boolean(favoriteRecord)" @click="toggleFavorite">{{ favoriteRecord?'取消测试收藏':'测试收藏' }}</button></div>
         <label>测试评论<input v-model="testComment" required maxlength="200" placeholder="仅写入 TEST_ 隔离记录" /></label>
         <button type="submit" :disabled="!testComment.trim()">提交测试评论</button>
       </form>

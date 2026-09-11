@@ -1,4 +1,4 @@
-import { computed, unref } from 'vue';
+import { computed, reactive, unref } from 'vue';
 
 export function useAppDetailProjection(props, defaults) {
   const remoteMode = computed(() => props.integrationState !== 'mock');
@@ -11,12 +11,12 @@ export function useAppDetailProjection(props, defaults) {
     return remote.value?.appId ? 'normal' : 'empty';
   });
   const field = (key, fallback = '—') => computed(() => remoteMode.value ? (remote.value?.[key] || fallback) : (unref(defaults[key]) || fallback));
-  return {
+  return reactive({
     remoteMode, state, contentVisible: computed(() => state.value === 'normal'), detail: remote,
     name: field('name', defaults.name), summary: computed(() => remoteMode.value ? (remote.value?.summary || remote.value?.description || '—') : (defaults.summary || '—')), appCode: field('appCode', defaults.appCode),
     typeName: computed(() => remoteMode.value ? (remote.value?.typeName || remote.value?.typeCode || '—') : (defaults.typeName || '—')), versionName: field('versionName', defaults.versionName),
     ownerName: computed(() => remoteMode.value ? (remote.value?.ownerName || remote.value?.developerName || '—') : (defaults.ownerName || '—')),
     departmentName: computed(() => remoteMode.value ? (remote.value?.departmentName || remote.value?.ownerDepartmentName || '—') : (defaults.departmentName || '—')),
     updatedAt: field('updatedAt', defaults.updatedAt), attachments: computed(() => remoteMode.value ? (remote.value?.attachments || []) : (defaults.attachments || []))
-  };
+  });
 }

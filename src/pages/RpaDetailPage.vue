@@ -49,10 +49,10 @@ const rpaDisplayUrl = [
             ><mark>Excel/CSV</mark>
           </div>
         </div>
-        <div class="detail-hero-side">
+        <div v-if="!projection.remoteMode" class="detail-hero-side">
           <button type="button">收藏</button
-          ><button type="button">申请使用</button
-          ><button type="button">申请复用</button>
+            ><button v-if="!projection.remoteMode" type="button">申请使用</button
+            ><button v-if="!projection.remoteMode" type="button">申请复用</button>
         </div>
       </div>
     </header><AppDetailRemoteFacts :projection="projection" /><AppDetailAuthoritativeBody :projection="projection" />

@@ -66,16 +66,16 @@ async function submitComment() {
             ><mark>多租户</mark><mark>流程审批</mark><mark>移动办公</mark>
           </div>
         </div>
-        <div class="detail-hero-side">
+        <div v-if="!projection.remoteMode" class="detail-hero-side">
           <button
             type="button"
             :aria-pressed="detail.favorite"
             @click="detail.toggleFavorite"
           >
             {{ detail.favorite ? "已收藏" : "收藏" }}</button
-          ><button type="button" @click="detail.apply('申请使用')">
+          ><button v-if="!projection.remoteMode" type="button" @click="detail.apply('申请使用')">
             申请使用</button
-          ><button type="button" @click="detail.apply('申请复用')">申请复用</button>
+          ><button v-if="!projection.remoteMode" type="button" @click="detail.apply('申请复用')">申请复用</button>
         </div>
       </div>
     </header>

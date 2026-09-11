@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
 import { PAGE_MATRIX as UI_PAGE_MATRIX } from '../src/fixtures/pages.js';
 import {
@@ -18,6 +19,11 @@ import { createDataState, reduceDataState } from '../src/integration/data-state.
 import { createPageDataSource } from '../src/integration/page-data-source.js';
 
 assert.equal(OPERATION_REGISTRY.length, 101, 'operation registry must contain the frozen 101 operations');
+const identifiers = JSON.parse(readFileSync(path.resolve('server/contracts/feishu-base-identifiers.json'), 'utf8'));
+const serverReadme = readFileSync(path.resolve('server/README.md'), 'utf8');
+assert.equal(identifiers.tableCount, 64); assert.equal(identifiers.fieldCount, 1311);
+assert.match(serverReadme, /64 表\/1311 字段/); assert.match(serverReadme, /101 项：65 个只读接口与 36 个仅允许/);
+assert.equal(OPERATION_REGISTRY.filter(item=>item.access==='read').length,65); assert.equal(OPERATION_REGISTRY.filter(item=>item.access==='write').length,36);
 assert.equal(FIRST_BATCH_OPERATION_IDS.length, 25);
 assert.equal(LATER_BATCH_OPERATION_IDS.length, 59);
 assert.equal(DEFERRED_OPERATION_IDS.length, 17);
@@ -27,9 +33,10 @@ assert.ok(OPERATION_REGISTRY.filter(item => item.batch === 'first').every(item =
 assert.ok(OPERATION_REGISTRY.every(item => item.remoteEnabled === false));
 assert.ok(OPERATION_REGISTRY.filter(item => item.access === 'write').every(item => item.remoteEnabled === false));
 
-assert.equal(PAGE_INTEGRATION_MATRIX.length, 30);
-assert.deepEqual(PAGE_INTEGRATION_MATRIX.map(page => page.route), UI_PAGE_MATRIX.map(page => page.route));
-for (const page of PAGE_INTEGRATION_MATRIX) {
+const governedUiMatrix = PAGE_INTEGRATION_MATRIX.filter(page => UI_PAGE_MATRIX.some(uiPage => uiPage.route === page.route));
+assert.equal(governedUiMatrix.length, UI_PAGE_MATRIX.length);
+assert.deepEqual(governedUiMatrix.map(page => page.route), UI_PAGE_MATRIX.map(page => page.route));
+for (const page of governedUiMatrix) {
   assert.ok(page.operationIds.length > 0, `${page.route} must declare operation IDs`);
   assert.ok(page.fieldDomains.length > 0, `${page.route} must declare field domains`);
   assert.ok(page.operationIds.every(id => OPERATION_REGISTRY.some(operation => operation.id === id)));

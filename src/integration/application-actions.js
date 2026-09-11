@@ -28,6 +28,7 @@ export function buildApplicationWriteInput(operationId, resourceId, values = {},
 
 export async function launchApplication(operationExecutor, appId, options = {}) {
   if (typeof operationExecutor !== 'function') throw new Error('真实应用启动接口未启用');
+  if (!String(appId || '').trim()) throw new Error('缺少真实应用标识');
   const response = await operationExecutor('APP-004', {
     appId: String(appId || ''), launchMode: 'NEW_TAB', sourcePage: options.sourcePage || globalThis.location?.pathname || '/apps',
     requestedAt: options.now?.() || new Date().toISOString()

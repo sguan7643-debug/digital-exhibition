@@ -60,16 +60,16 @@ async function submitComment() {
             ><mark>批量操作</mark><mark>数据清洗</mark><mark>办公提效</mark>
           </div>
         </div>
-        <div class="detail-hero-side">
+        <div v-if="!projection.remoteMode" class="detail-hero-side">
           <button
             type="button"
             :aria-pressed="detail.favorite"
             @click="detail.toggleFavorite"
           >
             {{ detail.favorite ? "已收藏" : "收藏" }}</button
-          ><button type="button" @click="detail.apply('申请使用')">
+          ><button v-if="!projection.remoteMode" type="button" @click="detail.apply('申请使用')">
             申请使用</button
-          ><button type="button" @click="detail.apply('申请复用')">申请复用</button>
+          ><button v-if="!projection.remoteMode" type="button" @click="detail.apply('申请复用')">申请复用</button>
         </div>
       </div>
     </header>

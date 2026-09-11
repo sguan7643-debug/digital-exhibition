@@ -18,7 +18,7 @@ let code=compileScript(descriptor,{id:'mounted-announcement-detail',inlineTempla
 const vueUrl=new URL('../node_modules/vue/index.mjs',import.meta.url).href;
 code=code.replace(/from\s+(['"])vue\1/g,`from '${vueUrl}'`).replace(/from\s+(['"])(\.\.\/[^'"]+)\1/g,(_m,_q,relative)=>`from '${new URL(relative,fileUrl).href}'`);
 const component=(await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)).default;
-const renderer=createRenderer(hostOps);
+const renderer=createRenderer(hostOps);const createApp=renderer.createApp.bind(renderer);renderer.createApp=(...args)=>{const app=createApp(...args);app.component('AppIcon',{template:'<span />'});return app;};
 const detail={announcementId:'ANN-9',title:'真实公告标题',typeName:'平台通知',typeCode:'NOTICE',summary:'真实摘要',contentText:'真实纯文本正文',contentHtml:'<img src=x onerror="__announcementScriptProbe()"><script>__announcementScriptProbe()</script>',publisherName:'发布员甲',publisherOrgName:'组织甲',publishAt:'2026-09-11',scopeType:'ALL',viewCount:12,readCount:7,isRead:true,attachments:[{fileId:'FILE-9',fileName:'真实附件.pdf',sizeText:'8 KB'}],relatedApps:[{appId:'A1',name:'站内应用',description:'可用目标',detailPath:'/apps/report-001'}],associatedActivities:[],previous:null,next:null};
 const data={'ANN-003':detail,'ANN-005':{items:[{relationId:'R2',title:'外部目标',path:'https://evil.example/item'}]}};
 const calls=[];const executor=async(operationId,input)=>{calls.push([operationId,input]);return{data:{url:'http://127.0.0.1:4173/api/files/grant-9',fileName:'真实附件.pdf'}};};
