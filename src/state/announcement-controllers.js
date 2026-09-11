@@ -30,6 +30,12 @@ export function createAnnouncementController(fixtures){
     pageSize:10,
     validationError:'',
     announcement:'',
+    replaceFixtures(nextFixtures){
+      this.fixtures=Array.isArray(nextFixtures)?nextFixtures.map(item=>({...item})):[];
+      this.page=1;
+      this.validationError='';
+      this.announcement=`已载入 ${this.fixtures.length} 条公告`;
+    },
     get results(){
       return this.fixtures.filter(item=>(!this.filters.type||item.type===this.filters.type)&&(!this.filters.startDate||item.date>=this.filters.startDate)&&(!this.filters.endDate||item.date<=this.filters.endDate)&&(this.filters.status==='all'||(this.filters.status==='read')===item.read));
     },

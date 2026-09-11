@@ -11,26 +11,80 @@ import {
   ANNOUNCEMENT_FIXTURES,
   createAnnouncementController,
 } from "../state/announcement-controllers.js";
+import { mapRemoteAnnouncement } from "../integration/announcement-read-model.js";
 import { routeSession } from "../state/session-store.js";
 import PaginationControl from "../components/PaginationControl.vue";
 
 const REFERENCE_SHA256 =
   "58A43229752CC4A5210A2846B88DB267A622543AA8F7F034CDA42BC2041F4F8C";
-const props = defineProps({ state: { type: String, default: "normal" } });
+const props = defineProps({
+  state: { type: String, default: "normal" },
+  integrationData: { type: Object, default: null },
+  integrationState: { type: String, default: "mock" },
+});
 const emit = defineEmits(["restore"]);
 const controller = routeSession.controller("announcements", () =>
   createAnnouncementController(ANNOUNCEMENT_FIXTURES),
 );
+const remoteMode = computed(() => props.integrationState !== "mock");
+const remoteState = computed(() => props.integrationState);
+const remoteFailed = computed(() => remoteState.value === "error" || remoteState.value === "authentication-required");
+const remoteFacets = computed(() => props.integrationData?.['ANN-001'] || {});
+const remoteList = computed(() => props.integrationData?.['ANN-002'] || {});
+const remoteStats = computed(() => ({
+  unread: remoteFacets.value.readStateAvailable
+    ? Number(remoteFacets.value.unread ?? remoteFacets.value.unreadCount ?? 0)
+    : 0,
+  weekNew: Number(remoteFacets.value.weekNew ?? 0),
+  total: Number(remoteFacets.value.total ?? remoteList.value.total ?? 0),
+  readStateAvailable: remoteFacets.value.readStateAvailable === true,
+  categories: Array.isArray(remoteFacets.value.categories)
+    ? remoteFacets.value.categories
+        .map((item) => String(item.name || item.label || item.code || "").trim())
+        .filter(Boolean)
+    : [],
+}));
+const remoteAnnouncements = computed(() =>
+  Array.isArray(remoteList.value.items)
+    ? remoteList.value.items.map(mapRemoteAnnouncement)
+    : [],
+);
+const currentAnnouncements = computed(() =>
+  remoteMode.value ? remoteAnnouncements.value : ANNOUNCEMENT_FIXTURES,
+);
 const localState = ref(props.state);
-const state = computed(() => localState.value);
+const state = computed(() => {
+  if (remoteMode.value && remoteFailed.value)
+    return remoteState.value === "authentication-required"
+      ? "permission-denied"
+      : "error";
+  if (remoteMode.value && remoteState.value === "empty") return "empty";
+  return localState.value;
+});
 const startDateInput = ref(null);
 const pagedAnnouncements = computed(() =>
-  localState.value === "empty" ? [] : controller.pagedResults,
+  state.value === "empty" ? [] : controller.pagedResults,
 );
 const contentVisible = computed(() =>
-  ["normal", "empty", "disabled"].includes(localState.value),
+  ["normal", "empty", "disabled"].includes(state.value),
 );
-const controlsDisabled = computed(() => localState.value === "disabled");
+const controlsDisabled = computed(() => state.value === "disabled");
+const readFilterDisabled = computed(
+  () =>
+    controlsDisabled.value ||
+    (remoteMode.value && !remoteStats.value.readStateAvailable),
+);
+const unreadStat = computed(() =>
+  remoteMode.value ? remoteStats.value.unread : controller.unreadCount,
+);
+const weekNewStat = computed(() =>
+  remoteMode.value ? remoteStats.value.weekNew : 9,
+);
+const announcementTypes = computed(() =>
+  remoteMode.value && remoteStats.value.categories.length
+    ? remoteStats.value.categories
+    : ["平台公告", "应用上线", "活动通知", "系统通知"],
+);
 let loadingTimer;
 
 function finishLoading() {
@@ -54,6 +108,10 @@ function updateFilter(key, event) {
   controller.setFilter(key, event.target.value);
 }
 function markAllRead() {
+  if (remoteMode.value) {
+    controller.announcement = "真实已读写入暂未开放";
+    return;
+  }
   controller.markAllRead();
 }
 function rememberDetail(item, event) {
@@ -61,15 +119,24 @@ function rememberDetail(item, event) {
     event.preventDefault();
     return;
   }
-  controller.markRead(item.id);
+  if (!remoteMode.value) controller.markRead(item.id);
+  else controller.announcement = "真实已读写入暂未开放";
   window.history.replaceState(
     { ...window.history.state, xltRestoreFocus: `announcement-${item.id}` },
     "",
     window.location.href,
   );
 }
+function explainAnnouncement(item) {
+  if (remoteMode.value) {
+    controller.announcement = "真实已读写入暂未开放";
+    return;
+  }
+  controller.explain(item);
+}
 function resetEmpty() {
-  controller.resetData();
+  if (remoteMode.value) controller.resetFilters();
+  else controller.resetData();
   emit("restore");
 }
 
@@ -77,6 +144,11 @@ onMounted(() => {
   const id = window.history.state?.xltRestoreFocus;
   if (id) nextTick(() => document.getElementById(id)?.focus());
 });
+watch(
+  currentAnnouncements,
+  (items) => controller.replaceFixtures(items),
+  { immediate: true },
+);
 watch(() => props.state, syncState);
 onBeforeUnmount(() => window.clearTimeout(loadingTimer));
 </script>
@@ -105,14 +177,14 @@ onBeforeUnmount(() => window.clearTimeout(loadingTimer));
         <article>
           <AppIcon name="notice-stat-unread" :size="67" />
           <div>
-            <strong>未读公告</strong><b>{{ controller.unreadCount }}</b
+            <strong>未读公告</strong><b>{{ unreadStat }}</b
             ><small>较昨日　<em class="down">↓ 5</em></small>
           </div>
         </article>
         <article>
           <AppIcon name="notice-stat-new" :size="67" />
           <div>
-            <strong>本周新增</strong><b>9</b><small>较上周　<em>↑ 3</em></small>
+            <strong>本周新增</strong><b>{{ weekNewStat }}</b><small>较上周　<em>↑ 3</em></small>
           </div>
         </article>
       </section>
@@ -128,10 +200,7 @@ onBeforeUnmount(() => window.clearTimeout(loadingTimer));
             @change="updateFilter('type', $event)"
           >
             <option value="">全部类型</option>
-            <option>平台公告</option>
-            <option>应用上线</option>
-            <option>活动通知</option>
-            <option>系统通知</option>
+            <option v-for="item in announcementTypes" :key="item">{{ item }}</option>
           </select></label
         >
         <label
@@ -164,7 +233,7 @@ onBeforeUnmount(() => window.clearTimeout(loadingTimer));
         <label
           >是否已读：<select
             :value="controller.draft.status"
-            :disabled="controlsDisabled"
+            :disabled="readFilterDisabled"
             @change="updateFilter('status', $event)"
           >
             <option value="all">全部状态</option>
@@ -220,7 +289,7 @@ onBeforeUnmount(() => window.clearTimeout(loadingTimer));
                 </td>
                 <td>
                   <span :class="{ unread: !item.read }">{{
-                    item.read ? "已读" : "未读"
+                    item.read === null ? "未提供" : item.read ? "已读" : "未读"
                   }}</span>
                 </td>
                 <td>
@@ -236,7 +305,7 @@ onBeforeUnmount(() => window.clearTimeout(loadingTimer));
                     :id="`announcement-${item.id}`"
                     type="button"
                     :disabled="controlsDisabled"
-                    @click="controller.explain(item)"
+                    @click="explainAnnouncement(item)"
                   >
                     查看详情　›
                   </button>
