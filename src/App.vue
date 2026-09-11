@@ -292,7 +292,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
         :integration-data="integrationEnvelope.data"
         :integration-state="integrationEnvelope.state"
       />
-      <notice-detail-page v-else-if="page.id === '06'" />
+      <notice-detail-page v-else-if="page.id === '06'" :state="page.state" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <apps-page v-else-if="page.id === '07'"
         :integration-data="integrationEnvelope.data"
         :integration-state="integrationEnvelope.state"
