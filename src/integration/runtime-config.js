@@ -13,6 +13,9 @@ export function validateSameOriginProxyBase(value, origin = globalThis.location?
   if (!pathname || pathname === '/') throw new Error('安全代理路径不能解析为站点根路径');
   return pathname;
 }
+export function isRemoteRuntime(runtime) {
+  return runtime?.mode === 'remote';
+}
 export function resolveIntegrationRuntime(options = {}) {
   const requestedMode = ['mock', 'remote', 'disabled'].includes(options.requestedMode) ? options.requestedMode : 'mock';
   const remoteEnabled = options.remoteEnabled === true;

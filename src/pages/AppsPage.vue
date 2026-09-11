@@ -25,13 +25,12 @@ const props = defineProps({
 const controller = routeSession.controller("apps", () =>
   createAppsController(APP_FIXTURES),
 );
+const remoteMode = computed(() => props.integrationState !== 'mock' && Array.isArray(props.integrationData?.['APP-002']?.items));
 const remoteApps = computed(() => Array.isArray(props.integrationData?.['APP-002']?.items)
   ? projectApplicationCards(props.integrationData['APP-002'].items.filter((item) =>
-      String(item.appId || item.id || '').startsWith('TEST_')
-      && ['已上架', '审核通过', 'ONLINE', 'PUBLISHED', 'APPROVED'].includes(String(item.status || '').toUpperCase())))
+      ['已上架', '审核通过', 'ONLINE', 'PUBLISHED', 'APPROVED'].includes(String(item.status || '').toUpperCase())))
   : []);
-const displayedApps = computed(() => [...APP_FIXTURES, ...remoteApps.value.filter((item) =>
-  !APP_FIXTURES.some((fixture) => fixture.id === item.id))]);
+const displayedApps = computed(() => remoteMode.value ? remoteApps.value : APP_FIXTURES);
 watch(() => [props.integrationState, props.integrationData?.['APP-002']?.items], ([state, items]) => {
   if (state !== 'mock' && Array.isArray(items)) controller.replaceFixtures(displayedApps.value);
 }, { immediate: true });
@@ -43,7 +42,6 @@ const queryDraft = computed({
 });
 const filteredApps = computed(() => controller.results);
 const pagedApps = computed(() => controller.pagedResults);
-const remoteMode = computed(() => props.integrationState !== 'mock' && Array.isArray(props.integrationData?.['APP-002']?.items));
 const appTypeStats = computed(() =>
   APP_CATEGORIES.map((category) => ({
     category,
@@ -54,8 +52,8 @@ const appTypeStats = computed(() =>
   })),
 );
 const filter = controller.filters;
-const tags = [...new Set(APP_FIXTURES.map((app) => app.tag))];
-const domains = [...new Set(APP_FIXTURES.map((app) => app.domain))];
+const tags = computed(() => [...new Set(displayedApps.value.map((app) => app.tag).filter(Boolean))]);
+const domains = computed(() => [...new Set(displayedApps.value.map((app) => app.domain).filter(Boolean))]);
 
 function syncUrl() {
   const query = new URLSearchParams(window.location.search);

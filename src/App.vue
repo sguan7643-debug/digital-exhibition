@@ -43,7 +43,7 @@ import TalentProgressPage from './pages/TalentProgressPage.vue';
 import { PAGE_MATRIX, resolvePage } from './fixtures/pages.js';
 import { routeSession } from './state/session-store.js';
 import { getPageIntegrationContract } from './integration/page-integration-matrix.js';
-import { resolveIntegrationRuntime } from './integration/runtime-config.js';
+import { isRemoteRuntime, resolveIntegrationRuntime } from './integration/runtime-config.js';
 import { createPageDataSource, describeDataSourceEnvelope } from './integration/page-data-source.js';
 import { resolveIntegrationLiveAnnouncement } from './integration/live-region.js';
 import { createSafeProxyClient } from './integration/safe-proxy-client.js';
@@ -81,7 +81,7 @@ function resolveRemoteOperation(operationId) {
 
 async function executeReadOperation(operationId, input) {
   const operation = resolveRemoteReadOperation(operationId);
-  if (integrationRuntime.mode !== 'remote' || !operation?.remoteEnabled) throw new Error('真实接口当前未启用');
+  if (!isRemoteRuntime(integrationRuntime) || !operation?.remoteEnabled) throw new Error('真实接口当前未启用');
   return integrationClient.execute(operationId, input);
 }
 
@@ -246,7 +246,7 @@ async function syncIntegrationEnvelope() {
     route, readOperationIds: integrationContract.value.readOperationIds,
     operationContracts: verifiedReadContracts, search: window.location.search
   });
-  if (route === '/apps' && integrationRuntime.mode === 'remote') {
+  if (route === '/apps' && isRemoteRuntime(integrationRuntime)) {
     await fetch('/api/v1/approvals/reconcile', {
       method: 'POST',
       credentials: 'same-origin',

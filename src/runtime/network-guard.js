@@ -3,7 +3,14 @@ const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]']);
 function assertLocalTarget(input) {
   const raw = input instanceof Request ? input.url : String(input);
   const target = new URL(raw, window.location.href);
-  if (!LOOPBACK_HOSTS.has(target.hostname)) {
+  const current = new URL(window.location.href);
+  const sameOrigin = target.origin === (window.location.origin || current.origin)
+    || ((target.protocol === 'ws:' || target.protocol === 'wss:')
+      && target.hostname === current.hostname
+      && target.port === current.port
+      && ((target.protocol === 'ws:' && current.protocol === 'http:')
+        || (target.protocol === 'wss:' && current.protocol === 'https:')));
+  if (!sameOrigin && !LOOPBACK_HOSTS.has(target.hostname)) {
     throw new TypeError(`R3 本地样机已阻止外部网络请求：${target.origin}`);
   }
   return target;
