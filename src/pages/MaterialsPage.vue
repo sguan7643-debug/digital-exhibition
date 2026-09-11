@@ -5,6 +5,10 @@ import TypeLineIcon from '../components/TypeLineIcon.vue';
 import { routeSession } from '../state/session-store.js';
 import { categoryIconName, matchesMaterialCategory, normalizeMaterialCategory } from '../state/interaction-controllers.js';
 
+const props = defineProps({
+  integrationData: { type: Object, default: null },
+  integrationState: { type: String, default: 'mock' },
+});
 const MATERIAL_TYPES = ['指标','数据集','可视化组件','模板','报表','脚本','流程','文档','API','AI','海能work应用','EAD','其他'];
 const MATERIAL_FILTERS = ['可视化','报表','RPA','数据集','指标','AI','海能work应用','EAD','其他工具'];
 const MATERIAL_DOMAINS = ['生产运营','经营管理','设备管理','安全环保','物资供应链','财务管理'];
@@ -38,11 +42,42 @@ const materials = Object.freeze([...seeds,...generated].map(([name,type,domain,d
 const controller = routeSession.controller('materials', () => reactive({
   queryDraft:'', filters:{ query:'', type:'', domain:'' }, sort:'default', view:'grid', page:1, pageSize:12, announcement:'', favoriteIds:[]
 }));
-const types = MATERIAL_FILTERS;
-const domains = MATERIAL_DOMAINS;
+const remoteMode = computed(() => props.integrationState !== 'mock');
+const remoteState = computed(() => props.integrationState);
+const remoteFacets = computed(() => props.integrationData?.['MAT-001'] || {});
+const remoteMaterials = computed(() => {
+  const facets = remoteFacets.value;
+  if (remoteState.value === 'error' || remoteState.value === 'authentication-required' || remoteState.value === 'empty') return [];
+  const typeRows = Array.isArray(facets.materialTypes) ? facets.materialTypes : [];
+  const categoryRows = Array.isArray(facets.categories) ? facets.categories : [];
+  return typeRows.map((item, index) => {
+    const category = categoryRows[index] || {};
+    const name = String(item.name || item.label || item.code || category.categoryName || category.categoryCode || '素材分类');
+    const domain = String(category.categoryName || category.categoryCode || item.domainName || '权威素材');
+    const count = Number(item.count || category.count || 0);
+    return Object.freeze({
+      id: `remote-material-${String(item.code || category.categoryCode || index + 1)}`,
+      name,
+      type: name,
+      domain,
+      description: `${name} 来自 MAT-001 权威素材分类与类型投影，当前共有 ${count} 条可见记录`,
+      creator: '飞书多维表格',
+      updatedAt: '实时同步',
+      downloads: count,
+      favorites: 0
+    });
+  });
+});
+const displayedMaterials = computed(() => remoteMode.value ? remoteMaterials.value : materials);
+const types = computed(() => remoteMode.value
+  ? [...new Set(displayedMaterials.value.map(item => item.type).filter(Boolean))]
+  : MATERIAL_FILTERS);
+const domains = computed(() => remoteMode.value
+  ? [...new Set(displayedMaterials.value.map(item => item.domain).filter(Boolean))]
+  : MATERIAL_DOMAINS);
 const filteredMaterials = computed(() => {
   const query = controller.filters.query.trim().toLocaleLowerCase('zh-CN');
-  const rows = materials.filter(item =>
+  const rows = displayedMaterials.value.filter(item =>
     matchesMaterialCategory(item, controller.filters.type) &&
     (!controller.filters.domain || item.domain === controller.filters.domain) &&
     (!query || `${item.name} ${item.description} ${item.creator}`.toLocaleLowerCase('zh-CN').includes(query))
@@ -89,7 +124,7 @@ onBeforeUnmount(()=>{window.removeEventListener('xlt:materials-filter',receiveFi
         <footer><span>下载量　<b>{{ item.downloads.toLocaleString('zh-CN') }}</b></span><span>收藏　<b>{{ item.favorites.toLocaleString('zh-CN') }}</b></span><button type="button" @click="download(item)">下载</button><button type="button" :aria-pressed="controller.favoriteIds.includes(item.id)" :aria-label="`${controller.favoriteIds.includes(item.id)?'取消收藏':'收藏'}：${item.name}`" @click="toggleFavorite(item)">{{ controller.favoriteIds.includes(item.id)?'已收藏':'☆' }}</button></footer>
       </article>
     </section>
-    <section v-else class="materials-empty" role="status"><h2>暂无符合条件的素材</h2><p>请调整素材类型、业务域或关键词后重试。</p><button type="button" @click="resetFilters">清空筛选</button></section>
+    <section v-else class="materials-empty" role="status"><h2>{{ remoteState === 'error' || remoteState === 'authentication-required' ? '素材中心加载失败' : '暂无符合条件的素材' }}</h2><p>{{ remoteMode ? '当前未获得 MAT-001 权威素材记录，不回退本地演示数据。' : '请调整素材类型、业务域或关键词后重试。' }}</p><button type="button" @click="resetFilters">清空筛选</button></section>
     <PaginationControl class="materials-pagination" :total="filteredMaterials.length" :page="controller.page" :page-size="controller.pageSize" :page-sizes="[12,24,48]" label="素材中心分页" @update:page="setPage" @update:page-size="setPageSize" />
   </article>
 </template>

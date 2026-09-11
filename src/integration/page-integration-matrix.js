@@ -72,7 +72,8 @@ export const PAGE_INTEGRATION_MATRIX = Object.freeze([
   define('27','/certification',['CER-001','CER-002','CER-003','CER-004'],['certification','exam-booking']),
   define('28','/talent/people',['TAL-001','TAL-005'],['talent-person','field-capability']),
   define('29','/talent/projects',['TAL-002','TAL-004'],['talent-project','talent-write'],'disabled'),
-  define('30','/talent/progress',['TAL-003','TAL-004'],['talent-progress','talent-write'],'disabled')
+  define('30','/talent/progress',['TAL-003','TAL-004'],['talent-progress','talent-write'],'disabled'),
+  define('31','/materials',['MAT-001'],['material-facet','material-category'])
 ]);
 
 export function getPageIntegrationContract(route) {

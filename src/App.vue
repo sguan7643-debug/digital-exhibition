@@ -324,7 +324,10 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
       />
       <talent-projects-page v-else-if="page.id === '29'" />
       <talent-progress-page v-else-if="page.id === '30'" />
-      <materials-page v-else-if="page.id === '31'" />
+      <materials-page v-else-if="page.id === '31'"
+        :integration-data="integrationEnvelope.data"
+        :integration-state="integrationEnvelope.state"
+      />
       <portal-page v-else :page="page" />
       <app-detail-live-sections v-if="Number(page.id) >= 8 && Number(page.id) <= 16"
         :integration-data="integrationEnvelope.data"
