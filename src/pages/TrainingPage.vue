@@ -73,16 +73,12 @@ const courses = [
     action: "立即报名",
   },
 ];
-const tabs = [
-  ["全部", 186],
-  ["数说心智", 62],
-  ["取经会", 58],
-  ["AI社区", 66],
-];
 const selected = ref("全部");
 const announcement = ref("");
+const remoteMode = computed(() => props.integrationState !== "mock");
+const remoteState = computed(() => props.integrationState);
 const remoteCourses = computed(() =>
-  props.integrationData?.['TRN-002']?.items?.map((course) => ({
+  remoteState.value === "error" || remoteState.value === "authentication-required" || remoteState.value === "empty" ? [] : props.integrationData?.['TRN-002']?.items?.map((course) => ({
     id: course.courseId,
     category: course.categoryName || course.categoryCode || "其他",
     date: course.startAt || "时间待定",
@@ -94,7 +90,12 @@ const remoteCourses = computed(() =>
     deliveryMode: course.deliveryMode,
   })) || null,
 );
-const courseSource = computed(() => Array.isArray(remoteCourses.value) ? remoteCourses.value : courses);
+const courseSource = computed(() => remoteMode.value ? remoteCourses.value : courses);
+const tabs = computed(() => {
+  const counts = new Map();
+  for (const course of courseSource.value) counts.set(course.category, (counts.get(course.category) || 0) + 1);
+  return [["全部", courseSource.value.length], ...[...counts].sort(([a], [b]) => a.localeCompare(b, "zh-CN"))];
+});
 const visibleCourses = computed(() =>
   selected.value === "全部"
     ? courseSource.value
@@ -215,8 +216,12 @@ async function enterCourse(course) {
         </footer>
       </article>
     </section>
+    <section v-if="!visibleCourses.length" class="training-empty" role="status">
+      <h2>{{ remoteState === "error" || remoteState === "authentication-required" ? "培训课程加载失败" : "暂无符合条件的培训课程" }}</h2>
+      <p>{{ remoteMode ? "当前未获得 TRN-002 权威课程记录，不回退本地演示数据。" : "请切换培训分类后重试。" }}</p>
+    </section>
     <footer class="training-pagination">
-      <strong>共 186 条</strong>
+      <strong>共 {{ courseSource.length }} 条</strong>
       <nav aria-label="分页">
         <button type="button">上一页</button
         ><button type="button" aria-current="page">1</button
