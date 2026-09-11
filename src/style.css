@@ -1154,3 +1154,6 @@ body { color: var(--xlt-text); background: var(--xlt-canvas); }
     grid-template-columns: 1fr;
   }
 }
+/* Authoritative APP-003 replaces fixture-only metric and information blocks in remote mode. */
+.product-detail[data-authoritative-detail="true"] > .detail-metrics,
+.product-detail[data-authoritative-detail="true"] > .detail-panel { display: none; }

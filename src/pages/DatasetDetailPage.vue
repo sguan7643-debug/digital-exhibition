@@ -2,6 +2,7 @@
 // Reference SHA-256: 7260427E1B5E85ECDFE37D52D6A88439178542503EC8E5E6FC5D679701633C97
 import TypeLineIcon from "../components/TypeLineIcon.vue";
 import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
+import AppDetailRemoteFacts from "../components/AppDetailRemoteFacts.vue";
 const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});const projection=useAppDetailProjection(props,{name:'供应商基础信息数据集',summary:''});
 const metrics = [
   ["启用时间", "3,562 次"],
@@ -26,7 +27,7 @@ const fields = [
 ];
 </script>
 <template>
-  <article v-if="projection.contentVisible"
+  <article v-if="projection.contentVisible" :data-authoritative-detail="projection.remoteMode"
     class="product-detail dataset-detail"
     aria-labelledby="dataset-title"
   >
@@ -53,7 +54,7 @@ const fields = [
         </div>
       </div>
     </header>
-    <dl class="detail-metrics">
+    <AppDetailRemoteFacts :projection="projection" /><dl class="detail-metrics">
       <div v-for="([key, value], index) in metrics" :key="key">
         <b>{{ index + 1 }}</b>
         <dt>{{ key }}</dt>

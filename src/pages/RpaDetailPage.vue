@@ -2,6 +2,7 @@
 // Reference SHA-256: C66930E5C44E4ADAEB81872C7E64E8D41DC17A5BB46256314E404A9177C2923A
 import TypeLineIcon from "../components/TypeLineIcon.vue";
 import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
+import AppDetailRemoteFacts from "../components/AppDetailRemoteFacts.vue";
 const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});const projection=useAppDetailProjection(props,{name:'供应商信息自动录入机器人',summary:''});
 const metrics = [
   ["RPA流程名", "供应商信息自动录入机器人"],
@@ -27,7 +28,7 @@ const rpaDisplayUrl = [
 ].join("");
 </script>
 <template>
-  <article v-if="projection.contentVisible" class="product-detail rpa-detail" aria-labelledby="rpa-title">
+  <article v-if="projection.contentVisible" class="product-detail rpa-detail" aria-labelledby="rpa-title" :data-authoritative-detail="projection.remoteMode">
     <nav class="detail-crumb" aria-label="面包屑">
       应用构建　/　应用中心　/　RPA应用详情
     </nav>
@@ -53,7 +54,7 @@ const rpaDisplayUrl = [
           ><button type="button">申请复用</button>
         </div>
       </div>
-    </header>
+    </header><AppDetailRemoteFacts :projection="projection" />
     <dl class="detail-metrics rpa-metrics">
       <div v-for="([key, value], index) in metrics" :key="key">
         <b>{{ index + 1 }}</b>

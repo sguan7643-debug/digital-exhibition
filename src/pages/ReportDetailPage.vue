@@ -7,6 +7,7 @@ import BusinessPreviewGallery from "../components/BusinessPreviewGallery.vue";
 import TypeLineIcon from "../components/TypeLineIcon.vue";
 import IndicatorBuildDialog from "../components/IndicatorBuildDialog.vue";
 import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
+import AppDetailRemoteFacts from "../components/AppDetailRemoteFacts.vue";
 const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});const projection=useAppDetailProjection(props,{name:'经营分析可视化报表',summary:''});
 const metrics = [
   ["访问次数", "4,286 次"],
@@ -63,7 +64,7 @@ async function submitComment() {
 }
 </script>
 <template>
-  <article v-if="projection.contentVisible" class="product-detail report-detail" aria-labelledby="report-title">
+  <article v-if="projection.contentVisible" class="product-detail report-detail" aria-labelledby="report-title" :data-authoritative-detail="projection.remoteMode">
     <p class="sr-only" aria-live="polite">{{ detail.announcement }}</p>
     <nav class="detail-crumb" aria-label="面包屑">
       <a href="/apps?category=可视化报表" data-detail-return>应用中心</a
@@ -98,7 +99,7 @@ async function submitComment() {
         </div>
       </div>
     </header>
-    <dl class="detail-metrics">
+    <AppDetailRemoteFacts :projection="projection" /><dl class="detail-metrics">
       <div v-for="([key, value], index) in metrics" :key="key">
         <b>{{ index + 1 }}</b>
         <dt>{{ key }}</dt>

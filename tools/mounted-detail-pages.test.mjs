@@ -30,6 +30,7 @@ async function mountSfc(file){
   code=code.replace(/import TypeLineIcon from ['"]\.\.\/components\/TypeLineIcon\.vue['"];?/,"const TypeLineIcon={name:'TypeLineIcon',render(){return null;}}");
   code=code.replace(/import IndicatorBuildDialog from ['"]\.\.\/components\/IndicatorBuildDialog\.vue['"];?/,"const IndicatorBuildDialog={name:'IndicatorBuildDialog',methods:{open(){}},render(){return null;}}");
   code=code.replace(/import AppDetailStateBoundary from ['"]\.\.\/components\/AppDetailStateBoundary\.vue['"];?/,"const AppDetailStateBoundary={name:'AppDetailStateBoundary',props:['projection'],render(){return this.projection.contentVisible?this.$slots.default?.():null;}};");
+  code=code.replace(/import AppDetailRemoteFacts from ['"]\.\.\/components\/AppDetailRemoteFacts\.vue['"];?/,"const AppDetailRemoteFacts={name:'AppDetailRemoteFacts',render(){return null;}};");
   code=code.replace(/from\s+(['"])vue\1/g,`from '${vueUrl}'`);
   code=code.replace(/from\s+(['"])(\.\.\/[^'"]+)\1/g,(_match,_quote,relative)=>`from '${new URL(relative,fileUrl).href}'`);
   const component=(await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`)).default;

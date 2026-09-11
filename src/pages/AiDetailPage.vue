@@ -2,6 +2,7 @@
 // Reference SHA-256: 2A55B1987EA239C0D5FB184B7CAECF9F39FFB5AB7C505FB669746356A2820EC7
 import TypeLineIcon from "../components/TypeLineIcon.vue";
 import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
+import AppDetailRemoteFacts from "../components/AppDetailRemoteFacts.vue";
 const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});const projection=useAppDetailProjection(props,{name:'长文总结智能体',summary:''});
 const metrics = [
   ["最近更新日期", "2026-08-28"],
@@ -21,7 +22,7 @@ const training = [
 const attachmentSizes = ["2.45 MB", "1.75 MB", "1.05 MB"];
 </script>
 <template>
-  <article v-if="projection.contentVisible" class="product-detail ai-detail" aria-labelledby="ai-title">
+  <article v-if="projection.contentVisible" class="product-detail ai-detail" aria-labelledby="ai-title" :data-authoritative-detail="projection.remoteMode">
     <nav class="detail-crumb" aria-label="面包屑">
       应用中心　/　AI　/　应用详情
     </nav>
@@ -43,7 +44,7 @@ const attachmentSizes = ["2.45 MB", "1.75 MB", "1.05 MB"];
           ><button type="button">申请复用</button>
         </div>
       </div>
-    </header>
+    </header><AppDetailRemoteFacts :projection="projection" />
     <dl class="detail-metrics">
       <div v-for="([key, value], index) in metrics" :key="key">
         <b>{{ index + 1 }}</b>

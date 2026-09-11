@@ -14,6 +14,7 @@ for (const file of ['ToolDetailPage.vue','HainengWorkDetailPage.vue','ReportDeta
   assert.match(source,/useAppDetailProjection\(props/,`${file} must use the shared APP-003 projection`);
   assert.match(source,/projection\.contentVisible|AppDetailStateBoundary/,`${file} must hide fixture content outside a successful state`);
   assert.match(source,/projection\.name/,`${file} must bind its visible title to the projection`);
+  assert.match(source,/AppDetailRemoteFacts/,`${file} must render authoritative APP-003 basic fields`);
 }
 assert.match(helper,/\['APP-003'\]/);
 for (const id of ['APP-003', 'appCode', 'name', 'summary', 'versionName', 'attachments']) assert.match(helper, new RegExp(id));

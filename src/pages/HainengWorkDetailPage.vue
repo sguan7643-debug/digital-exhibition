@@ -5,6 +5,7 @@ import { createDetailController } from "../state/detail-controller.js";
 import { routeSession } from "../state/session-store.js";
 import TypeLineIcon from "../components/TypeLineIcon.vue";
 import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";
+import AppDetailRemoteFacts from "../components/AppDetailRemoteFacts.vue";
 import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
 const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});
 const projection=useAppDetailProjection(props,{name:'海能work应用',summary:''});
@@ -42,7 +43,7 @@ async function submitComment() {
 }
 </script>
 <template>
-  <article class="product-detail work-detail" aria-labelledby="work-title">
+  <article class="product-detail work-detail" aria-labelledby="work-title" :data-authoritative-detail="projection.remoteMode">
     <AppDetailStateBoundary :projection="projection">
     <p class="sr-only" aria-live="polite">{{ detail.announcement }}</p>
     <nav class="detail-crumb" aria-label="面包屑">
@@ -77,7 +78,7 @@ async function submitComment() {
         </div>
       </div>
     </header>
-    <dl class="detail-metrics">
+    <AppDetailRemoteFacts :projection="projection" /><dl class="detail-metrics">
       <div v-for="([key, value], index) in metrics" :key="key">
         <b>{{ index + 1 }}</b>
         <dt>{{ key }}</dt>

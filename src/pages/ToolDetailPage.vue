@@ -5,6 +5,7 @@ import { createDetailController } from "../state/detail-controller.js";
 import { routeSession } from "../state/session-store.js";
 import TypeLineIcon from "../components/TypeLineIcon.vue";
 import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";
+import AppDetailRemoteFacts from "../components/AppDetailRemoteFacts.vue";
 import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
 const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});
 const projection=useAppDetailProjection(props,{name:'智能数据处理工具',summary:'面向日常办公与数据处理场景，提供文件格式转换、Excel批量处理、数据清洗、文本整理等常用工具能力。'});
@@ -36,7 +37,7 @@ async function submitComment() {
 }
 </script>
 <template>
-  <article class="product-detail tool-detail" aria-labelledby="tool-title">
+  <article class="product-detail tool-detail" aria-labelledby="tool-title" :data-authoritative-detail="projection.remoteMode">
     <AppDetailStateBoundary :projection="projection">
     <p class="sr-only" aria-live="polite">{{ detail.announcement }}</p>
     <nav class="detail-crumb" aria-label="面包屑">
@@ -71,7 +72,7 @@ async function submitComment() {
         </div>
       </div>
     </header>
-    <dl class="detail-metrics">
+    <AppDetailRemoteFacts :projection="projection" /><dl class="detail-metrics">
       <div v-for="([key, value], index) in metrics" :key="key">
         <b>{{ index + 1 }}</b>
         <dt>{{ key }}</dt>

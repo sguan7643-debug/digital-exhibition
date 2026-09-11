@@ -2,6 +2,7 @@
 // Reference SHA-256: 8090BF0B8BFDCE7981D32F7C6B6335230D9F9508BF4549E716C10A2A4382D0CC
 import TypeLineIcon from "../components/TypeLineIcon.vue";
 import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
+import AppDetailRemoteFacts from "../components/AppDetailRemoteFacts.vue";
 const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});const projection=useAppDetailProjection(props,{name:'EAD应用',summary:''});
 const metrics = [
   ["创建日期", "2025-06-06"],
@@ -23,7 +24,7 @@ const steps = [
 ];
 </script>
 <template>
-  <article v-if="projection.contentVisible" class="product-detail ead-detail" aria-labelledby="ead-title">
+  <article v-if="projection.contentVisible" class="product-detail ead-detail" aria-labelledby="ead-title" :data-authoritative-detail="projection.remoteMode">
     <nav class="detail-crumb" aria-label="面包屑">
       应用中心　/　EAD应用　/　应用详情
     </nav>
@@ -48,7 +49,7 @@ const steps = [
           ><button type="button">申请复用</button>
         </div>
       </div>
-    </header>
+    </header><AppDetailRemoteFacts :projection="projection" />
     <dl class="detail-metrics">
       <div v-for="([key, value], index) in metrics" :key="key">
         <b>{{ index + 1 }}</b>

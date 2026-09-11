@@ -2,6 +2,7 @@
 // Reference SHA-256: 48C41CBB2DF433C9680DD955A4777FA436BBFF6E094D56A3B5E6E0E48B01690B
 import TypeLineIcon from "../components/TypeLineIcon.vue";
 import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
+import AppDetailRemoteFacts from "../components/AppDetailRemoteFacts.vue";
 const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});const projection=useAppDetailProjection(props,{name:'物资供应链域指标库',summary:''});
 const metrics = [
   ["访问次数", "2,375 次"],
@@ -28,7 +29,7 @@ const rows = [
 ];
 </script>
 <template>
-  <article v-if="projection.contentVisible" class="product-detail metric-detail" aria-labelledby="metric-title">
+  <article v-if="projection.contentVisible" class="product-detail metric-detail" aria-labelledby="metric-title" :data-authoritative-detail="projection.remoteMode">
     <nav class="detail-crumb" aria-label="面包屑">
       应用中心　/　指标　/　应用详情
     </nav>
@@ -56,7 +57,7 @@ const rows = [
           ><button type="button">个性化指标创建</button>
         </div>
       </div>
-    </header>
+    </header><AppDetailRemoteFacts :projection="projection" />
     <section class="detail-panel detail-panel--full metric-strip">
       <dl class="detail-metrics">
         <div v-for="([key, value], index) in metrics" :key="key">
