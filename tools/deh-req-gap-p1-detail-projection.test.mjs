@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const app = readFileSync(new URL('../src/App.vue', import.meta.url), 'utf8');
+const projection = readFileSync(new URL('../src/components/AppDetailRemoteProjection.vue', import.meta.url), 'utf8');
+assert.match(app, /<app-detail-remote-projection[\s\S]*?:integration-data="integrationEnvelope\.data"/);
+assert.match(app, /Number\(page\.id\) >= 8 && Number\(page\.id\) <= 16 && integrationEnvelope\.state !== 'mock'/);
+for (const id of ['APP-003', 'appCode', 'name', 'summary', 'description', 'versionName', 'attachments']) assert.match(projection, new RegExp(id));
+assert.match(projection, /authentication-required/);
+assert.match(projection, /当前没有可展示的真实应用详情/);
+assert.doesNotMatch(projection, /智能数据处理工具|经营分析可视化报表/);
+console.log('P1 shared APP-003 detail projection contract passed');

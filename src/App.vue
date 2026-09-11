@@ -4,6 +4,7 @@ import ExhibitionShell from './components/ExhibitionShell.vue';
 import PageStateBoundary from './components/PageStateBoundary.vue';
 import IntegrationAuthBanner from './components/IntegrationAuthBanner.vue';
 import AppDetailLiveSections from './components/AppDetailLiveSections.vue';
+import AppDetailRemoteProjection from './components/AppDetailRemoteProjection.vue';
 import ProfileLiveSections from './components/ProfileLiveSections.vue';
 import OperationalDetailStatus from './components/OperationalDetailStatus.vue';
 import ControlledWritePanel from './components/ControlledWritePanel.vue';
@@ -300,6 +301,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
         :action-executor="executePageWriteOperation"
         :test-writes-enabled="integrationRuntime.testWritesEnabled"
       />
+      <app-detail-remote-projection v-if="Number(page.id) >= 8 && Number(page.id) <= 16 && integrationEnvelope.state !== 'mock'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <tool-detail-page v-else-if="page.id === '08'" />
       <haineng-work-detail-page v-else-if="page.id === '09'" />
       <report-detail-page v-else-if="page.id === '10'"
