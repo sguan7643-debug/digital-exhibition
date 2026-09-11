@@ -25,14 +25,14 @@ const props = defineProps({
 const controller = routeSession.controller("apps", () =>
   createAppsController(APP_FIXTURES),
 );
-const remoteMode = computed(() => props.integrationState !== 'mock' && Array.isArray(props.integrationData?.['APP-002']?.items));
+const remoteMode = computed(() => props.integrationState !== 'mock');
 const remoteApps = computed(() => Array.isArray(props.integrationData?.['APP-002']?.items)
   ? projectApplicationCards(props.integrationData['APP-002'].items.filter((item) =>
       ['已上架', '审核通过', 'ONLINE', 'PUBLISHED', 'APPROVED'].includes(String(item.status || '').toUpperCase())))
   : []);
 const displayedApps = computed(() => remoteMode.value ? remoteApps.value : APP_FIXTURES);
 watch(() => [props.integrationState, props.integrationData?.['APP-002']?.items], ([state, items]) => {
-  if (state !== 'mock' && Array.isArray(items)) controller.replaceFixtures(displayedApps.value);
+  if (state !== 'mock') controller.replaceFixtures(displayedApps.value);
 }, { immediate: true });
 const queryDraft = computed({
   get: () => controller.queryDraft,
