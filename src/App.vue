@@ -336,8 +336,8 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
         :integration-data="integrationEnvelope.data"
         :integration-state="integrationEnvelope.state"
       />
-      <talent-projects-page v-else-if="page.id === '29'" />
-      <talent-progress-page v-else-if="page.id === '30'" />
+      <talent-projects-page v-else-if="page.id === '29'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
+      <talent-progress-page v-else-if="page.id === '30'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <materials-page v-else-if="page.id === '31'"
         :integration-data="integrationEnvelope.data"
         :integration-state="integrationEnvelope.state"

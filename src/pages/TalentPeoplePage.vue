@@ -1,11 +1,17 @@
 <script setup>
 // Reference SHA-256: 3F38FEA2909904F070F5CFBF4FB110337856035CE5774519545689776FD4C558
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { PEOPLE_FIXTURES } from "../fixtures/mock-data.js";
 import { createTalentController } from "../state/interaction-controllers.js";
 import PaginationControl from "../components/PaginationControl.vue";
 
+const props = defineProps({ integrationData: { type: Object, default: null }, integrationState: { type: String, default: "mock" } });
 const controller = createTalentController(PEOPLE_FIXTURES);
+const remoteMode = computed(() => props.integrationState !== "mock");
+const remoteState = computed(() => props.integrationState);
+const mapRemotePerson = (item) => ({ id: item.id, name: item.name || "—", age: "—", inPool: item.status || "—", type: item.type || "—", department: item.departmentName || "—", domain: item.specialties?.join(" / ") || "—", office: "—", tags: item.specialties?.join(" / ") || "—", direction: item.level || "—", start: "—", end: "—" });
+const pageState = computed(() => { if (!remoteMode.value) return "normal"; if (["error", "timeout", "rate-limited", "schema-drift", "security-error"].includes(remoteState.value)) return "error"; if (["authentication-required", "permission-denied"].includes(remoteState.value)) return "permission-denied"; if (remoteState.value === "disabled") return "disabled"; if (remoteState.value === "loading") return "loading"; return controller.fixtures.length ? "normal" : "empty"; });
+watch([() => props.integrationData, () => props.integrationState], () => { controller.fixtures = remoteMode.value ? (Array.isArray(props.integrationData?.['TAL-001']?.items) ? props.integrationData['TAL-001'].items.map(mapRemotePerson) : []) : PEOPLE_FIXTURES.map((item) => ({ ...item })); controller.page = 1; }, { immediate: true });
 const queryDraft = ref("");
 const dialogRef = ref(null);
 const closeButtonRef = ref(null);
@@ -17,11 +23,9 @@ const backgroundInertState = new Map();
 const filteredPeople = computed(() => controller.results);
 const pagedPeople = computed(() => controller.pagedResults);
 const selectedPerson = computed(() => controller.selected);
-const departments = [
-  ...new Set(PEOPLE_FIXTURES.map((person) => person.department)),
-];
-const domains = [...new Set(PEOPLE_FIXTURES.map((person) => person.domain))];
-const offices = [...new Set(PEOPLE_FIXTURES.map((person) => person.office))];
+const departments = computed(() => [...new Set(controller.fixtures.map((person) => person.department))]);
+const domains = computed(() => [...new Set(controller.fixtures.map((person) => person.domain))]);
+const offices = computed(() => [...new Set(controller.fixtures.map((person) => person.office))]);
 
 function currentDrawerKey() {
   return controller.creating ? "create" : controller.selectedId;
@@ -189,14 +193,19 @@ onBeforeUnmount(() => {
       ><a href="/talent/projects">人才项目管理</a
       ><a href="/talent/progress">项目进度管理</a>
     </nav>
-    <div class="talent-body" :class="{ 'drawer-open': controller.drawerOpen }">
+    <section v-if="pageState === 'loading'" class="talent-state" role="status">正在加载人才库的受控只读数据…</section>
+    <section v-else-if="pageState === 'permission-denied'" class="talent-state" role="alert">需要完成飞书授权或获得人才只读权限后才能查看数据。</section>
+    <section v-else-if="pageState === 'error'" class="talent-state" role="alert">人才数据暂不可用，请稍后重试。</section>
+    <section v-else-if="pageState === 'disabled'" class="talent-state" role="status">人才真实读取尚未启用；正式人才写入合同尚未提供。</section>
+    <section v-else-if="pageState === 'empty'" class="talent-state" role="status">当前没有可展示的真实人才记录。</section>
+    <div v-else class="talent-body" :class="{ 'drawer-open': controller.drawerOpen }">
       <main :inert="controller.drawerOpen">
         <header>
           <div>
             <h1 id="talent-title">人才库</h1>
             <p>查看和管理组织内的人才信息，支持人才检索、筛选和数据维护。</p>
           </div>
-          <button type="button" @click="openCreate">+ 新增人才</button>
+          <button type="button" :disabled="remoteMode" :title="remoteMode ? '正式人才写入合同尚未提供' : ''" @click="openCreate">+ 新增人才</button>
         </header>
         <form
           class="talent-filter"
