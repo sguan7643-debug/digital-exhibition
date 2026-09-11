@@ -247,7 +247,7 @@ async function syncIntegrationEnvelope() {
     operationContracts: verifiedReadContracts, search: window.location.search
   });
   if (route === '/admin' && isRemoteRuntime(integrationRuntime)) {
-    const allowedAdminReads = new Set(['ADM-003', 'ADM-004', 'INT-001', 'INT-004', 'ARC-002']);
+    const allowedAdminReads = new Set(['ADM-003', 'ADM-004', 'ADM-006', 'ADM-007', 'INT-001', 'INT-003', 'INT-004', 'INT-005', 'ARC-002']);
     loadOptions = {
       ...loadOptions,
       operationIds: loadOptions.operationIds.filter((operationId) => allowedAdminReads.has(operationId))
