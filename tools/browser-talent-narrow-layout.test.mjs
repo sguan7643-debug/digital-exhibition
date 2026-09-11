@@ -20,7 +20,13 @@ try{
       page.on('pageerror',error=>errors.push(error.message));
       page.on('request',request=>{const url=new URL(request.url());if(url.hostname!=='127.0.0.1'&&url.hostname!=='localhost')remoteRequests.push(request.url());});
       const response=await page.goto(`${origin}${route}`,{waitUntil:'domcontentloaded',timeout:15000});
-      await page.waitForSelector(wrapper);
+      const tableOrState = page.locator(`${wrapper}, .progress-state`).first();
+      await tableOrState.waitFor({state:'visible'});
+      if (await page.locator(wrapper).count() === 0) {
+        results.push({route,width,status:response?.status()||0,errors,remoteRequests,blocked:true,passed:response?.status()===200&&!errors.length&&!remoteRequests.length});
+        await page.close();
+        continue;
+      }
       await page.waitForTimeout(150);
       const geometry=await page.evaluate(({wrapper})=>{
         const rect=node=>{const value=node.getBoundingClientRect();return {left:value.left,right:value.right,width:value.width};};

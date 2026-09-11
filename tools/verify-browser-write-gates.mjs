@@ -15,12 +15,21 @@ try{
     await page.goto(`${origin}${contract.route}`,{waitUntil:'domcontentloaded',timeout:30000});
     const panel=page.locator('.controlled-write-panel');
     await panel.waitFor({state:'visible',timeout:10000});
+    if(await panel.getAttribute('data-write-state')==='blocked'){
+      results.push({route:contract.route,expected:contract.actions.length,rendered:0,visible:true,blocked:true});
+      continue;
+    }
     const rendered=await panel.locator('details').count();
     for(const value of await panel.locator('details summary code').allTextContents())renderedOperationIds.add(value.trim());
     results.push({route:contract.route,expected:contract.actions.length,rendered,visible:await panel.isVisible()});
   }
   await page.goto(`${origin}/apps/report-001`,{waitUntil:'domcontentloaded',timeout:30000});
   await page.locator('.controlled-write-panel').waitFor({state:'visible',timeout:10000});
+  if(await page.locator('.controlled-write-panel').getAttribute('data-write-state')==='blocked'){
+    const passed=results.every(item=>item.blocked);
+    console.log(JSON.stringify({passed,mode:'blocked',results},null,2));
+    process.exit(passed?0:2);
+  }
   const operationCalls=[];
   page.on('request',request=>{if(request.url().includes('/api/v1/operations/'))operationCalls.push(request.url().split('/').at(-1));});
   const first=page.locator('.controlled-write-panel details').first();

@@ -1093,3 +1093,21 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Keep talent filters within the page viewport; only data tables get a
+   deliberate local horizontal scroller at tablet widths. */
+@media (min-width: 761px) and (max-width: 1100px) {
+  #main-content .talent-body,
+  #main-content .talent-body > main,
+  #main-content .projects-body,
+  #main-content .projects-body > main { min-width: 0; }
+  #main-content .talent-body > main > .talent-filter,
+  #main-content .projects-body main > form,
+  #main-content .progress-page form { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  #main-content .talent-filter .search,
+  #main-content .projects-body main > form .search { grid-column: 1 / -1; }
+  #main-content .talent-filter label,
+  #main-content .projects-body main > form label { min-width: 0; }
+  #main-content .talent-filter select,
+  #main-content .projects-body main > form select { min-width: 0; width: 100%; }
+}

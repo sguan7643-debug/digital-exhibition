@@ -32,6 +32,7 @@ const mobileViewport = ref(false);
 const mobileMenuButton = ref(null);
 const mobileDrawer = ref(null);
 let mobileMediaQuery;
+let tableObserver;
 
 const basePrimaryNav = [
   ['/workbench', House, '首页工作台'], ['/materials', Camera, '素材中心'],
@@ -141,6 +142,7 @@ function decorateHorizontalScrollRegions() {
 async function refreshHorizontalScrollRegions() {
   await nextTick();
   decorateHorizontalScrollRegions();
+  requestAnimationFrame(() => decorateHorizontalScrollRegions());
 }
 function syncMobileViewport(event) {
   mobileViewport.value = event.matches;
@@ -192,12 +194,15 @@ onMounted(() => {
   syncMobileViewport(mobileMediaQuery);
   mobileMediaQuery.addEventListener?.('change', syncMobileViewport);
   refreshHorizontalScrollRegions();
+  tableObserver = new MutationObserver(() => decorateHorizontalScrollRegions());
+  tableObserver.observe(document.getElementById('main-content'), { childList: true, subtree: true });
 });
 onBeforeUnmount(() => {
   window.removeEventListener('popstate', syncShellFilters);
   window.removeEventListener('keydown', handleShellKeydown);
   window.removeEventListener('resize', decorateHorizontalScrollRegions);
   mobileMediaQuery?.removeEventListener?.('change', syncMobileViewport);
+  tableObserver?.disconnect();
 });
 watch(() => props.page, () => {
   syncShellFilters();
@@ -367,6 +372,7 @@ main{min-width:0;min-height:0;overflow-y:auto;background:#f5f7fa;outline:none}.p
 @media(min-width:941px) and (max-width:1600px){.page-frame,.standard-shell .page-frame{grid-template-columns:220px minmax(0,1fr)}.catalogue-group{padding-inline:11px}.scene-search{padding-inline:13px}}
 @media(min-width:1421px){.primary-nav a{min-width:0;flex:1 1 0}}
 @media(min-width:761px) and (max-width:1000px){.topbar{padding-inline:8px}.brand{flex-basis:140px;font-size:15px}.primary-nav{overflow-x:auto}.primary-nav a{min-width:58px;flex:0 0 auto;gap:0;padding-inline:3px;font-size:13px}.nav-glyph{display:none}.top-actions{flex-basis:132px;gap:2px}.action-link{width:32px}.top-user{gap:0;padding-left:6px}.top-user>img{width:32px;height:32px}.top-user span{display:none}}
+@media(min-width:761px) and (max-width:1280px){.top-user span{display:grid;min-width:0}.top-user strong,.top-user small{overflow:hidden;text-overflow:ellipsis;max-width:86px}}
 @media(min-width:761px){.certification-shell .page-frame{grid-template-columns:220px minmax(0,1fr)}}
 main{background:#f5f7fa}
 .catalogue-group nav a,.catalogue-group nav button{height:34px;font-size:14px}.scene-search input,.scene-search button{font-size:13px}.scene-search button{min-height:32px}.simple-nav a.sub{font-size:14px}

@@ -30,13 +30,14 @@ try {
       mounted: await page.locator('#main-content').count() === 1,
       integrationMode: await page.locator('[data-integration-mode]').getAttribute('data-integration-mode'),
       loginPrompt: await page.locator('.integration-auth-banner').count() > 0,
-      writePanelHidden: await page.locator('.controlled-write-panel').count() === 0
+      writePanelHidden: await page.locator('.controlled-write-panel').count() === 0,
+      writePanelBlocked: await page.locator('.controlled-write-panel[data-write-state="blocked"]').count() === 1
     });
   }
 } finally {
   await browser.close();
 }
 
-const failed = results.filter(item => item.status !== 200 || !item.mounted || !item.writePanelHidden);
+const failed = results.filter(item => item.status !== 200 || !item.mounted || (!item.writePanelHidden && !item.writePanelBlocked));
 console.log(JSON.stringify({ passed: results.length === 30 && !failed.length && !errors.length, expected: 30, verified: results.length, failed, errors, results }, null, 2));
 if (results.length !== 30 || failed.length || errors.length) process.exitCode = 2;

@@ -40,9 +40,9 @@ async function execute(action){
 </script>
 
 <template>
-  <section v-if="enabled&&actions.length" class="controlled-write-panel" aria-labelledby="controlled-write-title">
-    <header><div><h2 id="controlled-write-title">TEST_ 接口联调</h2><p>仅供已授权测试 Base。不会自动执行，所有请求仍由服务端重新核验身份、权限、同源和 TEST_ 前缀。</p></div><strong>{{ actions.length }} 个写接口</strong></header>
-    <details v-for="action in actions" :key="action.operationId">
+  <section v-if="actions.length" class="controlled-write-panel" :data-write-state="enabled ? 'enabled' : 'blocked'" aria-labelledby="controlled-write-title">
+    <header><div><h2 id="controlled-write-title">TEST_ 接口联调</h2><p v-if="enabled">仅供已授权测试 Base。不会自动执行，所有请求仍由服务端重新核验身份、权限、同源和 TEST_ 前缀。</p><p v-else role="alert">当前远程运行模式未启用测试写入通道；写接口保持禁用，不会发送请求。</p></div><strong>{{ actions.length }} 个写接口</strong></header>
+    <template v-if="enabled"><details v-for="action in actions" :key="action.operationId">
       <summary><code>{{ action.operationId }}</code><span>{{ action.versionConditionRequired?'需版本前置条件':'创建/幂等操作' }}</span></summary>
       <form @submit.prevent="execute(action)">
         <label>TEST_ 业务键<input v-model="stateFor(action).businessKey" required pattern="TEST_.+" /></label>
@@ -53,7 +53,7 @@ async function execute(action){
         <button type="submit" :disabled="stateFor(action).status==='loading'">{{ stateFor(action).status==='loading'?'执行中…':'执行接口' }}</button>
         <output :class="stateFor(action).status" aria-live="polite">{{ stateFor(action).message }}</output>
       </form>
-    </details>
+    </details></template>
   </section>
 </template>
 

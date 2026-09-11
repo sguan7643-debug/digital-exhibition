@@ -26,7 +26,9 @@ try {
     const geometry = await page.evaluate(() => {
       const focused = document.activeElement;
       const topbar = document.querySelector('.topbar');
-      const nav = focused?.closest('.primary-nav');
+      // At 200% zoom the 720px viewport uses the mobile navigation, so the
+      // focused control may be the menu button rather than a hidden nav link.
+      const nav = focused?.closest('.primary-nav') || focused?.closest('.topbar') || document.querySelector('.topbar');
       const rect = node => {
         const value = node.getBoundingClientRect();
         return { left: value.left, right: value.right, width: value.width };
