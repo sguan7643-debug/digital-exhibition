@@ -1,6 +1,8 @@
 <script setup>
 // Reference SHA-256: 8090BF0B8BFDCE7981D32F7C6B6335230D9F9508BF4549E716C10A2A4382D0CC
 import TypeLineIcon from "../components/TypeLineIcon.vue";
+import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
+const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});const projection=useAppDetailProjection(props,{name:'EAD应用',summary:''});
 const metrics = [
   ["创建日期", "2025-06-06"],
   ["应用类型", "EAD应用"],
@@ -21,7 +23,7 @@ const steps = [
 ];
 </script>
 <template>
-  <article class="product-detail ead-detail" aria-labelledby="ead-title">
+  <article v-if="projection.contentVisible" class="product-detail ead-detail" aria-labelledby="ead-title">
     <nav class="detail-crumb" aria-label="面包屑">
       应用中心　/　EAD应用　/　应用详情
     </nav>
@@ -29,7 +31,7 @@ const steps = [
       <div class="detail-hero-main">
         <span class="detail-logo detail-type-icon" role="img" aria-label="EAD应用图标"><TypeLineIcon name="ead" :size="34" /></span>
         <div class="detail-title">
-          <h1 id="ead-title">EAD应用</h1>
+          <h1 id="ead-title">{{ projection.name }}</h1><p v-if="projection.remoteMode">{{ projection.summary }}</p>
           <mark>EAD应用</mark><mark>综合管理</mark>
           <p>
             EAD应用是基于认证平台的企业应用架构与开发平台，支持应用设计、流程编排、权限管理、数据连接于一体，助力企业高效构建、敏捷发布与数字化转型。
@@ -128,7 +130,7 @@ const steps = [
       <label>应用评论<input placeholder="请输入您对该应用的评论..." /></label
       ><button type="submit">提交评论</button>
     </form>
-  </article>
+  </article><AppDetailStateBoundary v-else :projection="projection" />
 </template>
 <style scoped>
 .ead-detail .detail-hero {

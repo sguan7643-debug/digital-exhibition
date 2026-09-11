@@ -6,6 +6,8 @@ import { routeSession } from "../state/session-store.js";
 import BusinessPreviewGallery from "../components/BusinessPreviewGallery.vue";
 import TypeLineIcon from "../components/TypeLineIcon.vue";
 import IndicatorBuildDialog from "../components/IndicatorBuildDialog.vue";
+import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
+const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});const projection=useAppDetailProjection(props,{name:'经营分析可视化报表',summary:''});
 const metrics = [
   ["访问次数", "4,286 次"],
   ["应用类型", "可视化报表"],
@@ -61,7 +63,7 @@ async function submitComment() {
 }
 </script>
 <template>
-  <article class="product-detail report-detail" aria-labelledby="report-title">
+  <article v-if="projection.contentVisible" class="product-detail report-detail" aria-labelledby="report-title">
     <p class="sr-only" aria-live="polite">{{ detail.announcement }}</p>
     <nav class="detail-crumb" aria-label="面包屑">
       <a href="/apps?category=可视化报表" data-detail-return>应用中心</a
@@ -71,7 +73,7 @@ async function submitComment() {
       <div class="detail-hero-main">
         <span class="detail-logo detail-type-icon" role="img" aria-label="经营分析可视化报表图标"><TypeLineIcon name="report" :size="34" /></span>
         <div class="detail-title">
-          <h1 id="report-title">经营分析可视化报表</h1>
+          <h1 id="report-title">{{ projection.name }}</h1><p v-if="projection.remoteMode">{{ projection.summary }}</p>
           <mark>可视化报表</mark><mark>经营分析</mark>
           <p>
             汇聚企业经营核心数据，通过丰富的图表组件与灵活的分析维度，直观呈现经营指标、趋势变化及结构分布。
@@ -260,7 +262,7 @@ async function submitComment() {
       </ul>
     </form>
     <IndicatorBuildDialog ref="metricBuildDialog" app-name="经营分析可视化报表" @submit="submitMetricBuild" />
-  </article>
+  </article><AppDetailStateBoundary v-else :projection="projection" />
 </template>
 <style scoped>
 .report-detail {

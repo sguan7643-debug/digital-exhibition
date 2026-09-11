@@ -1,6 +1,8 @@
 <script setup>
 // Reference SHA-256: 48C41CBB2DF433C9680DD955A4777FA436BBFF6E094D56A3B5E6E0E48B01690B
 import TypeLineIcon from "../components/TypeLineIcon.vue";
+import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
+const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});const projection=useAppDetailProjection(props,{name:'物资供应链域指标库',summary:''});
 const metrics = [
   ["访问次数", "2,375 次"],
   ["最近更新", "2025-05-06"],
@@ -26,7 +28,7 @@ const rows = [
 ];
 </script>
 <template>
-  <article class="product-detail metric-detail" aria-labelledby="metric-title">
+  <article v-if="projection.contentVisible" class="product-detail metric-detail" aria-labelledby="metric-title">
     <nav class="detail-crumb" aria-label="面包屑">
       应用中心　/　指标　/　应用详情
     </nav>
@@ -34,7 +36,7 @@ const rows = [
       <div class="detail-hero-main">
         <span class="detail-logo detail-type-icon" role="img" aria-label="物资供应链域指标库图标"><TypeLineIcon name="metric" :size="34" /></span>
         <div class="detail-title">
-          <h1 id="metric-title">物资供应链域指标库</h1>
+          <h1 id="metric-title">{{ projection.name }}</h1><p v-if="projection.remoteMode">{{ projection.summary }}</p>
           <mark>指标</mark><mark>经营管理域</mark>
           <p>
             <strong>主要领域：</strong>供应链管理 ·
@@ -167,7 +169,7 @@ const rows = [
       <label>应用评论<input placeholder="请输入您对该应用的评论..." /></label
       ><button type="submit">提交评论</button>
     </form>
-  </article>
+  </article><AppDetailStateBoundary v-else :projection="projection" />
 </template>
 <style scoped>
 .metric-detail .detail-hero {

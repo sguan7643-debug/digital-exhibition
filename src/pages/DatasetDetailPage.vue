@@ -1,6 +1,8 @@
 <script setup>
 // Reference SHA-256: 7260427E1B5E85ECDFE37D52D6A88439178542503EC8E5E6FC5D679701633C97
 import TypeLineIcon from "../components/TypeLineIcon.vue";
+import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
+const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});const projection=useAppDetailProjection(props,{name:'供应商基础信息数据集',summary:''});
 const metrics = [
   ["启用时间", "3,562 次"],
   ["应用使用", "2,418 次"],
@@ -24,7 +26,7 @@ const fields = [
 ];
 </script>
 <template>
-  <article
+  <article v-if="projection.contentVisible"
     class="product-detail dataset-detail"
     aria-labelledby="dataset-title"
   >
@@ -35,7 +37,7 @@ const fields = [
       <div class="detail-hero-main">
         <span class="detail-logo detail-type-icon" role="img" aria-label="供应商基础信息数据集图标"><TypeLineIcon name="dataset" :size="34" /></span>
         <div class="detail-title">
-          <h1 id="dataset-title">供应商基础信息数据集</h1>
+          <h1 id="dataset-title">{{ projection.name }}</h1><p v-if="projection.remoteMode">{{ projection.summary }}</p>
           <mark>数据集</mark><mark>供应商管理</mark>
           <p>
             汇聚供应商注册、资质、分类、评价及合作历史等基础信息，提供标准化的供应商主数据服务。
@@ -179,7 +181,7 @@ const fields = [
       <label>应用评论<input placeholder="请输入您对该应用的评论..." /></label
       ><button type="submit">提交评论</button>
     </form>
-  </article>
+  </article><AppDetailStateBoundary v-else :projection="projection" />
 </template>
 <style scoped>
 .dataset-detail .detail-hero {

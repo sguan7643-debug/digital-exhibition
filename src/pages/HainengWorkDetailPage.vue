@@ -4,6 +4,10 @@ import { nextTick, ref } from "vue";
 import { createDetailController } from "../state/detail-controller.js";
 import { routeSession } from "../state/session-store.js";
 import TypeLineIcon from "../components/TypeLineIcon.vue";
+import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";
+import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
+const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});
+const projection=useAppDetailProjection(props,{name:'海能work应用',summary:''});
 const metrics = [
   ["创建日期", "2025-09-08"],
   ["应用类型", "应用"],
@@ -39,6 +43,7 @@ async function submitComment() {
 </script>
 <template>
   <article class="product-detail work-detail" aria-labelledby="work-title">
+    <AppDetailStateBoundary :projection="projection">
     <p class="sr-only" aria-live="polite">{{ detail.announcement }}</p>
     <nav class="detail-crumb" aria-label="面包屑">
       <a href="/apps?category=海能work应用" data-detail-return>应用中心</a
@@ -48,9 +53,9 @@ async function submitComment() {
       <div class="detail-hero-main">
         <span class="detail-logo detail-type-icon" role="img" aria-label="海能work应用图标"><TypeLineIcon name="work" :size="34" /></span>
         <div class="detail-title">
-          <h1 id="work-title">海能work应用</h1>
+          <h1 id="work-title">{{ projection.name }}</h1>
           <mark>应用</mark><mark>数字化办公</mark><mark>已上线</mark>
-          <p>
+          <p v-if="projection.remoteMode">{{ projection.summary }}</p><p v-else>
             集成企业核心业务应用，统一工作门户，提升协同效率，赋能数字化办公新体验。
           </p>
           <p>应用URL地址：<b>本地受控演示</b></p>
@@ -193,6 +198,7 @@ async function submitComment() {
         </li>
       </ul>
     </form>
+    </AppDetailStateBoundary>
   </article>
 </template>
 <style scoped>

@@ -6,6 +6,8 @@ import { routeSession } from "../state/session-store.js";
 import BusinessPreviewGallery from "../components/BusinessPreviewGallery.vue";
 import TypeLineIcon from "../components/TypeLineIcon.vue";
 import IndicatorBuildDialog from "../components/IndicatorBuildDialog.vue";
+import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
+const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});const projection=useAppDetailProjection(props,{name:'经营管理驾驶舱',summary:''});
 const metrics = [
   ["访问次数", "3,562 次"],
   ["应用类型", "驾驶舱"],
@@ -61,7 +63,7 @@ async function submitComment() {
 }
 </script>
 <template>
-  <article
+  <article v-if="projection.contentVisible"
     class="product-detail dashboard-detail"
     aria-labelledby="dashboard-title"
   >
@@ -74,7 +76,7 @@ async function submitComment() {
       <div class="detail-hero-main">
         <span class="detail-logo detail-type-icon" role="img" aria-label="经营管理驾驶舱图标"><TypeLineIcon name="visual" :size="34" /></span>
         <div class="detail-title">
-          <h1 id="dashboard-title">经营管理驾驶舱</h1>
+          <h1 id="dashboard-title">{{ projection.name }}</h1><p v-if="projection.remoteMode">{{ projection.summary }}</p>
           <mark>驾驶舱</mark><mark>经营分析</mark>
           <p>
             面向经营管理场景，整合财务、运营、营销、合同等核心业务数据，提供关键指标实时监控、上屏预警与趋势分析。
@@ -262,7 +264,7 @@ async function submitComment() {
       </ul>
     </form>
     <IndicatorBuildDialog ref="metricBuildDialog" app-name="经营管理驾驶舱" @submit="submitMetricBuild" />
-  </article>
+  </article><AppDetailStateBoundary v-else :projection="projection" />
 </template>
 <style scoped>
 .dashboard-detail .detail-hero {

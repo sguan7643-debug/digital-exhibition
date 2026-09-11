@@ -4,6 +4,10 @@ import { nextTick, ref } from "vue";
 import { createDetailController } from "../state/detail-controller.js";
 import { routeSession } from "../state/session-store.js";
 import TypeLineIcon from "../components/TypeLineIcon.vue";
+import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";
+import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
+const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});
+const projection=useAppDetailProjection(props,{name:'智能数据处理工具',summary:'面向日常办公与数据处理场景，提供文件格式转换、Excel批量处理、数据清洗、文本整理等常用工具能力。'});
 const metrics = [
   ["访问", "6,820 次"],
   ["类型", "工具"],
@@ -33,6 +37,7 @@ async function submitComment() {
 </script>
 <template>
   <article class="product-detail tool-detail" aria-labelledby="tool-title">
+    <AppDetailStateBoundary :projection="projection">
     <p class="sr-only" aria-live="polite">{{ detail.announcement }}</p>
     <nav class="detail-crumb" aria-label="面包屑">
       <a href="/apps?category=工具" data-detail-return>应用中心</a
@@ -42,9 +47,9 @@ async function submitComment() {
       <div class="detail-hero-main">
         <span class="detail-logo detail-type-icon" role="img" aria-label="智能数据处理工具图标"><TypeLineIcon name="tools" :size="34" /></span>
         <div class="detail-title">
-          <h1 id="tool-title">智能数据处理工具</h1>
+          <h1 id="tool-title">{{ projection.name }}</h1>
           <mark>工具</mark><mark>通用办公</mark>
-          <p>
+          <p v-if="projection.remoteMode">{{ projection.summary }}</p><p v-else>
             面向日常办公与数据处理场景，提供文件格式转换、Excel批量处理、数据清洗、文本整理等常用工具能力。
           </p>
           <p>应用URL地址　<b>本地演示地址</b></p>
@@ -201,6 +206,7 @@ async function submitComment() {
         </li>
       </ul>
     </form>
+    </AppDetailStateBoundary>
   </article>
 </template>
 <style scoped>

@@ -1,6 +1,8 @@
 <script setup>
 // Reference SHA-256: C66930E5C44E4ADAEB81872C7E64E8D41DC17A5BB46256314E404A9177C2923A
 import TypeLineIcon from "../components/TypeLineIcon.vue";
+import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
+const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});const projection=useAppDetailProjection(props,{name:'供应商信息自动录入机器人',summary:''});
 const metrics = [
   ["RPA流程名", "供应商信息自动录入机器人"],
   ["创建日期", "2025-05-08"],
@@ -25,7 +27,7 @@ const rpaDisplayUrl = [
 ].join("");
 </script>
 <template>
-  <article class="product-detail rpa-detail" aria-labelledby="rpa-title">
+  <article v-if="projection.contentVisible" class="product-detail rpa-detail" aria-labelledby="rpa-title">
     <nav class="detail-crumb" aria-label="面包屑">
       应用构建　/　应用中心　/　RPA应用详情
     </nav>
@@ -33,7 +35,7 @@ const rpaDisplayUrl = [
       <div class="detail-hero-main">
         <span class="detail-logo detail-type-icon" role="img" aria-label="供应商信息自动录入机器人图标"><TypeLineIcon name="rpa" :size="34" /></span>
         <div class="detail-title">
-          <h1 id="rpa-title">供应商信息自动录入机器人</h1>
+          <h1 id="rpa-title">{{ projection.name }}</h1><p v-if="projection.remoteMode">{{ projection.summary }}</p>
           <mark>RPA</mark><mark>供应链管理</mark><mark>已上线</mark>
           <p>
             <strong>应用简介：</strong
@@ -197,7 +199,7 @@ const rpaDisplayUrl = [
       <label>应用评论<input placeholder="请输入您对该应用的评论..." /></label
       ><button type="submit">提交评论</button>
     </form>
-  </article>
+  </article><AppDetailStateBoundary v-else :projection="projection" />
 </template>
 <style scoped>
 .rpa-detail .detail-hero {
