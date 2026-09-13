@@ -10,7 +10,7 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const identifierContract = loadFeishuIdentifierContract(path.join(root, 'server', 'contracts', 'feishu-base-identifiers.json'));
 const rowsByName = new Map([
   ['用户字典', [{ record_id: 'u1', fields: { AD账号: 'USER-1', 姓名: '用户甲' } }, { record_id: 'u2', fields: { AD账号: 'USER-2', 姓名: '用户乙' } }]],
-  ['用户权限', [{ record_id: 'p1', fields: { 用户ID: 'USER-1', 权限编码: 'apps.view', 状态: '有效', 启用: true } }]],
+  ['用户权限', [{ record_id: 'p1', fields: { AD账号: 'USER-1', 权限编码: 'apps.view', 状态: '有效', 启用: true } }]],
   ['消息通知', [
     { record_id: 'm1', fields: { 消息ID: 'MSG-1', 接收人ID: 'USER-1', 消息标题: '待办提醒', 消息内容: '请处理', 分类: 'TODO', 已读状态: '未读', 消息时间: '2026-09-02T02:00:00.000Z', 消息类型编码: 'TODO', 优先级: 'HIGH', 发送人ID: 'USER-2', 目标类型: 'APPLICATION', 目标ID: 'AP-1', 目标路径: '/applications/AP-1' } },
     { record_id: 'm2', fields: { 消息ID: 'MSG-2', 接收人ID: 'USER-2', 消息标题: '他人消息', 已读状态: '未读', 消息时间: '2026-09-02T01:00:00.000Z' } }

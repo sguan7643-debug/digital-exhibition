@@ -38,7 +38,7 @@ async function cleanup() {
 
 try {
   for (const permissionCode of ['admin.integrations.view', 'admin.audit.view', 'admin.archive.view', 'admin.health.view', 'admin.permissions.view', 'operations.dashboard.view', 'operations.announcements.manage', 'operations.apps.manage']) {
-    await create('用户权限', { 主键: marker(`PERMISSION_${permissionCode}`), 用户ID: userId, 权限编码: permissionCode, 启用: true });
+    await create('用户权限', { 主键: marker(`PERMISSION_${permissionCode}`), AD账号: userId, 权限编码: permissionCode, 启用: true });
   }
   await create('多维表连接配置', { 连接编码: marker('CONNECTION'), 连接名称: 'TEST_ 联调连接', 'Base Token掩码': 'TEST_bas***', 环境: 'TEST', 启用: true, 最后健康状态: 'HEALTHY', 版本号: 1 });
   await create('后台操作日志', { 审计ID: marker('AUDIT'), 请求ID: marker('REQUEST'), 操作人ID: userId, 模块编码: 'TEST', 动作编码: 'VIEW', 资源类型: 'TEST', 资源ID: marker('RESOURCE'), HTTP方法: 'GET', 路径: '/test', IP掩码: 'TEST_10.***', 结果编码: 'OK', 发生时间: Date.now(), 耗时毫秒: 10 });
@@ -91,7 +91,7 @@ try {
 let cleanupComplete = true;
 for (const target of created) {
   const tableName = [...tableByName].find(([, table]) => table.table_id === target.tableId)?.[0];
-  const key = tableName === '用户权限' ? '用户ID' : null;
+  const key = tableName === '用户权限' ? 'AD账号' : null;
   if (key) {
     const remaining = await adminClient.searchRecords(target.tableId, key, userId);
     if (remaining.items.length) cleanupComplete = false;

@@ -49,7 +49,7 @@ try {
     启用: true, 任职状态: 'ACTIVE'
   });
   await create('用户权限', '主键', marker('PERMISSION'), {
-    用户ID: userId, 主体类型: 'USER', 主体ID: userId, 权限编码: '*', 数据范围: marker('ORG'), 状态: 'ACTIVE', 启用: true
+    AD账号: userId, 主体类型: 'USER', 主体ID: userId, 权限编码: '*', 数据范围: marker('ORG'), 状态: 'ACTIVE', 启用: true
   });
   await create('消息通知', '消息ID', marker('MESSAGE'), {
     接收人ID: userId, 消息标题: marker('消息标题'), 消息内容: marker('消息内容'), 分类: 'TEST', 已读状态: '未读',

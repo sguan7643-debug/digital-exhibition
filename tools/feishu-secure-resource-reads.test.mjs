@@ -7,7 +7,7 @@ import { createSecureResourceOperationContracts, validateContractSchema } from '
 const identifierContract = loadFeishuIdentifierContract(new URL('../server/contracts/feishu-base-identifiers.json', import.meta.url));
 const rows = new Map([
   ['应用索引', [{ record_id: 'rec-app', fields: { 应用ID: 'APP-1', 应用名称: '采购助手', 应用URL地址: 'https://apps.example.test/launch', 状态: '已上架', 打开方式: 'NEW_TAB', SSO模式: 'NONE' } }]],
-  ['用户权限', [{ record_id: 'rec-perm', fields: { 应用ID: 'APP-1', 用户ID: 'USER-1', 状态: '启用', 启用: true } }]],
+  ['用户权限', [{ record_id: 'rec-perm', fields: { 应用ID: 'APP-1', AD账号: 'USER-1', 状态: '启用', 启用: true } }]],
   ['文件上传会话', [{ record_id: 'rec-upload', fields: { 文件ID: 'FILE-1', 文件名: 'TEST_说明.txt', MIME类型: 'text/plain', 大小字节: 4, 飞书文件令牌: 'token-file-1' } }]],
   ['附件资料', []],
   ['素材中心', [{ record_id: 'rec-material', fields: { 素材ID: 'MAT-1', 素材名称: 'TEST_模板', 素材文件: [{ file_token: 'token-material-1', name: 'TEST_模板.xlsx', size: 12 }], 下载次数: 3, 状态: 'ONLINE' } }]]

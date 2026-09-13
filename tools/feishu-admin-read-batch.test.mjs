@@ -11,14 +11,14 @@ const identifierContract = loadFeishuIdentifierContract(path.join(root, 'server'
 const rowsByName = new Map([
   ['用户字典', [{ record_id: 'u1', fields: { AD账号: 'ADMIN-1', 姓名: '管理员' } }]],
   ['用户权限', [
-    { record_id: 'p1', fields: { 用户ID: 'ADMIN-1', 权限编码: 'admin.integrations.view', 启用: true } },
-    { record_id: 'p2', fields: { 用户ID: 'ADMIN-1', 权限编码: 'admin.audit.view', 启用: true } },
-    { record_id: 'p3', fields: { 用户ID: 'ADMIN-1', 权限编码: 'admin.archive.view', 启用: true } },
-    { record_id: 'p4', fields: { 用户ID: 'ADMIN-1', 权限编码: 'operations.dashboard.view', 启用: true } },
-    { record_id: 'p5', fields: { 用户ID: 'ADMIN-1', 权限编码: 'operations.announcements.manage', 启用: true } },
-    { record_id: 'p6', fields: { 用户ID: 'ADMIN-1', 权限编码: 'operations.apps.manage', 启用: true } },
-    { record_id: 'p7', fields: { 用户ID: 'ADMIN-1', 权限编码: 'admin.health.view', 启用: true } },
-    { record_id: 'p8', fields: { 用户ID: 'ADMIN-1', 权限编码: 'admin.permissions.view', 启用: true } }
+    { record_id: 'p1', fields: { AD账号: 'ADMIN-1', 权限编码: 'admin.integrations.view', 启用: true } },
+    { record_id: 'p2', fields: { AD账号: 'ADMIN-1', 权限编码: 'admin.audit.view', 启用: true } },
+    { record_id: 'p3', fields: { AD账号: 'ADMIN-1', 权限编码: 'admin.archive.view', 启用: true } },
+    { record_id: 'p4', fields: { AD账号: 'ADMIN-1', 权限编码: 'operations.dashboard.view', 启用: true } },
+    { record_id: 'p5', fields: { AD账号: 'ADMIN-1', 权限编码: 'operations.announcements.manage', 启用: true } },
+    { record_id: 'p6', fields: { AD账号: 'ADMIN-1', 权限编码: 'operations.apps.manage', 启用: true } },
+    { record_id: 'p7', fields: { AD账号: 'ADMIN-1', 权限编码: 'admin.health.view', 启用: true } },
+    { record_id: 'p8', fields: { AD账号: 'ADMIN-1', 权限编码: 'admin.permissions.view', 启用: true } }
   ]],
   ['消息通知', []], ['应用收藏', []], ['积分余额', []],
   ['多维表连接配置', [{ record_id: 'conn1', fields: { 连接编码: 'CONN-1', 环境: 'TEST', 'Base Token掩码': 'bas***123', 启用: true, 最后健康状态: 'HEALTHY', 版本号: 2 } }]],

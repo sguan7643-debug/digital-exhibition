@@ -82,6 +82,10 @@ function userDictionaryAccount(fields = {}) {
   return valueToText(fields['AD账号']) || valueToText(fields['用户ID']);
 }
 
+function permissionSubjectIdentifier(fields = {}) {
+  return valueToText(fields['AD账号']) || valueToText(fields['主体ID']) || valueToText(fields['用户ID']);
+}
+
 function createUserDictionaryLookup(records, valueField, { fallbackToKey = true } = {}) {
   const result = new Map();
   for (const record of records || []) {
@@ -1093,7 +1097,7 @@ export function createFeishuReadOnlyService(options) {
     })?.fields || {};
     const permissions = permissionRows.filter(record => {
       const fields = record?.fields || {};
-      return valueToText(fields['用户ID'] || fields['主体ID']) === userId && permissionRecordActive(fields);
+      return permissionSubjectIdentifier(fields) === userId && permissionRecordActive(fields);
     });
     const permissionCodes = [...new Set(permissions.map(record => valueToText(record?.fields?.['权限编码'])).filter(Boolean))];
     const availableOrgIds = [...new Set([
@@ -1414,7 +1418,7 @@ export function createFeishuReadOnlyService(options) {
       const subjectType = valueToText(input.subjectType); const subjectId = valueToText(input.subjectId); const permissionCode = valueToText(input.permissionCode);
       if (!['USER', 'ROLE', 'ORG'].includes(subjectType) || !subjectId || !permissionCode) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '权限预览主体和权限编码无效', 400);
       const evaluationAt = valueToText(input.evaluationAt) || now().toISOString();
-      const matchedRules = (await readAll('用户权限')).filter(record => { const fields = record?.fields || {}; return valueToText(fields['主体类型'] || 'USER') === subjectType && valueToText(fields['主体ID'] || fields['用户ID']) === subjectId && valueToText(fields['权限编码']) === permissionCode && permissionRecordActive(fields); }).map(record => { const fields = record?.fields || {}; return { permissionId: valueToText(fields['主键']) || String(record?.record_id || ''), subjectType, subjectId, permissionCode, dataScope: valueToText(fields['数据范围']), effectiveFrom: valueToText(fields['生效时间']), effectiveTo: valueToText(fields['失效时间']) || null, decision: 'ALLOW' }; });
+      const matchedRules = (await readAll('用户权限')).filter(record => { const fields = record?.fields || {}; return valueToText(fields['主体类型'] || 'USER') === subjectType && permissionSubjectIdentifier(fields) === subjectId && valueToText(fields['权限编码']) === permissionCode && permissionRecordActive(fields); }).map(record => { const fields = record?.fields || {}; return { permissionId: valueToText(fields['主键']) || String(record?.record_id || ''), subjectType, subjectId, permissionCode, dataScope: valueToText(fields['数据范围']), effectiveFrom: valueToText(fields['生效时间']), effectiveTo: valueToText(fields['失效时间']) || null, decision: 'ALLOW' }; });
       return { allowed: matchedRules.length > 0, matchedRules, finalDataScope: matchedRules.map(item => item.dataScope).filter(Boolean).join(','), deniedReasonCode: matchedRules.length ? null : 'NO_MATCHED_RULE', evaluatedAt: evaluationAt };
     }
     if (operationId === 'OPS-001') {
@@ -1924,7 +1928,7 @@ export function createFeishuReadOnlyService(options) {
       const app = appRows.find(record => valueToText(record?.fields?.['应用ID']) === appId)?.fields;
       if (!app) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '应用不存在或不可见', 404);
       const appPermissions = permissionRows.filter(record => valueToText(record?.fields?.['应用ID']) === appId && permissionRecordActive(record?.fields || {}));
-      const allowedByPermission = !appPermissions.length || appPermissions.some(record => valueToText(record?.fields?.['用户ID'] || record?.fields?.['主体ID']) === userId);
+      const allowedByPermission = !appPermissions.length || appPermissions.some(record => permissionSubjectIdentifier(record?.fields || {}) === userId);
       const status = valueToText(app['状态']);
       const online = /^(?:ONLINE|已上架|启用|正常)$/i.test(status);
       const rawUrl = Array.isArray(app['应用URL地址']) ? app['应用URL地址'][0]?.link || app['应用URL地址'][0]?.text : app['应用URL地址'];

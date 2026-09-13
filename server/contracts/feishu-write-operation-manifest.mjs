@@ -20,7 +20,7 @@ export const FEISHU_WRITE_OPERATION_MANIFEST = Object.freeze([
   definition('TRN-004', '培训报名', '报名编号', 'CREATE', ['课程ID', '用户ID', '状态', '报名时间', '排队序号', '幂等键']),
   definition('TRN-005', '培训报名', '报名编号', 'UPDATE', ['状态', '取消时间', '取消原因']),
   definition('CER-004', '考试预约', '预约编号', 'CREATE', ['认证项目ID', '考试场次ID', '用户ID', '状态', '预约时间', '幂等键']),
-  definition('OAP-010', '用户权限', '主键', 'UPSERT', ['应用ID', '用户ID', '授权时间', '授权人ID', '状态']),
+  definition('OAP-010', '用户权限', '主键', 'UPSERT', ['应用ID', 'AD账号', '授权时间', '授权人ID', '状态']),
   definition('ADM-001', '应用类型配置', '类型ID', 'UPSERT', ['类型名称', '类型编码', '类型图标', '排序', '状态', '是否系统内置', '类型描述']),
   definition('ADM-002', '业务域字典', '业务域ID', 'UPSERT', ['业务域名称']),
   definition('ADM-005', '异常处理记录', '异常ID', 'COMMAND', ['状态', '处理人ID', '解决时间', '最后重试状态', '发生次数']),

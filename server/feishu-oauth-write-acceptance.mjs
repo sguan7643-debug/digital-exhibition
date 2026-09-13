@@ -83,7 +83,7 @@ export function createFeishuOAuthWriteAcceptance({
         tableName: '用户权限', keyField: '主键', businessKey: permissionKey,
         idempotencyKey: permissionIdempotencyKey,
         fields: {
-          应用ID: 'TEST_OAUTH_ACCEPTANCE', 用户ID: userId,
+          应用ID: 'TEST_OAUTH_ACCEPTANCE', AD账号: userId,
           主体类型: 'USER', 主体ID: userId,
           权限编码: 'operation:*:execute', 数据范围: 'TEST_',
           状态: 'ENABLED', 启用: true, 授权时间: now().toISOString()
