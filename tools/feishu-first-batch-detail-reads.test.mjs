@@ -19,7 +19,7 @@ const rowsByName = new Map([
   ['素材中心', [{ record_id: 'rec-material', fields: { 素材ID: 'MAT-001', 素材编码: 'MAT-CODE-001', 素材名称: '经营分析模板', 素材摘要: '模板摘要', 素材描述: '模板说明', 素材类型: 'TEMPLATE', 分类ID: 'CAT-001', 分类名称: '模板', 关联应用ID: 'APP-001', 素材文件: [{ file_token: 'material-token', name: '模板.xlsx', size: 2048 }], 版本名称: 'V1', 发布人ID: 'U-001', 发布人姓名: '发布人', 发布时间: '2026-08-20', 浏览量: 3, 下载次数: 4, 状态: 'ONLINE', 版本: 1, 更新时间: '2026-08-21' } }]],
   ['公告通知', [{ record_id: 'rec-ann', fields: { 公告ID: 'ANN-001', 公告标题: '系统通知', 分类: 'SYSTEM', 公告正文: '<p>通知正文</p>', 公告摘要: '通知摘要', 发布部门ID: 'D-001', 发布人ID: 'U-001', 状态: 'PUBLISHED', 是否置顶: true, 发布时间: '2026-08-30', 有效期开始: '2026-08-30', 有效期结束: '2026-09-30', 浏览量: 5, 范围类型: 'ALL', 版本: 2, 创建时间: '2026-08-29', 更新时间: '2026-08-30' } }]],
   ['公告关联对象', [{ record_id: 'rec-ann-rel', fields: { 关联编码: 'ANNREL-001', 公告ID: 'ANN-001', 关联类型: 'APP', 资源ID: 'APP-001', 排序: 1, 启用: true } }]],
-  ['用户字典', [{ record_id: 'rec-user', fields: { 用户ID: 'U-001', 姓名: '发布人' } }]],
+  ['用户字典', [{ record_id: 'rec-user', fields: { AD账号: 'U-001', 姓名: '发布人' } }]],
   ['部门字典', [{ record_id: 'rec-dept', fields: { 部门ID: 'D-001', 部门名称: '运营部' } }]]
 ]);
 const nameByTableId = new Map([...identifierContract.byName.values()].map(table => [table.tableId, table.name]));

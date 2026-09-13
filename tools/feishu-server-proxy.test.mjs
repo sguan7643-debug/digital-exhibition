@@ -222,7 +222,7 @@ fakeRowsByTableId.set(contract.byName.get('应用索引').tableId, {
   }
 });
 fakeRowsByTableId.set(contract.byName.get('用户字典').tableId, {
-  record_id: 'rec-user', fields: { 用户ID: 'U-001', 姓名: '张三丰', 岗位: '产品经理', 所属部门ID: 'D-001' }
+  record_id: 'rec-user', fields: { AD账号: 'U-001', 姓名: '张三丰', 岗位: '产品经理', 所属部门ID: 'D-001' }
 });
 fakeRowsByTableId.set(contract.byName.get('部门字典').tableId, {
   record_id: 'rec-department', fields: { 部门ID: 'D-001', 部门名称: '经营管理部' }

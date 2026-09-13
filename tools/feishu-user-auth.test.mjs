@@ -75,6 +75,7 @@ assert.match(completed.sessionCookie, /HttpOnly/);
 assert.match(completed.clearStateCookie, /Max-Age=0/);
 assert.deepEqual(completed.identity, {
   userId: 'u_test',
+  adAccount: 'u_test',
   openId: 'ou_test',
   unionId: 'on_test',
   displayName: '测试用户',

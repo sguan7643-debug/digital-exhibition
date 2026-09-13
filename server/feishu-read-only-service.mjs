@@ -76,6 +76,23 @@ function valueToText(value) {
   return String(value);
 }
 
+// 用户字典以 AD账号 为唯一业务主键。用户ID仅用于兼容迁移前的历史记录；
+// 其他业务表仍可保留“用户ID”等字段名，但其中的值必须是这个 AD 账号。
+function userDictionaryAccount(fields = {}) {
+  return valueToText(fields['AD账号']) || valueToText(fields['用户ID']);
+}
+
+function createUserDictionaryLookup(records, valueField, { fallbackToKey = true } = {}) {
+  const result = new Map();
+  for (const record of records || []) {
+    const fields = record?.fields || {};
+    const account = userDictionaryAccount(fields);
+    const value = valueToText(fields[valueField]);
+    if (account && (value || fallbackToKey)) result.set(account, value || account);
+  }
+  return result;
+}
+
 function valueToNumber(value) {
   const normalized = Number(String(valueToText(value)).replaceAll(',', '').trim());
   return Number.isFinite(normalized) ? normalized : 0;
@@ -219,7 +236,7 @@ export function createFeishuReadOnlyService(options) {
     ]);
     const appRows = await readAll('应用索引');
     const typeLookup = createLookup(typeRows, ['类型ID', '类型编码', '类型名称'], '类型名称');
-    const userLookup = createLookup(userRows, ['用户ID', '工号', '姓名'], '姓名');
+    const userLookup = createUserDictionaryLookup(userRows, '姓名');
     const departmentLookup = createLookup(departmentRows, ['部门ID', '部门名称'], '部门名称');
     const domainLookup = createLookup(domainRows, ['业务域ID', '业务域名称'], '业务域名称');
     const sceneLookup = createLookup(sceneRows, ['场景ID', '场景名称'], '场景名称');
@@ -321,9 +338,9 @@ export function createFeishuReadOnlyService(options) {
     const [personRows, projectRows, progressRows, userRows, departmentRows] = await Promise.all([
       readAll('人才库'), readAll('人才项目'), readAll('项目进度'), readAll('用户字典'), readAll('部门字典')
     ]);
-    const userLookup = createLookup(userRows, ['用户ID', '工号', '姓名'], '姓名');
-    const employeeLookup = createLookup(userRows, ['用户ID', '姓名'], '工号', { fallbackToKey: false });
-    const userDepartmentLookup = createLookup(userRows, ['用户ID', '工号', '姓名'], '所属部门ID');
+    const userLookup = createUserDictionaryLookup(userRows, '姓名');
+    const employeeLookup = createUserDictionaryLookup(userRows, '工号', { fallbackToKey: false });
+    const userDepartmentLookup = createUserDictionaryLookup(userRows, '所属部门ID');
     const departmentLookup = createLookup(departmentRows, ['部门ID', '部门名称'], '部门名称');
     const projectLookup = createLookup(projectRows, ['主键'], '项目名称');
     const people = personRows.map(record => {
@@ -879,7 +896,7 @@ export function createFeishuReadOnlyService(options) {
     const announcementRecord = announcementRows.find(record => valueToText(record?.fields?.['公告ID']) === announcementId);
     if (!announcementRecord) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '公告不存在或不可见', 404);
     const relations = relationRows.filter(record => valueToText(record?.fields?.['公告ID']) === announcementId);
-    const userLookup = createLookup(userRows, ['用户ID'], '姓名');
+    const userLookup = createUserDictionaryLookup(userRows, '姓名');
     const departmentLookup = createLookup(departmentRows, ['部门ID'], '部门名称');
     const relationItems = relations.map(record => {
       const fields = record?.fields || {};
@@ -1000,7 +1017,7 @@ export function createFeishuReadOnlyService(options) {
     if (!['createdAt,desc', 'createdAt,asc'].includes(sort)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '评论排序方式不受支持', 400);
     const { page, pageSize } = publicPage(input);
     const [commentRows, userRows] = await Promise.all([readAll('应用评论'), readAll('用户字典')]);
-    const users = new Map(userRows.map(record => [valueToText(record?.fields?.['用户ID']), record?.fields || {}]));
+    const users = new Map(userRows.map(record => [userDictionaryAccount(record?.fields), record?.fields || {}]).filter(([account]) => account));
     let items = commentRows.map(record => {
       const fields = record?.fields || {};
       const commentAppId = valueToText(fields['应用ID']);
@@ -1051,7 +1068,7 @@ export function createFeishuReadOnlyService(options) {
 
   function requireIdentity(requestContext) {
     const identity = requestContext?.identity;
-    const userId = valueToText(identity?.userId || identity?.openId);
+    const userId = valueToText(identity?.adAccount || identity?.userId);
     if (!userId) throw new FeishuProxyError('USER_AUTH_REQUIRED', '需要先完成飞书用户授权', 401);
     return { identity, userId };
   }
@@ -1072,8 +1089,7 @@ export function createFeishuReadOnlyService(options) {
     ]);
     const user = userRows.find(record => {
       const fields = record?.fields || {};
-      return [fields['用户ID'], fields['工号']].map(valueToText).includes(userId)
-        || valueToText(fields['用户ID']) === valueToText(identity.openId);
+      return userDictionaryAccount(fields) === userId;
     })?.fields || {};
     const permissions = permissionRows.filter(record => {
       const fields = record?.fields || {};
@@ -1155,7 +1171,7 @@ export function createFeishuReadOnlyService(options) {
     const [useRows, onboardingRows, reuseRows, userRows, projection] = await Promise.all([
       readAll('使用申请'), readAll('上架申请'), readAll('应用复用申请'), readAll('用户字典'), getAppProjection()
     ]);
-    const users = createLookup(userRows, ['用户ID'], '姓名');
+    const users = createUserDictionaryLookup(userRows, '姓名');
     const apps = new Map(projection.items.map(item => [item.appId, item]));
     return [
       ...useRows.map(record => todoFromRecord(record, 'APP_USE', users, apps)),
@@ -1189,7 +1205,7 @@ export function createFeishuReadOnlyService(options) {
       ]);
       const stats = statsRows.find(record => valueToText(record?.fields?.['用户ID']) === userId)?.fields || {};
       const latestMonth = monthRows.filter(record => valueToText(record?.fields?.['用户ID']) === userId).sort((a, b) => valueToText(b?.fields?.['年月']).localeCompare(valueToText(a?.fields?.['年月'])))[0]?.fields || {};
-      const users = new Map(userRows.map(record => [valueToText(record?.fields?.['用户ID']), record?.fields || {}]));
+      const users = new Map(userRows.map(record => [userDictionaryAccount(record?.fields), record?.fields || {}]).filter(([account]) => account));
       const recentMessages = messageRows.filter(record => valueToText(record?.fields?.['接收人ID']) === userId).map(record => messageFromRecord(record, users))
         .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, recentMessageLimit)
         .map(item => ({ messageId: item.messageId, typeName: item.typeName, title: item.title, occurredAt: item.occurredAt, isRead: item.isRead, targetType: item.targetType, targetId: item.targetId, targetPath: item.targetPath }));
@@ -1266,7 +1282,7 @@ export function createFeishuReadOnlyService(options) {
       const fields = found.record.fields || {};
       const appId = valueToText(fields['应用ID'] || fields['关联应用ID']);
       const app = projection.items.find(item => item.appId === appId);
-      const applicantName = valueToText(userRows.find(record => valueToText(record?.fields?.['用户ID']) === userId)?.fields?.['姓名']);
+      const applicantName = valueToText(userRows.find(record => userDictionaryAccount(record?.fields) === userId)?.fields?.['姓名']);
       const applicationNo = valueToText(fields['申请编号'] || fields['申请单号'] || fields['主键']) || applicationId;
       const status = normalizedApplicationStatus(fields);
       const submission = submissionRows.find(record => {
@@ -1531,7 +1547,7 @@ export function createFeishuReadOnlyService(options) {
       assertAllowedInput(input, ['keyword', 'operatorId', 'operatorOrgId', 'moduleCode', 'resourceType', 'resourceId', 'actionCode', 'resultCode', 'requestId', 'ip', 'startAt', 'endAt', 'page', 'pageSize', 'sort']);
       const { page, pageSize } = publicPage(input); const keyword = valueToText(input.keyword).toLocaleLowerCase('zh-CN');
       const [rows, users, departments] = await Promise.all([readAll('后台操作日志'), readAll('用户字典'), readAll('部门字典')]);
-      const userLookup = createLookup(users, ['用户ID'], '姓名'); const departmentLookup = createLookup(departments, ['部门ID'], '部门名称');
+      const userLookup = createUserDictionaryLookup(users, '姓名'); const departmentLookup = createLookup(departments, ['部门ID'], '部门名称');
       let items = rows.map(record => {
         const fields = record?.fields || {}; const operatorId = valueToText(fields['操作人ID']); const operatorOrgId = valueToText(fields['操作部门ID']);
         return {
@@ -1663,7 +1679,7 @@ export function createFeishuReadOnlyService(options) {
       const allowed = operationId === 'MSG-001' ? ['timezone'] : ['keyword', 'typeCode', 'readStatus', 'startAt', 'endAt', 'page', 'pageSize', 'sort'];
       assertAllowedInput(input, allowed);
       const [messageRows, userRows] = await Promise.all([readAll('消息通知'), readAll('用户字典')]);
-      const users = new Map(userRows.map(record => [valueToText(record?.fields?.['用户ID']), record?.fields || {}]));
+      const users = new Map(userRows.map(record => [userDictionaryAccount(record?.fields), record?.fields || {}]).filter(([account]) => account));
       let items = messageRows.filter(record => valueToText(record?.fields?.['接收人ID']) === userId).map(record => messageFromRecord(record, users)).filter(item => item.messageId);
       if (operationId === 'MSG-001') {
         const byType = new Map();

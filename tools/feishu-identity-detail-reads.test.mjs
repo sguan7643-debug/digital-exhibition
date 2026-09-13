@@ -9,7 +9,7 @@ import { resolveRemoteReadOperation } from '../src/integration/remote-operation-
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const identifierContract = loadFeishuIdentifierContract(path.join(root, 'server', 'contracts', 'feishu-base-identifiers.json'));
 const rowsByName = new Map([
-  ['用户字典', [{ record_id: 'u1', fields: { 用户ID: 'USER-1', 姓名: '用户甲' } }]],
+  ['用户字典', [{ record_id: 'u1', fields: { AD账号: 'USER-1', 姓名: '用户甲' } }]],
   ['应用索引', [{ record_id: 'app1', fields: { 应用ID: 'APP-1', 应用名称: '采购助手', 应用类型: 'AI', 状态: 'ONLINE' } }]],
   ['应用类型配置', [{ record_id: 'type1', fields: { 类型ID: 'AI', 类型编码: 'AI', 类型名称: 'AI智能体' } }]],
   ['业务域字典', []], ['部门字典', []], ['场景字典', []],

@@ -8,13 +8,13 @@ import { createVerifiedReadOperationContracts, validateContractSchema } from '..
 import { resolveRemoteReadOperation } from '../src/integration/remote-operation-capabilities.js';
 
 const identity = Object.freeze({
-  userId: 'u_test', openId: 'ou_test', unionId: 'on_test', displayName: '测试用户',
+  userId: 'feishu-user-123', adAccount: 'u_test', openId: 'ou_test', unionId: 'on_test', displayName: '测试用户',
   avatarUrl: 'https://example.invalid/avatar.png', employeeNo: 'TEST_001', tenantKey: 'tenant-test', identityType: 'user_id'
 });
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const identifierContract = loadFeishuIdentifierContract(path.join(root, 'server', 'contracts', 'feishu-base-identifiers.json'));
 const rowsByName = new Map([
-  ['用户字典', [{ record_id: 'user-row', fields: { 用户ID: 'u_test', 姓名: '测试用户', 工号: 'TEST_001', 组织ID: 'ORG-1', 组织名称: '测试组织', 所属部门ID: 'DEPT-1', 所属部门名称: '测试部门', 手机号脱敏值: '138****0000', 邮箱脱敏值: 't***@example.invalid' } }]],
+  ['用户字典', [{ record_id: 'user-row', fields: { AD账号: 'u_test', 姓名: '测试用户', 工号: 'TEST_001', 组织ID: 'ORG-1', 组织名称: '测试组织', 所属部门ID: 'DEPT-1', 所属部门名称: '测试部门', 手机号脱敏值: '138****0000', 邮箱脱敏值: 't***@example.invalid' } }]],
   ['用户权限', [
     { record_id: 'permission-1', fields: { 用户ID: 'u_test', 权限编码: 'apps.view', 状态: '有效', 启用: true, 数据范围: 'ORG-1、ORG-2' } },
     { record_id: 'permission-other', fields: { 用户ID: 'u_other', 权限编码: 'admin.*', 状态: '有效', 启用: true } }

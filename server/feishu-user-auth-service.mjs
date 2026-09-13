@@ -60,6 +60,8 @@ function sanitizedIdentity(data = {}) {
   }
   return Object.freeze({
     userId,
+    // 飞书 user_id 只负责把授权会话解析到企业账号；业务查询统一读取 adAccount。
+    adAccount: userId,
     openId,
     unionId: String(data.union_id || ''),
     displayName: String(data.name || ''),

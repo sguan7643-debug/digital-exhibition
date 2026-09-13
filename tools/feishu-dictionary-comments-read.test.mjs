@@ -16,8 +16,8 @@ const rowsByName = new Map([
   ['素材分类', [{ record_id: 'rec-category', fields: { 分类编码: 'DOC', 分类名称: '文档', 父级ID: '', 启用: true, 排序: 1, 版本: 1, 更新时间: '2026-08-30' } }]],
   ['应用评论', [{ record_id: 'rec-comment', fields: { 主键: 'COMMENT-1', 应用ID: 'APP-1', 评论人ID: 'USER-1', 评论内容: '很好用', 评论时间: '2026-09-01', 评分: 5, 状态: 'PUBLISHED', 回复内容脱敏值: '感谢反馈', 回复人ID: 'USER-2', 回复时间: '2026-09-02', 版本: 1, 更新时间: '2026-09-02' } }]],
   ['用户字典', [
-    { record_id: 'rec-user-1', fields: { 用户ID: 'USER-1', 姓名: '用户甲', 头像: 'avatar-secret-token', 所属部门名称: '采购部' } },
-    { record_id: 'rec-user-2', fields: { 用户ID: 'USER-2', 姓名: '管理员乙', 所属部门名称: '运营部' } }
+    { record_id: 'rec-user-1', fields: { AD账号: 'USER-1', 姓名: '用户甲', 头像: 'avatar-secret-token', 所属部门名称: '采购部' } },
+    { record_id: 'rec-user-2', fields: { AD账号: 'USER-2', 姓名: '管理员乙', 所属部门名称: '运营部' } }
   ]]
 ]);
 const nameByTableId = new Map([...identifierContract.byName.values()].map(table => [table.tableId, table.name]));

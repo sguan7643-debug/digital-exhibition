@@ -43,7 +43,7 @@ async function cleanup() {
 }
 
 try {
-  await create('用户字典', '用户ID', userId, {
+  await create('用户字典', 'AD账号', userId, {
     姓名: marker('用户'), 工号: marker('EMPLOYEE'), 所属部门ID: marker('DEPARTMENT'), 所属部门名称: marker('部门'),
     组织ID: marker('ORG'), 组织名称: marker('组织'), 邮箱脱敏值: 'T***@example.test', 手机号脱敏值: '138****0000',
     启用: true, 任职状态: 'ACTIVE'
