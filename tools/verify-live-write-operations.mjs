@@ -3,6 +3,7 @@ import { FEISHU_WRITE_OPERATION_MANIFEST } from '../server/contracts/feishu-writ
 import { createFeishuSchemaAdminClient } from '../server/feishu-schema-admin-client.mjs';
 import { createFeishuSafeTestRecordService } from '../server/feishu-safe-test-record-service.mjs';
 import { createFeishuWriteOperationService } from '../server/feishu-write-operation-service.mjs';
+import { cleanupAndVerify } from '../server/feishu-live-cleanup.mjs';
 
 const WRITE_INTERVAL_MS = 900;
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
@@ -151,36 +152,24 @@ for (const plan of FEISHU_WRITE_OPERATION_MANIFEST) {
       result.rollback = 'not_applicable_delete';
     } else {
       try {
-        if (plan.mode === 'CREATE') {
-          await safeRecordService.update({ tableName: plan.tableName, keyField: plan.keyField, businessKey, ifMatch: 99, fields: values.changed, governance: plan.governance });
-        } else {
-          await writeService.execute(plan.operationId, { businessKey, idempotencyKey, ifMatch: 99, fields: values.changed });
-        }
+        await writeService.execute(plan.operationId, { businessKey, idempotencyKey, ifMatch: 99, fields: values.changed });
         throw new Error('预期版本冲突未发生');
       } catch (error) {
         if (error.code !== 'VERSION_CONFLICT') throw error;
         result.versionConflict = 'passed';
       }
 
-      const updated = plan.mode === 'CREATE'
-        ? await safeRecordService.update({ tableName: plan.tableName, keyField: plan.keyField, businessKey, ifMatch: 1, fields: values.changed, governance: plan.governance })
-        : await writeService.execute(plan.operationId, { businessKey, idempotencyKey, ifMatch: 1, fields: values.changed });
-      const updatedVersion = updated.version || updated.data?.version;
+      const updated = await writeService.execute(plan.operationId, { businessKey, idempotencyKey, ifMatch: 1, fields: values.changed });
+      const updatedVersion = updated.data?.version;
       result.updated = updatedVersion === 2 ? 'passed' : 'failed';
-      const rolledBack = await safeRecordService.rollback({
-        tableName: plan.tableName,
-        keyField: plan.keyField,
-        businessKey,
-        fromVersion: 2,
-        restoreFields: values.restored,
-        governance: plan.governance
-      });
-      result.rollback = rolledBack.rolledBack && rolledBack.version === 3 ? 'passed' : 'failed';
+      const rolledBack = await writeService.execute(plan.operationId, { businessKey, idempotencyKey, ifMatch: 2, fields: values.restored });
+      result.rollback = rolledBack.data?.version === 3 ? 'passed' : 'failed';
     }
 
     await removeIfPresent(plan, businessKey);
     await assertAbsent(plan, businessKey);
     result.cleanup = true;
+    result.status = 'passed';
     result.passed = result.createdOrSeeded
       && result.idempotency === 'passed'
       && result.versionConflict !== 'failed'
@@ -192,26 +181,37 @@ for (const plan of FEISHU_WRITE_OPERATION_MANIFEST) {
     if (!result.passed) throw new Error(`${plan.operationId} 真实写接口验证未通过`);
   } catch (error) {
     result.passed = false;
+    result.status = ['COMMAND_NOT_IMPLEMENTED', 'WRITE_OPERATION_NOT_ENABLED', 'REMOTE_DISABLED'].includes(error.code) ? 'blocked' : 'failed';
     result.errorCode = error.code || 'UNEXPECTED';
     result.errorMessage = String(error.message || error).slice(0, 200);
     if (!results.includes(result)) results.push(result);
     console.error(JSON.stringify(result));
-    break;
   }
 }
 
-for (const { plan, businessKey } of cleanupTargets) {
-  try { await removeIfPresent(plan, businessKey); } catch {}
+const cleanupResult = await cleanupAndVerify({
+  targets: cleanupTargets,
+  cleanup: async ({ plan, businessKey }) => {
+    await removeIfPresent(plan, businessKey);
+    await assertAbsent(plan, businessKey);
+  }
+});
+for (const outcome of cleanupResult.outcomes) {
+  const match = results.find(item => item.operationId === outcome.target.plan.operationId);
+  if (match) match.cleanup = outcome.ok;
 }
 
 const passedCount = results.filter(item => item.passed).length;
+const cleanupComplete = cleanupResult.ok && results.length === FEISHU_WRITE_OPERATION_MANIFEST.length && results.every(item => item.cleanup);
 const summary = {
-  passed: passedCount === FEISHU_WRITE_OPERATION_MANIFEST.length,
+  passed: results.length === FEISHU_WRITE_OPERATION_MANIFEST.length && passedCount === FEISHU_WRITE_OPERATION_MANIFEST.length && cleanupComplete,
   expected: FEISHU_WRITE_OPERATION_MANIFEST.length,
   executed: results.length,
   passedCount,
   failed: results.filter(item => !item.passed).map(item => ({ operationId: item.operationId, code: item.errorCode, message: item.errorMessage })),
-  cleanupComplete: results.every(item => item.cleanup)
+  cleanupComplete,
+  blocked: results.filter(item => item.status === 'blocked').map(item => ({ operationId: item.operationId, code: item.errorCode, message: item.errorMessage })),
+  cleanupErrors: cleanupResult.outcomes.filter(item => !item.ok).map(item => ({ operationId: item.target.plan.operationId, code: item.errorCode, message: item.errorMessage }))
 };
 console.log(JSON.stringify(summary, null, 2));
 if (!summary.passed) process.exitCode = 1;

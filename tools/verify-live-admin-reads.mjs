@@ -6,6 +6,7 @@ import { createFeishuOpenApiClient } from '../server/feishu-open-api-client.mjs'
 import { loadFeishuIdentifierContract } from '../server/feishu-identifier-contract.mjs';
 import { createFeishuReadOnlyService } from '../server/feishu-read-only-service.mjs';
 import { createVerifiedReadOperationContracts, validateContractSchema } from '../src/integration/operation-contract-schemas.js';
+import { cleanupAndVerify } from '../server/feishu-live-cleanup.mjs';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const identifierContract = loadFeishuIdentifierContract(path.join(root, 'server', 'contracts', 'feishu-base-identifiers.json'));
@@ -31,11 +32,13 @@ async function create(tableName, fields) {
   await sleep(900);
 }
 async function cleanup() {
-  for (const target of [...created].reverse()) {
-    try { await adminClient.deleteRecord(target.tableId, target.recordId); await sleep(500); } catch {}
-  }
+  return cleanupAndVerify({
+    targets: [...created].reverse(),
+    cleanup: async target => { await adminClient.deleteRecord(target.tableId, target.recordId); await sleep(500); }
+  });
 }
 
+let cleanupResult = { ok: false, outcomes: [] };
 try {
   for (const permissionCode of ['admin.integrations.view', 'admin.audit.view', 'admin.archive.view', 'admin.health.view', 'admin.permissions.view', 'operations.dashboard.view', 'operations.announcements.manage', 'operations.apps.manage']) {
     await create('用户权限', { 主键: marker(`PERMISSION_${permissionCode}`), AD账号: userId, 权限编码: permissionCode, 启用: true });
@@ -85,7 +88,7 @@ try {
     results.push({ operationId, passed: true });
   }
 } finally {
-  await cleanup();
+  cleanupResult = await cleanup();
 }
 
 let cleanupComplete = true;
@@ -97,6 +100,6 @@ for (const target of created) {
     if (remaining.items.length) cleanupComplete = false;
   }
 }
-const passed = results.length === 20 && results.every(item => item.passed) && cleanupComplete;
-console.log(JSON.stringify({ passed, expected: 20, verified: results.length, cleanupComplete, results }, null, 2));
+const passed = results.length === 20 && results.every(item => item.passed) && cleanupComplete && cleanupResult.ok;
+console.log(JSON.stringify({ passed, expected: 20, verified: results.length, cleanupComplete, cleanupErrors: cleanupResult.outcomes.filter(item => !item.ok), results }, null, 2));
 if (!passed) process.exitCode = 2;

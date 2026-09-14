@@ -21,7 +21,7 @@ function sanitizeFields(plan, fields) {
   return sanitized;
 }
 
-export function createFeishuWriteOperationService({ safeRecordService, now = () => new Date(), traceIdFactory = () => `trace-${globalThis.crypto?.randomUUID?.() || Date.now()}` }) {
+export function createFeishuWriteOperationService({ safeRecordService, commandHandlers = {}, now = () => new Date(), traceIdFactory = () => `trace-${globalThis.crypto?.randomUUID?.() || Date.now()}` }) {
   if (!safeRecordService) throw new Error('缺少安全测试记录服务');
   return Object.freeze({
     async execute(operationId, input) {
@@ -38,15 +38,21 @@ export function createFeishuWriteOperationService({ safeRecordService, now = () 
           : await safeRecordService.update({ tableName: plan.tableName, keyField: plan.keyField, businessKey: input.businessKey, ifMatch: input.ifMatch, fields, governance: plan.governance });
       } else if (plan.mode === 'DELETE') {
         result = await safeRecordService.remove({ tableName: plan.tableName, keyField: plan.keyField, businessKey: input.businessKey, ifMatch: input.ifMatch, governance: plan.governance });
-      } else {
+      } else if (plan.mode === 'COMMAND') {
+        const handler = typeof commandHandlers === 'function' ? commandHandlers : commandHandlers[operationId];
+        if (typeof handler !== 'function') throw new FeishuProxyError('COMMAND_NOT_IMPLEMENTED', `${operationId} COMMAND 尚未配置专用处理器`, 501);
+        result = await handler({ operationId, plan, businessKey: input.businessKey, idempotencyKey: input.idempotencyKey, ifMatch: input.ifMatch, fields, safeRecordService });
+      } else if (['UPDATE', 'UPDATE_MANY'].includes(plan.mode)) {
         result = await safeRecordService.update({ tableName: plan.tableName, keyField: plan.keyField, businessKey: input.businessKey, ifMatch: input.ifMatch, fields, governance: plan.governance });
+      } else {
+        throw new FeishuProxyError('WRITE_OPERATION_NOT_ENABLED', `${operationId} 写入模式未实现`, 503);
       }
       return {
         code: 'OK',
         data: {
           operationId, tableName: plan.tableName, businessKey: input.businessKey,
           recordId: result.record?.record_id || result.recordId || '', version: result.version || 0,
-          replayed: Boolean(result.replayed), deleted: Boolean(result.deleted), alreadyAbsent: Boolean(result.alreadyAbsent)
+          replayed: Boolean(result.replayed), deleted: Boolean(result.deleted), alreadyAbsent: Boolean(result.alreadyAbsent), command: result.command || ''
         },
         traceId: traceIdFactory(), schemaVersion: 'feishu-test-write.v1', sourceUpdatedAt: now().toISOString(),
         isComplete: true, dataStale: false
