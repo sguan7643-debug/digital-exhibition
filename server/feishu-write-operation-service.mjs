@@ -31,7 +31,9 @@ export function createFeishuWriteOperationService({ safeRecordService, commandHa
       const fields = sanitizeFields(plan, input.fields);
       let result;
       if (plan.mode === 'CREATE') {
-        result = await safeRecordService.createOnce({ tableName: plan.tableName, keyField: plan.keyField, businessKey: input.businessKey, idempotencyKey: input.idempotencyKey, fields, governance: plan.governance });
+        result = input.ifMatch == null
+          ? await safeRecordService.createOnce({ tableName: plan.tableName, keyField: plan.keyField, businessKey: input.businessKey, idempotencyKey: input.idempotencyKey, fields, governance: plan.governance })
+          : await safeRecordService.update({ tableName: plan.tableName, keyField: plan.keyField, businessKey: input.businessKey, ifMatch: input.ifMatch, fields, governance: plan.governance });
       } else if (plan.mode === 'UPSERT') {
         result = input.ifMatch == null
           ? await safeRecordService.createOnce({ tableName: plan.tableName, keyField: plan.keyField, businessKey: input.businessKey, idempotencyKey: input.idempotencyKey, fields, governance: plan.governance })

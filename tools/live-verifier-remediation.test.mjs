@@ -32,6 +32,22 @@ assert.equal(updateCalls.length, 0, '未实现 COMMAND 不得降级为 UPDATE');
 const command = await service.execute('ADM-005', { businessKey: 'TEST_COMMAND', idempotencyKey: 'TEST_IDEM_COMMAND', ifMatch: 1, fields: { 状态: 'DONE' } });
 assert.equal(command.data.command, 'handled');
 
+const createPathCalls = [];
+const createPathService = createFeishuWriteOperationService({
+  safeRecordService: {
+    async createOnce(input) { createPathCalls.push(['create', input]); return { record: { record_id: 'create-r' }, version: 1 }; },
+    async update(input) { createPathCalls.push(['update', input]); return { record: { record_id: 'create-r' }, version: Number(input.ifMatch) + 1 }; }
+  }
+});
+const createUpdate = await createPathService.execute('FAV-003', {
+  businessKey: 'TEST_CREATE_VERSION',
+  idempotencyKey: 'TEST_IDEM_CREATE_VERSION',
+  ifMatch: 1,
+  fields: { 应用ID: 'APP-001', 用户ID: 'USER-001' }
+});
+assert.equal(createUpdate.data.version, 2, 'CREATE operation 的版本验证必须仍经由同一公开 operation 路径');
+assert.deepEqual(createPathCalls.map(([kind]) => kind), ['update']);
+
 const registry = [{ id: 'READ-001' }, { id: 'READ-002' }, { id: 'READ-003' }];
 const run = await runOperationRegistry({
   registry,
