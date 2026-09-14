@@ -245,6 +245,20 @@ git diff --check
 exit 0
 ```
 
+一次从错误工作目录调用 `pnpm test:integration` 得到 `ERR_PNPM_NO_IMPORTER_MANIFEST_FOUND`（工作目录为 `C:\Users\20266`，非任务 worktree）；随后在上方授权 worktree 立即重跑并以 exit 0 完成，未将该路径错误计入代码失败。
+
+治理登记与任务结构校验：
+
+```text
+powershell.exe ... record-platform-check.ps1 ... -Platform web -Result failed -Evidence <本交接绝对路径>
+CHECK web failed
+
+powershell.exe ... validate-task.ps1 ... -EnforceLocation
+VALID
+```
+
+登记后只读状态：`state=qa`、`web_framework=vue`、`checks.web_passed=false`、`qa.passed=false`、`approvals.release.approved=false`、`repair_attempts=1`。未直接编辑 `task.json`。
+
 ### 真实联调边界与 010 重跑请求
 
 本轮没有在本线程执行 `pnpm feishu:reads:verify-all`，因为该命令会访问授权 Feishu 环境；没有把 fake-context `65/65` 解析结果或本地合同测试写成真实接口通过。新的 runner 已准备好 operation-specific 输入、文件访问服务、403 权限清单和授权 URL。
