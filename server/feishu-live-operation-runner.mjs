@@ -22,16 +22,25 @@ export async function runOperationRegistry({ registry, execute, inputFor = () =>
   for (const operation of registry) {
     const operationId = operation.id || operation.operationId;
     const startedAt = new Date().toISOString();
+    let input = null;
     try {
-      const input = await inputFor(operation);
+      input = await inputFor(operation);
       const response = await execute(operationId, input, operation);
       results.push({ operationId, status: 'passed', request: { input }, response, startedAt, finishedAt: new Date().toISOString() });
     } catch (error) {
       const details = errorDetails(error);
-      const status = ['SOURCE_UNAVAILABLE', 'OPERATION_NOT_CONFIGURED', 'REMOTE_DISABLED', 'COMMAND_NOT_IMPLEMENTED'].includes(details.errorCode)
+      const status = ['SOURCE_UNAVAILABLE', 'OPERATION_NOT_CONFIGURED', 'REMOTE_DISABLED', 'COMMAND_NOT_IMPLEMENTED', 'REQUIRED_INPUT_UNAVAILABLE', 'PERMISSION_DENIED', 'FILE_ACCESS_SERVICE_UNAVAILABLE'].includes(details.errorCode)
         ? 'blocked'
         : 'failed';
-      results.push({ operationId, status, request: { input: null }, ...details, startedAt, finishedAt: new Date().toISOString() });
+      results.push({
+        operationId,
+        status,
+        request: { input },
+        ...(Array.isArray(error?.requiredInput) ? { requiredInput: error.requiredInput } : {}),
+        ...details,
+        startedAt,
+        finishedAt: new Date().toISOString()
+      });
     }
   }
   const resultIds = results.map(item => item.operationId);
