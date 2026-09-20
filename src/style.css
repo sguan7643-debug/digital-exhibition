@@ -50,7 +50,6 @@ p { margin: 0; }
 .rpa-detail .rpa-metrics div{min-height:38px;padding:0 7px}
 .rpa-detail .detail-panel{margin-top:1px;padding:6px 12px}
 .rpa-detail .detail-panel>h2{margin-bottom:7px}
-.rpa-detail .rpa-video{width:1135px;max-width:100%;height:192px;object-fit:contain}
 .rpa-detail .info-grid div{min-height:32px}
 .rpa-detail .file-list th,.rpa-detail .file-list td{height:19px;padding-inline:7px}
 .rpa-detail .related-row article{min-height:52px;padding:5px}

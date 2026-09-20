@@ -51,7 +51,7 @@ assert.doesNotMatch(shell, /class="action-link"[^>]*>[\s\S]{0,180}<small>/);
 for (const text of ['应用名称或关键词', '请输入应用名称或关键词', '标签', '请选择标签', '应用类型', '请选择应用类型', '主题域', '请选择主题域']) {
   assert.ok(apps.includes(text), `应用中心筛选视觉合同缺少：${text}`);
 }
-assert.match(apps, /grid-template-columns:\s*350px\s+250px\s+265px\s+250px\s+64px\s+64px/);
+assert.match(apps, /\.apps-filter\{[^}]*display:flex;[^}]*flex-wrap:wrap/, '筛选项按可用宽度换行');
 
 for (const text of ['人才库', '所属部门：', '领域\/专业：', '责任科室：', '本期是否在库：', '轮岗计划-开始时间', '轮岗计划-结束时间', '人才详情']) {
   assert.ok(talent.includes(text), `人才库权威视觉合同缺少：${text}`);

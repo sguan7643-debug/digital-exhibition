@@ -147,11 +147,10 @@ const shellSource = read('src/components/ExhibitionShell.vue');
 const appSource = read('src/App.vue');
 const appsSource = read('src/pages/AppsPage.vue');
 const talentSource = read('src/pages/TalentPeoplePage.vue');
-for (const contract of ['aria-controls="materials-group-menu"', 'aria-controls="apps-group-menu"', "@click=\"shellState.toggleGroup('materials')\"", "@click=\"shellState.toggleGroup('apps')\""]) {
+for (const contract of ['aria-controls="sidebar-content"', 'aria-controls="apps-group-menu"', '@click="toggleSidebar"', "@click=\"shellState.toggleGroup('apps')\""]) {
   assert.ok(shellSource.includes(contract), `壳层未接通交互合同：${contract}`);
 }
-for (const forbidden of ['sidebar-toggle','sidebar-collapsed','compact-sidebar-nav'])
-  assert.ok(!shellSource.includes(forbidden), `壳层不得保留整栏折叠合同：${forbidden}`);
+assert.ok(shellSource.includes('compactSidebar || shellState.appsExpanded'), '收缩状态下应用图标仍可操作');
 assert.ok(shellSource.includes('window.history.pushState'), '应用分类必须保持同壳路由');
 assert.doesNotMatch(shellSource, /location\.assign\(/, '应用分类不得整页重载并丢失壳层状态');
 for (const contract of ['createAppsController', 'setCategory', 'filteredApps', 'aria-pressed', '清空筛选']) {

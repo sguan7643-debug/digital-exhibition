@@ -17,14 +17,10 @@ assert.equal(shell.materialsExpanded,true,'两个分组必须允许一开一关'
 assert.equal(shell.appsExpanded,false,'两个分组状态必须完全独立');
 
 const source=readFileSync(new URL('../src/components/ExhibitionShell.vue',import.meta.url),'utf8');
-for(const forbidden of ['sidebar-toggle','toggleSidebar','sidebar-collapsed','compact-sidebar-nav'])assert.ok(!source.includes(forbidden),`不得保留全局整栏折叠实现：${forbidden}`);
-for(const contract of [
-  'aria-controls="materials-group-menu"','aria-controls="apps-group-menu"',
-  ':aria-expanded="String(shellState.materialsExpanded)"',':aria-expanded="String(shellState.appsExpanded)"',
-  'id="materials-group-menu"','id="apps-group-menu"','v-show="shellState.materialsExpanded"','v-show="shellState.appsExpanded"',
-  'aria-label="素材中心子菜单"','aria-label="应用分类"','class="scene-search"','id="main-content"'
-])assert.ok(source.includes(contract),`独立分组展开合同缺失：${contract}`);
-assert.match(source,/\.page-frame\{[^}]*grid-template-columns:220px minmax\(0,1fr\)/,'主内容必须保持固定侧栏列，不随分组折叠水平位移');
+for(const contract of ['sidebar-toggle','sidebar-collapsed','aria-controls="sidebar-content"','aria-controls="apps-group-menu"','v-show="compactSidebar || shellState.appsExpanded"','aria-label="应用分类"','class="scene-search"','id="main-content"'])
+  assert.ok(source.includes(contract), `收缩导航合同缺失：${contract}`);
+assert.ok(!source.includes('id="materials-group-menu"'), '左侧不再显示素材分类');
+assert.match(source,/sidebar-collapsed \.page-frame\{grid-template-columns:56px/, '收起为56px图标栏');
 assert.match(source,/\.group-toggle[^}]*border:0/,'分组切换必须使用可聚焦原生按钮而非静态图标');
 
-console.log('侧栏分组修复：无全局折叠、双分组独立、默认展开与 aria/布局合同通过');
+console.log('侧栏收缩、应用分类与场景搜索合同通过');

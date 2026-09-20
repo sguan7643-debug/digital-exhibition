@@ -1,32 +1,35 @@
 <script setup>
 // Reference SHA-256: C66930E5C44E4ADAEB81872C7E64E8D41DC17A5BB46256314E404A9177C2923A
 import TypeLineIcon from "../components/TypeLineIcon.vue";
-import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
+import AppIcon from "../components/AppIcon.vue";
+import AppDetailStateBoundary from "../components/AppDetailStateBoundary.vue";
+import { useAppDetailProjection } from "../state/use-app-detail-projection.js";
 import AppDetailRemoteFacts from "../components/AppDetailRemoteFacts.vue";
 import AppDetailAuthoritativeBody from "../components/AppDetailAuthoritativeBody.vue";
-const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});const projection=useAppDetailProjection(props,{name:'供应商信息自动录入机器人',summary:''});
+import { APP_FIXTURES } from "../fixtures/mock-data.js";
+import { normalizeAppCategory } from "../state/interaction-controllers.js";
+const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});
+const app = APP_FIXTURES.find((item) => item.route === '/apps/rpa-001');
+const projection=useAppDetailProjection(props,{name:app.name,summary:app.description});
+const category = normalizeAppCategory(app.category);
+const sceneTags = app.sceneTags || [app.scene];
 const metrics = [
-  ["RPA流程名", "供应商信息自动录入机器人"],
   ["创建日期", "2025-05-08"],
-  ["应用类型", "财务管理 / 供应商管理"],
-  ["所属业务域", "V1.2.0"],
-  ["适用对象", "具备收取供应商邮件人员"],
-  ["开发单位", "信息化管理部"],
-  ["负责人", "张三丰"],
-  ["所属部门", "物资采购中心"],
-  ["开发者", "李明"],
+  ["应用类型", category],
+  ["所属业务域", app.domain],
+  ["适用对象", "招投标及财务审核人员"],
+  ["开发单位", app.developerDepartment],
+  ["负责人", app.owner],
+  ["所属部门", app.department],
+  ["开发者", app.developer],
 ];
 const steps = [
-  ["获取邮件附件", "机器人自动监控邮箱，抓取供应商信息邮件"],
-  ["数据提取与校验", "解析Excel/CSV文件，提取并校验供应商信息"],
-  ["登录系统", "使用预设账号登录系统，打开供应商维护页面"],
-  ["数据录入", "自动填写供应商信息，并提交保存"],
-  ["结果反馈", "记录执行结果，发送执行摘要至指定邮箱"],
+  ["导入发票", "收集并导入待审核的招投标发票"],
+  ["识别票面信息", "提取发票号码、金额及开票信息"],
+  ["查验与比对", "查验发票信息，辅助核对关键字段"],
+  ["异常复核", "标记信息不一致的票据，交由审核人员复核"],
+  ["结果汇总", "汇总查验结果，形成审核记录"],
 ];
-const rpaDisplayUrl = [
-  "https:",
-  "//rpa.example.com/app/supplier-info-auto-entry",
-].join("");
 </script>
 <template>
   <article v-if="projection.contentVisible" class="product-detail rpa-detail" aria-labelledby="rpa-title" :data-authoritative-detail="projection.remoteMode">
@@ -35,18 +38,17 @@ const rpaDisplayUrl = [
     </nav>
     <header class="detail-hero">
       <div class="detail-hero-main">
-        <span class="detail-logo detail-type-icon" role="img" aria-label="供应商信息自动录入机器人图标"><TypeLineIcon name="rpa" :size="34" /></span>
+        <span class="detail-logo detail-type-icon" role="img" :aria-label="`${projection.name}图标`"><TypeLineIcon name="rpa" :size="34" /></span>
         <div class="detail-title">
-          <h1 id="rpa-title">{{ projection.name }}</h1><p v-if="projection.remoteMode">{{ projection.summary }}</p>
-          <mark>RPA</mark><mark>供应链管理</mark><mark>已上线</mark>
+          <h1 id="rpa-title">{{ projection.name }}</h1>
+          <p v-if="projection.remoteMode">{{ projection.summary }}</p>
+          <mark class="rpa-category">{{ category }}</mark>
           <p>
             <strong>应用简介：</strong
-            >通过RPA机器人自动从供应商邮件附件中提取信息，并录入到SAP系统，实现供应商数据的自动录入和同步，提升效率，降低人工操作风险。
+            >{{ app.description }}
           </p>
-          <p class="rpa-url">{{ rpaDisplayUrl }}</p>
           <div class="detail-tags">
-            <mark>供应商管理</mark><mark>自动录入</mark><mark>SAP集成</mark
-            ><mark>Excel/CSV</mark>
+            <mark v-for="tag in sceneTags" :key="tag">{{ tag }}</mark>
           </div>
         </div>
         <div v-if="!projection.remoteMode" class="detail-hero-side">
@@ -72,7 +74,7 @@ const rpaDisplayUrl = [
         </div>
         <div>
           <dt>应用编码</dt>
-          <dd>RPA-SCM-VENDOR-001</dd>
+          <dd>{{ app.id }}</dd>
         </div>
         <div>
           <dt>RPA所属平台</dt>
@@ -80,25 +82,26 @@ const rpaDisplayUrl = [
         </div>
         <div>
           <dt>所属场景</dt>
-          <dd>供应商管理－供应商信息维护</dd>
+          <dd>{{ app.scene }}</dd>
         </div>
         <div class="wide">
           <dt>所属描述</dt>
           <dd>
-            机器人自动读取供应商邮件附件，提取供应商基础信息，并自动注入SAP系统完成数据录入，实现全流程自动化处理。
+            {{ app.description }}
           </dd>
         </div>
       </dl>
     </section>
     <section class="detail-panel detail-panel--full detail-panel--preview">
       <h2>流程录屏</h2>
-      <img
-        class="preview-wide rpa-video"
-        src="/assets/rpa-video.png"
-        width="1135"
-        height="192"
-        alt="供应商信息自动录入机器人操作指引视频封面"
-      />
+      <div class="rpa-recording" role="region" aria-label="流程录屏预览">
+        <div class="rpa-recording-content">
+          <TypeLineIcon name="rpa" :size="48" />
+          <h3>{{ app.name }}</h3>
+          <p>操作流程录屏</p>
+          <span class="rpa-recording-empty">暂无录屏文件</span>
+        </div>
+      </div>
     </section>
     <section class="detail-panel detail-panel--full">
       <h2>操作流程概览</h2>
@@ -119,8 +122,8 @@ const rpaDisplayUrl = [
           <tr
             v-for="(item, index) in [
               ['RPA基础入门与平台操作', '45分钟'],
-              ['供应商信息自动录入机器人使用教程', '32分钟'],
-              ['SAP系统数据录入流程注意事项', '28分钟'],
+              [`${app.name}使用教程`, '32分钟'],
+              ['发票信息查验与审核注意事项', '28分钟'],
               ['RPA异常处理与邮件通知设置', '36分钟'],
             ]"
             :key="item[0]"
@@ -155,8 +158,8 @@ const rpaDisplayUrl = [
         <tbody>
           <tr
             v-for="(item, index) in [
-              ['供应商信息自动录入机器人操作手册.pdf', '2.45 MB'],
-              ['供应商信息模板.xlsx', '166 KB'],
+              [`${app.name}操作手册.pdf`, '2.45 MB'],
+              ['发票查验信息模板.xlsx', '166 KB'],
               ['常见问题及处理.docx', '320 KB'],
               ['自动加载信息脱敏说明.pdf', '1.28 MB'],
             ]"
@@ -165,7 +168,7 @@ const rpaDisplayUrl = [
             <td>{{ item[0] }}</td>
             <td>{{ item[1] }}</td>
             <td>2025-05-06 10:{{ 20 + index }}:10</td>
-            <td>张三丰</td>
+            <td>{{ app.owner }}</td>
             <td>
               <a href="#main-content" :aria-label="`本地下载：${item[0]}`"
                 >下载</a
@@ -180,9 +183,9 @@ const rpaDisplayUrl = [
       <div class="related-row">
         <article
           v-for="(name, index) in [
-            '供应商基础信息数据集',
-            '供应商信息表RPA脚本',
-            '供应链分析大屏模板',
+            '发票查验数据集',
+            '发票信息提取RPA脚本',
+            '财务审核分析模板',
           ]"
           :key="name"
         >
@@ -207,14 +210,45 @@ const rpaDisplayUrl = [
 .rpa-detail .detail-hero {
   min-height: 218px;
 }
-.rpa-metrics {
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+#main-content .rpa-detail .detail-title > p,
+#main-content .rpa-detail .detail-title mark {
+  font-size: var(--xlt-font-meta);
+  line-height: 1.75;
+}
+#main-content .rpa-detail .detail-title mark {
+  display: inline-block;
+  padding: 2px 8px;
+  vertical-align: middle;
+}
+#main-content .rpa-detail .detail-tags mark {
+  margin: 0;
+}
+#main-content .rpa-detail .rpa-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 16px 0;
+}
+#main-content .rpa-detail .rpa-recording {
+  width: 100%;
+  max-width: 960px;
+  aspect-ratio: 16 / 9;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #073b66, #0060a6);
+  color: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.rpa-recording-content { padding: 20px; text-align: center; }
+#main-content .rpa-recording h3 { margin: 14px 0 8px; color: #fff; font-size: clamp(16px, 2vw, 24px); }
+#main-content .rpa-recording p { margin: 0 0 16px; color: #dceeff; font-size: 14px; }
+.rpa-recording-empty { display: inline-block; padding: 6px 12px; border: 1px solid #ffffff55; border-radius: 6px; font-size: 14px; }
+@media (max-width: 480px) {
+  .rpa-recording-content { padding: 10px; }
+  .rpa-recording-content > svg { display: none; }
 }
 .wide {
   grid-column: 1/-1;
-}
-.rpa-url {
-  color: #0060a6;
 }
 .rpa-flow {
   list-style: none;

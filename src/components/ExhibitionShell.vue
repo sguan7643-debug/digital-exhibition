@@ -4,63 +4,53 @@ import {
   canViewAnnouncements,
   createShellController,
   normalizeAppCategory,
-  normalizeMaterialCategory,
   retainViewerRole,
 } from '../state/interaction-controllers.js';
 import TypeLineIcon from './TypeLineIcon.vue';
-import {
-  BadgeCheck,
-  BookOpen,
-  Camera,
-  ChartNoAxesCombined,
-  House,
-  LayoutGrid,
-  Megaphone,
-  ShieldCheck,
-  Trophy,
-  Users,
-} from '@lucide/vue';
 
 const props = defineProps({ page: { type: Object, required: true } });
 const shellState = createShellController();
 const viewerRole = ref(props.page.role);
 const sceneDraft = ref(new URLSearchParams(window.location.search).get('scene') || '');
 const selectedCategory = ref(normalizeAppCategory(new URLSearchParams(window.location.search).get('category') || ''));
-const selectedMaterialType = ref(normalizeMaterialCategory(new URLSearchParams(window.location.search).get('type') || ''));
 const mobileMenuOpen = ref(false);
 const mobileViewport = ref(false);
+const sidebarCollapsed = ref(false);
+const compactSidebar = computed(() => sidebarCollapsed.value && !mobileViewport.value);
+const accountMenu = ref(null);
+function toggleSidebar() { sidebarCollapsed.value = !sidebarCollapsed.value; }
+function openSceneSearch() {
+  sidebarCollapsed.value = false;
+  nextTick(() => document.querySelector('.scene-search input')?.focus());
+}
+function closeAccountMenu(event) {
+  if (event.type === 'keydown' && event.key !== 'Escape') return;
+  if (event.type === 'keydown' || !accountMenu.value?.contains(event.target)) {
+    accountMenu.value?.removeAttribute('open');
+  }
+}
 const mobileMenuButton = ref(null);
 const mobileDrawer = ref(null);
 let mobileMediaQuery;
 let tableObserver;
 
-const basePrimaryNav = [
-  ['/workbench', House, '首页工作台'], ['/materials', Camera, '素材中心'],
-  ['/talent/people', Users, '人才管理'], ['/apps', LayoutGrid, '应用中心'],
-  ['/training', BookOpen, '培训课堂'], ['/points', Trophy, '积分中心'],
-  ['/certification', BadgeCheck, '数字化认证'], ['/operations', ChartNoAxesCombined, '运营管理'],
-  ['/announcements', Megaphone, '公告通知'], ['/admin', ShieldCheck, '后台管理']
+const primaryNav = [
+  ['/workbench', '/assets/nav-workbench.png', '首页'],
+  ['/apps', '/assets/nav-apps.png', '应用中心'],
+  ['/materials', '/assets/nav-materials.png', '素材中心'],
+  ['/certification', '/assets/nav-certification.png', '数字化认证'],
+  ['/training', '/assets/nav-training.png', '培训课堂'],
+  ['/talent/people', '/assets/nav-talent.png', '人才管理'],
+  ['/operations', '/assets/nav-operations.png', '运营管理'],
 ];
-const primaryNav = basePrimaryNav;
-const simpleNav = primaryNav.map(([route, icon, label]) => [route, label, icon]);
 const categories = [
   ['全部应用', 'apps', ''], ['可视化', 'visual', '可视化'], ['报表', 'report', '报表'],
   ['RPA', 'rpa', 'RPA'], ['数据集', 'dataset', '数据集'], ['指标', 'metric', '指标'],
   ['AI', 'ai', 'AI'], ['海能work应用', 'work', '海能work应用'], ['EAD', 'ead', 'EAD'],
   ['其他工具', 'tools', '其他工具']
 ];
-const materialCategories = [
-  ['全部素材', 'materials', ''], ['可视化', 'visual', '可视化'], ['报表', 'report', '报表'],
-  ['RPA', 'rpa', 'RPA'], ['数据集', 'dataset', '数据集'], ['指标', 'metric', '指标'],
-  ['AI', 'ai', 'AI'], ['海能work应用', 'work', '海能work应用'], ['EAD', 'ead', 'EAD'],
-  ['其他工具', 'tools', '其他工具']
-];
-// The new information architecture keeps the same three catalogue groups on
-// every route so users never lose their material/application context.
-const isCatalogue = computed(() => Boolean(props.page));
-const isTalent = computed(() => Number(props.page.id) >= 28);
 const isAdministrator = computed(() => canViewAnnouncements(viewerRole.value));
-const visiblePrimaryNav = computed(() => primaryNav.filter(([route]) => route !== '/announcements' || isAdministrator.value));
+const visiblePrimaryNav = computed(() => primaryNav);
 function active(route) {
   if (route === '/talent/people' && props.page.route.startsWith('/talent/')) return true;
   return props.page.route === route || (route !== '/workbench' && props.page.route.startsWith(`${route}/`));
@@ -78,20 +68,6 @@ function setCategory(label) {
   window.history.replaceState({ ...window.history.state }, '', `${next.pathname}${next.search}`);
   selectedCategory.value = label;
   window.dispatchEvent(new CustomEvent('xlt:apps-category', { detail: label }));
-}
-function setMaterialType(type) {
-  closeMobileMenu(true);
-  if (props.page.id !== '31') {
-    const suffix = type ? `?type=${encodeURIComponent(type)}` : '';
-    window.history.pushState({}, '', `/materials${suffix}`);
-    window.dispatchEvent(new PopStateEvent('popstate'));
-    return;
-  }
-  const next = new URL(window.location.href);
-  type ? next.searchParams.set('type', type) : next.searchParams.delete('type');
-  window.history.replaceState({ ...window.history.state }, '', `${next.pathname}${next.search}`);
-  selectedMaterialType.value = type;
-  window.dispatchEvent(new CustomEvent('xlt:materials-filter', { detail: { key: 'type', value: type } }));
 }
 function setScene(scene) {
   closeMobileMenu(true);
@@ -124,11 +100,11 @@ function syncShellFilters() {
   const query = new URLSearchParams(window.location.search);
   sceneDraft.value = query.get('scene') || '';
   selectedCategory.value = normalizeAppCategory(query.get('category') || '');
-  selectedMaterialType.value = normalizeMaterialCategory(query.get('type') || '');
 }
 const tableRegionSelector = '.table-scroll,.talent-table-scroll,.talent-body main>section,.progress-table,.point-table,.admin-table,.app-admin-table,.notice-table,.log-panel';
 function decorateHorizontalScrollRegions() {
-  document.querySelectorAll('#main-content table').forEach((table,index) => {
+  const tables = document.querySelectorAll?.('#main-content table') ?? [];
+  tables.forEach((table,index) => {
     const region = table.closest(tableRegionSelector) || table.parentElement;
     if (!region) return;
     const caption = table.querySelector('caption')?.textContent?.trim();
@@ -142,7 +118,9 @@ function decorateHorizontalScrollRegions() {
 async function refreshHorizontalScrollRegions() {
   await nextTick();
   decorateHorizontalScrollRegions();
-  requestAnimationFrame(() => decorateHorizontalScrollRegions());
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(() => decorateHorizontalScrollRegions());
+  }
 }
 function syncMobileViewport(event) {
   mobileViewport.value = event.matches;
@@ -190,17 +168,24 @@ onMounted(() => {
   window.addEventListener('popstate', syncShellFilters);
   window.addEventListener('keydown', handleShellKeydown);
   window.addEventListener('resize', decorateHorizontalScrollRegions);
+  window.addEventListener('click', closeAccountMenu);
+  window.addEventListener('keydown', closeAccountMenu);
   mobileMediaQuery = window.matchMedia('(max-width: 760px)');
   syncMobileViewport(mobileMediaQuery);
   mobileMediaQuery.addEventListener?.('change', syncMobileViewport);
   refreshHorizontalScrollRegions();
-  tableObserver = new MutationObserver(() => decorateHorizontalScrollRegions());
-  tableObserver.observe(document.getElementById('main-content'), { childList: true, subtree: true });
+  const mainContent = document.getElementById?.('main-content');
+  if (typeof MutationObserver !== 'undefined' && mainContent) {
+    tableObserver = new MutationObserver(() => decorateHorizontalScrollRegions());
+    tableObserver.observe(mainContent, { childList: true, subtree: true });
+  }
 });
 onBeforeUnmount(() => {
   window.removeEventListener('popstate', syncShellFilters);
   window.removeEventListener('keydown', handleShellKeydown);
   window.removeEventListener('resize', decorateHorizontalScrollRegions);
+  window.removeEventListener('click', closeAccountMenu);
+  window.removeEventListener('keydown', closeAccountMenu);
   mobileMediaQuery?.removeEventListener?.('change', syncMobileViewport);
   tableObserver?.disconnect();
 });
@@ -208,6 +193,7 @@ watch(() => props.page, () => {
   syncShellFilters();
   closeMobileMenu(true);
   refreshHorizontalScrollRegions();
+  accountMenu.value?.removeAttribute('open');
 }, { flush: 'post' });
 watch(
   () => props.page.role,
@@ -219,27 +205,35 @@ watch(
 </script>
 
 <template>
-  <div class="exhibition-shell" :class="{ 'standard-shell': !isCatalogue, 'certification-shell': props.page.id === '27' }">
+  <div class="exhibition-shell" :class="{ 'sidebar-collapsed': compactSidebar, 'certification-shell': props.page.id === '27' }">
     <a class="skip-link" href="#main-content">跳到主要内容</a>
     <header class="topbar">
       <button ref="mobileMenuButton" class="mobile-nav-toggle" type="button" aria-controls="platform-sidebar" :aria-expanded="String(mobileMenuOpen)" :aria-label="mobileMenuOpen ? '关闭导航菜单' : '打开导航菜单'" :aria-hidden="mobileViewport && mobileMenuOpen ? 'true' : undefined" :inert="mobileViewport && mobileMenuOpen" @click="toggleMobileMenu">
         <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
       </button>
       <a class="brand" href="/workbench" aria-label="数智产品展厅首页" :aria-hidden="mobileViewport && mobileMenuOpen ? 'true' : undefined" :inert="mobileViewport && mobileMenuOpen">
-        <span>数智产品展厅</span>
+        <span class="brand-title">数智产品展厅</span>
       </a>
       <nav class="primary-nav" aria-label="主导航">
         <a v-for="([route, icon, label]) in visiblePrimaryNav" :key="route" :href="route" :aria-current="active(route) ? 'page' : undefined">
-          <component :is="icon" class="nav-glyph" aria-hidden="true" /><span class="nav-label">{{ label }}</span>
+          <img class="nav-glyph" :src="icon" width="22" height="24" alt="" /><span class="nav-label">{{ label }}</span>
         </a>
       </nav>
       <div class="top-actions" aria-label="快捷操作" :aria-hidden="mobileViewport && mobileMenuOpen ? 'true' : undefined" :inert="mobileViewport && mobileMenuOpen">
         <a class="action-link" href="/messages" aria-label="8 条未读消息"><TypeLineIcon name="message" :size="24" /></a>
         <a class="action-link" href="/favorites" aria-label="收藏" :aria-current="props.page.id === '03' ? 'page' : undefined"><TypeLineIcon name="favorite" :size="23" /></a>
-        <a class="top-user" href="/profile" aria-label="个人中心">
+        <details ref="accountMenu" class="account-menu">
+        <summary class="top-user" aria-label="个人菜单">
           <img src="/assets/top-avatar.png" width="38" height="38" alt="" />
           <span><strong>张三丰</strong><small>物资采购中心</small></span>
-        </a>
+        </summary>
+          <nav class="account-links" aria-label="个人功能">
+            <a href="/profile">个人中心</a>
+            <a href="/profile#my-points">我的积分</a>
+            <a href="/announcements">公告通知</a>
+            <a v-if="isAdministrator" href="/admin">后台管理</a>
+          </nav>
+        </details>
       </div>
     </header>
 
@@ -248,24 +242,24 @@ watch(
       <aside id="platform-sidebar" ref="mobileDrawer" class="sidebar" :class="{ 'mobile-open': mobileMenuOpen }" :role="mobileViewport && mobileMenuOpen ? 'dialog' : undefined" :aria-modal="mobileViewport && mobileMenuOpen ? 'true' : undefined" :aria-hidden="mobileViewport && !mobileMenuOpen ? 'true' : undefined" :inert="mobileViewport && !mobileMenuOpen" aria-label="左侧导航">
         <div class="mobile-drawer-header"><strong>导航菜单</strong><button class="mobile-drawer-close" type="button" aria-label="关闭导航菜单" @click="closeMobileMenu(true)"></button></div>
         <nav class="mobile-primary-nav" aria-label="移动端主导航">
-          <a v-for="([route, icon, label]) in visiblePrimaryNav" :key="`mobile-${route}`" :href="route" :aria-current="active(route) ? 'page' : undefined" @click="closeMobileMenu()"><component :is="icon" class="simple-nav-icon" aria-hidden="true" />{{ label }}</a>
+          <a v-for="([route, icon, label]) in visiblePrimaryNav" :key="`mobile-${route}`" :href="route" :aria-current="active(route) ? 'page' : undefined" @click="closeMobileMenu()"><img :src="icon" width="22" height="24" alt="" />{{ label }}</a>
         </nav>
         <p class="sr-only" aria-live="polite">{{ shellState.announcement }}</p>
+        <div class="sidebar-toolbar">
+          <span v-if="!compactSidebar">应用导航</span>
+          <button class="sidebar-toggle" type="button" @click="toggleSidebar" :aria-expanded="String(!compactSidebar)" aria-controls="sidebar-content" :aria-label="compactSidebar ? '展开侧栏' : '收起侧栏'" :title="compactSidebar ? '展开侧栏' : '收起侧栏'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/><path :d="compactSidebar ? 'm13 9 3 3-3 3' : 'm16 9-3 3 3 3'"/></svg>
+          </button>
+        </div>
         <div id="sidebar-content">
-        <template v-if="isCatalogue">
-          <section class="catalogue-group">
-            <div class="group-heading"><h2><TypeLineIcon class="catalogue-line-icon heading-icon" name="materials" :size="20" />素材中心</h2><button class="group-toggle" type="button" :aria-expanded="String(shellState.materialsExpanded)" aria-controls="materials-group-menu" :aria-label="shellState.materialsExpanded?'收起素材中心子菜单':'展开素材中心子菜单'" @click="shellState.toggleGroup('materials')"><span class="group-chevron" aria-hidden="true"></span></button></div>
-            <nav id="materials-group-menu" v-show="shellState.materialsExpanded" aria-label="素材中心子菜单">
-              <button v-for="([label, icon, type]) in materialCategories" :key="`material-${label}`" type="button" :aria-pressed="props.page.id === '31' && selectedMaterialType === type" @click="setMaterialType(type)"><TypeLineIcon class="catalogue-line-icon" :name="icon" :size="18" />{{ label }}</button>
-            </nav>
-          </section>
           <section class="catalogue-group app-group">
-            <div class="group-heading"><h2><TypeLineIcon class="catalogue-line-icon heading-icon" name="apps" :size="20" />应用中心</h2><button class="group-toggle" type="button" :aria-expanded="String(shellState.appsExpanded)" aria-controls="apps-group-menu" :aria-label="shellState.appsExpanded?'收起应用中心子菜单':'展开应用中心子菜单'" @click="shellState.toggleGroup('apps')"><span class="group-chevron" aria-hidden="true"></span></button></div>
-            <nav id="apps-group-menu" v-show="shellState.appsExpanded" aria-label="应用分类">
-              <button v-for="([label, icon, category]) in categories" :key="`app-${label}`" type="button" :aria-pressed="props.page.id === '07' && selectedCategory === category" @click="setCategory(category)"><TypeLineIcon class="catalogue-line-icon" :name="icon" :size="18" />{{ label }}</button>
+            <div v-if="!compactSidebar" class="group-heading"><h2><TypeLineIcon class="catalogue-line-icon heading-icon" name="apps" :size="20" />应用中心</h2><button class="group-toggle" type="button" :aria-expanded="String(shellState.appsExpanded)" aria-controls="apps-group-menu" :aria-label="shellState.appsExpanded?'收起应用中心子菜单':'展开应用中心子菜单'" @click="shellState.toggleGroup('apps')"><span class="group-chevron" aria-hidden="true"></span></button></div>
+            <nav id="apps-group-menu" v-show="compactSidebar || shellState.appsExpanded" aria-label="应用分类">
+              <button v-for="([label, icon, category]) in categories" :key="`app-${label}`" type="button" :title="label" :aria-label="label" :aria-pressed="props.page.id === '07' && selectedCategory === category" @click="setCategory(category)"><TypeLineIcon class="catalogue-line-icon" :name="icon" :size="18" /><span v-if="!compactSidebar">{{ label }}</span></button>
             </nav>
           </section>
-          <section class="scene-search" aria-labelledby="scene-search-title">
+          <button v-if="compactSidebar" class="compact-scene-search" type="button" aria-label="展开场景化搜索" title="场景化搜索" @click="openSceneSearch"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
+          <section v-show="!compactSidebar" class="scene-search" aria-labelledby="scene-search-title">
             <h2 id="scene-search-title">场景化搜索</h2>
             <label><span class="sr-only">搜索场景关键词</span><input v-model="sceneDraft" type="search" placeholder="搜索场景或关键字" @keydown.enter.prevent="submitSceneSearch" /></label>
             <div>
@@ -276,22 +270,6 @@ watch(
               <button type="button" :aria-pressed="sceneDraft === '市场营销'" @click="setScene('市场营销')">市场营销</button><button type="button" disabled title="全部冻结场景已展示">更多</button>
             </div>
           </section>
-        </template>
-        <template v-else-if="isTalent">
-          <nav class="simple-nav" aria-label="人才管理功能">
-            <a href="/workbench"><House class="simple-nav-icon" aria-hidden="true" />首页工作台</a>
-            <a class="section-current" href="/talent/people"><Users class="simple-nav-icon" aria-hidden="true" />人才管理</a>
-            <a class="sub" href="/talent/projects" :aria-current="props.page.id === '29' ? 'page' : undefined">人才项目管理</a>
-            <a class="sub" href="/talent/progress" :aria-current="props.page.id === '30' ? 'page' : undefined">项目进度管理</a>
-            <a class="sub" href="/talent/people" :aria-current="props.page.id === '28' ? 'page' : undefined">人才库</a>
-            <a href="/apps"><LayoutGrid class="simple-nav-icon" aria-hidden="true" />应用中心</a>
-            <a href="/training"><BookOpen class="simple-nav-icon" aria-hidden="true" />培训课堂</a>
-            <a href="/points"><Trophy class="simple-nav-icon" aria-hidden="true" />积分中心</a>
-          </nav>
-        </template>
-        <nav v-else class="simple-nav" aria-label="平台功能">
-          <a v-for="([route, label, icon]) in simpleNav" :key="route" :href="route" :aria-current="active(route) ? 'page' : undefined"><component :is="icon" class="simple-nav-icon" aria-hidden="true" />{{ label }}</a>
-        </nav>
         </div>
       </aside>
       <main id="main-content" tabindex="-1" :aria-hidden="mobileViewport && mobileMenuOpen ? 'true' : undefined" :inert="mobileViewport && mobileMenuOpen">
@@ -310,7 +288,7 @@ watch(
 .skip-link{position:fixed;z-index:100;left:16px;top:-60px;padding:10px 16px;color:#fff;background:#0060a6;border-radius:4px}.skip-link:focus-visible{top:10px}
 .mobile-nav-toggle,.mobile-drawer-header,.mobile-primary-nav,.sidebar-backdrop{display:none}
 .topbar{height:63px;display:flex;align-items:center;padding:0 18px;background:#0060a6;border-bottom:1px solid #143f6b;color:#fff}.brand{flex:0 0 190px;height:43px;display:flex;align-items:center;color:#fff;font-size:19px;font-weight:700;letter-spacing:.04em;white-space:nowrap}
-.primary-nav{height:100%;display:flex;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-padding-inline:8px}.primary-nav::-webkit-scrollbar{width:0;height:0;display:none}.primary-nav a{min-width:82px;height:100%;position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 9px;color:rgba(255,255,255,.82);font-size:14px;white-space:nowrap;transition:color .16s ease,background-color .16s ease}.primary-nav a:hover{color:#fff;background:rgba(255,255,255,.055)}.primary-nav a[aria-current='page']{color:#fff}.primary-nav a[aria-current='page']::after{content:'';position:absolute;left:15px;right:15px;bottom:0;height:3px;background:#fff}.nav-glyph{width:22px;height:22px;flex:0 0 auto;color:currentColor;stroke-width:1.8;overflow:visible;opacity:.96}
+.primary-nav{height:100%;display:flex;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-padding-inline:8px}.primary-nav::-webkit-scrollbar{width:0;height:0;display:none}.primary-nav a{min-width:82px;height:100%;position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 9px;color:rgba(255,255,255,.82);font-size:14px;white-space:nowrap;transition:color .16s ease,background-color .16s ease}.primary-nav a:hover{color:#fff;background:rgba(255,255,255,.055)}.primary-nav a[aria-current='page']{color:#fff}.primary-nav a[aria-current='page']::after{content:'';position:absolute;left:15px;right:15px;bottom:0;height:3px;background:#fff}.nav-glyph{width:22px;height:24px;object-fit:contain;filter:invert(1) grayscale(1) contrast(2) brightness(2);mix-blend-mode:screen;opacity:.92}
 .top-actions{flex:0 0 218px;height:100%;display:flex;align-items:center;justify-content:flex-end;gap:15px;white-space:nowrap}.action-link{width:32px;height:44px;position:relative;display:grid;place-items:center;color:#fff}.action-link :deep(.type-line-icon){overflow:visible;stroke-width:1.7}.action-link[aria-current='page']{color:#b9dcff}.top-user{height:44px;display:flex;align-items:center;gap:8px;padding-left:12px;border-left:1px solid rgba(255,255,255,.2)}.top-user>img{width:38px;height:38px;border-radius:50%;filter:saturate(.7)}.top-user span{display:grid;gap:2px}.top-user strong{color:#fff;font-size:13px}.top-user small{color:rgba(255,255,255,.72);font-size:11px}
 .action-link:first-child::after{content:'8';position:absolute;right:-1px;top:7px;min-width:14px;height:14px;display:grid;place-items:center;padding:0 2px;color:#fff;background:#e7382f;border:2px solid #073866;border-radius:999px;font-size:8px;font-weight:700;line-height:1}
 .page-frame{min-height:0;overflow:hidden;display:grid;background:#f5f7fa;grid-template-columns:220px minmax(0,1fr)}.sidebar{min-height:0;position:relative;background:#fff;border-right:1px solid #d9e2ec;overflow-y:auto}.catalogue-group{padding:11px 15px 10px;border-bottom:1px solid #e4eaf1}.group-heading{height:30px;display:flex;align-items:center;justify-content:space-between}.catalogue-group h2,.scene-search h2{height:30px;display:flex;align-items:center;gap:9px;margin:0;color:#102d50;font-size:13px;font-weight:700}.catalogue-group h2>img{width:20px;height:20px;object-fit:contain;filter:grayscale(1) contrast(1.9) sepia(.65) saturate(2.7) hue-rotate(166deg);mix-blend-mode:multiply}.group-toggle{width:28px;height:28px;display:grid;place-items:center;padding:0;color:#304d6e;background:transparent;border:0;border-radius:3px}.group-chevron{width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translate(-1px,-1px)}.group-toggle[aria-expanded=false] .group-chevron{transform:rotate(-45deg)}.catalogue-group nav{display:grid;gap:1px;padding-top:3px}.catalogue-group nav a,.catalogue-group nav button{height:30px;display:flex;align-items:center;gap:10px;padding:0 7px;color:#324a67;background:transparent;border:0;border-radius:4px;text-align:left;font-size:12px}.catalogue-group nav a:hover,.catalogue-group nav button:hover{background:#f1f5f9;color:#0060a6}.catalogue-group nav button[aria-pressed=true]{color:#0060a6;background:#eaf1f8;font-weight:600}.catalogue-group nav a>img,.catalogue-group nav button>img{width:17px;height:17px;object-fit:contain;filter:grayscale(1) contrast(1.9) sepia(.65) saturate(2.7) hue-rotate(166deg);mix-blend-mode:multiply}.app-group{padding-top:9px}
@@ -407,4 +385,33 @@ main{background:#f5f7fa}
   .primary-nav a{font-size:13px}
 }
 @media(prefers-reduced-motion:reduce){.sidebar{transition:none!important}}
+
+/* Desktop collapse and account navigation. Mobile retains the drawer. */
+.account-menu{position:relative}
+.account-menu summary{cursor:pointer;list-style:none}
+.account-menu summary::-webkit-details-marker{display:none}
+.account-menu summary::after{content:'';width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin:0 3px}
+.account-links{position:absolute;z-index:90;right:0;top:calc(100% + 8px);display:grid;min-width:168px;padding:6px;background:#fff;border:1px solid #dce5ef;border-radius:10px;box-shadow:0 10px 30px #12325226}
+.account-links a{display:block;padding:10px 14px;color:#28425e;border-radius:6px;font-size:14px}
+.account-links a:hover,.account-links a:focus-visible{background:#eef6fc;color:#0060a6}
+.topbar{position:relative;z-index:60}
+.sidebar-toolbar{display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:3;min-height:50px;padding:8px 12px;background:#fff;border-bottom:1px solid #edf1f6;color:#687b90;font-size:13px}
+.sidebar-toggle,.compact-scene-search{display:grid;place-items:center;width:34px;height:34px;flex-shrink:0;padding:0;color:#36546f;background:#f2f6fa;border:0;border-radius:8px;cursor:pointer}
+.sidebar-toggle:hover,.compact-scene-search:hover{background:#e6f2fc;color:#0060a6}
+.catalogue-group nav button{border-radius:8px;cursor:pointer}
+.catalogue-group nav button[aria-pressed=true]{background:#e8f3fc;box-shadow:inset 3px 0 #0060a6}
+@media(min-width:761px){
+  .exhibition-shell .page-frame{grid-template-columns:220px minmax(0,1fr);transition:grid-template-columns .2s ease}
+  .exhibition-shell.sidebar-collapsed .page-frame{grid-template-columns:56px minmax(0,1fr)}
+  .sidebar-collapsed .sidebar-toolbar{justify-content:center;padding:8px 0}
+  .sidebar-collapsed .app-group{padding:8px 7px}
+  .sidebar-collapsed .app-group nav{gap:5px;padding:0}
+  .sidebar-collapsed .app-group nav button{width:40px;height:40px;justify-content:center;padding:0}
+  .compact-scene-search{margin:10px auto;background:#eef4f9;width:40px;height:40px}
+  .sidebar{scrollbar-width:thin;scrollbar-color:#d4dfeb transparent}
+  .sidebar::-webkit-scrollbar{width:4px}
+}
+@media(max-width:760px){.sidebar-toolbar{display:none}.account-menu summary::after{display:none}}
+@media(prefers-reduced-motion:reduce){.exhibition-shell .page-frame{transition:none}}
+.brand-title{display:block;line-height:28px}
 </style>

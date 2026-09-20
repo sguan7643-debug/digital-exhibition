@@ -87,16 +87,14 @@ assert.match(apps, /const appTypeStats = computed/,
   "应用中心必须根据应用数据生成类型统计");
 assert.match(apps, /class="app-type-overview"[\s\S]*?TypeLineIcon\s+:name="item\.icon"/,
   "应用类型统计必须复用现有线稿图标体系");
-assert.match(apps, /\.onboarding-link\s*\{[^}]*width:\s*176px;[^}]*height:\s*44px;[^}]*font-size:\s*15px;[^}]*font-weight:\s*700/s,
-  "应用上架申请按钮必须更大、更醒目");
-assert.match(apps, /\.apps-filter label\s*\{[^}]*font-size:\s*14px;[^}]*font-weight:\s*600/s,
-  "应用筛选标签字号与字重必须统一");
-assert.match(apps, /\.apps-filter input,[\s\S]*?\.apps-filter select\s*\{[^}]*height:\s*42px;[^}]*font-size:\s*14px;[^}]*font-weight:\s*400/s,
-  "应用筛选输入框与下拉框字号、高度必须统一");
-assert.match(apps, /\.apps-grid\.list-view\s*>\s*article\s*\{[^}]*grid-template-columns:[^}]*minmax\(360px,[^}]*minmax\(380px/s,
-  "应用列表视图必须为标题、简介、数据和操作保留独立列宽");
-assert.match(apps, /@media\s*\(max-width:\s*1600px\)[\s\S]*?\.apps-grid\.list-view\s*>\s*article\s*\{[^}]*repeat\(2,/,
-  "应用列表视图必须在中等宽度主动收敛，避免文字与按钮截断");
+assert.match(apps, /\.onboarding-link\s*\{[^}]*min-height:\s*42px/,
+  '上架入口保持可点击高度');
+assert.match(apps, /\.apps-filter label\s*\{[^}]*font-size:\s*14px/,
+  '筛选标签使用14px字号');
+assert.match(apps, /\.application-grid\.list-view/,
+  '列表视图保留独立布局');
+assert.match(apps, /@container\(max-width:639px\)/,
+  '窄内容区域必须收敛为单列');
 assert.match(materials, /\.materials-header p\{[^}]*font-size:14px;line-height:1\.65/,
   "素材中心说明文字必须具备清晰字号和行距");
 assert.match(materials, /\.materials-filter label\{[^}]*min-height:42px;[^}]*font-size:14px;[^}]*line-height:1\.5/,
@@ -160,8 +158,7 @@ assert.match(training, /<dl class="course-status">[\s\S]*?报名人数[\s\S]*?�
   "培训卡片必须分段展示报名状态");
 assert.match(training, /\.course-grid\s*>\s*article\s*\{[^}]*min-height:\s*340px/,
   "培训卡片必须使用更方正、可容纳分段文字的最终高度");
-assert.match(apps, /\.apps-grid\s*>\s*article\s*\{[^}]*min-height:\s*314px/,
-  "应用卡片必须提高纵向比例");
+assert.match(apps, /\.application-card\{[^}]*border-radius:12px/, "应用卡片使用紧凑圆角布局");
 assert.match(materials, /\.materials-grid>article\s*\{\s*min-height:270px/,
   "素材卡片必须提高纵向比例");
 assert.match(favorites, /\.favorite-grid\s*\{[\s\S]*?repeat\(3,\s*minmax\(0,\s*1fr\)\)/,
@@ -193,17 +190,16 @@ for (const source of [apps, favorites]) {
   assert.match(source, /#usage/);
   assert.match(source, />\s*立即使用\s*<\/a/);
   assert.match(source, />\s*申请使用\s*<\/button/);
-  const departmentIndex = source.indexOf("<dt>负责部门</dt>");
-  assert.ok(departmentIndex >= 0 && departmentIndex < source.indexOf("<dt>负责人</dt>") &&
-    source.indexOf("<dt>负责人</dt>") < source.indexOf("<dt>开发者</dt>"),
-  "应用卡片字段必须按负责部门、负责人、开发者顺序展示");
+  const semanticSource = source.replaceAll('<dt class="sr-only">', '<dt>');
+  const departmentIndex = semanticSource.indexOf("<dt>负责部门</dt>");
+  const roleOrder = source === apps ? ["开发者", "负责人"] : ["负责人", "开发者"];
+  assert.ok(departmentIndex >= 0 && departmentIndex < semanticSource.indexOf(`<dt>${roleOrder[0]}</dt>`) &&
+    semanticSource.indexOf(`<dt>${roleOrder[0]}</dt>`) < semanticSource.indexOf(`<dt>${roleOrder[1]}</dt>`),
+  "应用卡片和收藏页分别保留已确认的字段顺序");
 }
-for (const source of [apps, favorites]) {
-  assert.match(source, /(?:apps|favorite)-grid dd\s*\{[^}]*font-weight:\s*400/s,
-    "应用与收藏卡片事实字段必须使用常规字重");
-  assert.match(source, /(?:apps-grid h2|favorite-title-row h2)\s*\{[^}]*font-weight:\s*600/s,
-    "应用与收藏卡片仅标题保留加粗层级");
-}
+assert.match(apps, /\.application-card :is\(p,mark,dt,dd,a,button\)\{font-size:14px;font-weight:400/, "应用卡片正文统一14px常规字重");
+assert.match(apps, /\.catalog-title-row h2\{[^}]*font-size:16px;[^}]*font-weight:650/, "标题保留层级");
+assert.match(favorites, /favorite-grid dd\s*\{[^}]*font-weight:\s*400/s, "收藏事实字段保持常规字重");
 assert.match(favorites, /APP_FIXTURES\.map\(\(app\)\s*=>\s*\[app\.route, app\.department\]\)/,
   "收藏卡片负责部门必须复用应用元数据");
 

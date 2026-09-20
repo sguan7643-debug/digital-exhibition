@@ -44,17 +44,18 @@ for (const { page, icon, source } of details) {
 }
 
 const rpa = details.find(({ page }) => page === "RpaDetailPage").source;
+assert.match(rpa, /\.detail-title > p,\s*#main-content \.rpa-detail \.detail-title mark\s*\{\s*font-size: var\(--xlt-font-meta\);\s*line-height: 1\.75;/, "RPA 分类、标签与应用简介复用相同字号和行高");
 assert.match(
-  style,
-  /\.rpa-detail \.rpa-video\{width:1135px;max-width:100%;height:192px/,
-  "RPA 视频必须保留清晰素材的原生几何",
+  rpa,
+  /\.rpa-recording\s*\{[^}]*width: 100%;[^}]*max-width: 960px;[^}]*aspect-ratio: 16 \/ 9;/,
+  "RPA 录屏展示区使用响应式 16:9 比例及合理最大宽度",
 );
 assert.match(
   rpa,
-  /class="preview-wide rpa-video"[\s\S]{0,180}width="1135"[\s\S]{0,80}height="192"/,
-  "RPA 视频 DOM 必须声明原生尺寸",
+  /class="rpa-recording"[\s\S]*暂无录屏文件/,
+  "缺少实际录屏时显示真实空状态，不再以扁长播放器截图冒充视频",
 );
-assert.match(rpa, /rpaDisplayUrl/, "RPA Hero 必须显示应用 URL");
+assert.doesNotMatch(rpa, /rpaDisplayUrl|rpa-url|本地受控演示|已上线/, "RPA 顶部不再显示上线标签和本地演示说明");
 assert.match(
   rpa,
   /class="file-list rpa-training-list"[\s\S]*rpa-video\.png/,
