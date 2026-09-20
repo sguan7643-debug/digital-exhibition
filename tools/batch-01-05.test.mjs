@@ -20,7 +20,7 @@ for (const [id, [path, sha]] of Object.entries(files)) {
   assert.doesNotMatch(source, /[●◆■▲✦⬢▣◇]/u);
 }
 
-for (const asset of ['workbench', 'materials', 'talent', 'apps', 'training', 'points', 'certification', 'operations', 'announcements', 'admin']) {
+for (const asset of ['workbench', 'apps', 'materials', 'certification', 'training', 'talent', 'operations']) {
   assert.ok(shell.includes(`/assets/nav-${asset}.png`), `共享壳缺少 ASCII 同源图标：${asset}`);
 }
 assert.doesNotMatch(shell, /\/assets\/nav-[^'"/]*[\u3400-\u9fff]/u, '共享壳不能使用可能被静态服务器错误解码的 Unicode 资产 URL');

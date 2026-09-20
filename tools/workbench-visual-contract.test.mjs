@@ -7,7 +7,7 @@ const workbench = read('src/pages/WorkbenchPage.vue');
 const workbenchFixtures = read('src/state/workbench-profile-controllers.js');
 const workbenchAuthority = workbench + workbenchFixtures;
 
-for (const label of ['素材中心', '全部素材', '应用中心', '全部应用', '可视化', '报表', 'RPA', '数据集', '指标', 'AI', '海能work应用', 'EAD', '其他工具', '场景化搜索']) {
+for (const label of ['应用中心', '全部应用', '可视化', '报表', 'RPA', '数据集', '指标', 'AI', '海能work应用', 'EAD', '其他工具', '场景化搜索']) {
   assert.ok(shell.includes(label), `工作台侧栏缺少：${label}`);
 }
 

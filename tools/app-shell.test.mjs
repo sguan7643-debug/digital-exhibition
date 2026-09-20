@@ -32,8 +32,10 @@ assert.match(shell, /retainViewerRole\(viewerRole\.value, nextRole\)/,
   '管理员进入普通角色标记的公告页后不得丢失身份');
 assert.doesNotMatch(shell, /includes\(props\.page\.role\)/,
   '公告权限不得继续直接依赖目标页面角色');
-assert.match(shell, /visiblePrimaryNav[^\n]+route !== '\/announcements'/,
-  '普通用户顶栏必须过滤公告通知入口');
+const primaryNavSource = shell.split('const primaryNav = [')[1].split('];')[0];
+assert.doesNotMatch(primaryNavSource, /\/points|\/announcements|\/admin/,
+  '顶部仅保留七项主导航，积分和管理入口归入个人功能');
+assert.match(shell, /v-if="isAdministrator" href="\/admin"/, '管理入口继续按角色显示');
 assert.equal(canViewAnnouncements('普通员工'), false);
 assert.equal(canViewAnnouncements('运营人员'), true);
 assert.equal(canViewAnnouncements('后台管理员'), true);

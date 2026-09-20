@@ -4,7 +4,6 @@ import {
   canViewAnnouncements,
   createShellController,
   normalizeAppCategory,
-  normalizeMaterialCategory,
   retainViewerRole,
 } from '../state/interaction-controllers.js';
 import TypeLineIcon from './TypeLineIcon.vue';
@@ -14,39 +13,43 @@ const shellState = createShellController();
 const viewerRole = ref(props.page.role);
 const sceneDraft = ref(new URLSearchParams(window.location.search).get('scene') || '');
 const selectedCategory = ref(normalizeAppCategory(new URLSearchParams(window.location.search).get('category') || ''));
-const selectedMaterialType = ref(normalizeMaterialCategory(new URLSearchParams(window.location.search).get('type') || ''));
 const mobileMenuOpen = ref(false);
 const mobileViewport = ref(false);
+const sidebarCollapsed = ref(false);
+const compactSidebar = computed(() => sidebarCollapsed.value && !mobileViewport.value);
+const accountMenu = ref(null);
+function toggleSidebar() { sidebarCollapsed.value = !sidebarCollapsed.value; }
+function openSceneSearch() {
+  sidebarCollapsed.value = false;
+  nextTick(() => document.querySelector('.scene-search input')?.focus());
+}
+function closeAccountMenu(event) {
+  if (event.type === 'keydown' && event.key !== 'Escape') return;
+  if (event.type === 'keydown' || !accountMenu.value?.contains(event.target)) {
+    accountMenu.value?.removeAttribute('open');
+  }
+}
 const mobileMenuButton = ref(null);
 const mobileDrawer = ref(null);
 let mobileMediaQuery;
 
 const primaryNav = [
-  ['/workbench', '/assets/nav-workbench.png', '首页工作台'], ['/materials', '/assets/nav-materials.png', '素材中心'],
-  ['/talent/people', '/assets/nav-talent.png', '人才管理'], ['/apps', '/assets/nav-apps.png', '应用中心'],
-  ['/training', '/assets/nav-training.png', '培训课堂'], ['/points', '/assets/nav-points.png', '积分中心'],
-  ['/certification', '/assets/nav-certification.png', '数字化认证'], ['/operations', '/assets/nav-operations.png', '运营管理'],
-  ['/announcements', '/assets/nav-announcements.png', '公告通知'], ['/admin', '/assets/nav-admin.png', '后台管理']
+  ['/workbench', '/assets/nav-workbench.png', '首页'],
+  ['/apps', '/assets/nav-apps.png', '应用中心'],
+  ['/materials', '/assets/nav-materials.png', '素材中心'],
+  ['/certification', '/assets/nav-certification.png', '数字化认证'],
+  ['/training', '/assets/nav-training.png', '培训课堂'],
+  ['/talent/people', '/assets/nav-talent.png', '人才管理'],
+  ['/operations', '/assets/nav-operations.png', '运营管理']
 ];
-const simpleNav = primaryNav.map(([route, icon, label]) => [route, label, icon]);
 const categories = [
   ['全部应用', 'apps', ''], ['可视化', 'visual', '可视化'], ['报表', 'report', '报表'],
   ['RPA', 'rpa', 'RPA'], ['数据集', 'dataset', '数据集'], ['指标', 'metric', '指标'],
   ['AI', 'ai', 'AI'], ['海能work应用', 'work', '海能work应用'], ['EAD', 'ead', 'EAD'],
   ['其他工具', 'tools', '其他工具']
 ];
-const materialCategories = [
-  ['全部素材', 'materials', ''], ['可视化', 'visual', '可视化'], ['报表', 'report', '报表'],
-  ['RPA', 'rpa', 'RPA'], ['数据集', 'dataset', '数据集'], ['指标', 'metric', '指标'],
-  ['AI', 'ai', 'AI'], ['海能work应用', 'work', '海能work应用'], ['EAD', 'ead', 'EAD'],
-  ['其他工具', 'tools', '其他工具']
-];
-// The new information architecture keeps the same three catalogue groups on
-// every route so users never lose their material/application context.
-const isCatalogue = computed(() => Boolean(props.page));
-const isTalent = computed(() => Number(props.page.id) >= 28);
 const isAdministrator = computed(() => canViewAnnouncements(viewerRole.value));
-const visiblePrimaryNav = computed(() => primaryNav.filter(([route]) => route !== '/announcements' || isAdministrator.value));
+const visiblePrimaryNav = computed(() => primaryNav);
 function active(route) {
   if (route === '/talent/people' && props.page.route.startsWith('/talent/')) return true;
   return props.page.route === route || (route !== '/workbench' && props.page.route.startsWith(`${route}/`));
@@ -64,20 +67,6 @@ function setCategory(label) {
   window.history.replaceState({ ...window.history.state }, '', `${next.pathname}${next.search}`);
   selectedCategory.value = label;
   window.dispatchEvent(new CustomEvent('xlt:apps-category', { detail: label }));
-}
-function setMaterialType(type) {
-  closeMobileMenu(true);
-  if (props.page.id !== '31') {
-    const suffix = type ? `?type=${encodeURIComponent(type)}` : '';
-    window.history.pushState({}, '', `/materials${suffix}`);
-    window.dispatchEvent(new PopStateEvent('popstate'));
-    return;
-  }
-  const next = new URL(window.location.href);
-  type ? next.searchParams.set('type', type) : next.searchParams.delete('type');
-  window.history.replaceState({ ...window.history.state }, '', `${next.pathname}${next.search}`);
-  selectedMaterialType.value = type;
-  window.dispatchEvent(new CustomEvent('xlt:materials-filter', { detail: { key: 'type', value: type } }));
 }
 function setScene(scene) {
   closeMobileMenu(true);
@@ -110,7 +99,6 @@ function syncShellFilters() {
   const query = new URLSearchParams(window.location.search);
   sceneDraft.value = query.get('scene') || '';
   selectedCategory.value = normalizeAppCategory(query.get('category') || '');
-  selectedMaterialType.value = normalizeMaterialCategory(query.get('type') || '');
 }
 function syncMobileViewport(event) {
   mobileViewport.value = event.matches;
@@ -157,6 +145,8 @@ function handleShellKeydown(event) {
 onMounted(() => {
   window.addEventListener('popstate', syncShellFilters);
   window.addEventListener('keydown', handleShellKeydown);
+  window.addEventListener('click', closeAccountMenu);
+  window.addEventListener('keydown', closeAccountMenu);
   mobileMediaQuery = window.matchMedia('(max-width: 760px)');
   syncMobileViewport(mobileMediaQuery);
   mobileMediaQuery.addEventListener?.('change', syncMobileViewport);
@@ -164,11 +154,14 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('popstate', syncShellFilters);
   window.removeEventListener('keydown', handleShellKeydown);
+  window.removeEventListener('click', closeAccountMenu);
+  window.removeEventListener('keydown', closeAccountMenu);
   mobileMediaQuery?.removeEventListener?.('change', syncMobileViewport);
 });
 watch(() => props.page, () => {
   syncShellFilters();
   closeMobileMenu(true);
+  accountMenu.value?.removeAttribute('open');
 }, { flush: 'post' });
 watch(
   () => props.page.role,
@@ -180,14 +173,14 @@ watch(
 </script>
 
 <template>
-  <div class="exhibition-shell" :class="{ 'standard-shell': !isCatalogue, 'certification-shell': props.page.id === '27' }">
+  <div class="exhibition-shell" :class="{ 'sidebar-collapsed': compactSidebar, 'certification-shell': props.page.id === '27' }">
     <a class="skip-link" href="#main-content">跳到主要内容</a>
     <header class="topbar">
       <button ref="mobileMenuButton" class="mobile-nav-toggle" type="button" aria-controls="platform-sidebar" :aria-expanded="String(mobileMenuOpen)" :aria-label="mobileMenuOpen ? '关闭导航菜单' : '打开导航菜单'" :aria-hidden="mobileViewport && mobileMenuOpen ? 'true' : undefined" :inert="mobileViewport && mobileMenuOpen" @click="toggleMobileMenu">
         <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
       </button>
       <a class="brand" href="/workbench" aria-label="数智产品展厅首页" :aria-hidden="mobileViewport && mobileMenuOpen ? 'true' : undefined" :inert="mobileViewport && mobileMenuOpen">
-        <span>数智产品展厅</span>
+        <span class="brand-title">数智产品展厅</span>
       </a>
       <nav class="primary-nav" aria-label="主导航">
         <a v-for="([route, icon, label]) in visiblePrimaryNav" :key="route" :href="route" :aria-current="active(route) ? 'page' : undefined">
@@ -197,10 +190,18 @@ watch(
       <div class="top-actions" aria-label="快捷操作" :aria-hidden="mobileViewport && mobileMenuOpen ? 'true' : undefined" :inert="mobileViewport && mobileMenuOpen">
         <a class="action-link" href="/messages" aria-label="8 条未读消息"><TypeLineIcon name="message" :size="24" /></a>
         <a class="action-link" href="/favorites" aria-label="收藏" :aria-current="props.page.id === '03' ? 'page' : undefined"><TypeLineIcon name="favorite" :size="23" /></a>
-        <a class="top-user" href="/profile" aria-label="个人中心">
+        <details ref="accountMenu" class="account-menu">
+        <summary class="top-user" aria-label="个人菜单">
           <img src="/assets/top-avatar.png" width="38" height="38" alt="" />
           <span><strong>张三丰</strong><small>物资采购中心</small></span>
-        </a>
+        </summary>
+          <nav class="account-links" aria-label="个人功能">
+            <a href="/profile">个人中心</a>
+            <a href="/profile#my-points">我的积分</a>
+            <a href="/announcements">公告通知</a>
+            <a v-if="isAdministrator" href="/admin">后台管理</a>
+          </nav>
+        </details>
       </div>
     </header>
 
@@ -212,21 +213,21 @@ watch(
           <a v-for="([route, icon, label]) in visiblePrimaryNav" :key="`mobile-${route}`" :href="route" :aria-current="active(route) ? 'page' : undefined" @click="closeMobileMenu()"><img :src="icon" width="22" height="24" alt="" />{{ label }}</a>
         </nav>
         <p class="sr-only" aria-live="polite">{{ shellState.announcement }}</p>
+        <div class="sidebar-toolbar">
+          <span v-if="!compactSidebar">应用导航</span>
+          <button class="sidebar-toggle" type="button" @click="toggleSidebar" :aria-expanded="String(!compactSidebar)" aria-controls="sidebar-content" :aria-label="compactSidebar ? '展开侧栏' : '收起侧栏'" :title="compactSidebar ? '展开侧栏' : '收起侧栏'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/><path :d="compactSidebar ? 'm13 9 3 3-3 3' : 'm16 9-3 3 3 3'"/></svg>
+          </button>
+        </div>
         <div id="sidebar-content">
-        <template v-if="isCatalogue">
-          <section class="catalogue-group">
-            <div class="group-heading"><h2><TypeLineIcon class="catalogue-line-icon heading-icon" name="materials" :size="20" />素材中心</h2><button class="group-toggle" type="button" :aria-expanded="String(shellState.materialsExpanded)" aria-controls="materials-group-menu" :aria-label="shellState.materialsExpanded?'收起素材中心子菜单':'展开素材中心子菜单'" @click="shellState.toggleGroup('materials')"><span class="group-chevron" aria-hidden="true"></span></button></div>
-            <nav id="materials-group-menu" v-show="shellState.materialsExpanded" aria-label="素材中心子菜单">
-              <button v-for="([label, icon, type]) in materialCategories" :key="`material-${label}`" type="button" :aria-pressed="props.page.id === '31' && selectedMaterialType === type" @click="setMaterialType(type)"><TypeLineIcon class="catalogue-line-icon" :name="icon" :size="18" />{{ label }}</button>
-            </nav>
-          </section>
           <section class="catalogue-group app-group">
-            <div class="group-heading"><h2><TypeLineIcon class="catalogue-line-icon heading-icon" name="apps" :size="20" />应用中心</h2><button class="group-toggle" type="button" :aria-expanded="String(shellState.appsExpanded)" aria-controls="apps-group-menu" :aria-label="shellState.appsExpanded?'收起应用中心子菜单':'展开应用中心子菜单'" @click="shellState.toggleGroup('apps')"><span class="group-chevron" aria-hidden="true"></span></button></div>
-            <nav id="apps-group-menu" v-show="shellState.appsExpanded" aria-label="应用分类">
-              <button v-for="([label, icon, category]) in categories" :key="`app-${label}`" type="button" :aria-pressed="props.page.id === '07' && selectedCategory === category" @click="setCategory(category)"><TypeLineIcon class="catalogue-line-icon" :name="icon" :size="18" />{{ label }}</button>
+            <div v-if="!compactSidebar" class="group-heading"><h2><TypeLineIcon class="catalogue-line-icon heading-icon" name="apps" :size="20" />应用中心</h2><button class="group-toggle" type="button" :aria-expanded="String(shellState.appsExpanded)" aria-controls="apps-group-menu" :aria-label="shellState.appsExpanded?'收起应用中心子菜单':'展开应用中心子菜单'" @click="shellState.toggleGroup('apps')"><span class="group-chevron" aria-hidden="true"></span></button></div>
+            <nav id="apps-group-menu" v-show="compactSidebar || shellState.appsExpanded" aria-label="应用分类">
+              <button v-for="([label, icon, category]) in categories" :key="`app-${label}`" type="button" :title="label" :aria-label="label" :aria-pressed="props.page.id === '07' && selectedCategory === category" @click="setCategory(category)"><TypeLineIcon class="catalogue-line-icon" :name="icon" :size="18" /><span v-if="!compactSidebar">{{ label }}</span></button>
             </nav>
           </section>
-          <section class="scene-search" aria-labelledby="scene-search-title">
+          <button v-if="compactSidebar" class="compact-scene-search" type="button" aria-label="展开场景化搜索" title="场景化搜索" @click="openSceneSearch"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
+          <section v-show="!compactSidebar" class="scene-search" aria-labelledby="scene-search-title">
             <h2 id="scene-search-title">场景化搜索</h2>
             <label><span class="sr-only">搜索场景关键词</span><input v-model="sceneDraft" type="search" placeholder="搜索场景或关键字" @keydown.enter.prevent="submitSceneSearch" /></label>
             <div>
@@ -237,22 +238,6 @@ watch(
               <button type="button" :aria-pressed="sceneDraft === '市场营销'" @click="setScene('市场营销')">市场营销</button><button type="button" disabled title="全部冻结场景已展示">更多</button>
             </div>
           </section>
-        </template>
-        <template v-else-if="isTalent">
-          <nav class="simple-nav" aria-label="人才管理功能">
-            <a href="/workbench"><img src="/assets/nav-workbench.png" width="22" height="24" alt="" />首页工作台</a>
-            <a class="section-current" href="/talent/people"><img src="/assets/nav-talent.png" width="22" height="24" alt="" />人才管理</a>
-            <a class="sub" href="/talent/projects" :aria-current="props.page.id === '29' ? 'page' : undefined">人才项目管理</a>
-            <a class="sub" href="/talent/progress" :aria-current="props.page.id === '30' ? 'page' : undefined">项目进度管理</a>
-            <a class="sub" href="/talent/people" :aria-current="props.page.id === '28' ? 'page' : undefined">人才库</a>
-            <a href="/apps"><img src="/assets/nav-apps.png" width="22" height="24" alt="" />应用中心</a>
-            <a href="/training"><img src="/assets/nav-training.png" width="22" height="24" alt="" />培训课堂</a>
-            <a href="/points"><img src="/assets/nav-points.png" width="22" height="24" alt="" />积分中心</a>
-          </nav>
-        </template>
-        <nav v-else class="simple-nav" aria-label="平台功能">
-          <a v-for="([route, label, icon]) in simpleNav" :key="route" :href="route" :aria-current="active(route) ? 'page' : undefined"><img :src="icon" width="22" height="24" alt="" />{{ label }}</a>
-        </nav>
         </div>
       </aside>
       <main id="main-content" tabindex="-1" :aria-hidden="mobileViewport && mobileMenuOpen ? 'true' : undefined" :inert="mobileViewport && mobileMenuOpen">
@@ -366,4 +351,33 @@ main{background:#f5f7fa}
   .primary-nav a{font-size:13px}
 }
 @media(prefers-reduced-motion:reduce){.sidebar{transition:none!important}}
+
+/* Desktop collapse and account navigation. Mobile retains the drawer. */
+.account-menu{position:relative}
+.account-menu summary{cursor:pointer;list-style:none}
+.account-menu summary::-webkit-details-marker{display:none}
+.account-menu summary::after{content:'';width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin:0 3px}
+.account-links{position:absolute;z-index:90;right:0;top:calc(100% + 8px);display:grid;min-width:168px;padding:6px;background:#fff;border:1px solid #dce5ef;border-radius:10px;box-shadow:0 10px 30px #12325226}
+.account-links a{display:block;padding:10px 14px;color:#28425e;border-radius:6px;font-size:14px}
+.account-links a:hover,.account-links a:focus-visible{background:#eef6fc;color:#0060a6}
+.topbar{position:relative;z-index:60}
+.sidebar-toolbar{display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:3;min-height:50px;padding:8px 12px;background:#fff;border-bottom:1px solid #edf1f6;color:#687b90;font-size:13px}
+.sidebar-toggle,.compact-scene-search{display:grid;place-items:center;width:34px;height:34px;flex-shrink:0;padding:0;color:#36546f;background:#f2f6fa;border:0;border-radius:8px;cursor:pointer}
+.sidebar-toggle:hover,.compact-scene-search:hover{background:#e6f2fc;color:#0060a6}
+.catalogue-group nav button{border-radius:8px;cursor:pointer}
+.catalogue-group nav button[aria-pressed=true]{background:#e8f3fc;box-shadow:inset 3px 0 #0060a6}
+@media(min-width:761px){
+  .exhibition-shell .page-frame{grid-template-columns:220px minmax(0,1fr);transition:grid-template-columns .2s ease}
+  .exhibition-shell.sidebar-collapsed .page-frame{grid-template-columns:56px minmax(0,1fr)}
+  .sidebar-collapsed .sidebar-toolbar{justify-content:center;padding:8px 0}
+  .sidebar-collapsed .app-group{padding:8px 7px}
+  .sidebar-collapsed .app-group nav{gap:5px;padding:0}
+  .sidebar-collapsed .app-group nav button{width:40px;height:40px;justify-content:center;padding:0}
+  .compact-scene-search{margin:10px auto;background:#eef4f9;width:40px;height:40px}
+  .sidebar{scrollbar-width:thin;scrollbar-color:#d4dfeb transparent}
+  .sidebar::-webkit-scrollbar{width:4px}
+}
+@media(max-width:760px){.sidebar-toolbar{display:none}.account-menu summary::after{display:none}}
+@media(prefers-reduced-motion:reduce){.exhibition-shell .page-frame{transition:none}}
+.brand-title{display:block;line-height:28px}
 </style>
