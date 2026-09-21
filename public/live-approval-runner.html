@@ -1,0 +1,59 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>TEST approval runner</title>
+<main>
+  <h1>TEST approval runner</h1>
+  <p id="hint"></p>
+  <p><a id="auth" href="/api/v1/auth/feishu/start?returnTo=%2Flive-approval-runner.html">去飞书授权</a></p>
+  <pre id="result">RUNNING</pre>
+</main>
+<script>
+const output = document.getElementById('result');
+const hint = document.getElementById('hint');
+const suffix = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
+const resourceId = `TEST_HW_${suffix}`;
+const write = data => {
+  output.textContent = JSON.stringify(data, null, 2);
+  if (data.steps?.some(step => step.body?.code === 'USER_AUTH_REQUIRED')) {
+    hint.textContent = '当前浏览器还没有本地飞书授权会话，请在本页点击“去飞书授权”，完成后会自动回到这里。';
+  }
+};
+const call = async (label, url, options = {}) => {
+  const response = await fetch(url, {
+    credentials: 'same-origin',
+    headers: options.body ? { 'Content-Type': 'application/json' } : undefined,
+    ...options
+  });
+  const text = await response.text();
+  let body = {};
+  try { body = text ? JSON.parse(text) : {}; } catch { body = { parseError: true }; }
+  return { label, httpStatus: response.status, body };
+};
+(async () => {
+  const steps = [];
+  steps.push(await call('definition', '/api/v1/approvals/definitions/test', { method: 'POST', body: '{}' }));
+  if (steps.at(-1).httpStatus === 401) return write({ passed: false, resourceId, instanceId: '', steps });
+  steps.push(await call('create-instance', '/api/v1/approvals/instances', {
+    method: 'POST',
+    body: JSON.stringify({
+      applicationType: 'T005',
+      title: `TEST_海能Work应用上架_${suffix}`,
+      applicationCode: resourceId,
+      resourceId,
+      businessKey: `TEST_T005_${suffix}`,
+      idempotencyKey: `TEST_IDEM_T005_${suffix}`,
+      description: 'TEST_数智展厅真实审批联调'
+    })
+  }));
+  const instanceId = steps.at(-1).body.instanceId || '';
+  if (instanceId) {
+    steps.push(await call('query-before-approve', `/api/v1/approvals/instances/${encodeURIComponent(instanceId)}?resourceId=${encodeURIComponent(resourceId)}`));
+    steps.push(await call('approve', `/api/v1/approvals/instances/${encodeURIComponent(instanceId)}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ resourceId })
+    }));
+    steps.push(await call('query-after-approve', `/api/v1/approvals/instances/${encodeURIComponent(instanceId)}?resourceId=${encodeURIComponent(resourceId)}`));
+  }
+  write({ passed: steps.every(step => step.httpStatus < 400), resourceId, instanceId: instanceId ? `${instanceId.slice(0, 6)}...${instanceId.slice(-4)}` : '', steps });
+})().catch(error => write({ passed: false, error: String(error?.message || error) }));
+</script>

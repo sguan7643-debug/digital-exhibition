@@ -1,0 +1,83 @@
+{
+  "task_id": "DEH-LIVE-101-20260914",
+  "title": "数智展厅101项真实接口联调与修复",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "对 operation registry 中65项读取和36项受控写入逐项执行真实环境验证，修复本仓库可解决的问题并形成可复核证据。",
+  "target_user": "数智产品展厅业务用户、管理员与项目验收人员。",
+  "in_scope": [
+    "65项飞书读取操作逐项真实验证",
+    "36项仅TEST_前缀写入操作逐项真实验证并清理",
+    "附件、幂等、版本冲突、回滚和审批链路验证",
+    "对前端及本仓库服务层可复现缺陷执行受控修复与回归",
+    "形成逐operation证据和明日业务汇报"
+  ],
+  "out_of_scope": [
+    "修改外部后端代码",
+    "修改非TEST_正式业务数据",
+    "生产部署、发布和主分支合并",
+    "用契约测试或模拟结果冒充真实接口通过"
+  ],
+  "success_metric": "101个operation均有真实请求结果、数据结果和清理/阻塞证据，所有本仓库可修复问题完成回归。",
+  "deadline": "2026-09-15",
+  "risk_level": "high",
+  "state": "complete",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "User-20260914-live-101-approved",
+      "approved_at": "2026-09-14T10:49:33.0455855Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "User-20260914-live-101-approved",
+      "approved_at": "2026-09-14T10:49:35.4733292Z"
+    },
+    "release": {
+      "approved": true,
+      "approved_by": "User-20260918-release-approved",
+      "approved_at": "2026-09-18T02:06:52.6196670Z"
+    }
+  },
+  "checks": {
+    "web_passed": true,
+    "mobile_passed": false,
+    "web_evidence": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web-task-merged\\.ai-team\\tasks\\DEH-LIVE-101-20260914\\engineering-handoff.md",
+    "web_checked_at": "2026-09-18T02:04:54.4408773Z",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": true,
+    "blocking_defects": 0,
+    "evidence": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web-task-merged\\.ai-team\\tasks\\DEH-LIVE-101-20260914\\qa-report.md",
+    "recorded_at": "2026-09-18T02:05:34.7782112Z"
+  },
+  "repair_attempts": 2,
+  "repair_history": [
+    {
+      "attempt": 1,
+      "platform": "web",
+      "evidence": "Web repair authorization for 007: repair F-002 through F-007, regenerate per-operation live evidence, and re-run Web QA on the task branch only; no merge, deploy, or release.",
+      "qa_evidence": ".ai-team/tasks/DEH-LIVE-101-20260914/functional-qa-report.md",
+      "recorded_at": "2026-09-14T14:31:26.1662375Z"
+    },
+    {
+      "attempt": 2,
+      "platform": "web",
+      "evidence": "AUTH-ENTRY-001: initial session guard -> Feishu OAuth -> safe /test2 path return",
+      "qa_evidence": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web-task-merged\\.ai-team\\tasks\\DEH-LIVE-101-20260914\\qa-report.md",
+      "recorded_at": "2026-09-16T09:07:57.8182814Z"
+    }
+  ]
+}

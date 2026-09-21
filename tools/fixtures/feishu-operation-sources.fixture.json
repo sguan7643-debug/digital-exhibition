@@ -715,6 +715,42 @@
           "所属场景ID",
           "适用对象"
         ]
+      },
+      {
+        "table": "可视化驾驶舱详情",
+        "fields": ["主键", "应用ID"]
+      },
+      {
+        "table": "可视化报表详情",
+        "fields": ["主键", "应用ID"]
+      },
+      {
+        "table": "海能work应用详情",
+        "fields": ["主键", "应用ID"]
+      },
+      {
+        "table": "工具应用详情",
+        "fields": ["主键", "应用ID"]
+      },
+      {
+        "table": "RPA应用详情",
+        "fields": ["主键", "应用ID"]
+      },
+      {
+        "table": "EAD应用详情",
+        "fields": ["主键", "应用ID"]
+      },
+      {
+        "table": "AI应用详情",
+        "fields": ["主键", "应用ID"]
+      },
+      {
+        "table": "数据集应用详情",
+        "fields": ["主键", "应用ID"]
+      },
+      {
+        "table": "指标应用详情",
+        "fields": ["主键", "应用ID"]
       }
     ],
     "conditionalOneOf": [],

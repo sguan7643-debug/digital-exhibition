@@ -5,7 +5,9 @@ const collectionOperationIds = new Set([
   'TRN-002','CER-002','OAN-002','OAP-002','ADM-003','ADM-004','ADM-005','TAL-001','TAL-002',
   'TAL-003','MAT-002','INT-004','INT-005'
 ]);
-const interactionReadOperationIds = new Set(['OAN-008', 'APP-004', 'MAT-003', 'COM-008', 'COM-010']);
+// These resources require a user-selected business object.  Keeping them as
+// interaction reads prevents route entry from issuing incomplete requests.
+const interactionReadOperationIds = new Set(['OAN-008', 'APP-004', 'MAT-003', 'COM-008', 'COM-010', 'APP-010', 'OAP-008', 'WB-004']);
 const versionRequiredOperationIds = new Set([
   'COM-007','MSG-003','MSG-004','MSG-005','FAV-004','TRN-005','ADM-005',
   'OAN-005','OAN-006','OAN-007','OAP-005','OAP-009','ARC-003'
@@ -46,7 +48,7 @@ export const PAGE_INTEGRATION_MATRIX = Object.freeze([
   define('01','/workbench',['COM-001','COM-002','COM-005','WB-001','WB-002','COM-011'],['identity','menu','dictionary','tasks','application-summary','application-search','behavior-audit']),
   define('02','/messages',['MSG-001','MSG-002','MSG-003','MSG-004','MSG-005'],['message','unread-count','read-state']),
   define('03','/favorites',['FAV-001','FAV-002','APP-004','FAV-003','FAV-004'],['favorite','resource','canonical-resource-id','app-launch']),
-  define('04','/profile',['COM-001','COM-003','COM-004','WB-003','WB-004'],['identity','organization','contact','profile-summary','todo']),
+  define('04','/profile',['COM-003','COM-004','WB-003','WB-004'],['identity','organization','contact','profile-summary','todo']),
   define('05','/announcements',['ANN-001','ANN-002'],['announcement','read-state']),
   define('06','/announcements/notice-001',['ANN-003','ANN-005','COM-008','ANN-004'],['announcement-detail','attachment','related-resource','file-download','read-state']),
   define('07','/apps',['APP-001','APP-002','APP-004'],['application-summary','application-filter','topic-domain','app-launch']),
@@ -59,7 +61,10 @@ export const PAGE_INTEGRATION_MATRIX = Object.freeze([
   define('14','/apps/ai-001',[...appDetailOperationIds],['application-detail','ai-metadata','related-resource','comment','material-download','file-download','favorite','application-request','reuse-request']),
   define('15','/apps/ead-001',[...appDetailOperationIds],['application-detail','ead-metadata','related-resource','comment','material-download','file-download','favorite','application-request','reuse-request']),
   define('16','/apps/rpa-001',[...appDetailOperationIds],['application-detail','rpa-metadata','related-resource','comment','material-download','file-download','favorite','application-request','reuse-request']),
-  define('17','/apps/onboarding/status',['APP-010','OAP-008','OAP-010'],['application-request','submission-record','permission-grant']),
+  // Approval status is loaded by OnboardingPage through the dedicated
+  // instance endpoint.  The legacy operation entries stay declared for
+  // governance, but must never be fetched merely by entering this route.
+  define('17','/apps/onboarding/status',['APP-010','OAP-008','OAP-010'],['approval-instance-status']),
   define('18','/points',['PTS-001','PTS-003','PTS-004'],['point-account','point-category','point-rule']),
   define('19','/points/details',['PTS-002','PTS-005'],['point-ledger','point-export']),
   define('20','/training',['TRN-001','TRN-002','TRN-003','TRN-004','TRN-005','TRN-006'],['course','registration','learning-entry']),
@@ -73,7 +78,8 @@ export const PAGE_INTEGRATION_MATRIX = Object.freeze([
   define('28','/talent/people',['TAL-001','TAL-005'],['talent-person','field-capability']),
   define('29','/talent/projects',['TAL-002','TAL-004'],['talent-project','talent-write'],'disabled'),
   define('30','/talent/progress',['TAL-003','TAL-004'],['talent-progress','talent-write'],'disabled'),
-  define('31','/materials',['MAT-001'],['material-facet','material-category'])
+  define('31','/materials',['MAT-001'],['material-facet','material-category']),
+  define('32','/apps/onboarding/apply',['COM-003','COM-004'],['organization-directory','contact-directory','onboarding-form'])
 ]);
 
 export function getPageIntegrationContract(route) {

@@ -165,6 +165,11 @@ const facetItemSchema = Object.freeze({
   additionalProperties: false
 });
 const facetListSchema = Object.freeze({ type: 'array', items: facetItemSchema, maxItems: 100 });
+const appDetailCountItemSchema = Object.freeze({
+  type: 'object', required: ['tableName', 'category', 'count'],
+  properties: { tableName: optionalText, category: optionalText, count: countInteger },
+  additionalProperties: false
+});
 const appItemSchema = Object.freeze({
   type: 'object',
   required: [
@@ -181,7 +186,7 @@ const appItemSchema = Object.freeze({
     usageCount: countInteger, favoriteCount: countInteger,
     ownerId: optionalText, ownerName: optionalText, developerId: optionalText, developerName: optionalText,
     responsibleOrgId: optionalText, responsibleOrgName: optionalText, developerOrgId: optionalText, developerOrgName: optionalText,
-    updatedAt: optionalText, iconName: optionalText, detailPath: optionalText
+    versionName: optionalText, updatedAt: optionalText, iconName: optionalText, detailPath: optionalText
   },
   additionalProperties: false
 });
@@ -199,10 +204,12 @@ function envelopeSchema(data) {
 }
 
 const appFacetsDataSchema = Object.freeze({
-  type: 'object', required: ['total', 'types', 'categories', 'tags', 'domains', 'scenes', 'facetsVersion'],
+  type: 'object', required: ['total', 'types', 'categories', 'tags', 'domains', 'scenes', 'typeDetailCounts', 'facetsVersion'],
   properties: {
     total: countInteger, types: facetListSchema, categories: facetListSchema, tags: facetListSchema,
-    domains: facetListSchema, scenes: facetListSchema, facetsVersion: optionalText
+    domains: facetListSchema, scenes: facetListSchema,
+    typeDetailCounts: Object.freeze({ type: 'array', items: appDetailCountItemSchema, maxItems: 9 }),
+    facetsVersion: optionalText
   },
   additionalProperties: false
 });
@@ -782,6 +789,8 @@ const appDetailSchema = Object.freeze({
     summary: Object.freeze({ type: 'string', maxLength: 2048 }), description: Object.freeze({ type: 'string', maxLength: 10000 }),
     versionName: optionalText, accessMode: optionalText, externalSystemCode: optionalText, externalUrl: optionalText,
     openMode: optionalText, applicableUsers: optionalText, businessScope: optionalText,
+    ownerId: optionalText, ownerName: optionalText, developerId: optionalText, developerName: optionalText,
+    responsibleOrgId: optionalText, responsibleOrgName: optionalText, developerOrgId: optionalText, developerOrgName: optionalText,
     features: openObjectList, metrics: openObjectList, fieldDefinitions: openObjectList, processSteps: openObjectList,
     previews: openObjectList, videos: openObjectList, attachments: openObjectList, guides: openObjectList,
     trainings: openObjectList, relatedApps: openObjectList, relatedMaterials: openObjectList,

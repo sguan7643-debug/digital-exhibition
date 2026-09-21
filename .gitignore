@@ -4,6 +4,7 @@ coverage/
 .vite/
 evidence/
 *.log
+*.rar
 .env*
 .local/
 

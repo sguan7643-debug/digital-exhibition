@@ -8,6 +8,9 @@ dependencies:
   '@lucide/vue':
     specifier: 1.38.0
     version: 1.38.0(vue@3.5.39)
+  undici:
+    specifier: ^6.21.1
+    version: 6.28.1
   vue:
     specifier: 3.5.39
     version: 3.5.39
@@ -748,6 +751,11 @@ packages:
       fdir: 6.5.0(picomatch@4.0.5)
       picomatch: 4.0.5
     dev: true
+
+  /undici@6.28.1:
+    resolution: {integrity: sha512-zWpdTVD54H48CIybL0rWQ3ukpb9d23wM7eH5RtfdmeP70cWHNjtfo7P4vZX+5CoDcO53J4Pu5uXp7lNfjc6DRA==}
+    engines: {node: '>=18.17'}
+    dev: false
 
   /vite@6.4.1:
     resolution: {integrity: sha512-+Oxm7q9hDoLMyJOYfUYBuHQo+dkAloi33apOPP56pzj+vsdJDzr+j1NISE5pyaAuKL4A3UD34qd0lx5+kfKp2g==}

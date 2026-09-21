@@ -5,9 +5,10 @@ const INSTANCE_ROUTE = /^\/api\/v1\/approvals\/instances\/([A-Za-z0-9_-]{1,256})
 const MAX_BODY_BYTES = 256 * 1024;
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
 
-function sameOrigin(headers = {}) {
+function sameOrigin(headers = {}, method = '') {
   const origin = String(headers.origin || headers.Origin || '');
   const host = String(headers.host || headers.Host || '');
+  if (!origin && method === 'GET') return String(headers['sec-fetch-site'] || headers['Sec-Fetch-Site'] || '').toLowerCase() === 'same-origin';
   try {
     const parsed = new URL(origin);
     return ['http:', 'https:'].includes(parsed.protocol) && parsed.host === host;
@@ -42,7 +43,7 @@ export function createFeishuApprovalDispatcher({ service, resolveUserSession } =
     const parsedUrl = new URL(request.url || '/', 'http://localhost');
     const pathname = parsedUrl.pathname;
     if (!pathname.startsWith(ROOT)) return null;
-    if (!sameOrigin(request.headers)) return failure(new FeishuProxyError('CROSS_ORIGIN_REQUEST_BLOCKED', '已阻止跨源审批请求', 403));
+    if (!sameOrigin(request.headers, request.method)) return failure(new FeishuProxyError('CROSS_ORIGIN_REQUEST_BLOCKED', '已阻止跨源审批请求', 403));
     if (Number(request.bodyBytes || 0) > MAX_BODY_BYTES) return failure(new FeishuProxyError('REQUEST_TOO_LARGE', '请求体不能超过 256 KiB', 413));
     if (request.method === 'POST') {
       const contentType = String(request.headers?.['content-type'] || request.headers?.['Content-Type'] || '');

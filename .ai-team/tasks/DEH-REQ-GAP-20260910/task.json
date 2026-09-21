@@ -1,0 +1,70 @@
+{
+    "task_id":  "DEH-REQ-GAP-20260910",
+    "title":  "数智产品展厅需求规格差距补齐",
+    "mode":  "existing",
+    "platforms":  [
+                      "web"
+                  ],
+    "web_framework":  "vue",
+    "mobile_framework":  "none",
+    "mobile_targets":  [
+
+                       ],
+    "goal":  "核对需求规格说明书与当前数智展厅 Web 实现，补齐有明确需求依据且具备现有数据或接口条件的未完成功能。",
+    "target_user":  "数智产品展厅的普通用户、业务开发人员、内容管理员、部门管理员和平台管理员。",
+    "in_scope":  [
+                     "逐条核对需求规格说明书中的前台、后台、数据与集成能力",
+                     "补齐有明确需求依据且可在当前 Vue Web 仓库完成的页面、交互、状态和接口闭环",
+                     "为改动补充自动化测试、构建证据和回归验证"
+                 ],
+    "out_of_scope":  [
+                         "新增或修改外部系统及后端代码",
+                         "在缺少正式接口或业务规则时虚构 EAD、机器人、AI、监控或审批能力",
+                         "移动端开发、生产部署、发布和主分支合并",
+                         "恢复说明书明确要求走变更流程的已删除功能"
+                     ],
+    "success_metric":  "形成有证据的完成度矩阵，并使所有范围内、依赖已具备的缺失项通过自动化测试和 Web 生产构建。",
+    "deadline":  "尽快完成；范围确认后立即进入开发和验收。",
+    "risk_level":  "medium",
+    "state":  "release_review",
+    "stop":  {
+                 "reason":  null,
+                 "stopped_by":  null,
+                 "stopped_at":  null
+             },
+    "approvals":  {
+                      "scope":  {
+                                    "approved":  true,
+                                    "approved_by":  "User-20260911-full-spec-approved",
+                                    "approved_at":  "2026-09-10T17:23:33.4097162Z"
+                                },
+                      "design":  {
+                                     "approved":  true,
+                                     "approved_by":  "User-20260911-all-approved",
+                                     "approved_at":  "2026-09-11T00:55:23.5561299Z"
+                                 },
+                      "release":  {
+                                      "approved":  false,
+                                      "approved_by":  "",
+                                      "approved_at":  ""
+                                  }
+                  },
+    "checks":  {
+                   "web_passed":  true,
+                   "mobile_passed":  false,
+                   "web_evidence":  "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web-task-merged\\.ai-team\\tasks\\DEH-REQ-GAP-20260910\\handoffs\\web.md",
+                   "web_checked_at":  "2026-09-11T16:03:50.9540657Z",
+                   "mobile_evidence":  "",
+                   "mobile_checked_at":  ""
+               },
+    "qa":  {
+               "passed":  true,
+               "blocking_defects":  0,
+               "evidence":  "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web-task-merged\\.ai-team\\tasks\\DEH-REQ-GAP-20260910\\qa-report.md",
+               "recorded_at":  "2026-09-13T08:59:25.8464544Z"
+           },
+    "repair_attempts":  0,
+    "repair_history":  [
+
+                       ]
+}

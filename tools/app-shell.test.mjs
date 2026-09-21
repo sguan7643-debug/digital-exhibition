@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { canViewAnnouncements, retainViewerRole } from '../src/state/interaction-controllers.js';
+import { resolvePage } from '../src/fixtures/pages.js';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const main = read('src/main.js');
@@ -11,11 +12,16 @@ const stateBoundary = read('src/components/PageStateBoundary.vue');
 const network = read('src/runtime/network-guard.js');
 const styles = read('src/style.css');
 
+assert.equal(resolvePage('https://test-pre-demo-seaoil.xdata.work/test2/workbench', 'normal', '/test2')?.id, '01',
+  '部署到 /test2 时必须先剥离 base path，再匹配逻辑页面路由');
+assert.equal(resolvePage('http://127.0.0.1:4173/workbench', 'normal', '/')?.id, '01',
+  '本地根路径必须继续匹配工作台路由');
+
 assert.match(main, /installLocalOnlyNetworkGuard\(\)/);
 assert.match(
   main,
-  /createApp\(App\)(?:\.component\([^\n]+\))*\.mount\('#app'\)/,
-  '应用可以在挂载前注册全局展示组件',
+  /createApp\(App,\s*\{\s*entryAuth\s*\}\)(?:\.component\([^\n]+\))*\.mount\('#app'\)/,
+  '应用必须把首入授权结果交给已挂载的入口状态',
 );
 assert.match(app, /resolvePage\(window\.location/);
 assert.match(app, /stateFromLocation/);
@@ -39,7 +45,7 @@ assert.doesNotMatch(shell, /includes\(props\.page\.role\)/,
 const primaryNavSource = shell.split('const primaryNav = [')[1].split('];')[0];
 assert.doesNotMatch(primaryNavSource, /\/points|\/announcements|\/admin/,
   '顶部仅保留七项主导航，积分和管理入口归入个人功能');
-assert.match(shell, /v-if="isAdministrator" href="\/admin"/, '管理入口继续按角色显示');
+assert.match(shell, /v-if="isAdministrator" :href="appHref\('\/admin'\)"/, '管理入口继续按角色显示并保留部署基础路径');
 assert.equal(canViewAnnouncements('普通员工'), false);
 assert.equal(canViewAnnouncements('运营人员'), true);
 assert.equal(canViewAnnouncements('后台管理员'), true);

@@ -18,8 +18,10 @@ const rows = {
   素材分类: [{ record_id: 'rec-category', fields: { 分类编码: 'DOC', 分类名称: '文档', 父级ID: '', 启用: true, 排序: 1 } }],
   素材中心: [{ record_id: 'rec-material', fields: { 素材ID: 'MAT-001', 素材名称: '操作手册', 素材类型: '文档', 分类ID: 'DOC', 分类名称: '文档', 状态: 'ONLINE' } }]
 };
+const calls = [];
 const client = {
-  async listRecords(tableId) {
+  async listRecords(tableId, query = {}) {
+    calls.push({ tableId, query });
     const table = contract.tables.find(item => item.tableId === tableId);
     const items = rows[table.name] || [];
     return { items, total: items.length, hasMore: false, nextPageToken: '' };
@@ -30,10 +32,14 @@ const publicContracts = createPublicReadOperationContracts();
 assert.deepEqual(Object.keys(publicContracts).sort(), ['CER-001', 'CER-002', 'MAT-001', 'OPS-003', 'PTS-004', 'TRN-001', 'TRN-002', 'TRN-003']);
 assert.ok(Object.values(publicContracts).every(item => item.contractStatus === 'server-projection-verified'));
 
-const rules = await service.execute('PTS-004', { page: 1, pageSize: 50, enabled: true });
+const rules = await service.execute('PTS-004', { page: 1, pageSize: 50 });
 assert.equal(rules.data.items[0].ruleId, 'RULE-001');
 assert.equal(rules.data.items[0].points, 5);
 assert.equal(rules.data.items[0].conditions.min, 1);
+const rulesTable = contract.byName.get('积分规则');
+const rulesRequest = calls.find(call => call.tableId === rulesTable.tableId);
+assert.equal(rulesRequest.query.pageSize, 50, '积分规则列表必须按请求页容量读取，不能强制抓取 100 条');
+assert.ok(rulesRequest.query.fieldNames.length < rulesTable.fields.length, '积分规则列表必须只请求投影所需字段，避免全字段慢读');
 
 const overview = await service.execute('TRN-001', { limit: 6 });
 assert.equal(overview.data.stats.courseCount, 2);

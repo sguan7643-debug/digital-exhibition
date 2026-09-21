@@ -21,7 +21,10 @@ export function resolveIntegrationRuntime(options = {}) {
   const remoteEnabled = options.remoteEnabled === true;
   const contractEvidenceComplete = options.contractEvidenceComplete === true;
   const testWritesEnabled = options.testWritesEnabled === true && requestedMode === 'remote' && remoteEnabled && contractEvidenceComplete;
-  const timeoutMs = Number.isFinite(options.timeoutMs) && options.timeoutMs > 0 ? options.timeoutMs : null;
+  const configuredTimeoutMs = Number.isFinite(options.timeoutMs) && options.timeoutMs > 0 ? options.timeoutMs : null;
+  const timeoutMs = remoteEnabled
+    ? Math.min(configuredTimeoutMs ?? 12_000, 12_000)
+    : configuredTimeoutMs;
   let mode = requestedMode;
   let reason = 'explicit-mode';
   if (requestedMode === 'mock' && !remoteEnabled) reason = 'remote-disabled-by-default';

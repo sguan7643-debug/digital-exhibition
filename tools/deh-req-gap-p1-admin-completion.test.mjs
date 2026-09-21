@@ -27,8 +27,9 @@ const remoteData={
 const remote=await mount(Admin,{integrationState:'normal',integrationData:remoteData});const remoteText=textOf(remote);
 for(const expected of ['GOV-9','admin.integrations.view','CONN-9','PASSED','MATCHED','EXEC-9','权威审计对象','ARC-9','正式配置读取未配置','监控告警未配置'])assert.match(remoteText,new RegExp(expected));
 for(const leaked of ['可视化','生产运营','记录号 FX-817-0','未处理告警 2'])assert.doesNotMatch(remoteText,new RegExp(leaked));
-const writes=flatten(remote).filter(node=>node.type==='button'&&/新增|修改|删除|写入|处理|恢复/.test(textOf(node)));assert.ok(writes.length>0&&writes.every(node=>node.props.disabled!==undefined&&node.props.disabled!==false));
+const writes=flatten(remote).filter(node=>node.type==='button'&&/新增|修改|删除|写入|处理|恢复/.test(textOf(node)));assert.ok(writes.length>0,'远程态必须保留受控写入入口的可见反馈');
+const newTopicDomain=writes.find(node=>textOf(node)==='新增主题域');assert.ok(newTopicDomain,'远程态必须提供新增主题域入口');newTopicDomain.props.onClick();await nextTick();assert.match(textOf(remote),/确认限制/,'远程态点击新增主题域必须打开写入限制说明，而不是无反馈');
 for(const state of ['loading','authentication-required','permission-denied','error','empty','disabled']){const root=await mount(Admin,{integrationState:state,integrationData:remoteData});const text=textOf(root);assert.doesNotMatch(text,/GOV-9|CONN-9|权威审计对象|ARC-9|可视化|生产运营|记录号 FX-817-0/);}
 const mock=await mount(Admin,{integrationState:'mock'});assert.match(textOf(mock),/可视化/);assert.match(textOf(mock),/生产运营/);assert.match(textOf(mock),/记录号 FX-817-0/);assert.match(textOf(mock),/未处理告警 2/);
 assert.equal(requests,0);
-console.log('后台管理 SFC mounted：权威投影、阻断态隔离、mock 保留、写禁用与零请求通过');
+console.log('后台管理 SFC mounted：权威投影、阻断态隔离、mock 保留、写入限制反馈与零请求通过');

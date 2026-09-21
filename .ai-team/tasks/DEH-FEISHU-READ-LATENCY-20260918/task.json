@@ -1,0 +1,69 @@
+{
+  "task_id": "DEH-FEISHU-READ-LATENCY-20260918",
+  "title": "正式飞书读取接口 1–2 秒性能闭环",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "在正式数据源仍为飞书多维表格的前提下，消除重复实时读取和复合接口等待，使 COM-001、COM-002、COM-005、WB-001、WB-002 五个首屏 P0 只读接口热态稳定在 1–2 秒内返回可用数据，并保证其余 60 个只读 operation 正确返回且不出现 504。",
+  "target_user": "数智产品展厅 Web 用户及验收人员。",
+  "in_scope": [
+    "修复同表不同字段组合造成的重复读取和复用缺失",
+    "为正式飞书只读数据增加服务端共享缓存、预热和后台刷新",
+    "并行化不存在依赖关系的飞书读取阶段并保留安全并发上限",
+    "写入成功后精确失效相关缓存，审批状态等强一致读取不使用陈旧缓存",
+    "增加真实环境冷态、热态、并发和失败降级性能证据"
+  ],
+  "out_of_scope": [
+    "把正式数据源替换为本地演示数据",
+    "缓存或输出飞书凭据、访问令牌、Cookie 及未脱敏个人信息",
+    "通过单纯放宽超时掩盖慢请求",
+    "修改非 TEST_ 正式业务数据",
+    "合并、部署或发布"
+  ],
+  "success_metric": "COM-001、COM-002、COM-005、WB-001、WB-002 各自在真实环境 8 路并发、至少 30 个热态样本下 p95 不超过 2 秒且 504 为 0；其余 60 个只读 operation 保持合同正确且 504 为 0；真正冷启动无持久业务快照时 2 秒内返回明确可恢复的首次同步状态；缓存失效、数据新鲜度、身份隔离和强一致例外均有自动化与真实环境证据。",
+  "deadline": "尽快完成",
+  "risk_level": "high",
+  "state": "design",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "Product Owner",
+      "approved_at": "2026-09-19T03:52:45.4359682Z"
+    },
+    "design": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": false,
+    "mobile_passed": false,
+    "web_evidence": "",
+    "web_checked_at": "",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": false,
+    "blocking_defects": 0,
+    "evidence": "",
+    "recorded_at": ""
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

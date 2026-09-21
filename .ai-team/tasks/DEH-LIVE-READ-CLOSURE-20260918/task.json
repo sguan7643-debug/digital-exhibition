@@ -1,0 +1,67 @@
+{
+  "task_id": "DEH-LIVE-READ-CLOSURE-20260918",
+  "title": "正式飞书 65 项读取全量闭环",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "消除正式飞书 65 项读取中的 20 项业务权限阻断和 5 项资源上下文缺失，使所有读取获得真实、可复核的成功结果。",
+  "target_user": "AD 账号 3d8egf55 对应的数智产品展厅最高权限用户及验收人员。",
+  "in_scope": [
+    "向正式多维表格用户权限表为 AD 账号 3d8egf55 写入 8 项最小必要业务权限",
+    "创建、读取并清理仅带 TEST_ 前缀的文件、申请、认证和导出任务验证数据",
+    "修复本仓库内导致权限识别或真实资源 ID 自动发现失败的代码",
+    "重跑 65 项正式飞书读取与相关 Web 回归并保存逐 operation 证据"
+  ],
+  "out_of_scope": [
+    "授予星号或 admin.* 等通配权限",
+    "修改或删除非 TEST_ 正式业务数据",
+    "修改飞书应用凭证、开放平台权限或生产配置",
+    "合并主分支、部署或发布"
+  ],
+  "success_metric": "正式账号运行 65 项读取得到 65 passed、0 blocked、0 failed；8 项权限可追溯；TEST_ 验证数据全部清理并复核无残留；相关自动化测试与生产构建通过。",
+  "deadline": "尽快完成",
+  "risk_level": "high",
+  "state": "development",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "Product Owner",
+      "approved_at": "2026-09-18T14:47:41.0407038Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "Product Owner",
+      "approved_at": "2026-09-19T03:52:45.2295890Z"
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": false,
+    "mobile_passed": false,
+    "web_evidence": ".ai-team\\tasks\\DEH-LIVE-READ-CLOSURE-20260918\\handoffs\\web.md",
+    "web_checked_at": "2026-09-20T13:06:36.0632264Z",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": false,
+    "blocking_defects": 0,
+    "evidence": "",
+    "recorded_at": ""
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

@@ -1,0 +1,44 @@
+{
+  "task_id": "DEH-AD-IDENTITY-20260913",
+  "title": "Use AD account as the unique user identity",
+  "mode": "existing",
+  "platforms": ["web"],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "Use the AD account field in the Feishu user dictionary as the sole business user identifier across all user-linked reads and writes.",
+  "target_user": "All Digital Exhibition users and administrators whose records are linked through the Feishu user dictionary.",
+  "in_scope": [
+    "Treat 用户字典.AD账号 as the unique business user key",
+    "Store AD account values in user-reference fields of other business tables",
+    "Resolve authenticated Feishu identity to an AD account before business queries",
+    "Update affected read, write, approval, points, favorites, messages, permissions and tests"
+  ],
+  "out_of_scope": [
+    "Renaming user-reference fields in non-user tables",
+    "Changing page refresh behavior",
+    "Changing the visual design",
+    "Changing Feishu open_id or user_id API semantics"
+  ],
+  "success_metric": "All user-linked business operations use AD账号 as their canonical value and the complete Web test/build gates pass.",
+  "deadline": "2026-09-13",
+  "risk_level": "high",
+  "state": "intake",
+  "stop": { "reason": null, "stopped_by": null, "stopped_at": null },
+  "approvals": {
+    "scope": { "approved": false, "approved_by": "", "approved_at": "" },
+    "design": { "approved": false, "approved_by": "", "approved_at": "" },
+    "release": { "approved": false, "approved_by": "", "approved_at": "" }
+  },
+  "checks": {
+    "web_passed": false,
+    "mobile_passed": false,
+    "web_evidence": "",
+    "web_checked_at": "",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": { "passed": false, "blocking_defects": 0, "evidence": "", "recorded_at": "" },
+  "repair_attempts": 0,
+  "repair_history": []
+}

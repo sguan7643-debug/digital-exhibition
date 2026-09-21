@@ -19,7 +19,7 @@ async function verify(operationId, input, summarize) {
   return response.data;
 }
 
-await verify('PTS-004', { page: 1, pageSize: 50 }, data => ({ itemCount: data.items.length, total: data.total }));
+await verify('PTS-004', { page: 1, pageSize: 10 }, data => ({ itemCount: data.items.length, total: data.total }));
 const trainingOverview = await verify('TRN-001', { limit: 6 }, data => ({ courseCount: data.stats.courseCount, categoryCount: data.categories.length }));
 const trainingList = await verify('TRN-002', { page: 1, pageSize: 10 }, data => ({ itemCount: data.items.length, total: data.total }));
 if (trainingList.items.length) {

@@ -55,7 +55,11 @@ export function matchesAppCategory(app, value) {
   const category = normalizeAppCategory(value);
   return (
     !value ||
-    Boolean(category && APP_CATEGORY_ALIASES[category].includes(app.category))
+    Boolean(
+      category &&
+        (app?.categoryKey === category ||
+          APP_CATEGORY_ALIASES[category].includes(app?.category)),
+    )
   );
 }
 

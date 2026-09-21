@@ -1,6 +1,6 @@
 <script setup>
 // Reference SHA-256: E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD
-import { computed, onBeforeUnmount, onMounted, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { APP_CATEGORIES, APP_FIXTURES } from "../fixtures/mock-data.js";
 import {
   categoryIconName,
@@ -15,6 +15,7 @@ import { projectApplicationCards } from "../integration/app-read-model.js";
 import { buildApplicationWriteInput, launchApplication } from "../integration/application-actions.js";
 import ClampedText from "../components/ClampedText.vue";
 import OverflowTags from "../components/OverflowTags.vue";
+import { buildApplicationDirectorySearchInput } from "../integration/application-directory-search.js";
 
 const props = defineProps({
   integrationData: { type: Object, default: null },
@@ -27,14 +28,17 @@ const props = defineProps({
 const controller = routeSession.controller("apps", () =>
   createAppsController(APP_FIXTURES),
 );
+const directorySearchBusy = ref(false);
+const directorySearchError = ref("");
+const queriedRemoteItems = ref(null);
 const remoteMode = computed(() => props.integrationState !== 'mock');
-const remoteApps = computed(() => Array.isArray(props.integrationData?.['APP-002']?.items)
-  ? projectApplicationCards(props.integrationData['APP-002'].items.filter((item) =>
-      ['已上架', '审核通过', 'ONLINE', 'PUBLISHED', 'APPROVED'].includes(String(item.status || '').toUpperCase())))
-  : []);
+const remoteApps = computed(() => {
+  const items = queriedRemoteItems.value ?? props.integrationData?.['APP-002']?.items;
+  return Array.isArray(items) ? projectApplicationCards(items) : [];
+});
 const displayedApps = computed(() => remoteMode.value ? remoteApps.value : APP_FIXTURES);
-watch(() => [props.integrationState, props.integrationData?.['APP-002']?.items], ([state, items]) => {
-  if (state !== 'mock') controller.replaceFixtures(displayedApps.value);
+watch([displayedApps, () => props.integrationState], ([apps, state]) => {
+  if (state !== 'mock') controller.replaceFixtures(apps);
 }, { immediate: true });
 const queryDraft = computed({
   get: () => controller.queryDraft,
@@ -44,13 +48,19 @@ const queryDraft = computed({
 });
 const filteredApps = computed(() => controller.results);
 const pagedApps = computed(() => controller.pagedResults);
+const remoteDetailCountByCategory = computed(() => new Map(
+  (Array.isArray(props.integrationData?.['APP-001']?.typeDetailCounts)
+    ? props.integrationData['APP-001'].typeDetailCounts
+    : [])
+    .map((item) => [item.category, Number(item.count) || 0]),
+));
 const appTypeStats = computed(() =>
   APP_CATEGORIES.map((category) => ({
     category,
     labelParts: category === "海能work应用" ? ["海能work", "应用"] : [category],
-    count: (remoteMode.value ? displayedApps.value : APP_FIXTURES).filter(
-      (app) => normalizeAppCategory(app.category) === category,
-    ).length,
+    count: remoteMode.value
+      ? (remoteDetailCountByCategory.value.get(category) || 0)
+      : APP_FIXTURES.filter((app) => normalizeAppCategory(app.category) === category).length,
     icon: categoryIconName(category),
   })),
 );
@@ -66,8 +76,31 @@ function syncUrl() {
 function setCategory(category) {
   controller.setFilter("category", category);
 }
-function submitSearch() {
+async function submitSearch() {
   controller.setFilter("query", queryDraft.value);
+  if (!remoteMode.value || directorySearchBusy.value) return;
+  directorySearchError.value = "";
+  if (!props.operationExecutor) {
+    directorySearchError.value = "当前无法连接应用索引，请稍后重试。";
+    controller.announcement = directorySearchError.value;
+    return;
+  }
+  directorySearchBusy.value = true;
+  try {
+    const result = await props.operationExecutor('APP-002', buildApplicationDirectorySearchInput({
+      query: queryDraft.value,
+      category: filter.category || filter.type,
+      domain: filter.domain,
+      sort: controller.sort,
+    }));
+    queriedRemoteItems.value = Array.isArray(result?.data?.items) ? result.data.items : [];
+    controller.announcement = `查询完成，共 ${queriedRemoteItems.value.length} 个应用`;
+  } catch (error) {
+    directorySearchError.value = `查询失败：${error?.message || '请稍后重试'}`;
+    controller.announcement = directorySearchError.value;
+  } finally {
+    directorySearchBusy.value = false;
+  }
 }
 function resetFilters() {
   queryDraft.value = "";
@@ -78,6 +111,7 @@ function resetFilters() {
     window.location.pathname,
   );
   window.dispatchEvent(new PopStateEvent("popstate"));
+  if (remoteMode.value) submitSearch();
 }
 function setFilter(key, value) {
   controller.setFilter(key, value);
@@ -211,8 +245,11 @@ onBeforeUnmount(() => {
           <option v-for="domain in domains" :key="domain">{{ domain }}</option>
         </select></label
       >
-      <div class="filter-actions"><button type="reset">重置</button><button type="submit">查询</button></div>
+      <div class="filter-actions"><button type="reset">重置</button><button type="submit" :disabled="directorySearchBusy">{{ directorySearchBusy ? '正在查询…' : '查询' }}</button></div>
     </form>
+    <p v-if="directorySearchError" class="apps-search-error" role="alert">
+      {{ directorySearchError }}
+    </p>
     <div class="apps-tools">
       <div class="result-summary">
       <strong>全部应用 {{ filteredApps.length }} 个</strong

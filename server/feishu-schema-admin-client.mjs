@@ -1,4 +1,5 @@
 import { FeishuProxyError } from './feishu-open-api-client.mjs';
+import { createFeishuProxyFetch } from './feishu-proxy-dispatcher.mjs';
 
 const API_ROOT = 'https://open.feishu.cn/open-apis';
 
@@ -22,7 +23,11 @@ export function createFeishuSchemaAdminClient(options = {}) {
   const appId = options.appId ?? process.env.FEISHU_APP_ID ?? '';
   const appSecret = options.appSecret ?? process.env.FEISHU_APP_SECRET ?? '';
   const baseToken = options.baseToken ?? process.env.FEISHU_BASE_TOKEN ?? '';
-  const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+  const fetchImpl = createFeishuProxyFetch(options.fetchImpl ?? globalThis.fetch, {
+    dispatcher: options.proxyDispatcher,
+    env: options.proxyEnv,
+    ProxyAgentClass: options.ProxyAgentClass
+  });
   const now = options.now ?? Date.now;
   const schemaWriteEnabled = options.schemaWriteEnabled ?? process.env.FEISHU_SCHEMA_WRITE_ENABLED === '1';
   const recordWriteEnabled = options.recordWriteEnabled ?? process.env.FEISHU_TEST_WRITE_ENABLED === '1';

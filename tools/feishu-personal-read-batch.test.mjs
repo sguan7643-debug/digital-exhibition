@@ -84,6 +84,30 @@ assert.equal(profileResponse.data.todos[0].businessId, 'USE-1');
 const todosResponse = await service.execute('WB-004', { page: 1, pageSize: 10 }, context); responses.set('WB-004', todosResponse);
 assert.equal(todosResponse.data.items[0].businessType, 'APP_USE');
 
+const concurrentReads = new Map();
+const concurrentService = createFeishuReadOnlyService({
+  identifierContract,
+  client: {
+    async listRecords(tableId) {
+      const tableName = tableNames.get(tableId);
+      concurrentReads.set(tableName, (concurrentReads.get(tableName) || 0) + 1);
+      await new Promise(resolve => setTimeout(resolve, 1));
+      const items = rowsByName.get(tableName) || [];
+      return { items, total: items.length, hasMore: false, nextPageToken: '' };
+    }
+  },
+  appProjectionCacheMs: 0,
+  now: () => new Date('2026-09-02T05:00:00.000Z'),
+  traceIdFactory: () => 'trace-concurrent-personal'
+});
+await Promise.all([
+  concurrentService.execute('COM-001', {}, context),
+  concurrentService.execute('WB-003', { recentMessageLimit: 5, todoLimit: 5 }, context),
+  concurrentService.execute('WB-004', { page: 1, pageSize: 10 }, context)
+]);
+assert.equal(concurrentReads.get('用户字典'), 1, '同一时刻的个人读取必须复用用户字典请求');
+assert.equal(concurrentReads.get('消息通知'), 1, '同一时刻的个人读取必须复用消息通知请求');
+
 for (const operationId of ['MSG-001', 'MSG-002', 'FAV-001', 'FAV-002', 'PTS-001', 'PTS-002', 'PTS-003', 'WB-001', 'WB-003', 'WB-004']) {
   assert.doesNotThrow(() => validateContractSchema(responses.get(operationId), contracts[operationId].successSchema, operationId));
   assert.equal(resolveRemoteReadOperation(operationId).remoteEnabled, true);

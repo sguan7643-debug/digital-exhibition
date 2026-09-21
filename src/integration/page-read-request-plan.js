@@ -14,7 +14,8 @@ const routeSpecificInputs = Object.freeze({
   '/messages': Object.freeze({ 'MSG-001': {}, 'MSG-002': { page: 1, pageSize: 100 } }),
   '/favorites': Object.freeze({ 'FAV-001': { resourceType: 'APP' }, 'FAV-002': { resourceType: 'APP', page: 1, pageSize: 100 } }),
   '/profile': Object.freeze({ 'COM-001': {}, 'COM-003': { includeUsers: false, maxDepth: 5 }, 'COM-004': { page: 1, pageSize: 20, sort: 'name,asc' }, 'WB-003': { recentMessageLimit: 5, todoLimit: 5 }, 'WB-004': { page: 1, pageSize: 20, sort: 'submittedAt,desc' } }),
-  '/points': Object.freeze({ 'PTS-001': {}, 'PTS-003': { groupBy: 'SOURCE' }, 'PTS-004': { page: 1, pageSize: 100 } }),
+  '/apps/onboarding/apply': Object.freeze({ 'COM-003': { includeUsers: false, maxDepth: 5 }, 'COM-004': { page: 1, pageSize: 100, sort: 'name,asc' } }),
+  '/points': Object.freeze({ 'PTS-001': {}, 'PTS-003': { groupBy: 'SOURCE' }, 'PTS-004': { page: 1, pageSize: 10 } }),
   '/points/details': Object.freeze({ 'PTS-002': { page: 1, pageSize: 100 } }),
   '/announcements/notice-001': Object.freeze({
     'ANN-003': { announcementId: 'AN004', markRead: false },
@@ -36,12 +37,12 @@ function queryIdentifier(searchParams, name) {
 export function buildPageReadRequestPlan({ route, readOperationIds, operationContracts, search = '' }) {
   const searchParams = new URLSearchParams(search);
   const inputByOperation = { ...(routeSpecificInputs[route] || {}) };
-  const appId = detailAppIds[route];
+  const appId = queryIdentifier(searchParams, 'appId') || detailAppIds[route];
   if (appId) {
     inputByOperation['APP-003'] = { appId, include: 'attachments,trainings,relatedMaterials' };
     inputByOperation['APP-009'] = { appId, page: 1, pageSize: 100, sort: 'sortOrder,asc' };
     inputByOperation['APP-007'] = { appId, page: 1, pageSize: 20, sort: 'createdAt,desc' };
-    inputByOperation['MAT-001'] = { page: 1, pageSize: 100 };
+    inputByOperation['MAT-001'] = {};
     inputByOperation['MAT-002'] = { relatedAppId: appId, page: 1, pageSize: 20, sort: 'updatedAt,desc' };
   }
 
@@ -61,7 +62,7 @@ export function buildPageReadRequestPlan({ route, readOperationIds, operationCon
 
   const operationIds = [];
   const deferredOperationIds = [];
-  for (const operationId of readOperationIds) {
+  for (const operationId of new Set(readOperationIds)) {
     const contract = operationContracts[operationId];
     if (interactionReadOperationIds.has(operationId) && !Object.prototype.hasOwnProperty.call(inputByOperation, operationId)) {
       deferredOperationIds.push(operationId);

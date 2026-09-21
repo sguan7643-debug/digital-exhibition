@@ -168,13 +168,14 @@ const fakeFetch = async (url, options = {}) => {
   }
   if (String(url).includes('/records')) {
     const tableId = /\/tables\/(tbl[A-Za-z0-9]+)\/records/.exec(String(url))?.[1];
-    const item = fakeRowsByTableId.get(tableId);
-    if (!item) throw new Error(`测试未声明表：${tableId}`);
+    const rowOrRows = fakeRowsByTableId.get(tableId);
+    if (!rowOrRows) throw new Error(`测试未声明表：${tableId}`);
+    const items = Array.isArray(rowOrRows) ? rowOrRows : [rowOrRows];
     return new Response(JSON.stringify({
       code: 0,
       data: {
-        items: [item],
-        total: 1,
+        items,
+        total: items.length,
         has_more: false,
         page_token: ''
       }
@@ -217,7 +218,7 @@ fakeRowsByTableId.set(contract.byName.get('应用索引').tableId, {
   fields: {
     应用ID: 'APP-001', 应用名称: '经营分析可视化报表', 应用类型: 'REPORT', 子类型: '经营分析',
     应用简介: '经营指标展示', 应用关键字: '经营,分析', 状态: 'ONLINE', 使用次数: 1418, 收藏数: 731,
-    负责人ID: 'U-001', 开发者ID: 'U-001', 所属部门ID: 'D-001', 开发部门ID: 'D-001',
+    申请人AD账号: 'U-001', 接入人AD账号: 'U-001', 所属部门ID: 'D-001', 接入人所属部门ID: 'D-001',
     所属业务域ID: 'DOMAIN-OPS', 所属场景ID: 'SCENE-OPS', 最近更新日期: '2026-08-31'
   }
 });
@@ -227,12 +228,37 @@ fakeRowsByTableId.set(contract.byName.get('用户字典').tableId, {
 fakeRowsByTableId.set(contract.byName.get('部门字典').tableId, {
   record_id: 'rec-department', fields: { 部门ID: 'D-001', 部门名称: '经营管理部' }
 });
+const expectedDetailCounts = [
+  ['可视化驾驶舱详情', '可视化', 2],
+  ['可视化报表详情', '报表', 3],
+  ['RPA应用详情', 'RPA', 4],
+  ['数据集应用详情', '数据集', 5],
+  ['指标应用详情', '指标', 6],
+  ['AI应用详情', 'AI', 7],
+  ['海能work应用详情', '海能work应用', 8],
+  ['EAD应用详情', 'EAD', 9],
+  ['工具应用详情', '其他工具', 10],
+];
+for (const [tableName, category, count] of expectedDetailCounts) {
+  fakeRowsByTableId.set(
+    contract.byName.get(tableName).tableId,
+    Array.from({ length: count }, (_, index) => ({
+      record_id: `${tableName}-${index + 1}`,
+      fields: { 主键: `${category}-${index + 1}` },
+    })),
+  );
+}
 
 const facetsEnvelope = await service.execute('APP-001', {});
 assert.equal(facetsEnvelope.data.total, 1);
 assert.equal(facetsEnvelope.data.types[0].name, '可视化报表');
 assert.equal(facetsEnvelope.data.domains[0].name, '生产运营');
 assert.equal(facetsEnvelope.data.scenes[0].name, '生产运营');
+assert.deepEqual(
+  facetsEnvelope.data.typeDetailCounts,
+  expectedDetailCounts.map(([tableName, category, count]) => ({ tableName, category, count })),
+  '应用中心顶部汇总必须是九张应用详情表的真实记录数，不得从应用索引的类型字段重新分组',
+);
 const envelope = await service.execute('APP-002', { pageSize: 10 });
 assert.equal(envelope.code, 'OK');
 assert.equal(envelope.traceId, 'trace-feishu-server-001');

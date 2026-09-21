@@ -10,8 +10,8 @@ const cards = projectApplicationCards(records);
 assert.equal(cards.length, 2);
 assert.equal(cards[0].id, 'APP-RPA-1');
 assert.equal(cards[0].category, 'RPA');
-assert.equal(cards[0].route, '/apps/rpa-001');
-assert.equal(cards[1].route, '/apps/haineng-work-001');
+assert.equal(cards[0].route, '/apps/rpa-001?appId=APP-RPA-1');
+assert.equal(cards[1].route, '/apps/haineng-work-001?appId=APP-WORK-1');
 assert.equal(resolveApplicationRoute({ typeCode: 'UNKNOWN' }), '');
 
 const controller = createAppsController([]);

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, ref, watch } from 'vue';
 import ExhibitionShell from './components/ExhibitionShell.vue';
 import PageStateBoundary from './components/PageStateBoundary.vue';
 import IntegrationAuthBanner from './components/IntegrationAuthBanner.vue';
@@ -51,6 +51,16 @@ import { createVerifiedReadOperationContracts, createVerifiedWriteOperationContr
 import { OPERATION_REGISTRY, getOperation } from './integration/operation-registry.js';
 import { resolveRemoteReadOperation } from './integration/remote-operation-capabilities.js';
 import { buildPageReadRequestPlan } from './integration/page-read-request-plan.js';
+import { getRequestActivity, subscribeRequestActivity } from './integration/request-status.js';
+import { normalizeAppBasePath, prependAppBasePath, prefixAppBaseLinks, stripAppBasePath } from './integration/app-base-path.js';
+
+const props = defineProps({
+  entryAuth: { type: Object, default: () => ({ authorized: true, render: true }) }
+});
+const entryAuth = props.entryAuth;
+const appBasePath = normalizeAppBasePath(import.meta.env.VITE_EXHIBITION_APP_BASE || import.meta.env.BASE_URL);
+const entryUnavailable = ref(entryAuth.reason === 'session-unavailable');
+const entryRetrying = ref(false);
 
 const integrationRuntime = resolveIntegrationRuntime({
   requestedMode: import.meta.env.VITE_EXHIBITION_DATA_MODE,
@@ -69,6 +79,10 @@ const integrationClient = createSafeProxyClient({
   timeoutMs: integrationRuntime.timeoutMs,
   operationContracts: { ...verifiedReadContracts, ...verifiedWriteContracts }
 });
+const requestActivity = ref(getRequestActivity());
+const showControlledWritePanel = computed(() => import.meta.env.DEV && new URLSearchParams(window.location.search).get('test-write-panel') === '1');
+let requestActivityUnsubscribe;
+let appBaseLinkObserver;
 
 function resolveRemoteOperation(operationId) {
   const read = resolveRemoteReadOperation(operationId);
@@ -109,8 +123,8 @@ async function executePageWriteOperation(operationId, input, options = {}) {
 }
 
 function normalizeInitialRoute() {
-  if (window.location.pathname === '/') {
-    window.history.replaceState(window.history.state, '', '/workbench' + window.location.search + window.location.hash);
+  if (stripAppBasePath(window.location.pathname, appBasePath) === '/') {
+    window.history.replaceState(window.history.state, '', prependAppBasePath(`/workbench${window.location.search}${window.location.hash}`, appBasePath));
   }
 }
 
@@ -133,7 +147,7 @@ function stateFromLocation() {
 const locationKey = ref(window.location.href);
 const current = computed(() => {
   locationKey.value;
-  return resolvePage(window.location.href, stateFromLocation()) || {
+  return resolvePage(window.location.href, stateFromLocation(), appBasePath) || {
     ...PAGE_MATRIX[0],
     state: 'error',
     title: '页面不存在'
@@ -194,6 +208,8 @@ function handleInternalNavigation(event) {
   if (anchor.hasAttribute('data-native-navigation')) return;
   const next = new URL(anchor.href, window.location.href);
   if (next.origin !== window.location.origin) return;
+  const logicalPath = stripAppBasePath(next.pathname, appBasePath) || next.pathname;
+  if (resolvePage(logicalPath)) next.pathname = prependAppBasePath(logicalPath, appBasePath);
   if (next.pathname === window.location.pathname && next.search === window.location.search && next.hash) return;
   event.preventDefault();
   if(anchor.hasAttribute('data-detail-return')&&window.history.state?.xltSource){
@@ -210,13 +226,30 @@ function handleInternalNavigation(event) {
   syncLocation();
 }
 
+function syncAppBaseLinks() {
+  prefixAppBaseLinks(document, appBasePath, {
+    origin: window.location.origin,
+    isAppRoute: route => Boolean(resolvePage(route))
+  });
+}
+
 onMounted(() => {
+  requestActivityUnsubscribe = subscribeRequestActivity((value) => { requestActivity.value = value; });
   window.addEventListener('popstate', syncLocation);
   document.addEventListener('click', handleInternalNavigation);
+  nextTick(syncAppBaseLinks);
+  const appRoot = document.getElementById('app');
+  if (appRoot) {
+    appBaseLinkObserver = new MutationObserver(syncAppBaseLinks);
+    appBaseLinkObserver.observe(appRoot, { childList: true, subtree: true });
+  }
 });
+onUpdated(syncAppBaseLinks);
 onBeforeUnmount(() => {
+  requestActivityUnsubscribe?.();
   window.removeEventListener('popstate', syncLocation);
   document.removeEventListener('click', handleInternalNavigation);
+  appBaseLinkObserver?.disconnect();
 });
 
 const page = computed(() => current.value);
@@ -226,9 +259,29 @@ const LOCAL_UI_ONLY_CONTRACT = Object.freeze({
 });
 const integrationContract = computed(() => getPageIntegrationContract(page.value.route) || LOCAL_UI_ONLY_CONTRACT);
 const integrationEnvelope = ref({ mode: 'disabled', state: 'disabled', operationIds: [] });
+const integrationRetrying = ref(false);
 let integrationDataSource;
+let integrationLoadOptions = {};
+
+const integrationRecovery = computed(() => {
+  const envelope = integrationEnvelope.value;
+  if (!Array.isArray(envelope.retryScope) || envelope.retryScope.length === 0) return null;
+  const sectionRecords = Object.values(envelope.sectionRecords || {});
+  const timeout = sectionRecords.some(record => record?.errorState === 'timeout');
+  const traceId = envelope.traceIds?.[0] || envelope.traceId || null;
+  return {
+    message: timeout ? '部分飞书数据请求超时，已保留可用内容。' : '部分飞书数据暂时不可用，已保留可用内容。',
+    traceId
+  };
+});
 
 async function syncIntegrationEnvelope() {
+  integrationDataSource?.cancel('页面已切换');
+  if (entryUnavailable.value) {
+    integrationDataSource = null;
+    integrationEnvelope.value = { mode: 'disabled', state: 'disabled', operationIds: [], data: {} };
+    return;
+  }
   const route = page.value.route;
   if (!getPageIntegrationContract(route)) {
     integrationDataSource = null;
@@ -253,14 +306,7 @@ async function syncIntegrationEnvelope() {
       operationIds: loadOptions.operationIds.filter((operationId) => allowedAdminReads.has(operationId))
     };
   }
-  if (route === '/apps' && isRemoteRuntime(integrationRuntime)) {
-    await fetch('/api/v1/approvals/reconcile', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{}'
-    }).catch(() => null);
-  }
+  integrationLoadOptions = loadOptions;
   const pending = integrationDataSource.load({}, loadOptions);
   integrationEnvelope.value = integrationDataSource.snapshot();
   const result = await pending;
@@ -273,16 +319,69 @@ const integrationLiveAnnouncement = computed(() => resolveIntegrationLiveAnnounc
 const integrationAuthRequired = computed(() => integrationEnvelope.value.state === 'authentication-required'
   || Object.values(integrationEnvelope.value.sectionRecords || {}).some(record => record?.errorState === 'authentication-required'));
 const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`)}`);
+
+async function retryIntegration() {
+  if (integrationRetrying.value || !integrationDataSource || !integrationRecovery.value) return;
+  const route = page.value.route;
+  const source = integrationDataSource;
+  integrationRetrying.value = true;
+  try {
+    const result = await source.retry({}, integrationLoadOptions);
+    if (page.value.route === route && integrationDataSource === source) integrationEnvelope.value = result;
+  } finally {
+    integrationRetrying.value = false;
+  }
+}
+
+async function retryEntryAuthorization() {
+  if (entryRetrying.value || typeof entryAuth.retry !== 'function') return;
+  entryRetrying.value = true;
+  const retry = await entryAuth.retry();
+  if (retry.authorized) {
+    window.location.reload();
+    return;
+  }
+  entryRetrying.value = false;
+}
 </script>
 
 <template>
+  <main v-if="entryUnavailable" aria-live="polite" aria-busy="entryRetrying" style="display:grid;min-height:100vh;place-items:center;padding:24px">
+    <section role="status" style="max-width:420px;padding:24px;text-align:center">
+      <h1>暂时无法确认登录状态</h1>
+      <p>请重试登录检查，确认后再加载页面数据。</p>
+      <button type="button" :disabled="entryRetrying" @click="retryEntryAuthorization">{{ entryRetrying ? '正在重试…' : '重试登录检查' }}</button>
+    </section>
+  </main>
   <exhibition-shell
+    v-else
     :page="page"
+    :app-base-path="appBasePath"
     :data-integration-mode="integrationEnvelope.mode"
     :data-integration-operations="integrationContract?.readOperationIds.join(',')"
   >
+    <section
+      v-if="requestActivity.isLoading"
+      class="request-activity-banner"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      aria-busy="true"
+    >
+      <span class="request-activity-banner__bar" aria-hidden="true"></span>
+      <span class="request-activity-banner__copy">
+        <strong v-if="requestActivity.activeCount > 1">正在处理 {{ requestActivity.activeCount }} 项请求</strong>
+        <strong v-else>{{ requestActivity.labels[0] || '正在加载数据' }}…</strong>
+        <small>页面其他区域仍可继续使用</small>
+      </span>
+    </section>
     <p class="sr-only integration-source-status" data-integration-status aria-live="polite">{{ integrationLiveAnnouncement }}</p>
     <integration-auth-banner v-if="integrationAuthRequired" :href="feishuAuthUrl" />
+    <section v-if="integrationRecovery" class="integration-recovery" role="status" aria-live="polite" data-integration-retry>
+      <span>{{ integrationRecovery.message }}</span>
+      <button type="button" :disabled="integrationRetrying" @click="retryIntegration">{{ integrationRetrying ? '正在重试…' : '重试受影响数据' }}</button>
+      <small v-if="integrationRecovery.traceId">请求标识：{{ integrationRecovery.traceId }}</small>
+    </section>
     <page-state-boundary :page="page" :state="page.state" @restore="restoreNormal">
       <workbench-page v-if="page.id === '01'" :integration-data="integrationEnvelope.data" :operation-executor="executeReadOperation" />
       <messages-page v-else-if="page.id === '02'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
@@ -314,7 +413,12 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
       <ead-detail-page v-else-if="page.id === '15'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <rpa-detail-page v-else-if="page.id === '16'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <onboarding-page v-else-if="page.id === '17'" />
-      <onboarding-apply-page v-else-if="page.id === '32'" />
+      <onboarding-apply-page
+        v-else-if="page.id === '32'"
+        :integration-data="integrationEnvelope.data"
+        :integration-state="integrationEnvelope.state"
+        :integration-mode="integrationEnvelope.mode"
+      />
       <points-page v-else-if="page.id === '18'" :integration-data="integrationEnvelope.data" />
       <points-details-page v-else-if="page.id === '19'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <training-page v-else-if="page.id === '20'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :test-writes-enabled="integrationRuntime.testWritesEnabled" />
@@ -353,6 +457,7 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
       <profile-live-sections v-if="page.id === '04'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <operational-detail-status v-if="page.id === '26'" :operation-executor="executeReadOperation" />
       <controlled-write-panel
+        v-if="showControlledWritePanel"
         :actions="integrationContract.actions"
         :executor="executePageWriteOperation"
         :enabled="integrationRuntime.testWritesEnabled"

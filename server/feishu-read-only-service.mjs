@@ -69,6 +69,20 @@ const READ_PLANS = Object.freeze({
   'MAT-003': Object.freeze({ kind: 'secure-resource' })
 });
 
+const PROFILE_FIELDS = Object.freeze({
+  user: Object.freeze(['AD账号', '工号', '姓名', '手机号脱敏值', '邮箱脱敏值', '组织ID', '组织名称', '所属部门ID', '所属部门名称']),
+  permissions: Object.freeze(['AD账号', '主体ID', '状态', '权限编码', '数据范围', '生效时间', '失效时间', '启用']),
+  messages: Object.freeze(['消息ID', '接收人ID', '消息标题', '消息内容', '分类', '已读状态', '消息时间', '消息类型编码', '消息摘要', '优先级', '发送人ID', '目标类型', '目标ID', '目标路径', '过期时间', '阅读时间']),
+  favorites: Object.freeze(['用户ID', '有效']),
+  balance: Object.freeze(['用户ID', '当前总积分']),
+  cumulativeStats: Object.freeze(['用户ID', '累计访问应用次数', '累计使用应用次数']),
+  monthlyStats: Object.freeze(['用户ID', '年月', '当月使用次数']),
+  useApplications: Object.freeze(['主键', '应用ID', '申请人ID', '状态', '申请时间', '申请编号', '提交时间', '完成时间']),
+  onboardingApplications: Object.freeze(['申请单号', '关联应用ID', '申请人ID', '状态', '当前审批节点', '提交时间', '退回原因']),
+  reuseApplications: Object.freeze(['申请编号', '应用ID', '申请人ID', '本地状态', '提交时间', '完成时间']),
+  apps: Object.freeze(['应用ID', '应用名称'])
+});
+
 function valueToText(value) {
   if (value == null) return '';
   if (Array.isArray(value)) return value.map(valueToText).filter(Boolean).join('、');
@@ -150,6 +164,18 @@ const APP_ROUTE_BY_TYPE = Object.freeze({
   DASHBOARD: '/apps/dashboard-001', '驾驶舱': '/apps/dashboard-001', '大屏': '/apps/dashboard-001'
 });
 
+const APP_DETAIL_COUNT_SOURCES = Object.freeze([
+  Object.freeze({ tableName: '可视化驾驶舱详情', category: '可视化' }),
+  Object.freeze({ tableName: '可视化报表详情', category: '报表' }),
+  Object.freeze({ tableName: 'RPA应用详情', category: 'RPA' }),
+  Object.freeze({ tableName: '数据集应用详情', category: '数据集' }),
+  Object.freeze({ tableName: '指标应用详情', category: '指标' }),
+  Object.freeze({ tableName: 'AI应用详情', category: 'AI' }),
+  Object.freeze({ tableName: '海能work应用详情', category: '海能work应用' }),
+  Object.freeze({ tableName: 'EAD应用详情', category: 'EAD' }),
+  Object.freeze({ tableName: '工具应用详情', category: '其他工具' })
+]);
+
 function resolveAppPresentation(typeCode, typeName) {
   const value = `${typeCode} ${typeName}`;
   if (/RPA/i.test(value)) return { iconName: 'app-rpa', detailPath: '/apps/rpa-001' };
@@ -182,6 +208,11 @@ export function createFeishuReadOnlyService(options) {
   const traceIdFactory = options.traceIdFactory || (() => `trace-${globalThis.crypto?.randomUUID?.() || Date.now()}`);
   const now = options.now || (() => new Date());
   const appProjectionCacheMs = options.appProjectionCacheMs ?? 30_000;
+  const tableReadCacheMs = options.tableReadCacheMs ?? 2_000;
+  const configuredReadBudgetMs = Number(options.readBudgetMs ?? process.env.FEISHU_READ_BUDGET_MS ?? 10_000);
+  const readBudgetMs = Number.isFinite(configuredReadBudgetMs) && configuredReadBudgetMs > 0 ? Math.min(configuredReadBudgetMs, 10_000) : 10_000;
+  const readNow = options.readNow || Date.now;
+  const readSleep = options.readSleep || (milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)));
   const fileAccessService = options.fileAccessService;
   const allowedAppLaunchHosts = new Set((Array.isArray(options.allowedAppLaunchHosts)
     ? options.allowedAppLaunchHosts
@@ -190,15 +221,21 @@ export function createFeishuReadOnlyService(options) {
   let appProjectionCache = null;
   let appProjectionExpiresAt = 0;
   let appProjectionPending = null;
+  let appDetailCountCache = null;
+  let appDetailCountExpiresAt = 0;
+  let appDetailCountPending = null;
   let announcementProjectionCache = null;
   let announcementProjectionExpiresAt = 0;
   let announcementProjectionPending = null;
-  let talentProjectionCache = null;
-  let talentProjectionExpiresAt = 0;
-  let talentProjectionPending = null;
+  const talentProjectionCache = new Map();
+  const talentProjectionPending = new Map();
   let contactProjectionCache = null;
   let contactProjectionExpiresAt = 0;
   let contactProjectionPending = null;
+  const dictionaryProjectionCache = new Map();
+  const dictionaryProjectionPending = new Map();
+  const tableReadCache = new Map();
+  const tableReadPending = new Map();
 
   function resolveTable(tableName) {
     const table = identifierContract.byName.get(tableName);
@@ -206,24 +243,68 @@ export function createFeishuReadOnlyService(options) {
     return table;
   }
 
-  async function readAll(tableName) {
+  function readBudgetError(startedAt) {
+    return new FeishuProxyError('FEISHU_READ_BUDGET_EXCEEDED', '飞书读取响应超时', 504, {
+      upstreamPath: '/bitable/v1/apps/{base}/tables/{tableId}/records',
+      elapsedMs: Math.max(0, Number(readNow()) - Number(startedAt))
+    });
+  }
+
+  function normalizedFieldNames(fieldNames) {
+    return [...new Set((Array.isArray(fieldNames) ? fieldNames : []).map(valueToText).filter(Boolean))];
+  }
+
+  function tableReadKey(tableName, fieldNames) {
+    const fields = normalizedFieldNames(fieldNames).slice().sort((left, right) => left.localeCompare(right, 'zh-CN'));
+    return `${tableName}\u0000${fields.join('\u0001')}`;
+  }
+
+  function isFieldContractDrift(error) {
+    return error?.code === 'FEISHU_RECORDS_FAILED' && Number(error?.upstreamCode) === 1254045;
+  }
+
+  async function readAllUncached(tableName, fieldNames = []) {
     const table = resolveTable(tableName);
+    const requestedFields = normalizedFieldNames(fieldNames);
+    const startedAt = readNow();
+    const deadline = startedAt + readBudgetMs;
     const items = [];
     let pageToken = '';
+    let retried = false;
+    let readWithoutProjection = false;
+    const readPageWithinBudget = async query => {
+      const remaining = deadline - readNow();
+      if (remaining <= 0) throw readBudgetError(startedAt);
+      let timer;
+      try {
+        return await Promise.race([
+          client.listRecords(table.tableId, query),
+          new Promise((_, reject) => { timer = setTimeout(() => reject(readBudgetError(startedAt)), remaining); })
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
+    };
     for (let page = 1; page <= 100; page += 1) {
       let result;
-      for (let attempt = 0; attempt < 3; attempt += 1) {
+      for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
-          result = await client.listRecords(table.tableId, {
+          result = await readPageWithinBudget({
             viewId: table.views[0]?.viewId,
             pageSize: 100,
             pageToken,
-            fieldNames: table.fields.map(field => field.name)
+            fieldNames: readWithoutProjection ? [] : requestedFields.length ? requestedFields : table.fields.map(field => field.name)
           });
           break;
         } catch (error) {
-          if (![429, 502].includes(error?.status) || attempt === 2) throw error;
-          await new Promise(resolve => setTimeout(resolve, 300 * 2 ** attempt));
+          if (isFieldContractDrift(error) && !readWithoutProjection) {
+            readWithoutProjection = true;
+            continue;
+          }
+          const retryable = [429, 502, 504].includes(error?.status) && error?.code !== 'FEISHU_READ_BUDGET_EXCEEDED';
+          if (!retryable || retried || attempt === 1 || readNow() >= deadline) throw error;
+          retried = true;
+          await readSleep(Math.min(300, Math.max(0, deadline - readNow())));
         }
       }
       items.push(...result.items);
@@ -233,10 +314,79 @@ export function createFeishuReadOnlyService(options) {
     throw new FeishuProxyError('REMOTE_PAGINATION_LIMIT', `飞书表记录超过受控读取上限：${tableName}`, 503);
   }
 
+  function readAll(tableName, fieldNames = []) {
+    const timestamp = readNow();
+    const key = tableReadKey(tableName, fieldNames);
+    const cached = tableReadCache.get(key);
+    if (cached && timestamp < cached.expiresAt) return Promise.resolve(cached.rows);
+    const pending = tableReadPending.get(key);
+    if (pending) return pending;
+    const request = readAllUncached(tableName, fieldNames).then(rows => {
+      if (tableReadCacheMs > 0) tableReadCache.set(key, { rows, expiresAt: readNow() + tableReadCacheMs });
+      return rows;
+    }).finally(() => {
+      tableReadPending.delete(key);
+    });
+    tableReadPending.set(key, request);
+    return request;
+  }
+
+  async function readPage(tableName, { page = 1, pageSize = 10, fieldNames = [] } = {}) {
+    const table = resolveTable(tableName);
+    const startedAt = readNow();
+    const deadline = startedAt + readBudgetMs;
+    let pageToken = '';
+    let result;
+    let readWithoutProjection = false;
+    for (let currentPage = 1; currentPage <= page; currentPage += 1) {
+      const remaining = deadline - readNow();
+      if (remaining <= 0) throw readBudgetError(startedAt);
+      let timer;
+      try {
+        const query = { viewId: table.views[0]?.viewId, pageSize, pageToken, fieldNames: readWithoutProjection ? [] : fieldNames };
+        try {
+          result = await Promise.race([
+            client.listRecords(table.tableId, query),
+            new Promise((_, reject) => { timer = setTimeout(() => reject(readBudgetError(startedAt)), remaining); })
+          ]);
+        } catch (error) {
+          if (!isFieldContractDrift(error) || readWithoutProjection) throw error;
+          readWithoutProjection = true;
+          result = await Promise.race([
+            client.listRecords(table.tableId, { ...query, fieldNames: [] }),
+            new Promise((_, reject) => { timer = setTimeout(() => reject(readBudgetError(startedAt)), Math.max(0, deadline - readNow())); })
+          ]);
+        }
+      } finally {
+        clearTimeout(timer);
+      }
+      if (currentPage < page) {
+        if (!result.hasMore || !result.nextPageToken) break;
+        pageToken = result.nextPageToken;
+      }
+    }
+    return result || { items: [], total: 0, hasMore: false, nextPageToken: '' };
+  }
+
+  function getDictionaryProjection(tableName, fieldNames = []) {
+    const timestamp = Date.now();
+    const key = tableReadKey(tableName, fieldNames);
+    const cached = dictionaryProjectionCache.get(key);
+    if (cached && timestamp < cached.expiresAt) return Promise.resolve(cached.rows);
+    const pending = dictionaryProjectionPending.get(key);
+    if (pending) return pending;
+    const projection = readAll(tableName, fieldNames).then(rows => {
+      dictionaryProjectionCache.set(key, { rows, expiresAt: Date.now() + appProjectionCacheMs });
+      return rows;
+    }).finally(() => { dictionaryProjectionPending.delete(key); });
+    dictionaryProjectionPending.set(key, projection);
+    return projection;
+  }
+
   async function readAppProjection() {
     const [typeRows, userRows, departmentRows, domainRows, sceneRows] = await Promise.all([
-      readAll('应用类型配置'), readAll('用户字典'), readAll('部门字典'),
-      readAll('业务域字典'), readAll('场景字典')
+      getDictionaryProjection('应用类型配置'), getDictionaryProjection('用户字典', PROFILE_FIELDS.user), getDictionaryProjection('部门字典'),
+      getDictionaryProjection('业务域字典'), getDictionaryProjection('场景字典')
     ]);
     const appRows = await readAll('应用索引');
     const typeLookup = createLookup(typeRows, ['类型ID', '类型编码', '类型名称'], '类型名称');
@@ -251,10 +401,10 @@ export function createFeishuReadOnlyService(options) {
       const subtype = valueToText(fields['子类型']);
       const domainId = valueToText(fields['所属业务域ID']);
       const sceneIds = valueToList(fields['所属场景ID']);
-      const ownerId = valueToText(fields['负责人ID']);
-      const developerId = valueToText(fields['开发者ID']);
+      const ownerId = valueToText(fields['负责人ID']) || valueToText(fields['申请人AD账号']);
+      const developerId = valueToText(fields['开发者ID']) || valueToText(fields['接入人AD账号']);
       const responsibleOrgId = valueToText(fields['所属部门ID']);
-      const developerOrgId = valueToText(fields['开发部门ID']);
+      const developerOrgId = valueToText(fields['开发部门ID']) || valueToText(fields['接入人所属部门ID']);
       const presentation = resolveAppPresentation(typeCode, typeName);
       return {
         id: String(record?.record_id || valueToText(fields['主键']) || valueToText(fields['应用ID'])),
@@ -281,6 +431,7 @@ export function createFeishuReadOnlyService(options) {
         responsibleOrgName: departmentLookup.get(responsibleOrgId) || responsibleOrgId,
         developerOrgId,
         developerOrgName: departmentLookup.get(developerOrgId) || developerOrgId,
+        versionName: valueToText(fields['当前结构版本']),
         updatedAt: valueToText(fields['最近更新日期']),
         iconName: presentation.iconName,
         detailPath: presentation.detailPath
@@ -301,9 +452,27 @@ export function createFeishuReadOnlyService(options) {
     return appProjectionPending;
   }
 
+  async function getAppDetailCounts() {
+    const timestamp = Date.now();
+    if (appDetailCountCache && timestamp < appDetailCountExpiresAt) return appDetailCountCache;
+    if (appDetailCountPending) return appDetailCountPending;
+    appDetailCountPending = Promise.all(APP_DETAIL_COUNT_SOURCES.map(async source => ({
+      ...source,
+      count: (await readAll(source.tableName)).length
+    }))).then(result => {
+      appDetailCountCache = result;
+      appDetailCountExpiresAt = Date.now() + appProjectionCacheMs;
+      return result;
+    }).finally(() => { appDetailCountPending = null; });
+    return appDetailCountPending;
+  }
+
   function invalidateAppProjection() {
     appProjectionCache = null;
     appProjectionExpiresAt = 0;
+    appDetailCountCache = null;
+    appDetailCountExpiresAt = 0;
+    dictionaryProjectionCache.clear();
   }
 
   async function readAnnouncementProjection() {
@@ -338,15 +507,28 @@ export function createFeishuReadOnlyService(options) {
     return announcementProjectionPending;
   }
 
-  async function readTalentProjection() {
-    const [personRows, projectRows, progressRows, userRows, departmentRows] = await Promise.all([
-      readAll('人才库'), readAll('人才项目'), readAll('项目进度'), readAll('用户字典'), readAll('部门字典')
+  function getTalentProjection(kind, reader) {
+    const timestamp = Date.now();
+    const cached = talentProjectionCache.get(kind);
+    if (cached && timestamp < cached.expiresAt) return Promise.resolve(cached.value);
+    const pending = talentProjectionPending.get(kind);
+    if (pending) return pending;
+    const projection = reader().then(value => {
+      talentProjectionCache.set(kind, { value, expiresAt: Date.now() + appProjectionCacheMs });
+      return value;
+    }).finally(() => { talentProjectionPending.delete(kind); });
+    talentProjectionPending.set(kind, projection);
+    return projection;
+  }
+
+  async function readTalentPeopleProjection() {
+    const [personRows, userRows, departmentRows] = await Promise.all([
+      readAll('人才库'), getDictionaryProjection('用户字典'), getDictionaryProjection('部门字典')
     ]);
     const userLookup = createUserDictionaryLookup(userRows, '姓名');
     const employeeLookup = createUserDictionaryLookup(userRows, '工号', { fallbackToKey: false });
     const userDepartmentLookup = createUserDictionaryLookup(userRows, '所属部门ID');
     const departmentLookup = createLookup(departmentRows, ['部门ID', '部门名称'], '部门名称');
-    const projectLookup = createLookup(projectRows, ['主键'], '项目名称');
     const people = personRows.map(record => {
       const fields = record?.fields || {};
       const userId = valueToText(fields['用户ID']);
@@ -360,6 +542,18 @@ export function createFeishuReadOnlyService(options) {
         departmentId, departmentName: departmentLookup.get(departmentId) || departmentId
       };
     }).filter(item => item.id && item.userId);
+    return { people };
+  }
+
+  function getTalentPeopleProjection() {
+    return getTalentProjection('people', readTalentPeopleProjection);
+  }
+
+  async function readTalentProjectsProjection() {
+    const [projectRows, userRows] = await Promise.all([
+      readAll('人才项目'), getDictionaryProjection('用户字典')
+    ]);
+    const userLookup = createUserDictionaryLookup(userRows, '姓名');
     const projects = projectRows.map(record => {
       const fields = record?.fields || {};
       const ownerId = valueToText(fields['负责人ID']);
@@ -370,6 +564,18 @@ export function createFeishuReadOnlyService(options) {
         status: valueToText(fields['状态']), startDate: valueToText(fields['开始日期']), endDate: valueToText(fields['结束日期'])
       };
     }).filter(item => item.id && item.name);
+    return { projects };
+  }
+
+  function getTalentProjectsProjection() {
+    return getTalentProjection('projects', readTalentProjectsProjection);
+  }
+
+  async function readTalentProgressProjection() {
+    const [progressRows, projectProjection] = await Promise.all([
+      readAll('项目进度'), getTalentProjectsProjection()
+    ]);
+    const projectLookup = new Map(projectProjection.projects.map(project => [project.projectId, project.name]));
     const progress = progressRows.map(record => {
       const fields = record?.fields || {};
       const projectId = valueToText(fields['项目ID']);
@@ -380,19 +586,11 @@ export function createFeishuReadOnlyService(options) {
         status: valueToText(fields['状态']), updatedAt: valueToText(fields['更新时间'])
       };
     }).filter(item => item.id && item.projectId);
-    return { people, projects, progress };
+    return { progress };
   }
 
-  async function getTalentProjection() {
-    const timestamp = Date.now();
-    if (talentProjectionCache && timestamp < talentProjectionExpiresAt) return talentProjectionCache;
-    if (talentProjectionPending) return talentProjectionPending;
-    talentProjectionPending = readTalentProjection().then(result => {
-      talentProjectionCache = result;
-      talentProjectionExpiresAt = Date.now() + appProjectionCacheMs;
-      return result;
-    }).finally(() => { talentProjectionPending = null; });
-    return talentProjectionPending;
+  function getTalentProgressProjection() {
+    return getTalentProjection('progress', readTalentProgressProjection);
   }
 
   async function readContactPage(readPage) {
@@ -564,8 +762,8 @@ export function createFeishuReadOnlyService(options) {
     const allowedKeys = operationId === 'APP-002' ? ['page', 'pageSize', 'query', 'filters', 'sort'] : ['page', 'pageSize'];
     const extraInputKeys = Object.keys(input).filter(key => !allowedKeys.includes(key));
     if (extraInputKeys.length) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '请求包含未允许的输入字段', 400);
-    const projection = await getAppProjection();
     if (operationId === 'APP-001') {
+      const [projection, typeDetailCounts] = await Promise.all([getAppProjection(), getAppDetailCounts()]);
       const { items } = projection;
       return {
         total: items.length,
@@ -574,9 +772,11 @@ export function createFeishuReadOnlyService(options) {
         tags: createFacet(items.flatMap(item => item.keywords)),
         domains: createFacet(items.map(item => item.domainName)),
         scenes: createFacet(items.flatMap(item => item.sceneNames)),
+        typeDetailCounts,
         facetsVersion: 'feishu-app-facets.v1'
       };
     }
+    const projection = await getAppProjection();
     const pageSize = input.pageSize == null ? 10 : input.pageSize;
     const page = input.page == null ? 1 : input.page;
     if (!Number.isInteger(pageSize) || ![10, 20, 50, 100].includes(pageSize)) {
@@ -694,7 +894,10 @@ export function createFeishuReadOnlyService(options) {
     if (Object.keys(input).some(key => !allowedKeys.includes(key))) {
       throw new FeishuProxyError('INVALID_OPERATION_INPUT', '请求包含未允许的输入字段', 400);
     }
-    const projection = await getTalentProjection();
+    const projection = operationId === 'TAL-001' || operationId === 'TAL-005'
+      ? await getTalentPeopleProjection()
+      : operationId === 'TAL-002' ? await getTalentProjectsProjection()
+        : await getTalentProgressProjection();
     if (operationId === 'TAL-005') {
       return {
         types: createFacet(projection.people.map(item => item.type)),
@@ -848,7 +1051,10 @@ export function createFeishuReadOnlyService(options) {
         const relatedMaterialIds = new Set(materialRelationRows.filter(record => valueToText(record?.fields?.['应用ID']) === appId).map(record => valueToText(record?.fields?.['素材ID'])));
         return {
           appId: app.appId, appCode: app.appId, name: app.name, shortName: app.name, logoFileId: '', logoUrl: '', coverFileId: '', coverUrl: '',
-          typeCode: app.typeCode, typeName: app.typeName, summary: app.summary, description: app.summary, versionName: '', accessMode: '',
+          typeCode: app.typeCode, typeName: app.typeName, summary: app.summary, description: app.summary, versionName: app.versionName, accessMode: '',
+          ownerId: app.ownerId, ownerName: app.ownerName, developerId: app.developerId, developerName: app.developerName,
+          responsibleOrgId: app.responsibleOrgId, responsibleOrgName: app.responsibleOrgName,
+          developerOrgId: app.developerOrgId, developerOrgName: app.developerOrgName,
           externalSystemCode: '', externalUrl: '', openMode: '', applicableUsers: '', businessScope: '', features: [], metrics: [], fieldDefinitions: [], processSteps: [],
           previews: previewRows.filter(record => valueToText(record?.fields?.['应用ID']) === appId).map(record => ({
             previewId: valueToText(record?.fields?.['主键']) || String(record?.record_id || ''), mediaType: valueToText(record?.fields?.['媒体类型']),
@@ -986,7 +1192,7 @@ export function createFeishuReadOnlyService(options) {
     await Promise.all(uniqueTypes.map(async dictType => {
       const definition = definitions[dictType];
       if (!definition) return;
-      const rows = await readAll(definition.table);
+      const rows = await getDictionaryProjection(definition.table);
       itemsByType[dictType] = rows.map(record => {
         const fields = record?.fields || {};
         const value = definition.value.map(name => valueToText(fields[name])).find(Boolean) || String(record?.record_id || '');
@@ -1089,7 +1295,7 @@ export function createFeishuReadOnlyService(options) {
   async function readCurrentUserProjection(requestContext) {
     const { identity, userId } = requireIdentity(requestContext);
     const [userRows, permissionRows, messageRows, favoriteRows, balanceRows] = await Promise.all([
-      readAll('用户字典'), readAll('用户权限'), readAll('消息通知'), readAll('应用收藏'), readAll('积分余额')
+      getDictionaryProjection('用户字典', PROFILE_FIELDS.user), readAll('用户权限', PROFILE_FIELDS.permissions), readAll('消息通知', PROFILE_FIELDS.messages), readAll('应用收藏', PROFILE_FIELDS.favorites), readAll('积分余额', PROFILE_FIELDS.balance)
     ]);
     const user = userRows.find(record => {
       const fields = record?.fields || {};
@@ -1172,11 +1378,14 @@ export function createFeishuReadOnlyService(options) {
   }
 
   async function readCurrentTodos(userId) {
-    const [useRows, onboardingRows, reuseRows, userRows, projection] = await Promise.all([
-      readAll('使用申请'), readAll('上架申请'), readAll('应用复用申请'), readAll('用户字典'), getAppProjection()
+    const [useRows, onboardingRows, reuseRows, userRows, appRows] = await Promise.all([
+      readAll('使用申请', PROFILE_FIELDS.useApplications), readAll('上架申请', PROFILE_FIELDS.onboardingApplications), readAll('应用复用申请', PROFILE_FIELDS.reuseApplications), readAll('用户字典', PROFILE_FIELDS.user), readAll('应用索引', PROFILE_FIELDS.apps)
     ]);
     const users = createUserDictionaryLookup(userRows, '姓名');
-    const apps = new Map(projection.items.map(item => [item.appId, item]));
+    const apps = new Map(appRows.map(record => {
+      const fields = record?.fields || {};
+      return [valueToText(fields['应用ID']), { name: valueToText(fields['应用名称']) }];
+    }).filter(([appId]) => appId));
     return [
       ...useRows.map(record => todoFromRecord(record, 'APP_USE', users, apps)),
       ...onboardingRows.map(record => todoFromRecord(record, 'APP_ONBOARDING', users, apps)),
@@ -1205,7 +1414,7 @@ export function createFeishuReadOnlyService(options) {
       const todoLimit = input.todoLimit == null ? 5 : Number(input.todoLimit);
       if (![recentMessageLimit, todoLimit].every(value => Number.isInteger(value) && value >= 1 && value <= 20)) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '聚合条数必须是 1 至 20 的整数', 400);
       const [user, statsRows, monthRows, messageRows, userRows, todos] = await Promise.all([
-        readCurrentUserProjection(requestContext), readAll('用户累计统计'), readAll('用户月度统计'), readAll('消息通知'), readAll('用户字典'), readCurrentTodos(userId)
+        readCurrentUserProjection(requestContext), readAll('用户累计统计', PROFILE_FIELDS.cumulativeStats), readAll('用户月度统计', PROFILE_FIELDS.monthlyStats), readAll('消息通知', PROFILE_FIELDS.messages), readAll('用户字典', PROFILE_FIELDS.user), readCurrentTodos(userId)
       ]);
       const stats = statsRows.find(record => valueToText(record?.fields?.['用户ID']) === userId)?.fields || {};
       const latestMonth = monthRows.filter(record => valueToText(record?.fields?.['用户ID']) === userId).sort((a, b) => valueToText(b?.fields?.['年月']).localeCompare(valueToText(a?.fields?.['年月'])))[0]?.fields || {};
@@ -1802,7 +2011,8 @@ export function createFeishuReadOnlyService(options) {
     if (operationId === 'PTS-004') {
       assertAllowedInput(input, ['sourceCode', 'enabled', 'page', 'pageSize']);
       const { page, pageSize } = publicPage(input, 50);
-      let rows = (await readAll('积分规则')).map(record => {
+      const ruleFieldNames = ['规则ID', '规则编码', '规则名称', '来源编码', '触发事件', '方向', '积分值', '频率类型', '频率上限', '周期上限', '条件JSON', '有效期开始', '有效期结束', '启用', '当前版本'];
+      const projectRule = record => {
         const fields = record?.fields || {};
         return {
           ruleId: valueToText(fields['规则ID']) || String(record?.record_id || ''), ruleCode: valueToText(fields['规则编码']),
@@ -1812,7 +2022,18 @@ export function createFeishuReadOnlyService(options) {
           validFrom: valueToText(fields['有效期开始']), validTo: valueToText(fields['有效期结束']), enabled: valueToBoolean(fields['启用']),
           description: '', conditions: valueToJsonObject(fields['条件JSON']), version: valueToNumber(fields['当前版本'])
         };
-      }).filter(item => item.ruleId);
+      };
+      if (!input.sourceCode && input.enabled === undefined) {
+        const result = await readPage('积分规则', { page, pageSize, fieldNames: ruleFieldNames });
+        const total = Number.isFinite(result.total) ? result.total : result.items.length;
+        const totalPages = Math.max(1, Math.ceil(total / pageSize));
+        const safePage = Math.min(page, totalPages);
+        return {
+          items: result.items.map(projectRule).filter(item => item.ruleId), total, page: safePage, pageSize,
+          totalPages, hasPrevious: safePage > 1, hasNext: Boolean(result.hasMore), hasMore: Boolean(result.hasMore)
+        };
+      }
+      let rows = (await readAll('积分规则')).map(projectRule).filter(item => item.ruleId);
       if (input.sourceCode) rows = rows.filter(item => item.sourceCode === input.sourceCode);
       if (input.enabled !== undefined) rows = rows.filter(item => item.enabled === input.enabled);
       return paginatePublic(rows, page, pageSize);

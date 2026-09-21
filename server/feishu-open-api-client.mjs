@@ -1,5 +1,12 @@
+import { createFeishuProxyFetch } from './feishu-proxy-dispatcher.mjs';
+
 const API_ROOT = 'https://open.feishu.cn/open-apis';
 const PAGE_SIZES = new Set([10, 20, 50, 100]);
+
+export function resolveFeishuUpstreamTimeoutMs(value) {
+  const configured = Number(value ?? 8_000);
+  return Number.isFinite(configured) && configured > 0 ? Math.min(configured, 8_000) : 8_000;
+}
 
 export class FeishuProxyError extends Error {
   constructor(code, message, status = 500, details = {}) {
@@ -37,17 +44,42 @@ function normalizePageSize(value) {
   return pageSize;
 }
 
+function createUpstreamLimiter(maxConcurrentRequests) {
+  let active = 0;
+  const waiting = [];
+  const runNext = () => {
+    if (active >= maxConcurrentRequests || !waiting.length) return;
+    active += 1;
+    const job = waiting.shift();
+    Promise.resolve().then(job.task).then(job.resolve, job.reject).finally(() => {
+      active -= 1;
+      runNext();
+    });
+  };
+  return task => new Promise((resolve, reject) => {
+    waiting.push({ task, resolve, reject });
+    runNext();
+  });
+}
+
 export function createFeishuOpenApiClient(options = {}) {
   const appId = options.appId ?? process.env.FEISHU_APP_ID ?? '';
   const appSecret = options.appSecret ?? process.env.FEISHU_APP_SECRET ?? '';
   const baseToken = options.baseToken ?? process.env.FEISHU_BASE_TOKEN ?? '';
-  const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+  const fetchImpl = createFeishuProxyFetch(options.fetchImpl ?? globalThis.fetch, {
+    dispatcher: options.proxyDispatcher,
+    env: options.proxyEnv,
+    ProxyAgentClass: options.ProxyAgentClass
+  });
   const now = options.now ?? Date.now;
+  const upstreamTimeoutMs = resolveFeishuUpstreamTimeoutMs(options.upstreamTimeoutMs ?? process.env.FEISHU_UPSTREAM_TIMEOUT_MS);
+  const configuredConcurrency = Number(options.maxConcurrentRequests ?? process.env.FEISHU_MAX_CONCURRENT_REQUESTS ?? 8);
+  const maxConcurrentRequests = Number.isInteger(configuredConcurrency) && configuredConcurrency > 0 ? Math.min(configuredConcurrency, 8) : 8;
+  const scheduleUpstream = createUpstreamLimiter(maxConcurrentRequests);
   const credentialsReady = Boolean(appId && appSecret && baseToken);
   let cachedTenantToken = '';
   let tokenExpiresAt = 0;
-
-  if (typeof fetchImpl !== 'function') throw new Error('缺少服务端 fetch 实现');
+  let tenantTokenPending = null;
 
   function requireCredentials() {
     if (!credentialsReady) {
@@ -55,28 +87,68 @@ export function createFeishuOpenApiClient(options = {}) {
     }
   }
 
+  async function fetchUpstream(url, init, upstreamPath) {
+    return scheduleUpstream(async () => {
+    const controller = new AbortController();
+    const startedAt = now();
+    let timedOut = false;
+    let timer;
+    const deadline = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+        reject(new Error('Feishu upstream timeout'));
+      }, upstreamTimeoutMs);
+    });
+    try {
+      return await Promise.race([
+        Promise.resolve().then(() => fetchImpl(url, { ...init, signal: controller.signal })),
+        deadline
+      ]);
+    } catch (cause) {
+      if (timedOut) {
+        throw new FeishuProxyError('FEISHU_UPSTREAM_TIMEOUT', '飞书服务响应超时', 504, {
+          upstreamPath,
+          elapsedMs: Math.max(0, Number(now()) - Number(startedAt))
+        });
+      }
+      throw cause;
+    } finally {
+      clearTimeout(timer);
+    }
+    });
+  }
+
   async function getTenantToken() {
     requireCredentials();
     if (cachedTenantToken && now() < tokenExpiresAt) return cachedTenantToken;
-    const response = await fetchImpl(`${API_ROOT}/auth/v3/tenant_access_token/internal`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ app_id: appId, app_secret: appSecret })
-    });
-    const body = await safeJson(response);
-    if (!response.ok || body.code !== 0 || !body.tenant_access_token) {
-      throw new FeishuProxyError('TENANT_TOKEN_FAILED', '飞书租户访问令牌获取失败', response.status || 502);
-    }
-    cachedTenantToken = body.tenant_access_token;
-    const validSeconds = Math.max(60, Number(body.expire || 7200) - 300);
-    tokenExpiresAt = now() + validSeconds * 1000;
-    return cachedTenantToken;
+    if (tenantTokenPending) return tenantTokenPending;
+    tenantTokenPending = (async () => {
+      try {
+        const response = await fetchUpstream(`${API_ROOT}/auth/v3/tenant_access_token/internal`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ app_id: appId, app_secret: appSecret })
+        }, '/auth/v3/tenant_access_token/internal');
+        const body = await safeJson(response);
+        if (!response.ok || body.code !== 0 || !body.tenant_access_token) {
+          throw new FeishuProxyError('TENANT_TOKEN_FAILED', '飞书租户访问令牌获取失败', response.status || 502);
+        }
+        cachedTenantToken = body.tenant_access_token;
+        const validSeconds = Math.max(60, Number(body.expire || 7200) - 300);
+        tokenExpiresAt = now() + validSeconds * 1000;
+        return cachedTenantToken;
+      } finally {
+        tenantTokenPending = null;
+      }
+    })();
+    return tenantTokenPending;
   }
 
-  async function approvalRequest(pathname, { method = 'GET', body, accessToken } = {}) {
+  async function approvalRequest(pathname, { method = 'GET', body, accessToken } = {}, upstreamPath = pathname) {
     requireCredentials();
     const token = accessToken || await getTenantToken();
-    const response = await fetchImpl(`${API_ROOT}${pathname}`, {
+    const response = await fetchUpstream(`${API_ROOT}${pathname}`, {
       method,
       headers: {
         Authorization: `Bearer ${token}`,
@@ -84,7 +156,7 @@ export function createFeishuOpenApiClient(options = {}) {
         ...(body == null ? {} : { 'Content-Type': 'application/json' })
       },
       body: body == null ? undefined : JSON.stringify(body)
-    });
+    }, upstreamPath);
     const result = await safeJson(response);
     if (!response.ok || result.code !== 0 || !result.data || typeof result.data !== 'object') {
       const status = response.status === 401 ? 401 : response.status === 403 ? 403 : response.status === 429 ? 429 : 502;
@@ -92,7 +164,7 @@ export function createFeishuOpenApiClient(options = {}) {
         upstreamCode: Number.isInteger(result.code) ? result.code : undefined,
         upstreamMessage: String(result.msg || result.error_msg || '').slice(0, 240),
         upstreamRequestId: String(result.request_id || result.RequestId || '').slice(0, 120),
-        upstreamPath: pathname,
+        upstreamPath,
         upstreamDetails: safeUpstreamDetails(result.data)
       });
     }
@@ -171,7 +243,11 @@ export function createFeishuOpenApiClient(options = {}) {
   async function getApprovalInstance(instanceCode, options = {}) {
     const normalized = String(instanceCode || '');
     if (!/^[A-Za-z0-9_-]{1,256}$/.test(normalized)) throw new FeishuProxyError('INVALID_APPROVAL_INSTANCE_ID', '审批实例标识非法', 400);
-    const data = await approvalRequest(`/approval/v4/instances/${encodeURIComponent(normalized)}`, { accessToken: options.accessToken });
+    const data = await approvalRequest(
+      `/approval/v4/instances/${encodeURIComponent(normalized)}`,
+      { accessToken: options.accessToken },
+      '/approval/v4/instances/{instanceCode}'
+    );
     let formValues = {};
     try {
       const form = typeof data.form === 'string' ? JSON.parse(data.form) : data.form;
@@ -220,15 +296,19 @@ export function createFeishuOpenApiClient(options = {}) {
     if (Array.isArray(query.fieldNames) && query.fieldNames.length) {
       url.searchParams.set('field_names', JSON.stringify(query.fieldNames));
     }
-    const response = await fetchImpl(url, {
+    const response = await fetchUpstream(url, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
-    });
+    }, '/bitable/v1/apps/{base}/tables/{tableId}/records');
     const body = await safeJson(response);
     const emptySuccess = body.code === 0 && body.data && body.data.items == null && Number(body.data.total || 0) === 0;
     if (!response.ok || body.code !== 0 || !body.data || (!Array.isArray(body.data.items) && !emptySuccess)) {
       const status = response.status === 429 ? 429 : response.status === 403 ? 403 : 502;
-      throw new FeishuProxyError('FEISHU_RECORDS_FAILED', '飞书记录读取失败', status);
+      throw new FeishuProxyError('FEISHU_RECORDS_FAILED', '飞书记录读取失败', status, {
+        upstreamCode: Number.isInteger(body.code) ? body.code : undefined,
+        upstreamMessage: String(body.msg || body.error_msg || '').slice(0, 240),
+        upstreamPath: '/bitable/v1/apps/{base}/tables/{tableId}/records'
+      });
     }
     const items = Array.isArray(body.data.items) ? body.data.items : [];
     return {
@@ -246,10 +326,10 @@ export function createFeishuOpenApiClient(options = {}) {
       throw new FeishuProxyError('INVALID_FILE_TOKEN', '飞书文件标识非法', 400);
     }
     const token = await getTenantToken();
-    const response = await fetchImpl(`${API_ROOT}/drive/v1/medias/${encodeURIComponent(normalized)}/download`, {
+    const response = await fetchUpstream(`${API_ROOT}/drive/v1/medias/${encodeURIComponent(normalized)}/download`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/octet-stream' }
-    });
+    }, '/drive/v1/medias/{fileToken}/download');
     if (!response.ok) {
       const status = response.status === 403 ? 403 : response.status === 404 ? 404 : response.status === 429 ? 429 : 502;
       throw new FeishuProxyError('FEISHU_MEDIA_DOWNLOAD_FAILED', '飞书文件下载失败', status);
@@ -269,9 +349,9 @@ export function createFeishuOpenApiClient(options = {}) {
     url.searchParams.set('user_id_type', query.userIdType || 'user_id');
     url.searchParams.set('department_id_type', query.departmentIdType || 'open_department_id');
     if (query.pageToken) url.searchParams.set('page_token', String(query.pageToken));
-    const response = await fetchImpl(url, {
+    const response = await fetchUpstream(url, {
       method: 'GET', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
-    });
+    }, '/contact/v3/departments/{departmentId}/children');
     const body = await safeJson(response);
     if (!response.ok || body.code !== 0 || (body.data?.items != null && !Array.isArray(body.data.items))) {
       const status = response.status === 429 ? 429 : response.status === 403 ? 403 : 502;
@@ -311,7 +391,7 @@ export function createFeishuOpenApiClient(options = {}) {
     url.searchParams.set('user_id_type', query.userIdType || 'user_id');
     url.searchParams.set('department_id_type', query.departmentIdType || 'open_department_id');
     if (query.pageToken) url.searchParams.set('page_token', String(query.pageToken));
-    const response = await fetchImpl(url, { method: 'GET', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } });
+    const response = await fetchUpstream(url, { method: 'GET', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } }, '/contact/v3/users/find_by_department');
     const body = await safeJson(response);
     if (!response.ok || body.code !== 0 || (body.data?.items != null && !Array.isArray(body.data.items))) {
       const status = response.status === 429 ? 429 : response.status === 403 ? 403 : 502;

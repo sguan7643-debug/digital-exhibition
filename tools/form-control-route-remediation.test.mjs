@@ -24,8 +24,8 @@ const source = collectSource(fileURLToPath(new URL('../src', import.meta.url)));
 
 assert.match(app, /function normalizeInitialRoute\(\)/,
   '应用必须显式规范化首次进入的根路径');
-assert.match(app, /window\.location\.pathname === '\/'[\s\S]*history\.replaceState\([\s\S]*'\/workbench'/,
-  '根路径必须用 replaceState 初始化为工作台，不能先渲染不存在页面');
+assert.match(app, /stripAppBasePath\(window\.location\.pathname, appBasePath\) === '\/'[\s\S]*history\.replaceState\([\s\S]*prependAppBasePath\(`\/workbench/,
+  '根路径与 /test2 基路径都必须用 replaceState 初始化为工作台，不能先渲染不存在页面');
 
 assert.match(globalStyle, /--form-control-focus:#0060a6/,
   '全局表单焦点必须使用冻结蓝色体系');

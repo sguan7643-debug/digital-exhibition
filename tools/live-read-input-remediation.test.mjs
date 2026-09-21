@@ -19,7 +19,8 @@ const tables = new Map([
   ['归档任务', { tableId: 'tbl_arc', views: [{ viewId: 'vew_arc' }], fields: [{ name: '归档任务ID' }] }],
   ['多维表连接配置', { tableId: 'tbl_conn', views: [{ viewId: 'vew_conn' }], fields: [{ name: '连接编码' }] }],
   ['应用类型配置', { tableId: 'tbl_type', views: [{ viewId: 'vew_type' }], fields: [{ name: '类型编码' }] }],
-  ['使用申请', { tableId: 'tbl_apply', views: [{ viewId: 'vew_apply' }], fields: [{ name: '申请编号' }] }]
+  ['附件资料', { tableId: 'tbl_attachment', views: [{ viewId: 'vew_attachment' }], fields: [{ name: '主键' }, { name: '附件' }] }],
+  ['使用申请', { tableId: 'tbl_apply', views: [{ viewId: 'vew_apply' }], fields: [{ name: '申请编号' }, { name: '申请人ID' }] }]
 ]);
 const rows = new Map([
   ['tbl_app', [{ record_id: 'app-record', fields: { 应用ID: 'APP-001', 应用类型: 'RPA' } }]],
@@ -31,7 +32,8 @@ const rows = new Map([
   ['tbl_arc', [{ record_id: 'arc-record', fields: { 归档任务ID: 'ARCHIVE-001' } }]],
   ['tbl_conn', [{ record_id: 'conn-record', fields: { 连接编码: 'CONNECTION-001' } }]],
   ['tbl_type', [{ record_id: 'type-record', fields: { 类型编码: 'RPA' } }]],
-  ['tbl_apply', [{ record_id: 'apply-record', fields: { 申请编号: 'APPLY-001' } }]]
+  ['tbl_attachment', [{ record_id: 'attachment-record', fields: { 主键: 'ATTACH-001', 附件: [{ file_token: 'attachment-token-001' }] } }]],
+  ['tbl_apply', [{ record_id: 'apply-record', fields: { 申请编号: 'APPLY-001', 申请人ID: 'USER-001' } }]]
 ]);
 const resolver = createLiveReadInputResolver({
   identifierContract: { byName: tables },
@@ -40,10 +42,76 @@ const resolver = createLiveReadInputResolver({
 });
 assert.deepEqual(await resolver.resolve({ id: 'COM-001' }), {});
 assert.deepEqual(await resolver.resolve({ id: 'COM-005' }), { dictTypes: ['APPLICATION_TYPE', 'BUSINESS_DOMAIN', 'SCENE'], includeDisabled: false });
+assert.deepEqual(await resolver.resolve({ id: 'ADM-007' }), { subjectType: 'USER', subjectId: 'USER-001', resourceType: 'ADMIN', resourceId: 'GLOBAL', permissionCode: 'admin.integrations.view' });
 assert.deepEqual(await resolver.resolve({ id: 'APP-003' }), { appId: 'APP-001' });
 assert.deepEqual(await resolver.resolve({ id: 'APP-007' }), { appId: 'APP-001', page: 1, pageSize: 20, sort: 'createdAt,desc' });
+assert.deepEqual(await resolver.resolve({ id: 'MAT-001' }), {}, 'MAT-001 不得发送 MAT-002 的分页字段');
+assert.deepEqual(await resolver.resolve({ id: 'APP-010' }), { applicationId: 'APPLY-001', includeHistory: true }, 'APP-010 必须选择当前 AD 账号的申请');
+assert.deepEqual(await resolver.resolve({ id: 'OAP-011' }), { usage: 'DETAIL', schemaVersion: 1, typeCode: 'RPA' }, 'OAP-011 必须从正式应用类型配置解析 typeCode');
 assert.deepEqual(await resolver.resolve({ id: 'MAT-003' }).then(input => ({ ...input, clientOccurredAt: 'fixed' })), { materialId: 'MAT-001', fileId: 'file-token-001', purpose: 'TEST_READ', sourcePage: '/live-approval-runner.html', clientOccurredAt: 'fixed' });
+const multiMaterialRows = new Map(rows);
+multiMaterialRows.set('tbl_mat', [
+  { record_id: 'mat-record-empty', fields: { 素材ID: 'MAT-EMPTY', 素材文件: '[附件]' } },
+  { record_id: 'mat-record-compatible', fields: { 素材ID: 'MAT-002', 素材文件: [{ file_token: 'file-token-002' }] } }
+]);
+const multiMaterialResolver = createLiveReadInputResolver({
+  identifierContract: { byName: tables },
+  client: { listRecords: async tableId => ({ items: tableId === 'tbl_attachment' ? [] : multiMaterialRows.get(tableId) || [] }) },
+  identity: { userId: 'USER-001' }
+});
+assert.deepEqual(await multiMaterialResolver.resolve({ id: 'COM-008' }), { fileId: 'MAT-002', mode: 'DOWNLOAD' }, 'COM-008 必须使用可解析逻辑记录 ID');
+assert.deepEqual(await multiMaterialResolver.resolve({ id: 'MAT-003' }).then(input => ({ ...input, clientOccurredAt: 'fixed' })), {
+  materialId: 'MAT-002', fileId: 'file-token-002', purpose: 'TEST_READ', sourcePage: '/live-approval-runner.html', clientOccurredAt: 'fixed'
+}, 'MAT-003 必须使用同一素材的文件 token，并跳过不兼容首行');
+const attachmentOnlyRows = new Map(rows);
+attachmentOnlyRows.set('tbl_mat', [{ record_id: 'mat-record-no-file', fields: { 素材ID: 'MAT-NO-FILE', 素材文件: '[附件]' } }]);
+const attachmentOnlyResolver = createLiveReadInputResolver({
+  identifierContract: { byName: tables },
+  client: { listRecords: async tableId => ({ items: attachmentOnlyRows.get(tableId) || [] }) },
+  identity: { userId: 'USER-001' }
+});
+assert.deepEqual(await attachmentOnlyResolver.resolve({ id: 'COM-008' }), { fileId: 'ATTACH-001', mode: 'DOWNLOAD' }, 'COM-008 必须识别现有“附件”字段的 file_token，不上传文件');
+
+const overrideResolver = createLiveReadInputResolver({
+  identifierContract: { byName: tables },
+  client: { listRecords: async tableId => ({ items: rows.get(tableId) || [] }) },
+  identity: { userId: 'USER-001' },
+  contextOverrides: {
+    applicationId: 'TEST_APPLICATION_OVERRIDE',
+    certificationId: 'TEST_CERTIFICATION_OVERRIDE',
+    exportId: 'TEST_EXPORT_OVERRIDE',
+    appId: 'FORBIDDEN_OVERRIDE'
+  }
+});
+assert.deepEqual(await overrideResolver.resolve({ id: 'APP-010' }), { applicationId: 'TEST_APPLICATION_OVERRIDE', includeHistory: true });
+assert.deepEqual(await overrideResolver.resolve({ id: 'CER-003' }), { certificationId: 'TEST_CERTIFICATION_OVERRIDE' });
+assert.deepEqual(await overrideResolver.resolve({ id: 'COM-010' }), { exportId: 'TEST_EXPORT_OVERRIDE' });
+assert.deepEqual(await overrideResolver.resolve({ id: 'APP-003' }), { appId: 'APP-001' }, '非 allowlist 上下文不得覆盖读取输入');
+const placeholderRows = new Map(rows);
+placeholderRows.set('tbl_mat', [{ record_id: 'mat-record', fields: { 素材ID: 'MAT-001', 素材文件: '[附件]' } }]);
+const placeholderResolver = createLiveReadInputResolver({
+  identifierContract: { byName: tables },
+  client: { listRecords: async tableId => ({ items: placeholderRows.get(tableId) || [] }) },
+  identity: { userId: 'USER-001' }
+});
+await assert.rejects(() => placeholderResolver.resolve({ id: 'MAT-003' }), error => error.code === 'REQUIRED_INPUT_UNAVAILABLE' && error.requiredInput.includes('fileId'));
 await assert.rejects(() => createLiveReadInputResolver({ identifierContract: { byName: new Map([['应用索引', tables.get('应用索引')]]) }, client: { listRecords: async () => ({ items: [] }) } }).resolve({ id: 'APP-003' }), error => error.code === 'REQUIRED_INPUT_UNAVAILABLE' && error.requiredInput.includes('appId'));
+
+const staleProjectionCalls = [];
+const staleProjectionResolver = createLiveReadInputResolver({
+  identifierContract: { byName: new Map([['应用索引', tables.get('应用索引')]]) },
+  client: {
+    listRecords: async (_tableId, query) => {
+      staleProjectionCalls.push(query.fieldNames);
+      if (query.fieldNames.length) throw Object.assign(new Error('字段不存在'), { code: 'FEISHU_RECORDS_FAILED', upstreamCode: 1254045 });
+      return { items: rows.get('tbl_app') };
+    }
+  },
+  identity: { userId: 'USER-001' }
+});
+assert.deepEqual(await staleProjectionResolver.resolve({ id: 'APP-003' }), { appId: 'APP-001' });
+assert.equal(staleProjectionCalls.length, 2, '字段契约漂移只允许一次完整行回退');
+assert.deepEqual(staleProjectionCalls.at(-1), []);
 
 const allReadOperations = OPERATION_REGISTRY.filter(operation => operation.readOnly);
 const resolvedInputs = await Promise.all(allReadOperations.map(operation => resolver.resolve(operation)));

@@ -1,0 +1,68 @@
+{
+  "task_id": "DEH-ENTRY-PERF-20260916",
+  "title": "Feishu entry authentication and first-screen request performance repair",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "Ensure unauthenticated users enter Feishu OAuth before protected reads, and make the workbench first-screen data flow bounded, diagnosable, and responsive.",
+  "target_user": "Digital Exhibition Web users opening the local root path or the deployed /test2 base path.",
+  "in_scope": [
+    "Base-path-aware Feishu entry-session guarding for local and /test2 deployments",
+    "Safe base-path routing and OAuth return preservation",
+    "Bounded Feishu upstream timeout, retry, deduplication, and diagnostic behavior for workbench reads",
+    "First-screen loading and recoverable error behavior for COM-001, COM-002, COM-005, WB-001, and WB-002",
+    "Automated and real-environment read-only verification"
+  ],
+  "out_of_scope": [
+    "Changing Feishu app credentials, callback configuration, or permissions",
+    "Writing, deleting, or altering Feishu records",
+    "Production deployment, release, or unrelated page redesign",
+    "Changing the legacy DEH-LIVE-101-20260914 repair history"
+  ],
+  "success_metric": "Unauthenticated entry performs no protected business reads before OAuth; no first-screen request is allowed to wait for the prior 30-second client fallback; affected failures are bounded and actionable; Web tests, build, and read-only live verification produce evidence.",
+  "deadline": "2026-09-16",
+  "risk_level": "high",
+  "state": "complete",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "Product Owner",
+      "approved_at": "2026-09-16T14:51:46.9914525Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "Product Owner",
+      "approved_at": "2026-09-16T15:24:55.9296635Z"
+    },
+    "release": {
+      "approved": true,
+      "approved_by": "Product Owner",
+      "approved_at": "2026-09-18T07:11:26.1853656Z"
+    }
+  },
+  "checks": {
+    "web_passed": true,
+    "mobile_passed": false,
+    "web_evidence": ".ai-team/tasks/DEH-ENTRY-PERF-20260916/handoffs/web.md",
+    "web_checked_at": "2026-09-18T06:06:23.4431866Z",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": true,
+    "blocking_defects": 0,
+    "evidence": ".ai-team/tasks/DEH-ENTRY-PERF-20260916/qa-report.md",
+    "recorded_at": "2026-09-18T06:48:45.3463024Z"
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

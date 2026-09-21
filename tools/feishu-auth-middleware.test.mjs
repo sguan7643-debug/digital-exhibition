@@ -11,6 +11,9 @@ const authService = {
   async completeAuthorization(input) {
     calls.push(['complete', input]);
     return { redirectTo: '/workbench', sessionCookie: 'session-cookie', clearStateCookie: 'clear-cookie' };
+  },
+  resolveIdentity() {
+    return null;
   }
 };
 const dispatch = createFeishuAuthDispatcher({ authService });
@@ -41,7 +44,8 @@ assert.deepEqual(calls[1], ['complete', { code: 'code-test', state: 'state-test'
 const failing = createFeishuAuthDispatcher({
   authService: {
     beginAuthorization() { throw new FeishuProxyError('USER_AUTH_NOT_CONFIGURED', 'sensitive upstream detail', 503); },
-    async completeAuthorization() { throw new Error('not expected'); }
+    async completeAuthorization() { throw new Error('not expected'); },
+    resolveIdentity() { return null; }
   }
 });
 const failure = await failing({ method: 'GET', url: '/api/v1/auth/feishu/start' });

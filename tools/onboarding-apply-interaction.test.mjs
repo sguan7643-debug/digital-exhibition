@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { PAGE_MATRIX, resolvePage } from '../src/fixtures/pages.js';
+import { getPageIntegrationContract } from '../src/integration/page-integration-matrix.js';
+import { buildPageReadRequestPlan } from '../src/integration/page-read-request-plan.js';
+import { createVerifiedReadOperationContracts } from '../src/integration/operation-contract-schemas.js';
 
 const appsSource = await readFile(new URL('../src/pages/AppsPage.vue', import.meta.url), 'utf8');
 const appSource = await readFile(new URL('../src/App.vue', import.meta.url), 'utf8');
@@ -34,10 +37,20 @@ for (const [field, value] of [
 
 assert.equal(PAGE_MATRIX.length, 30, 'the frozen 30-page visual matrix must remain unchanged');
 assert.equal(resolvePage('/apps/onboarding/apply')?.id, '32');
+assert.deepEqual(getPageIntegrationContract('/apps/onboarding/apply').readOperationIds, ['COM-003', 'COM-004']);
+const directoryPlan = buildPageReadRequestPlan({
+  route: '/apps/onboarding/apply',
+  readOperationIds: ['COM-003', 'COM-004'],
+  operationContracts: createVerifiedReadOperationContracts()
+});
+assert.deepEqual(directoryPlan.operationIds, ['COM-003', 'COM-004']);
+assert.equal(directoryPlan.inputByOperation['COM-004'].pageSize, 100);
 assert.match(appsSource, /href=["']\/apps\/onboarding\/apply["']/);
 assert.doesNotMatch(appsSource, /应用上线申请为本地演示操作/);
 assert.match(appSource, /import OnboardingApplyPage from ['"]\.\/pages\/OnboardingApplyPage\.vue['"]/);
-assert.match(appSource, /<onboarding-apply-page v-else-if="page\.id === '32'"/);
+assert.match(appSource, /<onboarding-apply-page[\s\S]*?v-else-if="page\.id === '32'"/);
+assert.match(appSource, /:integration-data="integrationEnvelope\.data"/);
+assert.match(appSource, /:integration-state="integrationEnvelope\.state"/);
 assert.match(applySource, /<form[^>]*@submit\.prevent="submitApplication"/);
 assert.match(applySource, /submitOnboarding\(/);
 assert.match(applySource, /approvalResult\.value\.instanceId/);
@@ -45,6 +58,31 @@ assert.match(applySource, /new URLSearchParams\(\{ source: approvalResult\.value
 assert.match(applySource, /import \{ submitOnboarding \}/);
 assert.match(applySource, /rpaRequest:\s*buildRpaApprovalRequest\(\)/);
 assert.match(applySource, /Object\.values\(selectedFiles\)\.flat\(\)/);
+for (const tableName of [
+  '可视化驾驶舱详情',
+  '可视化报表详情',
+  '海能work应用详情',
+  '工具应用详情',
+  'RPA应用详情',
+  'EAD应用详情',
+  'AI应用详情',
+  '数据集应用详情',
+  '指标应用详情',
+]) {
+  assert.ok(applySource.includes(`tableName: "${tableName}"`), `应用类型必须绑定详情表：${tableName}`);
+}
+assert.match(applySource, /const applicationDetailSchemas = Object\.freeze\(/);
+assert.match(applySource, /props\.integrationData\?\.\["COM-003"\]\?\.items/);
+assert.match(applySource, /props\.integrationData\?\.\["COM-004"\]\?\.items/);
+assert.match(applySource, /v-for="department in departmentOptions"/);
+assert.match(applySource, /v-for="user in userOptions"/);
+assert.match(applySource, /v-for="user in contactUserOptions"/);
+assert.match(applySource, /v-for="user in applicableUserOptions"/);
+assert.doesNotMatch(applySource, />接入人<b>\*<\/b><input/);
+assert.doesNotMatch(applySource, />适用用户<input/);
+assert.match(applySource, /const detailDrafts = reactive\(/);
+assert.match(applySource, /v-for="field in activeDetailSchema\.fields"/);
+assert.match(applySource, /detailFields:\s*buildDetailFields\(\)/);
 assert.match(applySource, /申请人联系电话:\s*form\.phone/);
 assert.match(applySource, /申请人联系邮箱:\s*form\.email/);
 assert.match(applySource, /接入人所属部门ID:\s*departmentId\(form\.contactDepartment\)/);
@@ -78,7 +116,7 @@ assert.ok(
     basicInfoSection.indexOf('应用编码') < basicInfoSection.indexOf('应用类型'),
   '应用编码输入框必须紧随应用名称并位于应用类型之前'
 );
-assert.match(applySource, /:disabled="submitting"/);
+assert.match(applySource, /:disabled="submitting \|\| directoryDisabled"/);
 assert.match(applySource, /if \(submitting\.value\) return;/, '重复点击提交时必须复用当前请求，禁止重复发起审批');
 assert.match(applySource, /:aria-busy="submitting"/, '表单必须向辅助技术暴露提交中的忙碌状态');
 assert.match(applySource, /v-if="submitting"[^>]*class="submit-loading"/, '接口等待期间必须显示可见 loading');

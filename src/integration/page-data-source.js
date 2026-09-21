@@ -179,6 +179,10 @@ export function createPageDataSource({ route, runtime, mockLoader, client, opera
     return load(input, { ...options, operationIds: [...envelope.retryScope] });
   }
 
+  function cancel(reason = '页面已切换') {
+    activeController?.abort(new DOMException(reason, 'AbortError'));
+  }
+
   async function executeAction(actionId, input = {}, context = {}) {
     const action = contract.actions.find(candidate => candidate.actionId === actionId);
     if (!action) throw new Error(`页面未登记操作：${actionId}`);
@@ -193,5 +197,5 @@ export function createPageDataSource({ route, runtime, mockLoader, client, opera
     }, { signal: context.signal });
   }
 
-  return Object.freeze({ load, retry, executeAction, snapshot: () => withContract(envelope), contract });
+  return Object.freeze({ load, retry, cancel, executeAction, snapshot: () => withContract(envelope), contract });
 }

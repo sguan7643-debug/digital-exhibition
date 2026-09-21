@@ -1,5 +1,6 @@
 export const FIXTURE_CLOCK = '2026-08-19T09:00:00+08:00';
 export const FIXTURE_SEED = 817;
+import { stripAppBasePath } from '../integration/app-base-path.js';
 
 const BASE_STATES = ['normal', 'loading', 'error', 'disabled', 'permission-denied'];
 
@@ -70,8 +71,9 @@ const ONBOARDING_APPLY_PAGE = definePage({
   sha256: 'LOCAL-ONBOARDING-APPLY-FX-817'
 });
 
-export function resolvePage(input, state = 'normal') {
-  const pathname = new URL(input, 'http://127.0.0.1').pathname.replace(/\/$/, '') || '/';
+export function resolvePage(input, state = 'normal', appBasePath = '/') {
+  const pathname = stripAppBasePath(new URL(input, 'http://127.0.0.1').pathname, appBasePath);
+  if (!pathname) return undefined;
   const additivePages = [MATERIALS_PAGE, ONBOARDING_APPLY_PAGE];
   const page = PAGE_MATRIX.find(candidate => candidate.route === pathname) || additivePages.find(candidate => candidate.route === pathname);
   if (!page) return undefined;

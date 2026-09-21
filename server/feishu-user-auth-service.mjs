@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { FeishuProxyError } from './feishu-open-api-client.mjs';
+import { createFeishuProxyFetch } from './feishu-proxy-dispatcher.mjs';
 
 const AUTHORIZE_URL = 'https://accounts.feishu.cn/open-apis/authen/v1/authorize';
 const TOKEN_URL = 'https://accounts.feishu.cn/oauth/v3/token';
@@ -23,7 +24,13 @@ function parseCookies(header = '') {
 
 function normalizeReturnTo(value = '/workbench') {
   const text = String(value || '/workbench');
-  if (!text.startsWith('/') || text.startsWith('//') || text.includes('\\')) {
+  let decodedText = text;
+  try {
+    decodedText = decodeURIComponent(text);
+  } catch {
+    decodedText = text;
+  }
+  if (!text.startsWith('/') || text.startsWith('//') || text.includes('\\') || decodedText.startsWith('//') || decodedText.includes('\\')) {
     throw new FeishuProxyError('INVALID_RETURN_PATH', '授权完成后的返回地址非法', 400);
   }
   const url = new URL(text, 'http://local.invalid');
@@ -77,7 +84,12 @@ export function createFeishuUserAuthService(options = {}) {
   const appSecret = options.appSecret ?? process.env.FEISHU_APP_SECRET ?? '';
   const redirectUri = options.redirectUri ?? process.env.FEISHU_OAUTH_REDIRECT_URI ?? '';
   const scopes = String(options.scopes ?? process.env.FEISHU_OAUTH_SCOPES ?? '').trim();
-  const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+  const fetchImpl = createFeishuProxyFetch(options.fetchImpl ?? globalThis.fetch, {
+    dispatcher: options.proxyDispatcher,
+    env: options.proxyEnv,
+    ProxyAgentClass: options.ProxyAgentClass,
+    target: 'https://accounts.feishu.cn'
+  });
   const now = options.now ?? Date.now;
   const randomId = options.randomId ?? randomUUID;
   const onAuthorized = options.onAuthorized;
@@ -87,8 +99,6 @@ export function createFeishuUserAuthService(options = {}) {
   const secureCookies = redirectUri.startsWith('https://');
   const pendingStates = new Map();
   const sessions = new Map();
-
-  if (typeof fetchImpl !== 'function') throw new Error('缺少服务端 fetch 实现');
 
   function requireConfiguration() {
     if (!credentialsReady) {
@@ -196,5 +206,6 @@ export function createFeishuUserAuthService(options = {}) {
 
 export const FEISHU_AUTH_PATHS = Object.freeze({
   start: '/api/v1/auth/feishu/start',
-  callback: '/api/v1/auth/feishu/callback'
+  callback: '/api/v1/auth/feishu/callback',
+  session: '/api/v1/auth/feishu/session'
 });

@@ -42,7 +42,38 @@ assert.equal(mapped.image, 'app-report');
 assert.equal(mapped.category, '可视化报表');
 assert.equal(mapped.scene, '生产运营');
 assert.equal(mapped.usage, 1418);
-assert.equal(mapped.route, '/apps/report-001');
+assert.equal(mapped.route, '/apps/report-001?appId=APP-001', '真实应用卡片必须将应用索引 ID 带入详情页');
+
+const typeCodeCategoryCases = [
+  ['T001', 'AI'],
+  ['T002', 'EAD'],
+  ['T003', 'RPA'],
+  ['T004', '其他工具'],
+  ['T005', '海能work应用'],
+  ['T006', '报表'],
+  ['T007', '可视化'],
+  ['T008', '数据集'],
+  ['T009', '指标'],
+];
+const typeCodeCategories = typeCodeCategoryCases.map(([typeCode, categoryKey], index) => {
+  const card = mapRemoteApp({
+    ...remoteItem,
+    appId: `APP-TYPE-${index + 1}`,
+    typeCode,
+    typeName: `${categoryKey}应用`,
+  });
+  assert.equal(
+    card.categoryKey,
+    categoryKey,
+    `${typeCode} 必须以应用索引的类型编码归入 ${categoryKey}，不能依赖展示名称`,
+  );
+  return card.categoryKey;
+});
+assert.equal(
+  new Set(typeCodeCategories).size,
+  9,
+  '九种索引类型必须分别进入九个统计项，统计合计才能与应用列表总数一致',
+);
 
 const remoteAnnouncement = {
   id: 'rec-ann', announcementId: 'ANN-001', title: '系统上线', category: '系统公告',

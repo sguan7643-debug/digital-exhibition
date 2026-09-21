@@ -3,6 +3,7 @@ function errorDetails(error) {
     errorCode: error?.code || 'UNEXPECTED',
     errorMessage: String(error?.message || error).slice(0, 240),
     httpStatus: Number(error?.status || error?.httpStatus || 0) || undefined,
+    upstreamCode: Number.isInteger(error?.upstreamCode) ? error.upstreamCode : undefined,
     traceId: error?.traceId || error?.details?.traceId || ''
   };
 }

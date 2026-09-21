@@ -25,7 +25,8 @@ const result = await projection.publish({
   creatorUserId: 'user-001',
   application: {
     name: 'TEST_海能Work应用', applicationCode: 'HW-001', summary: '审批上架测试',
-    webAddress: 'https://example.com/app', contact: 'contact-001', contactDepartment: 'dept-001'
+    webAddress: 'https://example.com/app', applicant: 'owner-001', department: 'dept-001',
+    contact: 'developer-001', contactDepartment: 'dev-dept-001'
   }
 });
 
@@ -34,6 +35,14 @@ assert.equal(writes[0].tableName, '应用索引');
 assert.equal(writes[0].businessKey, 'TEST_HW_001');
 assert.equal(writes[0].fields['状态'], '审核中');
 assert.equal(writes[0].fields['应用类型'], 'T005');
+assert.equal(writes[0].fields['申请人AD账号'], 'owner-001', '申请人必须写入现有应用索引字段');
+assert.equal(writes[0].fields['接入人AD账号'], 'developer-001', '接入人必须写入现有应用索引字段');
+assert.equal(writes[0].fields['所属部门ID'], 'dept-001', '申请表选择的所属部门必须投影为负责部门');
+assert.equal(writes[0].fields['接入人所属部门ID'], 'dev-dept-001');
+assert.equal(Object.hasOwn(writes[0].fields, '负责人ID'), false, '不得写入飞书应用索引中不存在的旧字段');
+assert.equal(Object.hasOwn(writes[0].fields, '开发者ID'), false, '不得写入飞书应用索引中不存在的旧字段');
+assert.equal(Object.hasOwn(writes[0].fields, '开发部门ID'), false, '不得写入飞书应用索引中不存在的旧字段');
+assert.equal(writes[0].fields['当前结构版本'], 'V1.0');
 assert.equal(writes[1].tableName, '海能work应用详情');
 assert.equal(writes[1].fields['应用ID'], 'TEST_HW_001');
 assert.equal(result.indexRecordId, 'rec-1');

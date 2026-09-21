@@ -7,8 +7,9 @@ import {
   retainViewerRole,
 } from '../state/interaction-controllers.js';
 import TypeLineIcon from './TypeLineIcon.vue';
+import { prependAppBasePath } from '../integration/app-base-path.js';
 
-const props = defineProps({ page: { type: Object, required: true } });
+const props = defineProps({ page: { type: Object, required: true }, appBasePath: { type: String, default: '/' } });
 const shellState = createShellController();
 const viewerRole = ref(props.page.role);
 const sceneDraft = ref(new URLSearchParams(window.location.search).get('scene') || '');
@@ -55,11 +56,14 @@ function active(route) {
   if (route === '/talent/people' && props.page.route.startsWith('/talent/')) return true;
   return props.page.route === route || (route !== '/workbench' && props.page.route.startsWith(`${route}/`));
 }
+function appHref(route) {
+  return prependAppBasePath(route, props.appBasePath);
+}
 function setCategory(label) {
   closeMobileMenu(true);
   if (props.page.id !== '07') {
     const suffix = label ? `?category=${encodeURIComponent(label)}` : '';
-    window.history.pushState({}, '', `/apps${suffix}`);
+    window.history.pushState({}, '', appHref(`/apps${suffix}`));
     window.dispatchEvent(new PopStateEvent('popstate'));
     return;
   }
@@ -78,7 +82,7 @@ function setScene(scene) {
   }
   if (props.page.id !== '07') {
     const suffix = scene ? `?scene=${encodeURIComponent(scene)}` : '';
-    window.history.pushState({}, '', `/apps${suffix}`);
+    window.history.pushState({}, '', appHref(`/apps${suffix}`));
     window.dispatchEvent(new PopStateEvent('popstate'));
     return;
   }
@@ -211,27 +215,27 @@ watch(
       <button ref="mobileMenuButton" class="mobile-nav-toggle" type="button" aria-controls="platform-sidebar" :aria-expanded="String(mobileMenuOpen)" :aria-label="mobileMenuOpen ? '关闭导航菜单' : '打开导航菜单'" :aria-hidden="mobileViewport && mobileMenuOpen ? 'true' : undefined" :inert="mobileViewport && mobileMenuOpen" @click="toggleMobileMenu">
         <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
       </button>
-      <a class="brand" href="/workbench" aria-label="数智产品展厅首页" :aria-hidden="mobileViewport && mobileMenuOpen ? 'true' : undefined" :inert="mobileViewport && mobileMenuOpen">
+      <a class="brand" :href="appHref('/workbench')" aria-label="数智产品展厅首页" :aria-hidden="mobileViewport && mobileMenuOpen ? 'true' : undefined" :inert="mobileViewport && mobileMenuOpen">
         <span class="brand-title">数智产品展厅</span>
       </a>
       <nav class="primary-nav" aria-label="主导航">
-        <a v-for="([route, icon, label]) in visiblePrimaryNav" :key="route" :href="route" :aria-current="active(route) ? 'page' : undefined">
+        <a v-for="([route, icon, label]) in visiblePrimaryNav" :key="route" :href="appHref(route)" :aria-current="active(route) ? 'page' : undefined">
           <img class="nav-glyph" :src="icon" width="22" height="24" alt="" /><span class="nav-label">{{ label }}</span>
         </a>
       </nav>
       <div class="top-actions" aria-label="快捷操作" :aria-hidden="mobileViewport && mobileMenuOpen ? 'true' : undefined" :inert="mobileViewport && mobileMenuOpen">
-        <a class="action-link" href="/messages" aria-label="8 条未读消息"><TypeLineIcon name="message" :size="24" /></a>
-        <a class="action-link" href="/favorites" aria-label="收藏" :aria-current="props.page.id === '03' ? 'page' : undefined"><TypeLineIcon name="favorite" :size="23" /></a>
+        <a class="action-link" :href="appHref('/messages')" aria-label="8 条未读消息"><TypeLineIcon name="message" :size="24" /></a>
+        <a class="action-link" :href="appHref('/favorites')" aria-label="收藏" :aria-current="props.page.id === '03' ? 'page' : undefined"><TypeLineIcon name="favorite" :size="23" /></a>
         <details ref="accountMenu" class="account-menu">
         <summary class="top-user" aria-label="个人菜单">
           <img src="/assets/top-avatar.png" width="38" height="38" alt="" />
           <span><strong>张三丰</strong><small>物资采购中心</small></span>
         </summary>
           <nav class="account-links" aria-label="个人功能">
-            <a href="/profile">个人中心</a>
-            <a href="/profile#my-points">我的积分</a>
-            <a href="/announcements">公告通知</a>
-            <a v-if="isAdministrator" href="/admin">后台管理</a>
+            <a :href="appHref('/profile')">个人中心</a>
+            <a :href="appHref('/profile#my-points')">我的积分</a>
+            <a :href="appHref('/announcements')">公告通知</a>
+            <a v-if="isAdministrator" :href="appHref('/admin')">后台管理</a>
           </nav>
         </details>
       </div>
@@ -242,7 +246,7 @@ watch(
       <aside id="platform-sidebar" ref="mobileDrawer" class="sidebar" :class="{ 'mobile-open': mobileMenuOpen }" :role="mobileViewport && mobileMenuOpen ? 'dialog' : undefined" :aria-modal="mobileViewport && mobileMenuOpen ? 'true' : undefined" :aria-hidden="mobileViewport && !mobileMenuOpen ? 'true' : undefined" :inert="mobileViewport && !mobileMenuOpen" aria-label="左侧导航">
         <div class="mobile-drawer-header"><strong>导航菜单</strong><button class="mobile-drawer-close" type="button" aria-label="关闭导航菜单" @click="closeMobileMenu(true)"></button></div>
         <nav class="mobile-primary-nav" aria-label="移动端主导航">
-          <a v-for="([route, icon, label]) in visiblePrimaryNav" :key="`mobile-${route}`" :href="route" :aria-current="active(route) ? 'page' : undefined" @click="closeMobileMenu()"><img :src="icon" width="22" height="24" alt="" />{{ label }}</a>
+          <a v-for="([route, icon, label]) in visiblePrimaryNav" :key="`mobile-${route}`" :href="appHref(route)" :aria-current="active(route) ? 'page' : undefined" @click="closeMobileMenu()"><img :src="icon" width="22" height="24" alt="" />{{ label }}</a>
         </nav>
         <p class="sr-only" aria-live="polite">{{ shellState.announcement }}</p>
         <div class="sidebar-toolbar">

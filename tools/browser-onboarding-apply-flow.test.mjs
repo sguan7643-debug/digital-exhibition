@@ -17,6 +17,22 @@ const errors = [];
 let approvalRequest = null;
 let feishuApprovalRequest = null;
 page.on('pageerror', error => errors.push(error.message));
+await page.route('**/api/v1/operations/COM-003', async route => {
+  await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+    code: 'OK', traceId: 'trace-com-003', data: {
+      items: [{ orgId: 'D004', orgCode: 'D004', orgName: '物资采购中心', orgType: 'DEPARTMENT', parentId: '', pathIds: ['D004'], pathNames: ['物资采购中心'], level: 1, sortOrder: 1, enabled: true, hasChildren: false, userCount: 1, children: [] }],
+      includeUsers: false, userCount: 1, total: 1, source: 'feishu'
+    }
+  }) });
+});
+await page.route('**/api/v1/operations/COM-004', async route => {
+  await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+    code: 'OK', traceId: 'trace-com-004', data: {
+      items: [{ userId: 'linmm', employeeNo: '10001', displayName: '林敏敏', avatarUrl: '', orgId: 'D004', orgName: '物资采购中心', departmentId: 'D004', departmentName: '物资采购中心', officeId: '', officeName: '', title: '测试人员', mobileMasked: '139****0000', emailMasked: 'l***@example.com', enabled: true }],
+      total: 1, page: 1, pageSize: 100, totalPages: 1, hasPrevious: false, hasNext: false, hasMore: false, sort: 'name,asc', filtersApplied: {}, source: 'feishu'
+    }
+  }) });
+});
 await page.route('**/api/processInstanceStart', async route => {
   if (route.request().method() === 'OPTIONS') {
     await route.fulfill({
@@ -76,15 +92,16 @@ try {
   await page.locator('form.apply-form').waitFor();
   await page.locator('form.apply-form').evaluate(form => { form.noValidate = true; });
   await page.getByLabel('应用类型*').selectOption('T003');
-  await page.locator('fieldset').filter({ hasText: '接入人信息' }).getByLabel('所属部门*').fill('物资采购中心');
+  await page.locator('fieldset').filter({ hasText: '接入人信息' }).getByLabel('所属部门*').selectOption({ label: '物资采购中心' });
+  await page.locator('fieldset').filter({ hasText: '接入人信息' }).getByLabel('接入人*').selectOption('linmm');
   await page.locator('input[type="file"]').first().setInputFiles({
     name: 'test-rpa-icon.svg',
     mimeType: 'image/svg+xml',
     buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>')
   });
   await page.getByRole('button', { name: '提交审核' }).click();
-  await page.getByRole('heading', { name: '申请已提交' }).waitFor();
-  assert.equal(await page.getByRole('heading', { name: '申请已提交' }).count(), 1);
+  await page.waitForURL('**/apps/onboarding/status?source=rpa');
+  await page.getByRole('heading', { name: '审批状态' }).waitFor();
   assert.equal(approvalRequest?.method, 'POST');
   assert.match(approvalRequest?.contentType || '', /^multipart\/form-data; boundary=/);
   assert.match(approvalRequest?.body || '', /name="request"/);
@@ -93,10 +110,8 @@ try {
   assert.match(approvalRequest?.body || '', /"申请人联系电话":"13900000000"/);
   assert.match(approvalRequest?.body || '', /"申请人联系邮箱":"linmm@example\.com"/);
   assert.match(approvalRequest?.body || '', /"接入人所属部门ID":"D004"/);
+  assert.match(approvalRequest?.body || '', /"RPA所属平台":"测试平台"/);
   assert.match(approvalRequest?.body || '', /name="file"; filename="test-rpa-icon\.svg"/);
-  await page.getByRole('link', { name: '查看审批状态' }).click();
-  await page.waitForURL('**/apps/onboarding/status*');
-  await page.getByRole('heading', { name: '审批状态' }).waitFor();
   assert.equal(await page.getByRole('heading', { name: '审批状态' }).count(), 1);
   assert.equal(await page.getByText('已受理但暂无可查询编号', { exact: false }).count(), 1);
 
@@ -107,15 +122,17 @@ try {
   await page.getByLabel('应用名称*').fill('TEST_海能Work应用上架');
   await page.getByLabel('应用编码').fill('TEST_HW_001');
   await page.getByRole('button', { name: '提交审核' }).click();
-  await page.getByRole('heading', { name: '申请已提交' }).waitFor();
-  assert.deepEqual(feishuApprovalRequest, {
-    applicationType: 'T005', title: 'TEST_海能Work应用上架', applicationCode: 'TEST_HW_001',
-    resourceId: 'TEST_HW_001',
-    businessKey: 'TEST_T005_TEST_HW_001', idempotencyKey: 'TEST_IDEM_T005_TEST_HW_001', description: 'TEST_RPA 应用上架审批联调'
-  });
-  await page.getByRole('link', { name: '查看审批状态' }).click();
   await page.waitForURL('**/apps/onboarding/status?source=feishu&instanceId=TEST_INSTANCE&resourceId=TEST_HW_001');
   await page.getByText('审批完成', { exact: true }).waitFor();
+  assert.equal(feishuApprovalRequest.applicationType, 'T005');
+  assert.equal(feishuApprovalRequest.title, 'TEST_海能Work应用上架');
+  assert.equal(feishuApprovalRequest.applicationCode, 'TEST_HW_001');
+  assert.equal(feishuApprovalRequest.resourceId, 'TEST_HW_001');
+  assert.equal(feishuApprovalRequest.businessKey, 'TEST_T005_TEST_HW_001');
+  assert.match(feishuApprovalRequest.idempotencyKey, /^TEST_IDEM_T005_TEST_HW_001_/);
+  assert.equal(feishuApprovalRequest.description, 'TEST_RPA 应用上架审批联调');
+  assert.equal(feishuApprovalRequest.detailFields['使用指南'], 'TEST_使用指南');
+  assert.equal(feishuApprovalRequest.application.detailFields['使用功能'], 'TEST_使用功能');
   assert.equal(await page.getByText('实例：TEST_INSTANCE').count(), 1);
   assert.deepEqual(errors, []);
   console.log('应用上线申请浏览器链路通过：RPA 后端提交、T005 飞书实例提交、真实状态查询');

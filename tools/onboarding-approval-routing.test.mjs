@@ -12,7 +12,13 @@ const fetchImpl = async (url, options = {}) => {
   return new Response(JSON.stringify({ instanceId: 'TEST_INSTANCE', status: 'APPROVED' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 };
 
-const submitted = await submitOnboarding({ type: 'T005', name: 'TEST_海能Work', applicationCode: 'TEST_HW_001', summary: 'TEST_申请' }, [], fetchImpl);
+const submitted = await submitOnboarding({
+  type: 'T005',
+  name: 'TEST_海能Work',
+  applicationCode: 'TEST_HW_001',
+  summary: 'TEST_申请',
+  detailFields: { 使用指南: 'TEST_使用指南', 使用功能: 'TEST_使用功能' }
+}, [], fetchImpl);
 assert.deepEqual(submitted, { kind: 'feishu', instanceId: 'TEST_INSTANCE', resourceId: 'TEST_HW_001', status: 'PENDING', message: '飞书审批已提交' });
 assert.equal(calls[0].url, '/api/v1/approvals/instances');
 assert.equal(calls[0].options.credentials, 'same-origin');
@@ -23,8 +29,10 @@ assert.equal(requestBody.title, 'TEST_海能Work');
 assert.equal(requestBody.applicationCode, 'TEST_HW_001');
 assert.equal(requestBody.resourceId, 'TEST_HW_001');
 assert.equal(requestBody.businessKey, 'TEST_T005_TEST_HW_001');
-assert.equal(requestBody.idempotencyKey, 'TEST_IDEM_T005_TEST_HW_001');
+assert.match(requestBody.idempotencyKey, /^TEST_IDEM_T005_TEST_HW_001_/);
 assert.equal(requestBody.description, 'TEST_申请');
+assert.deepEqual(requestBody.detailFields, { 使用指南: 'TEST_使用指南', 使用功能: 'TEST_使用功能' });
+assert.deepEqual(requestBody.application.detailFields, { 使用指南: 'TEST_使用指南', 使用功能: 'TEST_使用功能' });
 assert.doesNotMatch(calls[0].options.body, /token|secret/i);
 
 const status = await getOnboardingStatus('TEST_INSTANCE', fetchImpl);
@@ -54,5 +62,23 @@ const normalizedSubmission = await submitOnboarding(
 assert.equal(normalizedRequest.applicationCode, 'RPA-TEST-20260910');
 assert.equal(normalizedRequest.resourceId, 'TEST_RPA-TEST-20260910');
 assert.equal(normalizedSubmission.resourceId, 'TEST_RPA-TEST-20260910');
+
+const expiredIdempotencyCalls = [];
+const expiredIdempotencySubmission = await submitOnboarding(
+  { type: 'T005', name: 'TEST_海能Work', applicationCode: 'TEST_HW_EXPIRED', summary: 'TEST_申请' },
+  [],
+  async (_url, options) => {
+    expiredIdempotencyCalls.push(JSON.parse(options.body));
+    if (expiredIdempotencyCalls.length === 1) {
+      return new Response(JSON.stringify({ code: 'APPROVAL_IDEMPOTENCY_EXPIRED', message: '测试审批幂等记录已过期' }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({ instanceId: 'TEST_RENEWED_INSTANCE', status: 'PENDING' }), { status: 201, headers: { 'Content-Type': 'application/json' } });
+  }
+);
+assert.equal(expiredIdempotencySubmission.instanceId, 'TEST_RENEWED_INSTANCE');
+assert.equal(expiredIdempotencyCalls.length, 2, '过期幂等登记必须在同一次用户提交中自动续换并重试一次');
+assert.equal(expiredIdempotencyCalls[0].businessKey, expiredIdempotencyCalls[1].businessKey);
+assert.notEqual(expiredIdempotencyCalls[0].idempotencyKey, expiredIdempotencyCalls[1].idempotencyKey);
+assert.match(expiredIdempotencyCalls[1].idempotencyKey, /^TEST_IDEM_T005_TEST_HW_EXPIRED_/);
 
 console.log('onboarding type routing uses existing RPA backend, server-side Feishu approval, and real status queries');

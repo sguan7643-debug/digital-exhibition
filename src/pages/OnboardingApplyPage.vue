@@ -1,6 +1,13 @@
 <script setup>
 import { computed, reactive, ref } from "vue";
 import { submitOnboarding } from "../integration/onboarding-approval.js";
+import { normalizeAppBasePath, prependAppBasePath } from "../integration/app-base-path.js";
+
+const props = defineProps({
+  integrationData: { type: Object, default: null },
+  integrationState: { type: String, default: "mock" },
+  integrationMode: { type: String, default: "mock" },
+});
 
 const form = reactive({
   applicant: "linmm",
@@ -26,27 +33,6 @@ const form = reactive({
   scope: "assigned",
   remarks: "TEST_应用上架联调记录",
 });
-const files = reactive({ icon: "", materials: "", attachment: "" });
-const selectedFiles = { icon: [], materials: [], attachment: [] };
-const saved = ref(false);
-const submitted = ref(false);
-const submitting = ref(false);
-const submitError = ref("");
-const submitMessage = ref("");
-const announcement = ref("");
-const approvalResult = ref(null);
-const statusHref = computed(() => {
-  if (!approvalResult.value) return "/apps/onboarding/status";
-  const query = new URLSearchParams({ source: approvalResult.value.kind });
-  if (approvalResult.value.instanceId) query.set("instanceId", approvalResult.value.instanceId);
-  if (approvalResult.value.resourceId) query.set("resourceId", approvalResult.value.resourceId);
-  return `/apps/onboarding/status?${query}`;
-});
-const feishuAuthHref = computed(() => {
-  const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-  return `/api/v1/auth/feishu/start?returnTo=${encodeURIComponent(returnTo)}`;
-});
-
 const applicationTypes = [
   { label: "可视化", value: "T007" },
   { label: "报表", value: "T006" },
@@ -58,6 +44,152 @@ const applicationTypes = [
   { label: "EAD", value: "T002" },
   { label: "其他工具", value: "T004" },
 ];
+const applicationDetailSchemas = Object.freeze({
+  T007: {
+    tableName: "可视化驾驶舱详情",
+    fields: [
+      { key: "集成数据", control: "textarea", placeholder: "请输入驾驶舱集成的数据范围" },
+      { key: "数据更新频率", placeholder: "例如：每日 08:00 更新" },
+      { key: "权限控制要求", control: "textarea", placeholder: "请输入数据权限和访问控制要求" },
+      { key: "核心功能", control: "textarea", placeholder: "请描述驾驶舱核心功能" },
+      { key: "应用描述", control: "textarea", placeholder: "请输入应用描述" },
+    ],
+  },
+  T006: {
+    tableName: "可视化报表详情",
+    fields: [
+      { key: "集成数据", control: "textarea", placeholder: "请输入报表集成的数据范围" },
+      { key: "数据更新频率", placeholder: "例如：每小时更新" },
+      { key: "权限控制要求", control: "textarea", placeholder: "请输入数据权限和访问控制要求" },
+      { key: "核心功能", control: "textarea", placeholder: "请描述报表核心功能" },
+      { key: "应用描述", control: "textarea", placeholder: "请输入应用描述" },
+    ],
+  },
+  T005: {
+    tableName: "海能work应用详情",
+    fields: [
+      { key: "应用图片或视频", placeholder: "请填写图片或视频说明、文件名或地址" },
+      { key: "使用指南", control: "textarea", placeholder: "请输入应用使用指南" },
+      { key: "使用功能", control: "textarea", placeholder: "请描述应用提供的功能" },
+      { key: "使用说明文档链接", placeholder: "请输入使用说明文档链接" },
+      { key: "应用描述", control: "textarea", placeholder: "请输入应用描述" },
+    ],
+  },
+  T004: {
+    tableName: "工具应用详情",
+    fields: [
+      { key: "使用说明", control: "textarea", placeholder: "请输入工具使用说明" },
+      { key: "核心功能", control: "textarea", placeholder: "请描述工具核心功能" },
+      { key: "应用描述", control: "textarea", placeholder: "请输入应用描述" },
+    ],
+  },
+  T003: {
+    tableName: "RPA应用详情",
+    fields: [
+      { key: "RPA所属平台", placeholder: "请输入 RPA 所属平台" },
+      { key: "操作流程步骤", control: "textarea", placeholder: "请按顺序描述操作流程步骤" },
+      { key: "应用描述", control: "textarea", placeholder: "请输入应用描述" },
+    ],
+  },
+  T002: {
+    tableName: "EAD应用详情",
+    fields: [
+      { key: "应用内容", control: "textarea", placeholder: "请输入 EAD 应用内容" },
+      { key: "使用流程步骤", control: "textarea", placeholder: "请按顺序描述使用流程步骤" },
+      { key: "应用描述", control: "textarea", placeholder: "请输入应用描述" },
+    ],
+  },
+  T001: {
+    tableName: "AI应用详情",
+    fields: [
+      { key: "所属数据源", control: "textarea", placeholder: "请输入 AI 应用使用的数据源" },
+      { key: "应用描述", control: "textarea", placeholder: "请输入应用描述" },
+      { key: "核心功能", control: "textarea", placeholder: "请描述 AI 应用核心功能" },
+    ],
+  },
+  T008: {
+    tableName: "数据集应用详情",
+    fields: [
+      { key: "数据来源", control: "textarea", placeholder: "请输入数据集来源" },
+      { key: "更新频率", placeholder: "例如：每日更新" },
+      { key: "数据字段列表", control: "textarea", placeholder: "请填写数据集字段列表" },
+      { key: "应用描述", control: "textarea", placeholder: "请输入应用描述" },
+    ],
+  },
+  T009: {
+    tableName: "指标应用详情",
+    fields: [
+      { key: "主要领域", placeholder: "请输入指标主要领域" },
+      { key: "指标应用场景", control: "textarea", placeholder: "请输入指标应用场景" },
+      { key: "指标级别", placeholder: "请输入指标级别" },
+      { key: "业务解释部门", placeholder: "请输入业务解释部门" },
+      { key: "成果来源系统", placeholder: "请输入成果来源系统" },
+      { key: "指标定义", control: "textarea", placeholder: "请输入指标定义" },
+      { key: "业务获取逻辑", control: "textarea", placeholder: "请输入业务获取逻辑" },
+      { key: "业务计算公式", control: "textarea", placeholder: "请输入业务计算公式" },
+      { key: "计算单位", placeholder: "请输入计算单位" },
+      { key: "采集方式", placeholder: "请输入采集方式" },
+      { key: "维度", placeholder: "请输入指标维度" },
+      { key: "统计粒度", placeholder: "请输入统计粒度" },
+      { key: "关键值", placeholder: "请输入关键值" },
+      { key: "权限控制要求", control: "textarea", placeholder: "请输入权限控制要求" },
+      { key: "使用说明", control: "textarea", placeholder: "请输入使用说明" },
+      { key: "列20", placeholder: "请输入补充字段" },
+    ],
+  },
+});
+function createDetailDraft(fields) {
+  return Object.fromEntries(fields.map((field) => [field.key, `TEST_${field.key}`]));
+}
+const detailDrafts = reactive(
+  Object.fromEntries(
+    Object.entries(applicationDetailSchemas).map(([type, schema]) => [
+      type,
+      createDetailDraft(schema.fields),
+    ])
+  )
+);
+Object.assign(detailDrafts.T003, {
+  "RPA所属平台": "测试平台",
+  "操作流程步骤": "1. 提交申请；2. 审批通过；3. 发布应用",
+  应用描述: "TEST_RPA 应用详情",
+});
+const activeApplicationType = computed(
+  () => applicationTypes.find((item) => item.value === form.type) || applicationTypes[0]
+);
+const activeDetailSchema = computed(
+  () => applicationDetailSchemas[form.type] || { tableName: "应用详情", fields: [] }
+);
+function buildDetailFields() {
+  return Object.fromEntries(
+    activeDetailSchema.value.fields.map((field) => [
+      field.key,
+      detailDrafts[form.type]?.[field.key] || "",
+    ])
+  );
+}
+const files = reactive({ icon: "", materials: "", attachment: "" });
+const selectedFiles = { icon: [], materials: [], attachment: [] };
+const saved = ref(false);
+const submitted = ref(false);
+const submitting = ref(false);
+const submitError = ref("");
+const submitMessage = ref("");
+const announcement = ref("");
+const approvalResult = ref(null);
+const appBasePath = normalizeAppBasePath(import.meta.env.VITE_EXHIBITION_APP_BASE || import.meta.env.BASE_URL);
+const statusHref = computed(() => {
+  if (!approvalResult.value) return prependAppBasePath("/apps/onboarding/status", appBasePath);
+  const query = new URLSearchParams({ source: approvalResult.value.kind });
+  if (approvalResult.value.instanceId) query.set("instanceId", approvalResult.value.instanceId);
+  if (approvalResult.value.resourceId) query.set("resourceId", approvalResult.value.resourceId);
+  return prependAppBasePath(`/apps/onboarding/status?${query}`, appBasePath);
+});
+const feishuAuthHref = computed(() => {
+  const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  return `/api/v1/auth/feishu/start?returnTo=${encodeURIComponent(returnTo)}`;
+});
+
 const businessDomains = [
   { label: "智能办公", value: "BD001" },
   { label: "综合管理", value: "BD002" },
@@ -73,6 +205,74 @@ const departmentCodes = {
   经营管理部: "D005",
 };
 
+function flattenOrganizations(items, result = []) {
+  for (const item of Array.isArray(items) ? items : []) {
+    if (!item || item.enabled === false) continue;
+    result.push({
+      id: String(item.orgId || item.departmentId || item.orgCode || item.orgName || ""),
+      name: String(item.orgName || item.departmentName || item.orgCode || ""),
+    });
+    flattenOrganizations(item.children, result);
+  }
+  return result;
+}
+
+const fallbackDepartments = Object.freeze(
+  Object.entries(departmentCodes).map(([name, id]) => ({ id, name }))
+);
+const fallbackUsers = Object.freeze([
+  { adAccount: "linmm", displayName: "林敏敏", departmentId: "D004", departmentName: "物资采购中心" },
+]);
+const remoteDirectoryMode = computed(() => props.integrationMode !== "mock");
+const departmentOptions = computed(() => {
+  if (!remoteDirectoryMode.value) return fallbackDepartments;
+  const unique = new Map();
+  for (const item of flattenOrganizations(props.integrationData?.["COM-003"]?.items)) {
+    if (item.id && item.name) unique.set(item.id, item);
+  }
+  return [...unique.values()];
+});
+const userOptions = computed(() => {
+  if (!remoteDirectoryMode.value) return fallbackUsers;
+  return (props.integrationData?.["COM-004"]?.items || [])
+    .filter((item) => item?.enabled !== false)
+    .map((item) => ({
+      adAccount: String(item.userId || item.employeeNo || ""),
+      displayName: String(item.displayName || item.userId || item.employeeNo || ""),
+      departmentId: String(item.departmentId || item.orgId || ""),
+      departmentName: String(item.departmentName || item.orgName || ""),
+    }))
+    .filter((item) => item.adAccount && item.displayName);
+});
+const directoryState = computed(() => {
+  if (!remoteDirectoryMode.value) return "mock";
+  if (props.integrationState === "loading") return "loading";
+  if (["authentication-required", "permission-denied"].includes(props.integrationState)) return "permission-denied";
+  if (["error", "timeout", "rate-limited", "schema-drift", "security-error"].includes(props.integrationState)) return "error";
+  if (props.integrationState === "disabled") return "disabled";
+  return departmentOptions.value.length && userOptions.value.length ? "normal" : "empty";
+});
+const directoryDisabled = computed(() => !["mock", "normal"].includes(directoryState.value));
+function usersInDepartment(departmentName) {
+  if (!departmentName) return userOptions.value;
+  const department = departmentOptions.value.find((item) => item.name === departmentName || item.id === departmentName);
+  return userOptions.value.filter((item) =>
+    item.departmentName === departmentName || (department?.id && item.departmentId === department.id)
+  );
+}
+const contactUserOptions = computed(() => usersInDepartment(form.contactDepartment));
+const applicableUserOptions = computed(() => usersInDepartment(form.accessDepartment));
+function syncApplicantDepartment() {
+  const user = userOptions.value.find((item) => item.adAccount === form.applicant);
+  if (user?.departmentName) form.department = user.departmentName;
+}
+function resetContactForDepartment() {
+  if (!contactUserOptions.value.some((item) => item.adAccount === form.contact)) form.contact = "";
+}
+function resetApplicableUserForDepartment() {
+  if (!applicableUserOptions.value.some((item) => item.adAccount === form.users)) form.users = "";
+}
+
 function rememberFile(key, event) {
   const selected = Array.from(event.target.files || []);
   selectedFiles[key] = selected;
@@ -86,7 +286,9 @@ function saveDraft() {
   announcement.value = "申请草稿已保存在本地演示会话中";
 }
 function departmentId(value) {
-  return departmentCodes[value] || value;
+  return departmentOptions.value.find((item) => item.name === value || item.id === value)?.id
+    || departmentCodes[value]
+    || value;
 }
 function buildRpaApprovalRequest() {
   return {
@@ -119,18 +321,28 @@ function buildRpaApprovalRequest() {
     detailFields: {
       应用编码: form.applicationCode,
       备注说明: form.remarks,
+      ...buildDetailFields(),
     },
   };
 }
 async function submitApplication() {
   if (submitting.value) return;
+  if (directoryDisabled.value) {
+    submitError.value = "飞书部门和人员数据尚未加载完成";
+    announcement.value = submitError.value;
+    return;
+  }
   submitting.value = true;
   submitError.value = "";
   submitted.value = false;
   announcement.value = form.type === "T005" ? "正在提交海能Work飞书审批" : "正在提交 RPA 应用审批";
   try {
     approvalResult.value = await submitOnboarding(
-      { ...form, rpaRequest: buildRpaApprovalRequest() },
+      {
+        ...form,
+        detailFields: buildDetailFields(),
+        rpaRequest: buildRpaApprovalRequest(),
+      },
       Object.values(selectedFiles).flat()
     );
     submitted.value = true;
@@ -140,6 +352,7 @@ async function submitApplication() {
       ? "当前进入审批中状态"
       : approvalResult.value.message;
     announcement.value = `${form.type === "T005" ? "海能Work" : "RPA"} 应用上架申请已提交，${trackingMessage}`;
+    window.location.assign(statusHref.value);
   } catch (error) {
     submitError.value = error instanceof Error ? error.message : "审批接口请求失败";
     announcement.value = submitError.value;
@@ -189,15 +402,22 @@ async function submitApplication() {
     </section>
 
     <form class="apply-form" :aria-busy="submitting" @submit.prevent="submitApplication">
+      <p v-if="directoryState === 'loading'" class="directory-state" role="status">正在从飞书读取部门和人员数据…</p>
+      <p v-else-if="directoryState === 'permission-denied'" class="directory-state directory-state-error" role="alert">需要完成飞书授权或获得通讯录读取权限后才能选择部门和人员。</p>
+      <p v-else-if="directoryState === 'error'" class="directory-state directory-state-error" role="alert">飞书部门或人员数据读取失败，请稍后重试。</p>
+      <p v-else-if="directoryState === 'disabled'" class="directory-state directory-state-error" role="alert">飞书部门和人员接口尚未启用。</p>
+      <p v-else-if="directoryState === 'empty'" class="directory-state directory-state-error" role="alert">当前飞书账号下没有可选择的部门或人员。</p>
       <fieldset>
         <legend><span>1</span>申请人信息</legend>
         <div class="field-grid four-cols">
-          <label
-            >申请人<b>*</b><input v-model="form.applicant" required
-          /></label>
-          <label
-            >所属部门<b>*</b><input v-model="form.department" required
-          /></label>
+          <label>申请人<b>*</b><select v-model="form.applicant" :disabled="directoryDisabled" required @change="syncApplicantDepartment">
+            <option value="" disabled>请选择申请人</option>
+            <option v-for="user in userOptions" :key="user.adAccount" :value="user.adAccount">{{ user.displayName }}（{{ user.adAccount }}）</option>
+          </select></label>
+          <label>所属部门<b>*</b><select v-model="form.department" :disabled="directoryDisabled" required>
+            <option value="" disabled>请选择所属部门</option>
+            <option v-for="department in departmentOptions" :key="department.id" :value="department.name">{{ department.name }}</option>
+          </select></label>
           <label>联系电话<b>*</b><input v-model="form.phone" required /></label>
           <label
             >联系邮箱<b>*</b><input v-model="form.email" type="email" required
@@ -271,6 +491,34 @@ async function submitApplication() {
         </div>
       </fieldset>
 
+      <fieldset class="type-detail-fields">
+        <legend><span>2.1</span>应用详情信息</legend>
+        <p class="detail-schema-hint">
+          当前类型「{{ activeApplicationType.label }}」对应「{{ activeDetailSchema.tableName }}」，以下字段将随申请一并提交。
+        </p>
+        <div class="field-grid two-cols">
+          <label
+            v-for="field in activeDetailSchema.fields"
+            :key="field.key"
+            :class="{ 'span-full': field.control === 'textarea' }"
+          >
+            {{ field.key }}
+            <textarea
+              v-if="field.control === 'textarea'"
+              v-model="detailDrafts[form.type][field.key]"
+              rows="3"
+              :placeholder="field.placeholder"
+            ></textarea>
+            <input
+              v-else
+              v-model="detailDrafts[form.type][field.key]"
+              type="text"
+              :placeholder="field.placeholder"
+            />
+          </label>
+        </div>
+      </fieldset>
+
       <div class="split-fields">
         <fieldset>
           <legend><span>3</span>协作与开发信息</legend>
@@ -307,10 +555,14 @@ async function submitApplication() {
       <fieldset>
         <legend><span>5</span>接入人信息</legend>
         <div class="field-grid four-cols">
-          <label
-            >所属部门<b>*</b><input v-model="form.contactDepartment" required
-          /></label>
-          <label>接入人<b>*</b><input v-model="form.contact" required /></label>
+          <label>所属部门<b>*</b><select v-model="form.contactDepartment" :disabled="directoryDisabled" required @change="resetContactForDepartment">
+            <option value="" disabled>请选择所属部门</option>
+            <option v-for="department in departmentOptions" :key="department.id" :value="department.name">{{ department.name }}</option>
+          </select></label>
+          <label>接入人<b>*</b><select v-model="form.contact" :disabled="directoryDisabled || !form.contactDepartment" required>
+            <option value="" disabled>请先选择所属部门</option>
+            <option v-for="user in contactUserOptions" :key="user.adAccount" :value="user.adAccount">{{ user.displayName }}（{{ user.adAccount }}）</option>
+          </select></label>
           <label
             >联系电话<b>*</b><input v-model="form.contactPhone" required
           /></label>
@@ -325,18 +577,15 @@ async function submitApplication() {
         <legend><span>6</span>应用权限开通</legend>
         <div class="field-grid four-cols">
           <label
-            >适用部门<select v-model="form.accessDepartment">
+            >适用部门<select v-model="form.accessDepartment" :disabled="directoryDisabled" @change="resetApplicableUserForDepartment">
               <option value="">请选择部门</option>
-              <option>信息化管理部</option>
-              <option>数据智能部</option>
-              <option>供应链管理部</option>
-              <option>物资采购中心</option>
-              <option>经营管理部</option>
+              <option v-for="department in departmentOptions" :key="department.id" :value="department.name">{{ department.name }}</option>
             </select></label
           >
-          <label
-            >适用用户<input v-model="form.users" placeholder="请输入适用用户"
-          /></label>
+          <label>适用用户<select v-model="form.users" :disabled="directoryDisabled || !form.accessDepartment">
+            <option value="">请先选择适用部门</option>
+            <option v-for="user in applicableUserOptions" :key="user.adAccount" :value="user.adAccount">{{ user.displayName }}（{{ user.adAccount }}）</option>
+          </select></label>
           <label
             >适用角色<input v-model="form.roles" placeholder="请输入适用角色"
           /></label>
@@ -415,7 +664,7 @@ async function submitApplication() {
       <footer class="form-actions">
         <button type="button" @click="saveDraft">保存草稿</button
         ><a href="/apps">取消</a
-        ><button type="submit" :disabled="submitting">
+        ><button type="submit" :disabled="submitting || directoryDisabled">
           {{ submitting ? "提交中…" : "提交审核" }}</button
         ><span v-if="saved">草稿已保存</span>
       </footer>
@@ -569,6 +818,20 @@ async function submitApplication() {
   display: grid;
   gap: 12px;
 }
+.directory-state {
+  margin: 0;
+  padding: 11px 14px;
+  color: #174a7a;
+  background: #eef6ff;
+  border: 1px solid #bdd6ef;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.directory-state-error {
+  color: #8f2d24;
+  background: #fff5f5;
+  border-color: #efb8b8;
+}
 .apply-form fieldset {
   min-width: 0;
   margin: 0;
@@ -616,6 +879,27 @@ async function submitApplication() {
 }
 .span-full {
   grid-column: 1/-1;
+}
+.type-detail-fields {
+  border-color: #b7d0e8 !important;
+}
+.detail-schema-hint {
+  clear: both;
+  margin: -2px 0 14px;
+  color: #6a7e94;
+  font-size: 12px;
+}
+.type-detail-fields .field-grid > label {
+  display: grid;
+  grid-template-columns: minmax(92px, auto) minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+}
+.type-detail-fields .field-grid > label.span-full {
+  grid-template-columns: minmax(92px, auto) minmax(0, 1fr);
+}
+.type-detail-fields textarea {
+  min-height: 74px;
 }
 .apply-form label {
   min-width: 0;

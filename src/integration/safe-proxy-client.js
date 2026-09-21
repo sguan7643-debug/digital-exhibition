@@ -1,6 +1,7 @@
 import { isKnownOperationId } from './operation-registry.js';
 import { validateSameOriginProxyBase } from './runtime-config.js';
 import { validateContractSchema } from './operation-contract-schemas.js';
+import { beginRequest, endRequest } from './request-status.js';
 
 const sensitiveKeySegments = Object.freeze([
   'appsecret','apptoken','tenantaccesstoken','useraccesstoken','accesstoken',
@@ -144,6 +145,7 @@ export function createSafeProxyClient(options = {}) {
         timedOut = true;
         controller.abort(new DOMException('请求超时', 'TimeoutError'));
       }, timeoutMs);
+      const requestToken = beginRequest(`正在请求 ${operationId}`);
       try {
         const response = await fetchImpl(operationUrl.pathname, {
           method: 'POST', credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
@@ -196,6 +198,7 @@ export function createSafeProxyClient(options = {}) {
           contractError: error?.contractError
         });
       } finally {
+        endRequest(requestToken);
         if (timer) clearTimeout(timer);
         requestOptions.signal?.removeEventListener?.('abort', abortFromCaller);
       }

@@ -3,7 +3,7 @@ import { computed } from 'vue';
 const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'}});
 const organizations=computed(()=>props.integrationData?.['COM-003']?.items||[]);
 const contacts=computed(()=>props.integrationData?.['COM-004']?.items||[]);
-const todos=computed(()=>props.integrationData?.['WB-004']?.items||[]);
+const todos=computed(()=>props.integrationData?.['WB-003']?.todos||[]);
 const remoteState=computed(()=>{
   if(props.integrationState==='mock')return 'mock';
   if(props.integrationState==='loading')return 'loading';
