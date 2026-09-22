@@ -15,7 +15,21 @@ const browser = await chromium.launch({ headless: true, executablePath });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const errors = [];
 let approvalRequest = null;
+let uniqueIdentifierRequested = false;
 page.on('pageerror', error => errors.push(error.message));
+await page.route('**/api/onboarding/unique-identifier', async route => {
+  uniqueIdentifierRequested = true;
+  await route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    headers: { 'access-control-allow-origin': '*' },
+    body: JSON.stringify({
+      code: '00000',
+      message: '操作成功',
+      data: { uniqueIdentifier: 'ONBtestuniqueidentifier001' }
+    })
+  });
+});
 await page.route('**/api/processInstanceStart', async route => {
   if (route.request().method() === 'OPTIONS') {
     await route.fulfill({
@@ -80,8 +94,10 @@ try {
   assert.match(approvalRequest?.contentType || '', /^multipart\/form-data; boundary=/);
   assert.match(approvalRequest?.body || '', /name="request"/);
   assert.match(approvalRequest?.body || '', /"应用类型":"T003"/);
-  assert.match(approvalRequest?.body || '', /name="file"; filename="test-rpa-icon\.svg"/);
-  await page.getByRole('link', { name: '查看审批状态' }).click();
+  assert.match(approvalRequest?.body || '', /"uniqueIdentifier":"ONBtestuniqueidentifier001"/);
+  assert.match(approvalRequest?.body || '', /"唯一标识":"ONBtestuniqueidentifier001"/);
+  assert.match(approvalRequest?.body || '', /name="filesIcon"; filename="test-rpa-icon\.svg"/);
+  assert.equal(uniqueIdentifierRequested, true);  await page.getByRole('link', { name: '查看审批状态' }).click();
   await page.waitForURL('**/apps/onboarding/status');
   await page.getByRole('heading', { name: '审批状态' }).waitFor();
   assert.equal(await page.getByRole('heading', { name: '审批状态' }).count(), 1);

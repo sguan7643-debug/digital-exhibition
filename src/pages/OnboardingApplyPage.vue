@@ -1,5 +1,12 @@
 <script setup>
-import { reactive, ref } from "vue";
+import { onMounted, reactive, ref } from "vue";
+
+const API_BASE = "http://127.0.0.1:28080";
+const APPLICATION_INDEX_TABLE_ID = "tbl1Tvwl7t5RxcMs";
+const ONBOARDING_TABLE_ID = "tbl3z0pkeEWqlJRZ";
+const APPROVAL_APP_TOKEN = "WlrRbzs3ia2EUBsI2qscO7Ajn1g";
+const UNIQUE_ID_STORAGE_KEY = "onboarding.apply.uniqueIdentifier";
+const HAINENG_PREPARED_STORAGE_KEY = "onboarding.apply.hainengPrepared";
 
 const form = reactive({
   applicant: "张三丰",
@@ -32,6 +39,8 @@ const submitting = ref(false);
 const submitError = ref("");
 const submitMessage = ref("");
 const announcement = ref("");
+const uniqueIdentifier = ref("");
+const hainengOnboardingPrepared = ref(false);
 
 const applicationTypes = [
   { label: "可视化", value: "T007" },
@@ -74,13 +83,95 @@ function saveDraft() {
 function departmentId(value) {
   return departmentCodes[value] || value;
 }
-function buildRpaApprovalRequest() {
+function formatNow() {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+function readApiPayload(result) {
+  if (!result || typeof result !== "object") {
+    throw new Error("接口返回为空");
+  }
+  if (result.code !== "00000") {
+    throw new Error(result.message || "业务处理失败");
+  }
+  return result.data;
+}
+async function getJson(url) {
+  let response;
+  try {
+    response = await fetch(url);
+  } catch (error) {
+    throw new Error(`网络请求失败：${error instanceof Error ? error.message : "请检查网络"}`);
+  }
+  if (!response.ok) {
+    throw new Error(`网络请求失败（HTTP ${response.status}）`);
+  }
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error("接口返回不是有效 JSON");
+  }
+  return readApiPayload(result);
+}
+async function postJson(url, body) {
+  let response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch (error) {
+    throw new Error(`网络请求失败：${error instanceof Error ? error.message : "请检查网络"}`);
+  }
+  if (!response.ok) {
+    throw new Error(`网络请求失败（HTTP ${response.status}）`);
+  }
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error("接口返回不是有效 JSON");
+  }
+  return readApiPayload(result);
+}
+/** 同一申请页会话内只取一次唯一标识，失败重试不得换新。 */
+async function ensureUniqueIdentifier() {
+  if (uniqueIdentifier.value) {
+    return uniqueIdentifier.value;
+  }
+  const cached = sessionStorage.getItem(UNIQUE_ID_STORAGE_KEY);
+  if (cached) {
+    uniqueIdentifier.value = cached;
+    return cached;
+  }
+  const data = await getJson(`${API_BASE}/api/onboarding/unique-identifier`);
+  const id = data && data.uniqueIdentifier ? String(data.uniqueIdentifier).trim() : "";
+  if (!id) {
+    throw new Error("未获取到唯一标识");
+  }
+  uniqueIdentifier.value = id;
+  sessionStorage.setItem(UNIQUE_ID_STORAGE_KEY, id);
+  return id;
+}
+/** 提交成功后清掉本笔 ONB，避免同标签页再提时复用旧号。 */
+function clearApplicationSession() {
+  uniqueIdentifier.value = "";
+  hainengOnboardingPrepared.value = false;
+  sessionStorage.removeItem(UNIQUE_ID_STORAGE_KEY);
+  sessionStorage.removeItem(HAINENG_PREPARED_STORAGE_KEY);
+}
+function buildApprovalRequest(applicationType, uniqueId) {
   return {
-    tableId: "tbl1Tvwl7t5RxcMs",
+    tableId: APPLICATION_INDEX_TABLE_ID,
     title: form.name,
+    uniqueIdentifier: uniqueId,
     fields: {
       应用名称: form.name,
-      应用类型: "T003",
+      应用类型: applicationType,
+      唯一标识: uniqueId,
       所属部门ID: departmentId(form.department),
       所属业务域ID: form.domain,
       摘要: form.summary,
@@ -90,8 +181,8 @@ function buildRpaApprovalRequest() {
       移动端地址: form.mobileAddress,
       申请人AD账号: form.applicant,
       接入人AD账号: form.contact,
-      联系电话: form.contactPhone,
-      联系邮箱: form.contactEmail,
+      联系电话: form.contactPhone || form.phone,
+      联系邮箱: form.contactEmail || form.email,
       适用用户AD账号: form.users,
       适用部门ID: departmentId(form.accessDepartment),
       适用角色: form.roles,
@@ -104,8 +195,84 @@ function buildRpaApprovalRequest() {
     },
   };
 }
+async function prepareHainengOnboarding(uniqueId) {
+  const data = await getJson(
+    `${API_BASE}/api/onboarding/application-no?uniqueIdentifier=${encodeURIComponent(uniqueId)}`
+  );
+  const applicationNo = data && data.applicationNo ? String(data.applicationNo).trim() : "";
+  if (!applicationNo) {
+    throw new Error("未获取到申请单号");
+  }
+  const preparedFlag = sessionStorage.getItem(HAINENG_PREPARED_STORAGE_KEY);
+  if (hainengOnboardingPrepared.value || preparedFlag === uniqueId) {
+    return applicationNo;
+  }
+  try {
+    await postJson(`${API_BASE}/api/feishu/bitable/records`, {
+      appToken: APPROVAL_APP_TOKEN,
+      tableId: ONBOARDING_TABLE_ID,
+      fields: {
+        申请单号: applicationNo,
+        唯一标识: uniqueId,
+        应用类型ID: "T005",
+        申请人ID: form.applicant,
+        状态: "审批中",
+        审批来源: "飞书审批",
+        当前审批节点: "待审批",
+        提交时间: formatNow(),
+      },
+    });
+  } catch (error) {
+    // 重试时记录可能已存在，继续走 start 由后端按唯一标识更新。
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/已存在|重复|unique|Unique|1254045|1254015/i.test(message)) {
+      throw error;
+    }
+  }
+  hainengOnboardingPrepared.value = true;
+  sessionStorage.setItem(HAINENG_PREPARED_STORAGE_KEY, uniqueId);
+  return applicationNo;
+}
+async function submitProcessInstance(applicationType, uniqueId) {
+  const formData = new FormData();
+  formData.append("request", JSON.stringify(buildApprovalRequest(applicationType, uniqueId)));
+  const iconFiles = selectedFiles.icon || [];
+  const materialFiles = selectedFiles.materials || [];
+  const attachmentFiles = selectedFiles.attachment || [];
+  iconFiles.forEach((file) => formData.append("filesIcon", file, file.name));
+  materialFiles.forEach((file) => formData.append("filesMaterials", file, file.name));
+  attachmentFiles.forEach((file) => formData.append("filesAttachment", file, file.name));
+  // 无分类附件时仍兼容旧 file 字段
+  if (!iconFiles.length && !materialFiles.length && !attachmentFiles.length) {
+    Object.values(selectedFiles).flat().forEach((file) => {
+      formData.append("file", file, file.name);
+    });
+  }
+
+  let response;
+  try {
+    response = await fetch(`${API_BASE}/api/processInstanceStart`, {
+      method: "POST",
+      body: formData,
+    });
+  } catch (error) {
+    throw new Error(`网络请求失败：${error instanceof Error ? error.message : "请检查网络"}`);
+  }
+  if (!response.ok) {
+    throw new Error(`网络请求失败（HTTP ${response.status}）`);
+  }
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error("接口返回不是有效 JSON");
+  }
+  readApiPayload(result);
+  return result;
+}
 async function submitApplication() {
-  if (form.type !== "T003") {
+  // 演示页：除 RPA / 海能 work 外仍只做本地成功展示。
+  if (form.type !== "T003" && form.type !== "T005") {
     submitted.value = true;
     saved.value = false;
     announcement.value = "应用上架申请已提交，当前进入审批中状态";
@@ -115,35 +282,47 @@ async function submitApplication() {
   submitting.value = true;
   submitError.value = "";
   submitted.value = false;
-  announcement.value = "正在提交 RPA 应用审批";
+  announcement.value = form.type === "T005"
+    ? "正在提交海能 work 应用上架申请"
+    : "正在提交 RPA 应用审批";
   try {
-    const formData = new FormData();
-    formData.append("request", JSON.stringify(buildRpaApprovalRequest()));
-    Object.values(selectedFiles).flat().forEach((file) => {
-      formData.append("file", file, file.name);
-    });
-    const response = await fetch("http://10.151.23.119:28080/api/processInstanceStart", {
-      method: "POST",
-      body: formData,
-    });
-    if (!response.ok) {
-      throw new Error(`审批接口请求失败（${response.status}）`);
+    const uniqueId = await ensureUniqueIdentifier();
+    if (form.type === "T005") {
+      await prepareHainengOnboarding(uniqueId);
     }
-    const result = await response.json();
-    if (result.code !== "00000") {
-      throw new Error(result.message || "提交失败");
-    }
+    const result = await submitProcessInstance(form.type, uniqueId);
+    // 成功后再清会话：失败重试仍沿用同一 ONB。
+    clearApplicationSession();
     submitted.value = true;
     saved.value = false;
     submitMessage.value = result.message || "操作成功";
-    announcement.value = "RPA 应用上架申请已提交，当前进入审批中状态";
+    announcement.value = form.type === "T005"
+      ? "海能 work 应用上架申请已提交，当前进入审批中状态"
+      : "RPA 应用上架申请已提交，当前进入审批中状态";
   } catch (error) {
-    submitError.value = error instanceof Error ? error.message : "审批接口请求失败";
-    announcement.value = submitError.value;
+    const message = error instanceof Error ? error.message : "审批接口请求失败";
+    submitError.value = message;
+    announcement.value = message;
   } finally {
     submitting.value = false;
   }
 }
+
+onMounted(() => {
+  const cached = sessionStorage.getItem(UNIQUE_ID_STORAGE_KEY);
+  if (cached) {
+    uniqueIdentifier.value = cached;
+  }
+  const prepared = sessionStorage.getItem(HAINENG_PREPARED_STORAGE_KEY);
+  if (prepared && prepared === uniqueIdentifier.value) {
+    hainengOnboardingPrepared.value = true;
+  }
+  ensureUniqueIdentifier().catch((error) => {
+    const message = error instanceof Error ? error.message : "获取唯一标识失败";
+    submitError.value = message;
+    announcement.value = message;
+  });
+});
 </script>
 
 <template>

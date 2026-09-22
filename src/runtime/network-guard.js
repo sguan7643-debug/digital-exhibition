@@ -1,13 +1,27 @@
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]']);
-const ALLOWED_EXTERNAL_REQUESTS = new Set([
-  'http://10.151.23.119:28080/api/processInstanceStart'
+const ALLOWED_EXTERNAL_ORIGINS = new Set([
+  'http://127.0.0.1:28080',
+  'http://localhost:28080',
+  'http://10.151.23.119:28080'
 ]);
+const ALLOWED_EXTERNAL_PATH_PREFIXES = [
+  '/api/processInstanceStart',
+  '/api/onboarding/unique-identifier',
+  '/api/onboarding/application-no',
+  '/api/feishu/bitable/records'
+];
 
 function assertLocalTarget(input) {
   const raw = input instanceof Request ? input.url : String(input);
   const target = new URL(raw, window.location.href);
-  if (!LOOPBACK_HOSTS.has(target.hostname) && !ALLOWED_EXTERNAL_REQUESTS.has(target.href)) {
-    throw new TypeError(`R3 本地样机已阻止外部网络请求：${target.origin}`);
+  if (LOOPBACK_HOSTS.has(target.hostname)) {
+    return target;
+  }
+  const allowedOrigin = ALLOWED_EXTERNAL_ORIGINS.has(target.origin);
+  const allowedPath = ALLOWED_EXTERNAL_PATH_PREFIXES.some((prefix) => target.pathname === prefix
+    || target.pathname.startsWith(`${prefix}/`));
+  if (!allowedOrigin || !allowedPath) {
+    throw new TypeError(`R3 本地样机已阻止外部网络请求：${target.origin}${target.pathname}`);
   }
   return target;
 }
