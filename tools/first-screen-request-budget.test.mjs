@@ -47,11 +47,37 @@ assert.ok(result.retryScope.length > 0);
 assert.ok(Object.values(result.sectionRecords).every(record => record.errorState === 'timeout' && record.retryable === true));
 assert.equal(getRequestActivity().isLoading, false, 'all timed-out requests must clear activity in finally');
 
+const syncingOperationIds = ['COM-001', 'COM-002', 'COM-005', 'WB-001', 'WB-002'];
+const syncingClient = createSafeProxyClient({
+  baseUrl: '/api/v1',
+  origin: 'http://127.0.0.1:5173',
+  timeoutMs: 12_000,
+  operationContracts: createSyntheticOperationContracts(syncingOperationIds),
+  fetchImpl: async () => ({
+    ok: true,
+    status: 202,
+    json: async () => ({
+      code: 'FEISHU_INITIAL_SYNCING', message: '正式飞书数据正在首次同步，请稍后重试',
+      traceId: 'trace-syncing', retryAfterSeconds: 2
+    })
+  })
+});
+const syncingSource = createPageDataSource({
+  route: '/workbench',
+  runtime: { mode: 'remote', testWritesEnabled: false },
+  client: syncingClient,
+  operationResolver: operationId => ({ ...getOperation(operationId), remoteEnabled: true })
+});
+const syncingResult = await syncingSource.load();
+assert.equal(syncingResult.state, 'initial-syncing');
+assert.ok(Object.values(syncingResult.sectionRecords).every(record => record.retryAfterSeconds === 2));
+
 const renderedSource = await readFile(new URL('../src/App.vue', import.meta.url), 'utf8');
 assert.match(renderedSource, /integration-recovery/, 'affected first-screen data must render a local recovery region');
 assert.match(renderedSource, /retryIntegration/, 'local recovery region must expose a retry action');
 assert.match(renderedSource, /重试受影响数据/, 'local recovery action must have visible retry text');
 assert.match(renderedSource, /request-activity-banner/, 'authenticated first-screen progress must remain visibly announced');
+assert.match(renderedSource, /scheduleInitialSyncRetry/, '首次同步必须按服务端重试提示自动恢复，不得要求用户连续手动点击');
 assert.doesNotMatch(renderedSource, /global-request-loading/, 'authenticated first-screen progress must not cover and disable unaffected regions');
 
 let cancelledOperationCount = 0;

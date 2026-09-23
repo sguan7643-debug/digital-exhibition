@@ -1,0 +1,172 @@
+const TYPE = Object.freeze({ TEXT: 1, NUMBER: 2, SELECT: 3, MULTI_SELECT: 4, DATE: 5, CHECKBOX: 7, PERSON: 11, ATTACHMENT: 17, CREATED_AT: 1001, UPDATED_AT: 1002, CREATED_BY: 1003, UPDATED_BY: 1004 });
+
+const text = (fieldName, businessCode) => ({ field_name: fieldName, type: TYPE.TEXT, business_code: businessCode });
+const number = (fieldName, businessCode) => ({ field_name: fieldName, type: TYPE.NUMBER, business_code: businessCode, property: { formatter: '0' } });
+const date = (fieldName, businessCode) => ({ field_name: fieldName, type: TYPE.DATE, business_code: businessCode, property: { date_formatter: 'yyyy-MM-dd HH:mm' } });
+const checkbox = (fieldName, businessCode) => ({ field_name: fieldName, type: TYPE.CHECKBOX, business_code: businessCode });
+const person = (fieldName, businessCode) => ({ field_name: fieldName, type: TYPE.PERSON, business_code: businessCode, property: { multiple: false } });
+const attachment = (fieldName, businessCode) => ({ field_name: fieldName, type: TYPE.ATTACHMENT, business_code: businessCode });
+const select = (fieldName, businessCode, values) => ({
+  field_name: fieldName, type: TYPE.SELECT, business_code: businessCode,
+  property: { options: values.map((name, color) => ({ name, color: color % 12 })) }
+});
+const multiSelect = (fieldName, businessCode, values) => ({
+  field_name: fieldName, type: TYPE.MULTI_SELECT, business_code: businessCode,
+  property: { options: values.map((name, color) => ({ name, color: color % 12 })) }
+});
+const createdAt = () => ({ field_name: '创建时间', type: TYPE.CREATED_AT, business_code: 'created_at', property: { date_formatter: 'yyyy-MM-dd HH:mm' } });
+const updatedAt = () => ({ field_name: '更新时间', type: TYPE.UPDATED_AT, business_code: 'updated_at', property: { date_formatter: 'yyyy-MM-dd HH:mm' } });
+const createdBy = () => ({ field_name: '创建人', type: TYPE.CREATED_BY, business_code: 'created_by' });
+const updatedBy = () => ({ field_name: '修改人', type: TYPE.UPDATED_BY, business_code: 'updated_by' });
+
+const common = () => [
+  text('租户编码', 'tenant_code'), number('版本', 'version'), checkbox('已删除', 'deleted'),
+  date('删除时间', 'deleted_at'), person('删除人', 'deleted_by'), text('来源系统', 'source_system'),
+  text('来源记录ID', 'source_record_id'), text('追踪ID', 'trace_id'), createdAt(), createdBy(), updatedAt(), updatedBy()
+];
+const table = (name, code, primary, fields, options = {}) => Object.freeze({
+  table_name: name, table_code: code, default_view_name: '全部记录',
+  fields: Object.freeze([text(primary[0], primary[1]), ...fields, ...(options.log ? [] : common())])
+});
+
+export const MISSING_TABLE_MANIFEST_VERSION = '2026-09-02.1';
+export const MISSING_TABLE_SCHEMAS = Object.freeze([
+  table('公告关联对象', 'announcement_relation', ['关联编码', 'relation_code'], [text('公告ID', 'announcement_id'), select('关联类型', 'relation_type', ['APP', 'MATERIAL', 'COURSE', 'NOTICE']), text('资源ID', 'resource_id'), number('排序', 'sort_order'), checkbox('启用', 'enabled')]),
+  table('公告已读明细', 'announcement_read', ['已读编码', 'read_code'], [text('公告ID', 'announcement_id'), text('用户ID', 'user_id'), date('首次阅读时间', 'first_read_at'), date('最后阅读时间', 'last_read_at'), number('阅读次数', 'read_count')]),
+  table('用户行为流水', 'event_behavior_log', ['事件ID', 'event_id'], [select('事件类型', 'event_type', ['PAGE_VIEW', 'SEARCH', 'APP_VIEW', 'APP_USE', 'DOWNLOAD', 'FAVORITE', 'COMMENT']), text('用户ID', 'user_id'), text('匿名ID', 'anonymous_id'), text('会话ID', 'session_id'), text('页面路径', 'page_path'), text('来源路径', 'referrer_path'), text('资源类型', 'resource_type'), text('资源ID', 'resource_id'), text('搜索词哈希', 'search_keyword_hash'), text('场景', 'scene'), number('停留毫秒', 'duration_ms'), text('脱敏元数据', 'metadata_masked'), date('发生时间', 'occurred_at'), text('请求ID', 'request_id'), text('路由月份', 'route_month'), createdAt()], { log: true }),
+  table('统计指标定义', 'metric_definition', ['指标编码', 'metric_code'], [text('指标名称', 'metric_name'), text('指标说明', 'description'), select('指标域', 'metric_domain', ['PLATFORM', 'APP', 'USER', 'POINT']), select('聚合方式', 'aggregation', ['COUNT', 'SUM', 'AVG', 'DISTINCT_COUNT', 'RATE']), text('计算表达式', 'calculation_expression'), text('单位', 'unit'), multiSelect('支持维度', 'dimensions', ['DATE', 'ORG', 'APP', 'TYPE', 'SCENE']), text('口径版本', 'definition_version'), checkbox('启用', 'enabled'), date('生效时间', 'effective_at')]),
+  table('日统计汇总', 'stat_daily_summary', ['汇总编码', 'summary_code'], [date('统计日期', 'stat_date'), text('指标编码', 'metric_code'), select('维度类型', 'dimension_type', ['PLATFORM', 'ORG', 'APP', 'TYPE', 'SCENE']), text('维度ID', 'dimension_id'), text('维度名称', 'dimension_name'), number('指标值', 'metric_value'), number('分母值', 'denominator_value'), text('口径版本', 'definition_version'), text('源数据水位', 'source_watermark'), date('生成时间', 'generated_at')]),
+  table('积分流水', 'point_ledger', ['流水ID', 'ledger_id'], [text('流水号', 'serial_no'), text('用户ID', 'user_id'), text('积分类型编码', 'point_type_code'), text('来源编码', 'source_code'), select('方向', 'direction', ['EARN', 'SPEND', 'EXPIRE', 'ADJUST', 'REVERSE']), number('变动积分', 'change_points'), number('变动前余额', 'balance_before'), number('变动后余额', 'balance_after'), text('业务类型', 'business_type'), text('业务ID', 'business_id'), text('业务事件ID', 'business_event_id'), text('规则ID', 'rule_id'), number('规则版本', 'rule_version'), select('状态', 'status', ['PENDING', 'EFFECTIVE', 'REVERSED', 'FAILED']), date('发生时间', 'occurred_at'), date('生效时间', 'effective_at'), date('过期时间', 'expires_at'), text('备注', 'remark'), text('幂等键', 'idempotency_key'), text('冲正原流水ID', 'reversal_of_ledger_id'), text('路由月份', 'route_month'), createdAt()], { log: true }),
+  table('积分规则', 'point_rule', ['规则ID', 'rule_id'], [text('规则编码', 'rule_code'), text('规则名称', 'rule_name'), text('来源编码', 'source_code'), text('触发事件', 'trigger_event'), select('方向', 'direction', ['EARN', 'SPEND', 'EXPIRE', 'ADJUST']), number('积分值', 'points'), select('频率类型', 'frequency_type', ['ONCE', 'DAILY', 'WEEKLY', 'MONTHLY', 'UNLIMITED']), number('频率上限', 'frequency_limit'), number('周期上限', 'cycle_limit'), text('条件JSON', 'conditions'), date('有效期开始', 'valid_from'), date('有效期结束', 'valid_to'), checkbox('启用', 'enabled'), number('当前版本', 'current_version')]),
+  table('培训报名', 'training_registration', ['报名编号', 'registration_no'], [text('课程ID', 'course_id'), text('用户ID', 'user_id'), select('状态', 'status', ['REGISTERED', 'WAITING', 'CANCELLED', 'ATTENDED', 'COMPLETED']), date('报名时间', 'registered_at'), date('取消时间', 'cancelled_at'), text('取消原因', 'cancel_reason'), number('排队序号', 'queue_no'), text('出勤状态', 'attendance_status'), date('签到时间', 'check_in_at'), date('完成时间', 'completed_at'), text('幂等键', 'idempotency_key')]),
+  table('认证项目', 'certification_program', ['认证编码', 'certification_code'], [text('认证名称', 'certification_name'), text('认证类型', 'certification_type'), text('认证说明', 'description'), attachment('封面', 'cover_file'), text('适用人群', 'applicable_users'), text('主办单位', 'organizer'), number('有效月数', 'valid_months'), text('考试规则', 'exam_rule'), text('通过规则', 'pass_rule'), checkbox('启用', 'enabled')]),
+  table('考试场次', 'exam_session', ['场次编码', 'session_code'], [text('认证项目ID', 'certification_id'), text('场次名称', 'session_name'), date('报名开始', 'registration_start_at'), date('报名结束', 'registration_end_at'), date('考试开始', 'exam_start_at'), date('考试结束', 'exam_end_at'), text('考试地点', 'exam_location'), number('容量', 'capacity'), number('已预约人数', 'reserved_count'), select('状态', 'status', ['DRAFT', 'OPEN', 'FULL', 'CLOSED', 'FINISHED', 'CANCELLED'])]),
+  table('考试预约', 'exam_appointment', ['预约编号', 'appointment_no'], [text('认证项目ID', 'certification_id'), text('考试场次ID', 'exam_session_id'), text('用户ID', 'user_id'), select('状态', 'status', ['RESERVED', 'CANCELLED', 'ATTENDED', 'PASSED', 'FAILED']), date('预约时间', 'reserved_at'), date('取消时间', 'cancelled_at'), text('取消原因', 'cancel_reason'), number('考试成绩', 'score'), date('结果时间', 'result_at'), text('幂等键', 'idempotency_key')]),
+  table('文件上传会话', 'file_upload_session', ['上传ID', 'upload_id'], [text('文件ID', 'file_id'), text('文件名', 'file_name'), number('大小字节', 'size_bytes'), text('MIME类型', 'mime_type'), text('SHA256', 'sha256'), text('业务类型', 'business_type'), text('业务ID', 'business_id'), text('用途', 'purpose'), checkbox('分片上传', 'chunked'), number('分片数', 'chunk_count'), select('状态', 'status', ['INITIALIZED', 'UPLOADING', 'UPLOADED', 'SCANNING', 'READY', 'FAILED', 'EXPIRED']), date('过期时间', 'expires_at'), text('飞书文件令牌', 'feishu_file_token')]),
+  table('文件访问授权', 'file_access_grant', ['授权编码', 'grant_code'], [text('文件ID', 'file_id'), text('用户ID', 'user_id'), select('访问模式', 'access_mode', ['DOWNLOAD', 'PREVIEW']), text('授权原因', 'reason'), text('访问令牌哈希', 'token_hash'), date('签发时间', 'issued_at'), date('过期时间', 'expires_at'), date('使用时间', 'used_at'), checkbox('撤销', 'revoked')]),
+  table('导出任务', 'export_task', ['导出任务ID', 'export_id'], [text('导出类型', 'export_type'), select('格式', 'format', ['XLSX', 'CSV', 'PDF']), text('筛选快照', 'filter_snapshot'), text('列快照', 'column_snapshot'), text('排序表达式', 'sort_expression'), select('状态', 'status', ['PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'EXPIRED']), number('进度', 'progress'), number('总行数', 'total_rows'), number('已处理行数', 'processed_rows'), text('文件ID', 'file_id'), text('失败编码', 'failure_code'), text('失败信息', 'failure_message'), text('创建用户ID', 'created_by_user_id'), date('完成时间', 'finished_at'), date('过期时间', 'expires_at')]),
+  table('应用关联', 'app_relation', ['关联编码', 'relation_code'], [text('应用ID', 'app_id'), select('关联类型', 'relation_type', ['APP', 'MATERIAL', 'COURSE', 'NOTICE']), text('关联资源ID', 'related_id'), number('排序', 'sort_order'), checkbox('启用', 'enabled')]),
+  table('应用复用申请', 'app_use_request', ['申请编号', 'request_no'], [text('应用ID', 'app_id'), select('申请类型', 'request_type', ['USE', 'REUSE']), text('申请人ID', 'applicant_id'), text('申请部门ID', 'applicant_org_id'), text('目标部门ID', 'target_org_id'), text('申请原因', 'reason'), text('业务场景', 'business_scenario'), text('复用范围', 'reuse_scope'), number('预计用户数', 'expected_users'), text('集成要求', 'integration_requirement'), text('数据要求', 'data_requirement'), date('期望上线日期', 'desired_online_date'), select('本地状态', 'local_status', ['DRAFT', 'SUBMITTED', 'PROCESSING', 'COMPLETED', 'REJECTED', 'CANCELLED']), checkbox('外部管理', 'external_managed'), text('外部引用编号', 'external_reference_no'), date('提交时间', 'submitted_at'), date('完成时间', 'completed_at'), text('幂等键', 'idempotency_key')]),
+  table('素材分类', 'material_category', ['分类编码', 'category_code'], [text('分类名称', 'category_name'), text('父级ID', 'parent_id'), text('路径ID', 'path_ids'), text('路径名称', 'path_names'), checkbox('启用', 'enabled'), number('排序', 'sort_order')]),
+  table('外部成果提交记录', 'app_submission', ['提交编号', 'submission_no'], [text('上架申请ID', 'onboarding_request_id'), text('应用ID', 'app_id'), select('渠道', 'channel', ['EAD', 'HAINENG_WORK']), text('表单版本', 'form_version'), text('本地状态', 'local_status'), text('外部提交状态', 'external_submission_status'), text('外部引用编号', 'external_reference_no'), date('外部提交时间', 'external_submitted_at'), number('尝试次数', 'attempt_count'), date('最后尝试时间', 'last_attempt_at'), text('失败编码', 'failure_code'), text('失败信息', 'failure_message'), text('脱敏请求快照', 'request_snapshot_masked'), text('幂等键', 'idempotency_key')]),
+  table('多维表连接配置', 'bitable_connection_config', ['连接编码', 'connection_code'], [text('连接名称', 'connection_name'), text('Base Token掩码', 'app_token_masked'), text('Base引用', 'app_token_ref'), text('环境', 'environment'), checkbox('启用', 'enabled'), date('最后健康检查时间', 'last_health_at'), text('最后健康状态', 'last_health_status'), number('超时毫秒', 'timeout_ms'), text('重试策略', 'retry_policy'), number('版本号', 'config_version')]),
+  table('字段字典', 'bitable_field_dictionary', ['字段字典编码', 'dictionary_code'], [text('连接编码', 'connection_code'), text('数据表编码', 'table_code'), text('Base引用', 'app_token_ref'), text('Table ID', 'table_id'), text('View ID', 'view_id'), text('字段业务编码', 'business_code'), text('Field ID', 'field_id'), text('字段名称', 'field_name'), number('字段类型', 'field_type'), checkbox('必填', 'required'), checkbox('可读', 'readable'), checkbox('可写', 'writable'), text('分类等级', 'classification'), text('默认值', 'default_value'), text('转换规则', 'transform_rule'), text('结构版本', 'schema_version'), checkbox('启用', 'enabled'), date('最后核验时间', 'last_verified_at')]),
+  table('后台任务执行记录', 'job_execution', ['执行ID', 'execution_id'], [text('任务ID', 'job_id'), text('触发类型', 'trigger_type'), text('触发人ID', 'triggered_by'), date('开始时间', 'started_at'), date('结束时间', 'finished_at'), select('状态', 'status', ['PENDING', 'RUNNING', 'SUCCEEDED', 'PARTIAL', 'FAILED', 'CANCELLED']), number('进度', 'progress'), number('总数', 'total_count'), number('成功数', 'success_count'), number('失败数', 'failed_count'), number('跳过数', 'skipped_count'), text('重试来源执行ID', 'retry_of_execution_id'), text('错误编码', 'error_code'), text('错误信息', 'error_message')]),
+  table('完整性差异记录', 'integrity_difference', ['差异ID', 'difference_id'], [text('执行ID', 'execution_id'), text('资源类型', 'resource_type'), text('资源ID', 'resource_id'), text('字段编码', 'field_code'), text('期望值哈希', 'expected_hash'), text('实际值哈希', 'actual_hash'), select('差异类型', 'difference_type', ['MISSING', 'EXTRA', 'VALUE_MISMATCH', 'TYPE_MISMATCH']), text('差异摘要', 'difference_summary'), select('状态', 'status', ['OPEN', 'IGNORED', 'RESOLVED']), text('处理人ID', 'handled_by'), date('处理时间', 'handled_at')]),
+  table('后台操作日志', 'audit_operation_log', ['审计ID', 'audit_id'], [text('请求ID', 'request_id'), text('操作人ID', 'operator_id'), text('操作部门ID', 'operator_org_id'), text('模块编码', 'module_code'), text('动作编码', 'action_code'), text('资源类型', 'resource_type'), text('资源ID', 'resource_id'), text('HTTP方法', 'http_method'), text('路径', 'path'), text('IP掩码', 'ip_masked'), text('User Agent', 'user_agent'), text('结果编码', 'result_code'), text('结果信息', 'result_message'), text('变更字段', 'changed_fields'), text('变更前脱敏快照', 'before_snapshot_masked'), text('变更后脱敏快照', 'after_snapshot_masked'), date('发生时间', 'occurred_at'), number('耗时毫秒', 'duration_ms'), text('路由月份', 'route_month'), createdAt()], { log: true }),
+  table('接口调用日志', 'integration_call_log', ['日志ID', 'log_id'], [text('请求ID', 'request_id'), text('集成ID', 'integration_id'), select('方向', 'direction', ['INBOUND', 'OUTBOUND']), text('操作编码', 'operation_code'), text('HTTP方法', 'http_method'), text('端点掩码', 'endpoint_masked'), text('业务类型', 'business_type'), text('业务ID', 'business_id'), text('状态', 'status'), number('HTTP状态', 'http_status'), text('错误编码', 'error_code'), text('错误信息掩码', 'error_message_masked'), number('请求大小', 'request_size'), number('响应大小', 'response_size'), date('开始时间', 'started_at'), date('结束时间', 'finished_at'), number('耗时毫秒', 'duration_ms'), number('重试次数', 'retry_count'), date('下次重试时间', 'next_retry_at'), text('任务执行ID', 'task_execution_id'), text('路由月份', 'route_month'), createdAt()], { log: true }),
+  table('异常处理记录', 'incident_record', ['异常ID', 'incident_id'], [text('异常编号', 'incident_no'), text('来源类型', 'source_type'), text('来源ID', 'source_id'), select('严重级别', 'severity', ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']), text('标题', 'title'), text('错误编码', 'error_code'), text('摘要', 'summary'), text('脱敏上下文', 'context_masked'), select('状态', 'status', ['OPEN', 'PROCESSING', 'RESOLVED', 'CLOSED']), date('发生时间', 'occurred_at'), date('首次发生时间', 'first_occurred_at'), date('最后发生时间', 'last_occurred_at'), number('发生次数', 'occurrence_count'), text('处理人ID', 'assignee_id'), date('解决时间', 'resolved_at'), checkbox('可重试', 'retryable'), text('最后重试状态', 'last_retry_status')]),
+  table('归档任务', 'archive_task', ['归档任务ID', 'archive_task_id'], [text('归档批次号', 'archive_batch_no'), text('数据分类', 'data_category'), text('资源类型', 'resource_type'), date('范围开始时间', 'start_at'), date('范围结束时间', 'end_at'), text('筛选快照', 'filter_snapshot'), text('归档目标', 'archive_target'), text('保留策略编码', 'retention_policy_code'), text('校验方式', 'verify_mode'), checkbox('校验后删除', 'delete_after_verified'), checkbox('仅预演', 'dry_run'), text('状态', 'status'), text('阶段', 'stage'), number('预估行数', 'estimated_rows'), number('源记录数', 'source_count'), number('已归档数', 'archived_count'), number('已删除数', 'deleted_count'), number('失败数', 'failed_count'), text('源校验和', 'source_checksum'), text('归档校验和', 'archive_checksum'), text('归档位置掩码', 'archive_location_masked'), date('校验完成时间', 'verified_at'), date('删除完成时间', 'deleted_at'), text('失败编码', 'failure_code'), text('失败信息', 'failure_message')]),
+  table('恢复任务', 'restore_task', ['恢复任务ID', 'restore_task_id'], [text('归档任务ID', 'archive_task_id'), text('恢复范围', 'restore_scope'), text('目标环境', 'target_environment'), select('冲突策略', 'conflict_strategy', ['SKIP', 'FAIL', 'NEW_VERSION']), text('状态', 'status'), number('总数', 'total_count'), number('已恢复数', 'restored_count'), number('跳过数', 'skipped_count'), number('失败数', 'failed_count'), date('开始时间', 'started_at'), date('结束时间', 'finished_at'), text('错误编码', 'error_code'), text('错误信息', 'error_message')]),
+  table('归档执行记录', 'archive_execution_record', ['执行记录ID', 'execution_record_id'], [text('归档任务ID', 'archive_task_id'), text('恢复任务ID', 'restore_task_id'), text('资源类型', 'resource_type'), text('源记录ID', 'source_record_id'), text('归档记录ID', 'archive_record_id'), select('动作', 'action', ['ARCHIVE', 'VERIFY', 'DELETE', 'RESTORE']), text('状态', 'status'), text('源校验和', 'source_checksum'), text('目标校验和', 'target_checksum'), text('错误编码', 'error_code'), text('错误信息', 'error_message'), date('开始时间', 'started_at'), date('结束时间', 'finished_at')])
+]);
+
+const completion = (name, code, fields) => Object.freeze({ table_name: name, table_code: code, create_if_missing: false, fields: Object.freeze(fields) });
+const auditCompletion = () => [
+  number('版本', 'version'), checkbox('已删除', 'deleted'), date('删除时间', 'deleted_at'), person('删除人', 'deleted_by'),
+  text('来源系统', 'source_system'), text('来源记录ID', 'source_record_id'), text('追踪ID', 'trace_id'),
+  createdAt(), createdBy(), updatedAt(), updatedBy()
+];
+
+export const EXISTING_TABLE_FIELD_COMPLETIONS = Object.freeze([
+  completion('培训课程', 'training_course', [
+    date('结束时间', 'end_at'), date('报名开始时间', 'registration_start_at'), date('报名结束时间', 'registration_end_at'),
+    text('学习入口URL', 'launch_url'), date('入口过期时间', 'launch_expires_at'),
+    select('直播状态', 'live_status', ['NOT_STARTED', 'LIVE', 'ENDED', 'REPLAY']), text('出勤规则', 'attendance_rule'),
+    attachment('学习资料', 'materials'), text('关联应用ID', 'related_app_ids'), checkbox('积分启用', 'points_enabled'),
+    number('积分值', 'points'), text('积分触发条件', 'points_trigger'), ...auditCompletion()
+  ]),
+  completion('用户字典', 'identity_user_cache', [
+    attachment('头像', 'avatar_file'), text('组织ID', 'org_id'), text('组织名称', 'org_name'), text('所属部门名称', 'department_name'),
+    text('办公地点ID', 'office_id'), text('办公地点名称', 'office_name'), text('手机号脱敏值', 'mobile_masked'),
+    text('邮箱脱敏值', 'email_masked'), checkbox('启用', 'enabled'), text('任职状态', 'employment_status'),
+    date('生效时间', 'effective_from'), date('失效时间', 'effective_to'), date('最后同步时间', 'last_synced_at'), ...auditCompletion()
+  ]),
+  completion('公告通知', 'announcement', [
+    text('公告摘要', 'summary'), date('有效期开始', 'valid_from'), date('有效期结束', 'valid_to'), number('浏览量', 'view_count'),
+    text('发布模式', 'publish_mode'), text('范围类型', 'scope_type'), date('置顶结束时间', 'top_until'),
+    date('下线时间', 'offline_at'), text('下线原因', 'offline_reason'), ...auditCompletion()
+  ]),
+  completion('应用索引', 'app_application', [
+    text('应用编码', 'app_code'), text('应用简称', 'short_name'), text('分类编码', 'category_code'), text('分类名称', 'category_name'),
+    multiSelect('标签', 'tags', ['推荐', '热门', '新上线']), attachment('应用Logo', 'logo_file'), attachment('应用封面', 'cover_file'),
+    number('评论数', 'comment_count'), number('综合评分', 'rating'), checkbox('推荐应用', 'is_recommended'),
+    date('推荐开始时间', 'recommended_start_at'), date('推荐结束时间', 'recommended_end_at'), checkbox('热门应用', 'is_hot'),
+    date('热门开始时间', 'hot_start_at'), date('热门结束时间', 'hot_end_at'), text('访问方式', 'access_mode'),
+    text('打开方式', 'open_mode'), text('SSO模式', 'sso_mode'), number('排序', 'sort_order'), text('当前结构版本', 'current_schema_version'),
+    ...auditCompletion()
+  ]),
+  completion('人才库', 'talent_person', [
+    text('姓名', 'display_name'), text('工号', 'employee_no'), number('年龄', 'age'), text('所属部门ID', 'department_id'),
+    text('所属部门名称', 'department_name'), text('责任科室ID', 'office_id'), text('责任科室名称', 'office_name'),
+    multiSelect('能力标签', 'capability_tags', ['数据治理', '经营分析', '人工智能', '项目管理']), text('培养方向', 'development_direction'),
+    date('轮岗计划开始时间', 'rotation_start_at'), date('轮岗计划结束时间', 'rotation_end_at'), text('岗位', 'position_name'),
+    text('办公地点', 'office_location'), text('业务领域', 'business_domain'), text('技术方向', 'technical_direction'),
+    date('入库日期', 'joined_at'), date('退出日期', 'exited_at'), text('联系方式脱敏值', 'contact_masked'), attachment('头像', 'avatar_file'),
+    text('个人简介', 'profile'), text('负责人ID', 'owner_id'), attachment('附件', 'attachments'), ...auditCompletion()
+  ]),
+  completion('人才项目', 'talent_project', [
+    text('项目编码', 'project_code'), text('需求部门ID', 'request_org_id'), text('需求部门名称', 'request_org_name'), text('提出人ID', 'requester_id'),
+    text('业务域ID', 'business_domain_id'), text('业务域名称', 'business_domain_name'), text('技术类型', 'technology_type'),
+    text('项目成员ID', 'member_ids'), select('项目规模', 'project_scale', ['SMALL', 'MEDIUM', 'LARGE']), select('项目难度', 'difficulty', ['LOW', 'MEDIUM', 'HIGH']),
+    number('完成率', 'completion_rate'), text('当前里程碑ID', 'current_milestone_id'), text('当前里程碑名称', 'current_milestone_name'),
+    select('风险等级', 'risk_level', ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']), date('实际开始日期', 'actual_start_date'),
+    date('实际结束日期', 'actual_end_date'), text('项目简介', 'summary'), text('项目目标', 'objectives'), text('项目成果', 'deliverables'),
+    attachment('项目附件', 'attachments'), ...auditCompletion()
+  ]),
+  completion('项目进度', 'talent_project_progress', [
+    date('汇报日期', 'report_date'), number('完成率', 'completion_rate'), text('当前里程碑ID', 'current_milestone_id'),
+    text('当前里程碑名称', 'current_milestone_name'), text('本期完成', 'completed_work'), text('下期计划', 'next_plan'),
+    text('风险', 'risks'), text('问题', 'issues'), text('所需支持', 'support_required'), attachment('附件', 'attachments'),
+    text('汇报人ID', 'reporter_id'), text('汇报人姓名', 'reporter_name'), date('汇报时间', 'reported_at'), ...auditCompletion()
+  ]),
+  completion('素材中心', 'material', [
+    text('素材编码', 'material_code'), text('素材摘要', 'summary'), text('素材描述', 'description_html'), text('素材类型', 'material_type'),
+    text('分类ID', 'category_id'), text('分类名称', 'category_name'), text('关联应用ID', 'related_app_ids'), attachment('封面', 'cover_file'),
+    text('版本名称', 'version_name'), text('发布人ID', 'publisher_id'), text('发布人姓名', 'publisher_name'), date('发布时间', 'published_at'),
+    number('浏览量', 'view_count'), number('收藏数', 'favorite_count'), text('权限范围', 'permission_scope'), text('状态', 'status'),
+    ...auditCompletion()
+  ]),
+  completion('消息通知', 'message_delivery', [
+    text('消息类型编码', 'type_code'), text('消息摘要', 'summary'), text('优先级', 'priority'), text('发送人ID', 'sender_id'),
+    text('目标类型', 'target_type'), text('目标ID', 'target_id'), text('目标路径', 'target_path'), date('过期时间', 'expires_at'),
+    date('阅读时间', 'read_at'), text('防重键', 'deduplication_key'), ...auditCompletion()
+  ]),
+  completion('应用收藏', 'app_favorite', [
+    text('资源类型', 'resource_type'), text('资源ID', 'resource_id'), checkbox('有效', 'active'),
+    date('取消收藏时间', 'unfavorited_at'), text('最后事件ID', 'last_event_id'), ...auditCompletion()
+  ]),
+  completion('使用申请', 'app_use_request_legacy', [
+    text('申请编号', 'request_no'), text('申请部门ID', 'applicant_org_id'), text('目标部门ID', 'target_org_id'),
+    text('业务场景', 'business_scenario'), text('期望用户数', 'expected_users'), text('幂等键', 'idempotency_key'),
+    date('提交时间', 'submitted_at'), date('完成时间', 'completed_at'), ...auditCompletion()
+  ]),
+  completion('应用评论', 'app_comment', [
+    number('评分', 'rating'), checkbox('匿名', 'anonymous'), text('状态', 'status'), text('回复内容脱敏值', 'reply_content_masked'),
+    text('回复人ID', 'replied_by'), date('回复时间', 'replied_at'), ...auditCompletion()
+  ]),
+  completion('用户权限', 'resource_permission', [
+    text('资源类型', 'resource_type'), text('资源ID', 'resource_id'), text('主体类型', 'subject_type'), text('主体ID', 'subject_id'),
+    text('权限编码', 'permission_code'), text('数据范围', 'data_scope'), date('生效时间', 'effective_from'), date('失效时间', 'effective_to'),
+    checkbox('启用', 'enabled'), ...auditCompletion()
+  ]),
+  completion('应用类型配置', 'app_type', [
+    text('颜色令牌', 'color_token'), text('详情模板编码', 'detail_template_code'), text('已发布结构版本', 'published_schema_version'),
+    ...auditCompletion()
+  ]),
+  completion('业务域字典', 'app_domain', [
+    text('业务域编码', 'domain_code'), text('父级ID', 'parent_id'), text('路径ID', 'path_ids'), text('路径名称', 'path_names'),
+    text('描述', 'description'), attachment('图标', 'icon_file'), text('颜色令牌', 'color_token'), checkbox('启用', 'enabled'), number('排序', 'sort_order'),
+    ...auditCompletion()
+  ])
+]);
+
+if (MISSING_TABLE_SCHEMAS.length !== 28) throw new Error(`缺失表清单必须为 28 张，当前 ${MISSING_TABLE_SCHEMAS.length}`);
+for (const schema of MISSING_TABLE_SCHEMAS) {
+  const names = schema.fields.map(field => field.field_name);
+  if (new Set(names).size !== names.length) throw new Error(`${schema.table_name} 存在重复字段名`);
+}
+for (const schema of EXISTING_TABLE_FIELD_COMPLETIONS) {
+  const names = schema.fields.map(field => field.field_name);
+  if (new Set(names).size !== names.length) throw new Error(`${schema.table_name} 补齐字段存在重复字段名`);
+}

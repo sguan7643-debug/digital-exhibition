@@ -1,0 +1,68 @@
+{
+  "task_id": "DEH-TEST-DEPLOY-CONFIG-20260923",
+  "title": "Create a complete test deployment package for Digital Exhibition",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "Package the Vue frontend and existing Feishu server proxy as one test-deployable Node application with explicit non-secret configuration.",
+  "target_user": "The project owner deploying Digital Exhibition to the test environment.",
+  "in_scope": [
+    "Standalone Node test server serving dist and existing /api/v1 middleware",
+    "Non-secret serverConfig with /test2 base and runtime settings",
+    "Environment variable template for Feishu secrets",
+    "Build/package/start scripts and Nginx reverse-proxy example",
+    "Automated startup, static-route, API-route, and secret-exclusion verification"
+  ],
+  "out_of_scope": [
+    "Deploying or changing the external test server",
+    "Embedding credentials in dist or serverConfig",
+    "Changing Feishu upstream hosts or business operation behavior",
+    "Production release"
+  ],
+  "success_metric": "A generated test package starts with one documented command, serves /test2, handles /api/v1 through the existing proxy, and contains no secrets.",
+  "deadline": "2026-09-23",
+  "risk_level": "high",
+  "state": "complete",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "Product Owner",
+      "approved_at": "2026-09-23T07:37:14.5853738Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "Product Owner",
+      "approved_at": "2026-09-23T07:37:44.3165448Z"
+    },
+    "release": {
+      "approved": true,
+      "approved_by": "Product Owner",
+      "approved_at": "2026-09-23T07:58:25.5409333Z"
+    }
+  },
+  "checks": {
+    "web_passed": true,
+    "mobile_passed": false,
+    "web_evidence": ".ai-team/tasks/DEH-TEST-DEPLOY-CONFIG-20260923/handoffs/web.md",
+    "web_checked_at": "2026-09-23T07:55:38.0282272Z",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": true,
+    "blocking_defects": 0,
+    "evidence": ".ai-team/tasks/DEH-TEST-DEPLOY-CONFIG-20260923/qa-report.md",
+    "recorded_at": "2026-09-23T07:57:53.6603409Z"
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

@@ -36,7 +36,8 @@ function aggregateReadResults(contract, operationIds, settled, previousEnvelope 
       available: false,
       traceId: error.traceId || sectionRecords[operationId]?.traceId || null,
       errorState: error.state || 'error',
-      retryable: error.retryable !== false && error.state !== 'cancelled'
+      retryable: error.retryable !== false && error.state !== 'cancelled',
+      retryAfterSeconds: Number.isInteger(error.retryAfterSeconds) ? error.retryAfterSeconds : null
     };
   });
 

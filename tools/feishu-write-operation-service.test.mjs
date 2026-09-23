@@ -21,9 +21,11 @@ assert.equal(updated.data.version, 2);
 const deleted = await service.execute('FAV-004', { businessKey: 'TEST_FAV_001', idempotencyKey: 'TEST_IDEM_003', ifMatch: 1, fields: {} });
 assert.equal(deleted.data.deleted, true);
 const identity = { userId: 'TEST_USER' };
+const invalidatedTables = [];
 const readService = { execute: async id => id === 'COM-001'
   ? { code: 'OK', data: { permissions: ['operation:APP-006:execute'] } }
-  : { id, kind: 'read' } };
+  : { id, kind: 'read' },
+invalidateTables(tableNames) { invalidatedTables.push(...tableNames); } };
 const composite = createFeishuCompositeOperationService({ readService, writeService: service, browserWriteEnabled: true });
 assert.equal((await composite.execute('APP-001', {})).kind, 'read');
 const browserInput = { businessKey: 'TEST_REUSE_002', idempotencyKey: 'TEST_IDEM_004', fields: {} };
@@ -32,4 +34,5 @@ await assert.rejects(() => composite.execute('APP-006', browserInput, { identity
 await assert.rejects(() => composite.execute('APP-006', browserInput, { sameOriginRequest: true }), error => error.code === 'USER_AUTH_REQUIRED');
 await assert.rejects(() => composite.execute('FAV-003', { businessKey: 'TEST_FAV_002', idempotencyKey: 'TEST_IDEM_005', fields: {} }, { identity, sameOriginRequest: true }), error => error.code === 'PERMISSION_DENIED');
 assert.equal((await composite.execute('APP-006', browserInput, { identity, sameOriginRequest: true })).code, 'OK');
+assert.deepEqual(invalidatedTables, ['应用复用申请'], '业务写成功后必须失效对应飞书表快照');
 console.log('36-operation write mapping, field whitelist, composite routing and write envelopes passed');

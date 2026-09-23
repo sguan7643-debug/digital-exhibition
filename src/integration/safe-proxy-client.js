@@ -49,6 +49,7 @@ export function normalizeIntegrationError(error = {}) {
   if (status === 403) return { state: 'permission-denied', retryable: false };
   if (status === 429) return { state: 'rate-limited', retryable: true };
   if (status === 409) return { state: 'conflict', retryable: false };
+  if (/feishu_initial_syncing/.test(code)) return { state: 'initial-syncing', retryable: true };
   if (/timeout/.test(code)) return { state: 'timeout', retryable: true };
   if (/abort|cancel/.test(code)) return { state: 'cancelled', retryable: false };
   if (/security/.test(code)) return { state: 'security-error', retryable: false };
@@ -168,6 +169,12 @@ export function createSafeProxyClient(options = {}) {
         }
         await Promise.resolve();
         throwIfAborted(response.status);
+        if (body?.code === 'FEISHU_INITIAL_SYNCING') {
+          const normalized = validateErrorEnvelope(body, contract, response, traceId);
+          throw new IntegrationRequestError('正式飞书数据正在首次同步', {
+            ...normalized, status: response.status, traceId: body.traceId || traceId
+          });
+        }
         if (!response.ok) {
           const normalized = validateErrorEnvelope(body, contract, response, traceId);
           throwIfAborted(response.status);

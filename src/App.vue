@@ -246,6 +246,7 @@ onMounted(() => {
 });
 onUpdated(syncAppBaseLinks);
 onBeforeUnmount(() => {
+  clearTimeout(integrationInitialSyncTimer);
   requestActivityUnsubscribe?.();
   window.removeEventListener('popstate', syncLocation);
   document.removeEventListener('click', handleInternalNavigation);
@@ -262,20 +263,31 @@ const integrationEnvelope = ref({ mode: 'disabled', state: 'disabled', operation
 const integrationRetrying = ref(false);
 let integrationDataSource;
 let integrationLoadOptions = {};
+let integrationInitialSyncTimer;
+let integrationInitialSyncAttempts = 0;
+const MAX_INITIAL_SYNC_ATTEMPTS = 20;
 
 const integrationRecovery = computed(() => {
   const envelope = integrationEnvelope.value;
   if (!Array.isArray(envelope.retryScope) || envelope.retryScope.length === 0) return null;
   const sectionRecords = Object.values(envelope.sectionRecords || {});
   const timeout = sectionRecords.some(record => record?.errorState === 'timeout');
+  const initialSyncing = sectionRecords.some(record => record?.errorState === 'initial-syncing');
   const traceId = envelope.traceIds?.[0] || envelope.traceId || null;
   return {
-    message: timeout ? '部分飞书数据请求超时，已保留可用内容。' : '部分飞书数据暂时不可用，已保留可用内容。',
+    message: initialSyncing
+      ? '正式飞书数据正在首次同步，页面其他区域仍可使用。'
+      : timeout
+        ? '部分飞书数据请求超时，已保留可用内容。'
+        : '部分飞书数据暂时不可用，已保留可用内容。',
     traceId
   };
 });
 
 async function syncIntegrationEnvelope() {
+  clearTimeout(integrationInitialSyncTimer);
+  integrationInitialSyncTimer = null;
+  integrationInitialSyncAttempts = 0;
   integrationDataSource?.cancel('页面已切换');
   if (entryUnavailable.value) {
     integrationDataSource = null;
@@ -310,7 +322,10 @@ async function syncIntegrationEnvelope() {
   const pending = integrationDataSource.load({}, loadOptions);
   integrationEnvelope.value = integrationDataSource.snapshot();
   const result = await pending;
-  if (page.value.route === route) integrationEnvelope.value = result;
+  if (page.value.route === route) {
+    integrationEnvelope.value = result;
+    scheduleInitialSyncRetry();
+  }
 }
 
 watch(() => page.value.route, syncIntegrationEnvelope, { immediate: true });
@@ -320,14 +335,40 @@ const integrationAuthRequired = computed(() => integrationEnvelope.value.state =
   || Object.values(integrationEnvelope.value.sectionRecords || {}).some(record => record?.errorState === 'authentication-required'));
 const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`)}`);
 
+function scheduleInitialSyncRetry() {
+  clearTimeout(integrationInitialSyncTimer);
+  integrationInitialSyncTimer = null;
+  const records = Object.values(integrationEnvelope.value.sectionRecords || {})
+    .filter(record => record?.errorState === 'initial-syncing' && record?.retryable === true);
+  if (!records.length) {
+    integrationInitialSyncAttempts = 0;
+    return;
+  }
+  if (integrationInitialSyncAttempts >= MAX_INITIAL_SYNC_ATTEMPTS) return;
+  const retryAfterSeconds = Math.max(1, Math.min(10,
+    Math.min(...records.map(record => Number.isInteger(record.retryAfterSeconds) ? record.retryAfterSeconds : 2))
+  ));
+  const route = page.value.route;
+  const source = integrationDataSource;
+  integrationInitialSyncAttempts += 1;
+  integrationInitialSyncTimer = setTimeout(() => {
+    if (page.value.route === route && integrationDataSource === source) retryIntegration();
+  }, retryAfterSeconds * 1000);
+}
+
 async function retryIntegration() {
   if (integrationRetrying.value || !integrationDataSource || !integrationRecovery.value) return;
+  clearTimeout(integrationInitialSyncTimer);
+  integrationInitialSyncTimer = null;
   const route = page.value.route;
   const source = integrationDataSource;
   integrationRetrying.value = true;
   try {
     const result = await source.retry({}, integrationLoadOptions);
-    if (page.value.route === route && integrationDataSource === source) integrationEnvelope.value = result;
+    if (page.value.route === route && integrationDataSource === source) {
+      integrationEnvelope.value = result;
+      scheduleInitialSyncRetry();
+    }
   } finally {
     integrationRetrying.value = false;
   }

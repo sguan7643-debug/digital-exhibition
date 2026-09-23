@@ -76,6 +76,7 @@ assert.throws(() => createSafeProxyClient({ baseUrl: 'https://open.feishu.cn/ope
 assert.equal(normalizeIntegrationError({ status: 403 }).state, 'permission-denied');
 assert.equal(normalizeIntegrationError({ status: 429 }).state, 'rate-limited');
 assert.equal(normalizeIntegrationError({ status: 409 }).state, 'conflict');
+assert.deepEqual(normalizeIntegrationError({ status: 503, code: 'FEISHU_INITIAL_SYNCING' }), { state: 'initial-syncing', retryable: true });
 assert.equal(normalizeIntegrationError({ name: 'TimeoutError' }).state, 'timeout');
 
 const dictionary = createFieldDictionary({

@@ -95,7 +95,7 @@ await extendedBudgetService.execute('COM-001', {}, { identity: { userId: 'u-test
 let defaultBudgetClockReads = 0;
 const defaultBudgetService = createFeishuReadOnlyService({
   identifierContract,
-  readNow: () => ++defaultBudgetClockReads <= 2 ? 0 : 10_001,
+  readNow: () => ++defaultBudgetClockReads === 1 ? 0 : 10_001,
   client: { listRecords: async tableId => responseFor(tableId) }
 });
 await assert.rejects(
