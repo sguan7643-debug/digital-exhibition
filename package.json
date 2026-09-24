@@ -8,7 +8,7 @@
     "build": "node --require ./tools/vite-sandbox-shim.cjs ./node_modules/vite/bin/vite.js build --configLoader runner",
     "start:test-server": "node --env-file=.env.local server/test-deployment-server.mjs",
     "package:test": "node tools/create-test-deployment-package.mjs",
-    "test:test-deployment": "node tools/test-deployment-server.test.mjs",
+    "test:test-deployment": "node tools/test-deployment-server.test.mjs && node tools/vite-subpath-build.test.mjs",
     "check": "node tools/source-audit.test.mjs",
     "test:no-mock-data": "node tools/no-mock-business-data.test.mjs",
     "test:feishu-latency": "node tools/feishu-read-latency-cache.test.mjs && node tools/feishu-read-only-service.test.mjs && node tools/feishu-write-operation-service.test.mjs",

@@ -5,11 +5,23 @@ import { getPageIntegrationContract } from '../src/integration/page-integration-
 import { resolveIntegrationRuntime } from '../src/integration/runtime-config.js';
 import { createSafeProxyClient } from '../src/integration/safe-proxy-client.js';
 import { createSyntheticOperationContracts } from '../src/integration/operation-contract-schemas.js';
-import { assertWriteActionContext, createPageDataSource } from '../src/integration/page-data-source.js';
+import { assertWriteActionContext, createPageDataSource, resolveActiveRetryScope } from '../src/integration/page-data-source.js';
 import { createDataState, reduceDataState } from '../src/integration/data-state.js';
 
 const origin = 'http://127.0.0.1:4173';
 const operationContracts = createSyntheticOperationContracts(OPERATION_REGISTRY.map(operation => operation.id));
+
+assert.deepEqual(resolveActiveRetryScope({
+  retryScope: ['COM-001'],
+  sectionRecords: { 'COM-001': { available: true, retryable: false } }
+}), [], '成功响应必须清除旧重试提示');
+assert.deepEqual(resolveActiveRetryScope({
+  retryScope: ['COM-001', 'COM-002'],
+  sectionRecords: {
+    'COM-001': { available: true, retryable: false },
+    'COM-002': { available: false, retryable: true }
+  }
+}), ['COM-002'], '仍失败的可重试请求必须继续显示提示');
 
 for (const unsafeBase of [
   '/', '/api/..', '/api/%2e%2e', '/api/%252e%252e', '/api/%252f%252fevil', '/api/%255c%255cevil'

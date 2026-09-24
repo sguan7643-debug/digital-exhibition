@@ -35,14 +35,18 @@ const mobileDrawer = ref(null);
 let mobileMediaQuery;
 let tableObserver;
 
+function publicAssetPath(fileName) {
+  return `${import.meta.env.BASE_URL}${String(fileName).replace(/^\/+/, '')}`;
+}
+
 const primaryNav = [
-  ['/workbench', '/assets/nav-workbench.png', '首页'],
-  ['/apps', '/assets/nav-apps.png', '应用中心'],
-  ['/materials', '/assets/nav-materials.png', '素材中心'],
-  ['/certification', '/assets/nav-certification.png', '数字化认证'],
-  ['/training', '/assets/nav-training.png', '培训课堂'],
-  ['/talent/people', '/assets/nav-talent.png', '人才管理'],
-  ['/operations', '/assets/nav-operations.png', '运营管理'],
+  ['/workbench', publicAssetPath('assets/nav-workbench.png'), '首页'],
+  ['/apps', publicAssetPath('assets/nav-apps.png'), '应用中心'],
+  ['/materials', publicAssetPath('assets/nav-materials.png'), '素材中心'],
+  ['/certification', publicAssetPath('assets/nav-certification.png'), '数字化认证'],
+  ['/training', publicAssetPath('assets/nav-training.png'), '培训课堂'],
+  ['/talent/people', publicAssetPath('assets/nav-talent.png'), '人才管理'],
+  ['/operations', publicAssetPath('assets/nav-operations.png'), '运营管理'],
 ];
 const categories = [
   ['全部应用', 'apps', ''], ['可视化', 'visual', '可视化'], ['报表', 'report', '报表'],

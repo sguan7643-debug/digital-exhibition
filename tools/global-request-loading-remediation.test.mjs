@@ -19,6 +19,7 @@ assert.match(appSource, /页面其他区域仍可继续使用/, '请求提示必
 assert.match(appSource, /class="integration-toast-close"/, '持久请求气泡必须提供统一关闭按钮');
 assert.match(appSource, /aria-label="关闭数据请求提示"/, '关闭按钮必须有可访问名称');
 assert.match(appSource, /@click="dismissIntegrationRecovery"/, '点击关闭按钮必须隐藏当前请求气泡');
+assert.match(appSource, /resolveActiveRetryScope\(envelope\)/, '所有受影响请求成功后必须自动关闭恢复提示');
 
 const bannerRule = styleSource.match(/\.request-activity-banner\{[^}]+\}/)?.[0] || '';
 assert.doesNotMatch(bannerRule, /position:fixed|inset:0|pointer-events:auto/, '请求提示不得覆盖视口或接管指针事件');

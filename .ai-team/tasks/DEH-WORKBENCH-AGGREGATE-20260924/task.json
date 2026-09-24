@@ -1,0 +1,71 @@
+{
+  "task_id": "DEH-WORKBENCH-AGGREGATE-20260924",
+  "title": "首页飞书聚合读取与单任务同步",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "将首页五项飞书读取聚合为单一页面接口，在不重复读取飞书的前提下稳定返回缓存数据、陈旧数据或可恢复的后台同步状态。",
+  "target_user": "访问数智产品展厅首页的已授权 Web 用户及负责运行维护的开发人员。",
+  "in_scope": [
+    "将飞书上游单次请求默认超时调整为20秒并移除12秒硬上限",
+    "将整表读取默认预算调整为35秒并移除15秒硬上限",
+    "为首页COM-001、COM-002、COM-005、WB-001、WB-002提供单一聚合读取入口",
+    "冷启动期间为同一同步范围只保留一个后台任务并提供轻量状态查询",
+    "服务启动时预热首页关键公共表并提供明确就绪状态",
+    "刷新失败时在合规陈旧窗口内继续返回最近一次成功快照并标记陈旧",
+    "增加自动化测试、构建验证和不超过30秒的HTTP响应边界"
+  ],
+  "out_of_scope": [
+    "保证飞书上游在30秒内完成全部冷读取",
+    "持久化业务快照到磁盘、数据库或外部缓存",
+    "使用模拟数据替代飞书多维表格数据",
+    "修改非首页业务页面和写入业务规则",
+    "部署、发布或合并主分支"
+  ],
+  "success_metric": "首页热态聚合读取在2秒内返回；所有聚合HTTP请求在30秒内以完整数据、标记陈旧的数据或202同步状态结束；同一冷同步范围只有一个后台飞书读取任务；刷新失败时页面不因已有合规快照而变空。",
+  "deadline": "尽快完成",
+  "risk_level": "high",
+  "state": "development",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "user",
+      "approved_at": "2026-09-24T07:12:21.0892974Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "user",
+      "approved_at": "2026-09-24T07:14:42.8019312Z"
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": false,
+    "mobile_passed": false,
+    "web_evidence": "",
+    "web_checked_at": "",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": false,
+    "blocking_defects": 0,
+    "evidence": "",
+    "recorded_at": ""
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

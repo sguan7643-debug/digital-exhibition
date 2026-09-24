@@ -10,6 +10,12 @@ function stableTestKey(prefix, resourceId) {
   return `TEST_${prefix}_${digest}`;
 }
 
+function submittedAt(record, fallback) {
+  const value = Number(record?.createdAt);
+  const date = Number.isFinite(value) && value > 0 ? new Date(value) : fallback;
+  return date.toISOString().replace('T', ' ').slice(0, 19);
+}
+
 function applicationSnapshot(record = {}) {
   const application = record.application && typeof record.application === 'object' ? record.application : {};
   const name = text(application.name || record.title);
@@ -56,6 +62,32 @@ export function createFeishuApprovedAppProjection({ safeRecordService, now = () 
       : approvalStatus === 'REJECTED' ? '审核驳回'
       : approvalStatus === 'CANCELLED' ? '已取消'
       : '审核中';
+    const instanceId = text(record.instanceId, 256);
+    const authorizationUser = text(application.users, 512);
+    const authorizationDepartment = text(application.accessDepartment, 512);
+    if (!instanceId || !authorizationUser || !authorizationDepartment) {
+      throw new FeishuProxyError('ONBOARDING_REQUEST_DATA_INCOMPLETE', '上架申请缺少审批实例、适用用户或适用部门', 409);
+    }
+    const requestResult = await safeRecordService.createOnce({
+      tableName: '上架申请',
+      keyField: '申请单号',
+      businessKey: stableTestKey('ONBOARDING', record.idempotencyKey || instanceId),
+      idempotencyKey: stableTestKey('ONBOARDING_TRACE', record.idempotencyKey || instanceId),
+      governance: { versionField: '', sourceField: '', traceField: '', deletedField: '' },
+      fields: {
+        '关联应用ID': resourceId,
+        '应用类型ID': 'T005',
+        '申请人ID': application.applicant || text(record.creatorUserId, 256),
+        '状态': displayStatus,
+        '当前审批节点': approvalStatus === 'PENDING' ? '飞书审批中' : displayStatus,
+        '提交时间': submittedAt(record, now()),
+        '退回原因': '',
+        '审批来源': '飞书审批',
+        '审批实例ID': instanceId,
+        '授权用户': authorizationUser,
+        '授权部门': authorizationDepartment
+      }
+    });
     const indexResult = await safeRecordService.createOnce({
       tableName: '应用索引',
       keyField: '应用ID',
@@ -134,12 +166,13 @@ export function createFeishuApprovedAppProjection({ safeRecordService, now = () 
     });
     return Object.freeze({
       resourceId,
+      onboardingRecordId: String(requestResult.record?.record_id || ''),
       indexRecordId: String(indexRecord?.record_id || ''),
       detailRecordId: String(detailResult.record?.record_id || ''),
       version: indexVersion,
       approvalStatus,
       displayStatus,
-      replayed: Boolean(indexResult.replayed && detailResult.replayed)
+      replayed: Boolean(requestResult.replayed && indexResult.replayed && detailResult.replayed)
     });
   }
 

@@ -43,7 +43,7 @@ import { PAGE_MATRIX, resolvePage } from './fixtures/pages.js';
 import { routeSession } from './state/session-store.js';
 import { getPageIntegrationContract } from './integration/page-integration-matrix.js';
 import { isRemoteRuntime, resolveIntegrationRuntime } from './integration/runtime-config.js';
-import { createPageDataSource, describeDataSourceEnvelope } from './integration/page-data-source.js';
+import { createPageDataSource, describeDataSourceEnvelope, resolveActiveRetryScope } from './integration/page-data-source.js';
 import { resolveIntegrationLiveAnnouncement } from './integration/live-region.js';
 import { createSafeProxyClient } from './integration/safe-proxy-client.js';
 import { createVerifiedReadOperationContracts, createVerifiedWriteOperationContracts } from './integration/operation-contract-schemas.js';
@@ -268,18 +268,20 @@ const MAX_INITIAL_SYNC_ATTEMPTS = 20;
 
 const integrationRecovery = computed(() => {
   const envelope = integrationEnvelope.value;
-  if (!Array.isArray(envelope.retryScope) || envelope.retryScope.length === 0) return null;
-  const sectionRecords = Object.values(envelope.sectionRecords || {});
+  const activeRetryScope = resolveActiveRetryScope(envelope);
+  if (activeRetryScope.length === 0) return null;
+  const sectionRecords = activeRetryScope.map(operationId => envelope.sectionRecords?.[operationId]).filter(Boolean);
   const timeout = sectionRecords.some(record => record?.errorState === 'timeout');
   const initialSyncing = sectionRecords.some(record => record?.errorState === 'initial-syncing');
-  const traceId = envelope.traceIds?.[0] || envelope.traceId || null;
+  const traceId = sectionRecords.map(record => record?.traceId).find(Boolean) || envelope.traceId || null;
   return {
     message: initialSyncing
       ? '正式飞书数据正在首次同步，页面其他区域仍可使用。'
       : timeout
         ? '部分飞书数据请求超时，已保留可用内容。'
         : '部分飞书数据暂时不可用，已保留可用内容。',
-    traceId
+    traceId,
+    retryScope: activeRetryScope
   };
 });
 const dismissedIntegrationRecoveryKey = ref('');
@@ -287,7 +289,7 @@ const integrationRecoveryKey = computed(() => {
   if (!integrationRecovery.value) return '';
   return [
     page.value.route,
-    ...(integrationEnvelope.value.retryScope || []),
+    ...(integrationRecovery.value.retryScope || []),
     integrationRecovery.value.traceId || '',
     integrationRecovery.value.message
   ].join('|');

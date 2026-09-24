@@ -9,6 +9,12 @@ function collectionFromResponse(response) {
   return null;
 }
 
+export function resolveActiveRetryScope(envelope = {}) {
+  const records = envelope.sectionRecords || {};
+  return [...new Set(Array.isArray(envelope.retryScope) ? envelope.retryScope : [])]
+    .filter(operationId => records[operationId]?.available === false && records[operationId]?.retryable === true);
+}
+
 function aggregateReadResults(contract, operationIds, settled, previousEnvelope = null) {
   const sectionRecords = { ...(previousEnvelope?.sectionRecords || {}) };
   const currentFailures = [];

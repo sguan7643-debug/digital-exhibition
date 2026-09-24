@@ -2,10 +2,18 @@ import { defineConfig, loadEnv } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { feishuReadOnlyProxy } from './server/feishu-vite-plugin.mjs';
 
+function normalizeAppBase(value) {
+  const segment = String(value || '/test2/').trim().replace(/^\/+|\/+$/g, '');
+  return segment ? `/${segment}/` : '/';
+}
+
 export default defineConfig(({ command, mode }) => {
   const serverEnv = loadEnv(mode, process.cwd(), 'FEISHU_');
+  const clientEnv = loadEnv(mode, process.cwd(), 'VITE_');
+  const appBase = normalizeAppBase(clientEnv.VITE_EXHIBITION_APP_BASE);
   const approvalBackendUrl = serverEnv.FEISHU_APPROVAL_BACKEND_URL || 'http://10.151.23.119:28080';
   return ({
+  base: appBase,
   plugins: [vue(), feishuReadOnlyProxy({
     appId: serverEnv.FEISHU_APP_ID,
     appSecret: serverEnv.FEISHU_APP_SECRET,
