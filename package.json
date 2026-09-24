@@ -10,6 +10,7 @@
     "package:test": "node tools/create-test-deployment-package.mjs",
     "test:test-deployment": "node tools/test-deployment-server.test.mjs",
     "check": "node tools/source-audit.test.mjs",
+    "test:no-mock-data": "node tools/no-mock-business-data.test.mjs",
     "test:feishu-latency": "node tools/feishu-read-latency-cache.test.mjs && node tools/feishu-read-only-service.test.mjs && node tools/feishu-write-operation-service.test.mjs",
     "feishu:latency:verify": "node --env-file=.env.local tools/verify-live-feishu-read-latency.mjs",
     "test:ui-source-sync": "node tools/ui-source-20260904-sync.test.mjs && node tools/ui-source-integration-boundary.test.mjs && node tools/mobile-overflow-accessibility-remediation.test.mjs && node tools/mounted-indicator-build-dialog.test.mjs && node tools/onboarding-apply-interaction.test.mjs && node tools/onboarding-approval-routing.test.mjs && node tools/onboarding-status-live.test.mjs && node tools/application-browse-flow.test.mjs && node tools/application-page-actions.test.mjs",

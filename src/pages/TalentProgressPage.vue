@@ -2,15 +2,15 @@
 // Reference SHA-256: 1C66525AC285F0825E52CEB928093EB0CA7A412C4B526B51E181A5A16BC732C3
 import { computed, watch } from 'vue';
 import PaginationControl from '../components/PaginationControl.vue';
-import { PROGRESS_DOCUMENT_COLUMNS, PROGRESS_FIXTURES, createTalentProgressController } from '../state/talent-progress-controller.js';
-const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'}});
-const controller=createTalentProgressController(PROGRESS_FIXTURES);
-const remoteMode=computed(()=>props.integrationState!=='mock');
+import { PROGRESS_DOCUMENT_COLUMNS, createTalentProgressController } from '../state/talent-progress-controller.js';
+const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'loading'}});
+const controller=createTalentProgressController();
+const remoteMode=computed(()=>true);
 const remoteState=computed(()=>props.integrationState);
 const mapRemoteProgress=item=>({id:item.progressId||item.id,name:item.projectName||'—',progress:item.status||'—',date:item.updatedAt||'—',scale:'—',score:'—',stage:item.phaseName||'—',milestone:item.updatedAt||'—',domain:'—',status:item.status||'—',documents:Object.fromEntries(PROGRESS_DOCUMENT_COLUMNS.map(label=>[label,'—']))});
-const pageState=computed(()=>{if(!remoteMode.value)return 'normal';if(['error','timeout','rate-limited','schema-drift','security-error'].includes(remoteState.value))return 'error';if(['authentication-required','permission-denied'].includes(remoteState.value))return 'permission-denied';if(remoteState.value==='disabled')return 'disabled';if(remoteState.value==='loading')return 'loading';return controller.fixtures.length?'normal':'empty';});
-watch([()=>props.integrationData,()=>props.integrationState],()=>{controller.fixtures=remoteMode.value?(Array.isArray(props.integrationData?.['TAL-003']?.items)?props.integrationData['TAL-003'].items.map(mapRemoteProgress):[]):[...PROGRESS_FIXTURES];controller.page=1;},{immediate:true});
-const options=key=>computed(()=>[...new Set(PROGRESS_FIXTURES.map(project=>project[key]))]);
+const pageState=computed(()=>{if(['error','timeout','rate-limited','schema-drift','security-error'].includes(remoteState.value))return 'error';if(['authentication-required','permission-denied'].includes(remoteState.value))return 'permission-denied';if(remoteState.value==='disabled')return 'disabled';if(remoteState.value==='loading')return 'loading';return controller.fixtures.length?'normal':'empty';});
+watch([()=>props.integrationData,()=>props.integrationState],()=>{controller.fixtures=Array.isArray(props.integrationData?.['TAL-003']?.items)?props.integrationData['TAL-003'].items.map(mapRemoteProgress):[];controller.page=1;},{immediate:true});
+const options=key=>computed(()=>[...new Set(controller.fixtures.map(project=>project[key]).filter(Boolean))]);
 const progressOptions=options('progress');const domainOptions=options('domain');const stageOptions=options('stage');const statusOptions=options('status');
 </script>
 <template>
@@ -27,7 +27,7 @@ const progressOptions=options('progress');const domainOptions=options('domain');
         <label>业务领域<select :value="controller.draft.domain" @change="controller.draft.domain=$event.target.value"><option value="">全部</option><option v-for="value in domainOptions" :key="value">{{ value }}</option></select></label>
         <label>当前阶段<select :value="controller.draft.stage" @change="controller.draft.stage=$event.target.value"><option value="">全部</option><option v-for="value in stageOptions" :key="value">{{ value }}</option></select></label>
         <label>项目状态<select :value="controller.draft.status" @change="controller.draft.status=$event.target.value"><option value="">全部</option><option v-for="value in statusOptions" :key="value">{{ value }}</option></select></label>
-        <button type="submit">查询</button><button type="reset">重置</button><button type="button" disabled title="本地演示不生成导出文件">导出</button>
+        <button type="submit">查询</button><button type="reset">重置</button><button type="button" disabled title="飞书导出接口尚未开放">导出</button>
       </form>
       <div class="progress-table horizontal-scroll-region" tabindex="0" role="region" aria-label="项目进度管理列表，可左右滚动">
         <table>

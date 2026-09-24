@@ -95,7 +95,6 @@ function aggregateReadResults(contract, operationIds, settled, previousEnvelope 
 
 export function describeDataSourceEnvelope(envelope) {
   if (envelope.mode === 'remote' && envelope.state !== 'disabled') return '当前页面使用受控代理数据';
-  if (envelope.mode === 'mock') return '当前页面使用本地演示数据，未连接飞书';
   return '当前页面真实数据接入未启用';
 }
 
@@ -112,7 +111,7 @@ export function assertWriteActionContext(action, operation, context = {}) {
   return true;
 }
 
-export function createPageDataSource({ route, runtime, mockLoader, client, operationResolver = getOperation }) {
+export function createPageDataSource({ route, runtime, client, operationResolver = getOperation }) {
   const contract = getPageIntegrationContract(route);
   if (!contract) throw new Error(`未登记页面接入合同：${route}`);
   const initialMode = runtime.mode;
@@ -141,13 +140,6 @@ export function createPageDataSource({ route, runtime, mockLoader, client, opera
         envelope = reduceDataState({ ...envelope, mode: 'disabled' }, { type: 'disable', reason: runtime.reason });
         return withContract(envelope);
       }
-      if (runtime.mode === 'mock') {
-        const data = await mockLoader?.(input);
-        if (currentGeneration !== generation) return withContract(envelope);
-        envelope = reduceDataState({ ...envelope, mode: 'mock' }, { type: 'success', data });
-        return withContract(envelope);
-      }
-
       const requestedOperationIds = options.operationIds || contract.readOperationIds;
       if (requestedOperationIds.some(operationId => !contract.readOperationIds.includes(operationId))) throw new Error('页面 load 只能执行已登记的只读 operation');
       const operations = requestedOperationIds.map(operationResolver);

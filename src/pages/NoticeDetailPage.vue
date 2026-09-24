@@ -4,14 +4,12 @@ import { createNoticeDetailController } from '../state/announcement-controllers.
 import { resolvePage } from '../fixtures/pages.js';
 
 // Reference SHA-256: A9827301EF6051E8B9B963B07F7073F6AB7AE4BFD21BAC97FDDA67A08FF3D78F
-const props=defineProps({state:{type:String,default:'normal'},integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});
+const props=defineProps({state:{type:String,default:'normal'},integrationData:{type:Object,default:null},integrationState:{type:String,default:'loading'},operationExecutor:{type:Function,default:null}});
 const emit=defineEmits(['restore']);
 const controller=createNoticeDetailController();
 const localState=ref(props.state);
-const remoteMode=computed(()=>props.integrationState!=='mock');
 const detail=computed(()=>props.integrationData?.['ANN-003']||null);
 const state=computed(()=>{
-  if(!remoteMode.value)return localState.value;
   if(props.integrationState==='loading')return 'loading';
   if(['authentication-required','permission-denied'].includes(props.integrationState))return 'permission-denied';
   if(['error','timeout','rate-limited','schema-drift','security-error'].includes(props.integrationState))return 'error';
@@ -19,8 +17,7 @@ const state=computed(()=>{
   if(props.integrationState==='empty')return 'empty';
   return detail.value?.announcementId?'normal':'empty';
 });
-const contentVisible=computed(()=>!remoteMode.value&&['normal','disabled'].includes(state.value));
-const remoteContentVisible=computed(()=>remoteMode.value&&state.value==='normal');
+const remoteContentVisible=computed(()=>state.value==='normal');
 const controlsDisabled=computed(()=>state.value==='disabled');
 const remoteAttachments=computed(()=>(detail.value?.attachments||[]).map((item,index)=>({id:item.fileId||item.attachmentId||`attachment-${index}`,fileId:item.fileId||item.attachmentId||'',name:item.fileName||item.name||`附件 ${index+1}`,size:item.sizeText||item.fileSizeText||item.size||''})));
 const remoteRelations=computed(()=>{
@@ -35,8 +32,6 @@ function syncState(value){window.clearTimeout(loadingTimer);localState.value=val
 function beginRetry(){localState.value='loading';controller.announcement='正在重新加载通知';finishLoading();}
 function navigateWithinShell(route){window.history.pushState({xltFromPath:window.location.pathname},'',route);window.dispatchEvent(new PopStateEvent('popstate'));}
 function goBack(){if(window.history.state?.xltFromPath==='/announcements'&&window.history.length>1)window.history.back();else navigateWithinShell('/announcements');}
-function mockDownload(name){controller.mockDownload(name);}
-function openAssociated(id,label){const route=controller.associatedRoute(id);route?navigateWithinShell(route):controller.explain(label);}
 function safeApprovedRoute(path){
   if(!path||typeof window==='undefined')return '';
   try{const url=new URL(path,window.location.origin);if(url.origin!==window.location.origin)return '';return resolvePage(url.href,'normal')?`${url.pathname}${url.search}${url.hash}`:'';}catch{return '';}
@@ -59,12 +54,6 @@ async function downloadRemoteAttachment(file){
 
 watch(()=>props.state,syncState);
 onBeforeUnmount(()=>window.clearTimeout(loadingTimer));
-const highlights = [
-  ['多源数据融合', '整合工商、司法、舆情、履约等多源数据，全面评估供应商风险。'],
-  ['智能预警分级', '自动识别风险并分级预警（低/中/高），支持自定义预警规则。'],
-  ['风险处置闭环', '预警触发后生成处置任务，跟踪处置进度，形成管理闭环。'],
-  ['可视化分析看板', '提供风险趋势、分布、Top风险等多维度可视化分析，辅助决策。']
-];
 </script>
 
 <template>
@@ -82,20 +71,8 @@ const highlights = [
       </section>
       <footer class="notice-footer">物资供应领域数智化转型平台　© 2025 版权所有　　建议使用 1920×1080 及以上分辨率浏览</footer>
     </template>
-    <template v-else-if="contentVisible">
-    <nav class="crumb" aria-label="面包屑"><a href="/workbench">首页</a><span>/</span><button type="button" @click="goBack">公告通知</button><span>/</span><b>公告详情</b></nav>
-    <section class="notice-sheet" aria-labelledby="notice-title">
-      <header><mark>新应用上线</mark><h1 id="notice-title">供应商风险预警应用已发布上线</h1></header>
-      <dl class="notice-meta"><div><dt>公告类型：</dt><dd>新应用上线</dd></div><div><dt>发布时间：</dt><dd>2025-05-08 09:32</dd></div><div><dt>发布部门：</dt><dd>物资采购中心</dd></div><div><dt>发布范围：</dt><dd>全体用户</dd></div><div><dt>阅读量：</dt><dd>1,286</dd></div></dl>
-      <div class="notice-copy"><strong>各物资采购单位、相关部门及全体用户：</strong><p>为加强供应商全生命周期风险管控，提升风险识别与预警能力，数智产品展厅“供应商风险预警应用”已正式上线运行。</p><p>该应用基于多维数据分析与智能算法，实时监测供应商在经营、履约、资质、舆情等方面的风险动态，支持风险分级预警、处置跟踪与可视化分析，助力采购业务稳健高效开展。</p></div>
-      <div class="notice-visual"><img src="/assets/notice-risk-hero.png" width="862" height="206" alt="供应商风险预警应用：智能预警、精准识别、高效处置" /><aside><h2>注意事项</h2><ol><li>请各单位及时组织相关人员学习应用操作，确保风险预警信息及时响应与处置。</li><li>系统预警结果仅供参考，具体风险判断请结合实际业务情况。</li><li>如在使用过程中遇到问题，请联系平台运营团队。</li></ol></aside></div>
-      <section class="notice-highlights" aria-labelledby="highlight-title"><h2 id="highlight-title">应用亮点</h2><ol><li v-for="([title, text], index) in highlights" :key="title"><span>{{ index + 1 }}</span><strong>{{ title }}</strong><p>{{ text }}</p></li></ol></section>
-      <div class="notice-bottom"><section><h2>附件下载</h2><ul><li><b>PDF</b><span>供应商风险预警应用操作手册（V1.0）.pdf</span><small>2.45 MB</small><button type="button" :disabled="controlsDisabled" @click="mockDownload('供应商风险预警应用操作手册（V1.0）.pdf')">下载</button></li><li><b>XLSX</b><span>供应商风险预警指标说明（V1.0）.xlsx</span><small>1.12 MB</small><button type="button" :disabled="controlsDisabled" @click="mockDownload('供应商风险预警指标说明（V1.0）.xlsx')">下载</button></li><li><b>DOCX</b><span>常见问题解答（FAQ）.docx</span><small>512 KB</small><button type="button" :disabled="controlsDisabled" @click="mockDownload('常见问题解答（FAQ）.docx')">下载</button></li></ul></section><section><h2>关联对象 <button type="button" :disabled="controlsDisabled" @click="controller.explain('查看全部关联对象')">查看全部</button></h2><article><AppIcon name="app-screen" :size="48" /><div><strong>供应商风险预警应用</strong><p>多维风险识别与预警，支持风险分级与处置跟踪</p></div><button type="button" :disabled="controlsDisabled" @click="openAssociated('supplier-risk','供应商风险预警应用')">立即使用</button></article><article><AppIcon name="app-rpa" :size="48" /><div><strong>风险管理交流会</strong><p>05-13 10:00　线上交流会（已报名 723 人）</p></div><button type="button" :disabled="controlsDisabled" @click="openAssociated('activity','风险管理交流会')">去查看</button></article></section></div>
-    </section>
-    <footer class="notice-footer">物资供应领域数智化转型平台　© 2025 版权所有　　建议使用 1920×1080 及以上分辨率浏览</footer>
-    </template>
     <section v-else-if="state === 'loading'" class="notice-detail-state" aria-live="polite"><h1>正在加载通知</h1><p>请稍候。</p></section>
-    <section v-else-if="state === 'error'" class="notice-detail-state" role="alert"><h1>通知加载失败</h1><p>{{ remoteMode?'真实公告服务暂不可用。':'演示数据暂时不可用。' }}</p><div><button v-if="!remoteMode" type="button" @click="beginRetry">重试</button><button type="button" @click="goBack">返回公告列表</button></div></section>
+    <section v-else-if="state === 'error'" class="notice-detail-state" role="alert"><h1>通知加载失败</h1><p>飞书公告服务暂不可用。</p><div><button type="button" @click="goBack">返回公告列表</button></div></section>
     <section v-else-if="state === 'empty'" class="notice-detail-state"><h1>通知内容不可用</h1><button type="button" @click="goBack">返回公告列表</button></section>
     <section v-else-if="state === 'permission-denied'" class="notice-detail-state" role="alert"><h1>访问受限</h1><p>当前角色无权查看此内容。</p><a href="/workbench">返回工作台</a></section>
   </article>

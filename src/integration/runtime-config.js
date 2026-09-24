@@ -17,7 +17,7 @@ export function isRemoteRuntime(runtime) {
   return runtime?.mode === 'remote';
 }
 export function resolveIntegrationRuntime(options = {}) {
-  const requestedMode = ['mock', 'remote', 'disabled'].includes(options.requestedMode) ? options.requestedMode : 'mock';
+  const requestedMode = options.requestedMode === 'disabled' ? 'disabled' : 'remote';
   const remoteEnabled = options.remoteEnabled === true;
   const contractEvidenceComplete = options.contractEvidenceComplete === true;
   const testWritesEnabled = options.testWritesEnabled === true && requestedMode === 'remote' && remoteEnabled && contractEvidenceComplete;
@@ -27,7 +27,6 @@ export function resolveIntegrationRuntime(options = {}) {
     : configuredTimeoutMs;
   let mode = requestedMode;
   let reason = 'explicit-mode';
-  if (requestedMode === 'mock' && !remoteEnabled) reason = 'remote-disabled-by-default';
   if (requestedMode === 'remote' && (!remoteEnabled || !contractEvidenceComplete || !timeoutMs)) {
     mode = 'disabled';
     reason = !remoteEnabled ? 'kill-switch-disabled' : !contractEvidenceComplete ? 'contract-evidence-incomplete' : 'timeout-contract-missing';

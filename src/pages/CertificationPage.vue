@@ -5,46 +5,13 @@ import TypeLineIcon from "../components/TypeLineIcon.vue";
 
 const props = defineProps({
   integrationData: { type: Object, default: null },
-  integrationState: { type: String, default: "mock" },
+  integrationState: { type: String, default: "loading" },
 });
-
-const directions = [
-  ["全部", "apps"],
-  ["可视化", "visual"],
-  ["报表", "report"],
-  ["RPA", "rpa"],
-  ["数据集", "dataset"],
-  ["指标", "metric"],
-  ["AI", "ai"],
-  ["海能work应用", "work"],
-  ["EAD", "ead"],
-];
-const scenes = [
-  "全部场景域",
-  "生产运营",
-  "设备管理",
-  "设备分析",
-  "安全环保",
-  "供应链管理",
-  "人力资源",
-  "财务管理",
-  "市场营销",
-];
-const news = [
-  ["通知", "2026年第三期数智化认证考试报名正式启动", "09月01日"],
-  ["通知", "数字化认证平台能力地图与学习路径更新说明", "08月28日"],
-  ["培训", "FineReport 高级认证专题培训课程预告", "08月25日"],
-  ["资讯", "AI 与驾驶舱联合认证案例分享活动通知", "08月21日"],
-  ["通知", "第三期认证考试地点及场次安排", "08月18日"],
-];
 const selectedDirection = ref("全部");
 const selectedScene = ref("全部场景域");
 const sceneQuery = ref("");
 const announcement = ref("");
-const bookingDialog = ref(null);
-const bookingType = ref("报表");
 
-const remoteMode = computed(() => props.integrationState !== "mock");
 const remoteState = computed(() => props.integrationState);
 const remoteBlocked = computed(
   () =>
@@ -55,8 +22,7 @@ const remoteBlocked = computed(
 const remoteOverview = computed(() => props.integrationData?.['CER-001'] || {});
 const remoteList = computed(() => props.integrationData?.['CER-002'] || {});
 const remoteDetail = computed(() => props.integrationData?.['CER-003'] || null);
-const remoteBookingConfigured = computed(() => props.integrationData?.['CER-004']?.configured === true);
-const remoteBookingBlocked = computed(() => remoteMode.value && !remoteBookingConfigured.value);
+const remoteBookingBlocked = computed(() => true);
 
 function valueText(value, fallback = "") {
   return String(value ?? fallback).trim();
@@ -137,18 +103,10 @@ const remoteBookingTypes = computed(() => {
   return unique([detailName, ...rows.map((item) => itemName(item))]).slice(0, 8);
 });
 
-const displayedDirections = computed(() =>
-  remoteMode.value ? remoteDirections.value : directions,
-);
-const displayedScenes = computed(() =>
-  remoteMode.value ? remoteScenes.value : scenes,
-);
-const displayedNews = computed(() => (remoteMode.value ? remoteNews.value : news));
-const bookingTypes = computed(() =>
-  remoteMode.value
-    ? remoteBookingTypes.value
-    : ["RPA", "可视化", "驾驶舱", "报表", "数据集", "AI"],
-);
+const displayedDirections = computed(() => remoteDirections.value);
+const displayedScenes = computed(() => remoteScenes.value);
+const displayedNews = computed(() => remoteNews.value);
+const bookingTypes = computed(() => remoteBookingTypes.value);
 const tickerItems = computed(() =>
   displayedNews.value.length
     ? displayedNews.value.slice(0, 3).map((item) => item[1])
@@ -156,13 +114,12 @@ const tickerItems = computed(() =>
 );
 const remoteBoundaryVisible = computed(
   () =>
-    remoteMode.value &&
-    (remoteState.value === "error" ||
+    remoteState.value === "error" ||
       remoteState.value === "authentication-required" ||
       remoteState.value === "empty" ||
       (!displayedDirections.value.length &&
         !displayedScenes.value.length &&
-        !displayedNews.value.length)),
+        !displayedNews.value.length),
 );
 const remoteBoundaryTitle = computed(() =>
   remoteState.value === "error" || remoteState.value === "authentication-required"
@@ -190,21 +147,8 @@ function chooseScene(item) {
   selectedScene.value = item;
   announcement.value = `已选择场景域：${item}`;
 }
-function openBooking(item = "报表") {
-  if (remoteBookingBlocked.value) {
-    announcement.value = "正式预约写入合同尚未提供，当前仅可查看认证信息";
-    return;
-  }
-  bookingType.value = item;
-  bookingDialog.value?.showModal();
-}
-function confirmBooking() {
-  if (remoteBookingBlocked.value) {
-    announcement.value = "正式预约写入合同尚未提供，未提交预约";
-    return;
-  }
-  announcement.value = `已完成 ${bookingType.value} 认证考试的本地预约演示`;
-  bookingDialog.value?.close();
+function openBooking() {
+  announcement.value = "正式预约写入接口尚未启用，当前仅可查看飞书认证信息";
 }
 </script>
 
@@ -386,43 +330,6 @@ function confirmBooking() {
       </aside>
     </div>
 
-    <dialog
-      ref="bookingDialog"
-      class="booking-dialog"
-      aria-labelledby="booking-title"
-    >
-      <form method="dialog" @submit.prevent="confirmBooking">
-        <header>
-          <span class="dialog-icon"
-            ><TypeLineIcon name="ead" :size="26"
-          /></span>
-          <div>
-            <h2 id="booking-title">预约认证考试</h2>
-            <p>当前预约类别：{{ bookingType }}</p>
-          </div>
-          <button
-            type="button"
-            aria-label="关闭"
-            @click="bookingDialog.close()"
-          >
-            ×
-          </button>
-        </header>
-        <label
-          >考试场次<select required>
-            <option value="">请选择考试场次</option>
-            <option>2026-09-18 14:00　总部考试中心</option>
-            <option>2026-09-25 09:30　线上监考场</option>
-            <option>2026-10-16 14:00　总部考试中心</option>
-          </select></label
-        >
-        <label>联系电话<input value="139****5678" required /></label>
-        <footer>
-          <button type="button" @click="bookingDialog.close()">取消</button
-          ><button type="submit" :disabled="remoteBookingBlocked">确认预约</button>
-        </footer>
-      </form>
-    </dialog>
   </article>
 </template>
 

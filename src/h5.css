@@ -193,7 +193,7 @@
   }
 
   /* Application, material, favorite and training cards */
-  #main-content :is(.apps-grid,.materials-grid,.favorite-grid,.course-grid,.content-cards,.mock-grid) {
+  #main-content :is(.apps-grid,.materials-grid,.favorite-grid,.course-grid,.content-cards) {
     width: 100%;
     display: grid !important;
     grid-template-columns: 1fr !important;

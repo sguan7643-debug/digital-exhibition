@@ -1,6 +1,4 @@
 import { reactive } from 'vue';
-import { FAVORITE_FIXTURES } from './content-controllers.js';
-import { APP_FIXTURES } from '../fixtures/mock-data.js';
 
 const clone=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
 const SESSION_FIELDS=['queryDraft','filters','draft','page','pageSize','sort','view'];
@@ -24,7 +22,7 @@ export function createSessionStore(initialFavorites=[],favoriteMappings=[]){
     snapshot(key){const value=snapshots.get(key);return value?clone(value):null;},
     captureViewState(){const state={};for(const [key,controller] of controllers){const value={};for(const field of SESSION_FIELDS)if(field in controller)value[field]=clone(controller[field]);if(Object.keys(value).length)state[key]=value;}return state;},
     restoreViewState(state={}){for(const [key,value] of Object.entries(state)){const controller=controllers.get(key);if(!controller)continue;for(const [field,next] of Object.entries(value)){if(controller[field]&&typeof controller[field]==='object'&&!Array.isArray(controller[field]))Object.assign(controller[field],clone(next));else controller[field]=clone(next);}}},
-    registerFavorite(id,route){favoriteRoutes.set(id,route);},
+    registerFavorite(id,route){favoriteRoutes.set(id,route);if(!canonicalFavoriteIds.has(route))canonicalFavoriteIds.set(route,id);},
     isFavoriteId(id){return favorites.has(id);},
     favoriteIdForRoute(route){return canonicalFavoriteIds.get(route)||null;},
     isRouteFavorite(route){const id=this.favoriteIdForRoute(route);return id?favorites.has(id):false;},
@@ -37,5 +35,4 @@ export function createSessionStore(initialFavorites=[],favoriteMappings=[]){
   };
 }
 
-const favoriteMappings=[...FAVORITE_FIXTURES.map(item=>[item.id,item.route]),...APP_FIXTURES.map(item=>[item.id,item.route])];
-export const routeSession=createSessionStore(FAVORITE_FIXTURES.map(item=>item.id),favoriteMappings);
+export const routeSession=createSessionStore();

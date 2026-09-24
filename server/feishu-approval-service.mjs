@@ -102,6 +102,12 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
     return result;
   }
 
+  function requireAuthorizationScope(application) {
+    if (!String(application?.users || '').trim() || !String(application?.accessDepartment || '').trim()) {
+      throw new FeishuProxyError('APPROVAL_AUTHORIZATION_REQUIRED', '海能Work审批必须填写适用用户和适用部门', 400);
+    }
+  }
+
   function hydrateApplication(record, result = {}) {
     const form = result.formValues && typeof result.formValues === 'object' ? result.formValues : {};
     record.application = normalizeApplication(record.application, {
@@ -190,13 +196,15 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
       await syncProjection(existing);
       return Object.freeze({ instanceId: existing.instanceId, status: existing.status });
     }
+    const application = normalizeApplication(input.application, { name: title, applicationCode, summary: input.description, description: input.description });
+    requireAuthorizationScope(application);
     if (!createPromises.has(key)) createPromises.set(key, (async () => {
       const definition = await ensureTestDefinition(session);
       const record = existing || { instanceId: '', approvalCode: definition.approvalCode, creatorUserId: userId, creatorSubject: context.subject, creatorOpenId: context.openId, tenantKey: context.tenantKey, orgId: context.orgId, resourceId, permissionSnapshot: context.permissionSnapshot, businessKey, idempotencyKey, registryKey: key, requestId: stableRequestId(context, key), createdAt: now(), expiresAt: now() + REGISTRY_TTL_MS, cleanupStatus: 'ACTIVE', status: 'PENDING', projectionStatus: 'PENDING' };
       record.title = title;
       record.applicationCode = applicationCode;
       record.description = String(input.description || 'TEST_数智展厅端到端验收');
-      record.application = normalizeApplication(input.application, { name: title, applicationCode, summary: record.description, description: record.description });
+      record.application = application;
       if (!existing) registry.set(`pending:${key}`, record);
       persistRegistry();
       try {

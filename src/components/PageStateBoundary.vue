@@ -83,7 +83,7 @@ onBeforeUnmount(()=>window.clearTimeout(loadingTimer));
     </div>
     <section v-if="localState==='loading'&&!recovering" class="state-surface"><h1>{{ page.title }}</h1><p>内容加载中，请稍候。</p></section>
     <section v-else-if="localState==='empty'||recovering==='empty'" class="inline-state" role="status"><p>{{ recovering?'正在恢复当前页面':'当前筛选条件下暂无内容。' }}</p><button type="button" :aria-disabled="recovering?'true':undefined" @click="restore">{{ recovering?'恢复中':'恢复当前页面' }}</button></section>
-    <section v-else-if="localState==='error'||recovering==='error'" class="state-surface" :role="recovering?'status':'alert'"><h1>{{ recovering?'正在重新加载':`${page.title}加载失败` }}</h1><p>{{ recovering?'内容加载中，请稍候。':'本地演示数据暂时不可用。' }}</p><button type="button" :aria-disabled="recovering?'true':undefined" @click="retry">{{ recovering?'重试中':'重试' }}</button></section>
+    <section v-else-if="localState==='error'||recovering==='error'" class="state-surface" :role="recovering?'status':'alert'"><h1>{{ recovering?'正在重新加载':`${page.title}加载失败` }}</h1><p>{{ recovering?'内容加载中，请稍候。':'飞书数据暂时不可用。' }}</p><button type="button" :aria-disabled="recovering?'true':undefined" @click="retry">{{ recovering?'重试中':'重试' }}</button></section>
     <section v-else-if="localState==='permission-denied'" class="state-surface" role="alert"><h1 ref="stateHeading" tabindex="-1">访问受限</h1><p>当前角色无权访问该页面。</p><a href="/workbench">返回工作台</a></section>
   </section>
 </template>

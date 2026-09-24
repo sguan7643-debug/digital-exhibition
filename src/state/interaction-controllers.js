@@ -342,24 +342,8 @@ export function createTalentController(fixtures) {
       return !Object.keys(errors).length;
     },
     saveNew() {
-      if (!this.validateDraft()) {
-        this.announcement = "新增人才信息未填写完整，请检查标注字段";
-        return false;
-      }
-      const suffix = String(this.fixtures.length + 1).padStart(3, "0");
-      const person = {
-        ...this.draft,
-        id: `person-local-${suffix}`,
-        age: Number(this.draft.age),
-      };
-      this.fixtures.unshift(person);
-      this.page = 1;
-      this.mode = null;
-      this.selectedId = null;
-      this.draft = createTalentDraft();
-      this.errors = {};
-      this.announcement = `已在本地人才库新增${person.name}`;
-      return person;
+      this.announcement = "正式人才写入接口尚未启用";
+      return false;
     },
     close() {
       this.selectedId = null;

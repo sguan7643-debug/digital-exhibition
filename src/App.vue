@@ -11,7 +11,6 @@ import AnnouncementsPage from './pages/AnnouncementsPage.vue';
 import FavoritesPage from './pages/FavoritesPage.vue';
 import MessagesPage from './pages/MessagesPage.vue';
 import MaterialsPage from './pages/MaterialsPage.vue';
-import PortalPage from './pages/PortalPage.vue';
 import ProfilePage from './pages/ProfilePage.vue';
 import WorkbenchPage from './pages/WorkbenchPage.vue';
 import NoticeDetailPage from './pages/NoticeDetailPage.vue';
@@ -283,6 +282,24 @@ const integrationRecovery = computed(() => {
     traceId
   };
 });
+const dismissedIntegrationRecoveryKey = ref('');
+const integrationRecoveryKey = computed(() => {
+  if (!integrationRecovery.value) return '';
+  return [
+    page.value.route,
+    ...(integrationEnvelope.value.retryScope || []),
+    integrationRecovery.value.traceId || '',
+    integrationRecovery.value.message
+  ].join('|');
+});
+const integrationRecoveryVisible = computed(() => Boolean(
+  integrationRecovery.value
+  && integrationRecoveryKey.value !== dismissedIntegrationRecoveryKey.value
+));
+
+function dismissIntegrationRecovery() {
+  dismissedIntegrationRecoveryKey.value = integrationRecoveryKey.value;
+}
 
 async function syncIntegrationEnvelope() {
   clearTimeout(integrationInitialSyncTimer);
@@ -303,7 +320,6 @@ async function syncIntegrationEnvelope() {
   integrationDataSource = createPageDataSource({
     route,
     runtime: integrationRuntime,
-    mockLoader: () => ({ source: 'existing-approved-page-fixture', route: page.value.route }),
     client: integrationClient,
     operationResolver: resolveRemoteOperation
   });
@@ -401,28 +417,31 @@ async function retryEntryAuthorization() {
     :data-integration-mode="integrationEnvelope.mode"
     :data-integration-operations="integrationContract?.readOperationIds.join(',')"
   >
-    <section
-      v-if="requestActivity.isLoading"
-      class="request-activity-banner"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-      aria-busy="true"
-    >
-      <span class="request-activity-banner__bar" aria-hidden="true"></span>
-      <span class="request-activity-banner__copy">
-        <strong v-if="requestActivity.activeCount > 1">正在处理 {{ requestActivity.activeCount }} 项请求</strong>
-        <strong v-else>{{ requestActivity.labels[0] || '正在加载数据' }}…</strong>
-        <small>页面其他区域仍可继续使用</small>
-      </span>
-    </section>
+    <div class="integration-toast-stack" aria-label="数据请求状态">
+      <section
+        v-if="requestActivity.isLoading"
+        class="request-activity-banner"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        aria-busy="true"
+      >
+        <span class="request-activity-banner__bar" aria-hidden="true"></span>
+        <span class="request-activity-banner__copy">
+          <strong v-if="requestActivity.activeCount > 1">正在处理 {{ requestActivity.activeCount }} 项请求</strong>
+          <strong v-else>{{ requestActivity.labels[0] || '正在加载数据' }}…</strong>
+          <small>页面其他区域仍可继续使用</small>
+        </span>
+      </section>
+      <integration-auth-banner v-if="integrationAuthRequired" :href="feishuAuthUrl" />
+      <section v-if="integrationRecoveryVisible" class="integration-recovery" role="status" aria-live="polite" data-integration-retry>
+        <span>{{ integrationRecovery.message }}</span>
+        <button type="button" class="integration-retry-action" :disabled="integrationRetrying" @click="retryIntegration">{{ integrationRetrying ? '正在重试…' : '重试受影响数据' }}</button>
+        <small v-if="integrationRecovery.traceId">请求标识：{{ integrationRecovery.traceId }}</small>
+        <button type="button" class="integration-toast-close" aria-label="关闭数据请求提示" title="关闭" @click="dismissIntegrationRecovery"><span aria-hidden="true">×</span></button>
+      </section>
+    </div>
     <p class="sr-only integration-source-status" data-integration-status aria-live="polite">{{ integrationLiveAnnouncement }}</p>
-    <integration-auth-banner v-if="integrationAuthRequired" :href="feishuAuthUrl" />
-    <section v-if="integrationRecovery" class="integration-recovery" role="status" aria-live="polite" data-integration-retry>
-      <span>{{ integrationRecovery.message }}</span>
-      <button type="button" :disabled="integrationRetrying" @click="retryIntegration">{{ integrationRetrying ? '正在重试…' : '重试受影响数据' }}</button>
-      <small v-if="integrationRecovery.traceId">请求标识：{{ integrationRecovery.traceId }}</small>
-    </section>
     <page-state-boundary :page="page" :state="page.state" @restore="restoreNormal">
       <workbench-page v-if="page.id === '01'" :integration-data="integrationEnvelope.data" :operation-executor="executeReadOperation" />
       <messages-page v-else-if="page.id === '02'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
@@ -467,7 +486,7 @@ async function retryEntryAuthorization() {
       <announcement-admin-page v-else-if="page.id === '22'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <announcement-editor-page v-else-if="page.id === '23'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <app-admin-page v-else-if="page.id === '24'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
-      <app-editor-page v-else-if="page.id === '25'" />
+      <app-editor-page v-else-if="page.id === '25'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <admin-page
         v-else-if="page.id === '26'"
         :integration-data="integrationEnvelope.data"
@@ -487,7 +506,7 @@ async function retryEntryAuthorization() {
         :integration-data="integrationEnvelope.data"
         :integration-state="integrationEnvelope.state"
       />
-      <portal-page v-else :page="page" />
+      <section v-else class="state-surface" role="status">当前页面没有已登记的飞书数据源。</section>
       <app-detail-live-sections v-if="Number(page.id) >= 8 && Number(page.id) <= 16"
         :integration-data="integrationEnvelope.data"
         :integration-state="integrationEnvelope.state"

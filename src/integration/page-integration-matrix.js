@@ -17,7 +17,7 @@ const appDetailOperationIds = Object.freeze([
   'FAV-003','FAV-004','APP-005','APP-006','APP-008'
 ]);
 
-const define = (id, route, operationIds, fieldDomains, defaultMode = 'mock') => {
+const define = (id, route, operationIds, fieldDomains, defaultMode = 'remote') => {
   const readOperationIds = operationIds.filter(operationId => getOperation(operationId)?.readOnly && !interactionReadOperationIds.has(operationId));
   const interactionOperationIds = operationIds.filter(operationId => interactionReadOperationIds.has(operationId));
   const actions = operationIds.filter(operationId => getOperation(operationId)?.access === 'write').map(operationId => Object.freeze({
@@ -79,7 +79,7 @@ export const PAGE_INTEGRATION_MATRIX = Object.freeze([
   define('29','/talent/projects',['TAL-002','TAL-004'],['talent-project','talent-write'],'disabled'),
   define('30','/talent/progress',['TAL-003','TAL-004'],['talent-progress','talent-write'],'disabled'),
   define('31','/materials',['MAT-001'],['material-facet','material-category']),
-  define('32','/apps/onboarding/apply',['COM-003','COM-004'],['organization-directory','contact-directory','onboarding-form'])
+  define('32','/apps/onboarding/apply',['COM-003','COM-004','COM-005'],['organization-directory','contact-directory','dictionary','onboarding-form'])
 ]);
 
 export function getPageIntegrationContract(route) {

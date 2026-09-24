@@ -9,41 +9,23 @@ const appsSource = await readFile(new URL('../src/pages/AppsPage.vue', import.me
 const appSource = await readFile(new URL('../src/App.vue', import.meta.url), 'utf8');
 const applySource = await readFile(new URL('../src/pages/OnboardingApplyPage.vue', import.meta.url), 'utf8');
 
-for (const [field, value] of [
-  ['applicant', 'linmm'],
-  ['department', '物资采购中心'],
-  ['phone', '13900000000'],
-  ['email', 'linmm@example.com'],
-  ['name', 'TEST_RPA_应用上架联调'],
-  ['applicationCode', 'RPA-TEST-20260910'],
-  ['type', 'T003'],
-  ['domain', 'BD003'],
-  ['summary', 'TEST_RPA 应用上架审批联调'],
-  ['scenario', '用于验证数智展厅 RPA 应用上架审批流程'],
-  ['collaboration', 'TEST_内部研发联调'],
-  ['webAddress', 'http://127.0.0.1:4174/rpa-test'],
-  ['mobileAddress', 'app://test-rpa'],
-  ['contact', 'linmm'],
-  ['contactDepartment', '物资采购中心'],
-  ['contactPhone', '13800000000'],
-  ['contactEmail', 'linmm@example.com'],
-  ['users', 'linmm'],
-  ['accessDepartment', '物资采购中心'],
-  ['roles', '测试用户'],
-  ['remarks', 'TEST_应用上架联调记录'],
+for (const field of [
+  'applicant', 'department', 'phone', 'email', 'name', 'applicationCode', 'type', 'domain',
+  'summary', 'scenario', 'collaboration', 'webAddress', 'mobileAddress', 'contact',
+  'contactDepartment', 'contactPhone', 'contactEmail', 'users', 'accessDepartment', 'roles', 'remarks'
 ]) {
-  assert.ok(applySource.includes(`${field}: "${value}"`), `表单 ${field} 必须提供联调默认值`);
+  assert.ok(applySource.includes(`${field}: ""`), `表单 ${field} 不得内置模拟业务值`);
 }
 
 assert.equal(PAGE_MATRIX.length, 30, 'the frozen 30-page visual matrix must remain unchanged');
 assert.equal(resolvePage('/apps/onboarding/apply')?.id, '32');
-assert.deepEqual(getPageIntegrationContract('/apps/onboarding/apply').readOperationIds, ['COM-003', 'COM-004']);
+assert.deepEqual(getPageIntegrationContract('/apps/onboarding/apply').readOperationIds, ['COM-003', 'COM-004', 'COM-005']);
 const directoryPlan = buildPageReadRequestPlan({
   route: '/apps/onboarding/apply',
-  readOperationIds: ['COM-003', 'COM-004'],
+  readOperationIds: ['COM-003', 'COM-004', 'COM-005'],
   operationContracts: createVerifiedReadOperationContracts()
 });
-assert.deepEqual(directoryPlan.operationIds, ['COM-003', 'COM-004']);
+assert.deepEqual(directoryPlan.operationIds, ['COM-003', 'COM-004', 'COM-005']);
 assert.equal(directoryPlan.inputByOperation['COM-004'].pageSize, 100);
 assert.match(appsSource, /href=["']\/apps\/onboarding\/apply["']/);
 assert.doesNotMatch(appsSource, /应用上线申请为本地演示操作/);
@@ -143,6 +125,8 @@ assert.ok(contactSection.indexOf('所属部门') < contactSection.indexOf('接�
 
 const permissionSection = applySource.match(/<legend><span>6<\/span>应用权限开通<\/legend>([\s\S]*?)<\/fieldset>/)?.[1] || '';
 assert.ok(permissionSection.indexOf('适用部门') < permissionSection.indexOf('适用用户'), '适用部门必须排在适用用户之前');
+assert.match(permissionSection, /适用部门[\s\S]*?:required="form\.type === 'T005'"/, '海能Work 的适用部门必须必填');
+assert.match(permissionSection, /适用用户[\s\S]*?:required="form\.type === 'T005'"/, '海能Work 的适用用户必须必填');
 assert.match(applySource, /<legend><span>8<\/span>附件上传（选填）<\/legend>/);
 assert.doesNotMatch(applySource, /组件上传（选填）/);
 

@@ -3,34 +3,33 @@ import { readFileSync } from 'node:fs';
 
 const root = new URL('../', import.meta.url);
 const sourceFiles = [
-  'src/App.vue', 'src/main.js', 'src/style.css', 'src/h5.css', 'src/fixtures/pages.js', 'src/fixtures/mock-data.js',
-  'src/fixtures/page-content.js', 'src/runtime/network-guard.js',
+  'src/App.vue', 'src/main.js', 'src/style.css', 'src/h5.css', 'src/fixtures/pages.js',
+  'src/runtime/network-guard.js',
   'src/state/interaction-controllers.js',
   'src/components/ExhibitionShell.vue', 'src/components/TypeLineIcon.vue',
-  'src/components/BusinessPreviewGallery.vue', 'src/components/IndicatorBuildDialog.vue',
+  'src/components/RemoteAppDetailPage.vue', 'src/components/RemoteRecordPage.vue',
+  'src/components/PageStateBoundary.vue',
   'src/pages/WorkbenchPage.vue',
   'src/pages/MessagesPage.vue', 'src/pages/FavoritesPage.vue', 'src/pages/ProfilePage.vue',
   'src/pages/AnnouncementsPage.vue', 'src/pages/NoticeDetailPage.vue', 'src/pages/AppsPage.vue',
   'src/pages/MaterialsPage.vue',
   'src/pages/ToolDetailPage.vue', 'src/pages/HainengWorkDetailPage.vue', 'src/pages/ReportDetailPage.vue',
   'src/pages/DashboardDetailPage.vue', 'src/pages/DatasetDetailPage.vue', 'src/pages/MetricDetailPage.vue',
-  'src/pages/AiDetailPage.vue', 'src/pages/EadDetailPage.vue', 'src/pages/PortalPage.vue',
+  'src/pages/AiDetailPage.vue', 'src/pages/EadDetailPage.vue',
   'src/pages/RpaDetailPage.vue', 'src/pages/OnboardingPage.vue', 'src/pages/OnboardingApplyPage.vue', 'src/pages/PointsPage.vue',
   'src/pages/PointsDetailsPage.vue', 'src/pages/TrainingPage.vue', 'src/pages/OperationsPage.vue',
   'src/pages/AnnouncementAdminPage.vue', 'src/pages/AnnouncementEditorPage.vue',
   'src/pages/AppAdminPage.vue', 'src/pages/AppEditorPage.vue', 'src/pages/AdminPage.vue',
   'src/pages/CertificationPage.vue', 'src/pages/TalentPeoplePage.vue',
-  'src/pages/TalentProjectsPage.vue', 'src/pages/TalentProgressPage.vue',
-  'src/pages/GenericPage.vue'
+  'src/pages/TalentProjectsPage.vue', 'src/pages/TalentProgressPage.vue'
 ];
 const sources = sourceFiles.map(path => [path, readFileSync(new URL(path, root), 'utf8')]);
 const joined = sources.map(([, value]) => value).join('\n');
 
 assert.doesNotMatch(joined, /https?:\/\/(?!127\.0\.0\.1|localhost)/i, '源码不得包含外部 HTTP 地址');
 assert.doesNotMatch(joined, /localStorage|sessionStorage|indexedDB/, '样机不得写入持久化浏览器存储');
-assert.doesNotMatch(joined, /Date\.now\(|new Date\(|Math\.random\(/, '样机不得产生非确定性时间或随机值');
-assert.match(joined, /2026-08-19T09:00:00\+08:00/);
-assert.match(joined, /FIXTURE_SEED = 817/);
+assert.doesNotMatch(joined, /Math\.random\(/, '源码不得使用非安全随机值');
+assert.doesNotMatch(joined, /\b(?:APP|PEOPLE|MESSAGE|FAVORITE|ANNOUNCEMENT|HOT_APP|PROJECT|PROGRESS)_FIXTURES\b/, '源码不得重新引入业务模拟数据');
 
 const network = sources.find(([path]) => path.endsWith('network-guard.js'))[1];
 for (const capability of ['fetch', 'XMLHttpRequest', 'WebSocket', 'sendBeacon', 'localhost', '127.0.0.1']) {
@@ -38,11 +37,11 @@ for (const capability of ['fetch', 'XMLHttpRequest', 'WebSocket', 'sendBeacon', 
 }
 
 const shell = sources.find(([path]) => path.endsWith('ExhibitionShell.vue'))[1];
-const portal = sources.find(([path]) => path.endsWith('PortalPage.vue'))[1];
-const generic = sources.find(([path]) => path.endsWith('GenericPage.vue'))[1];
+const remoteRecord = sources.find(([path]) => path.endsWith('RemoteRecordPage.vue'))[1];
+const stateBoundary = sources.find(([path]) => path.endsWith('PageStateBoundary.vue'))[1];
 for (const semantic of ['<header', '<nav', '<aside', '<main', 'aria-current', 'skip-link']) assert.ok(shell.includes(semantic));
-for (const semantic of ['<article', '<section', '<form', '<table', '<caption', 'aria-label']) assert.ok(portal.includes(semantic));
-for (const state of ['loading', 'empty', 'error', 'disabled', 'permission-denied']) assert.ok(generic.includes(state));
+for (const semantic of ['<article', '<section', '<dl', 'role="status"', 'role="alert"']) assert.ok(remoteRecord.includes(semantic));
+for (const state of ['loading', 'empty', 'error', 'disabled', 'permission-denied']) assert.ok(stateBoundary.includes(state));
 assert.ok((joined.match(/:focus-visible/g) || []).length >= 4, '可交互区域必须声明可见焦点');
 assert.ok((joined.match(/@media\(max-width:/g) || []).length >= 4, '必须声明多档响应式布局');
 assert.match(joined, /prefers-reduced-motion/);

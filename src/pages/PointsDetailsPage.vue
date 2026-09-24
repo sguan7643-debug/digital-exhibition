@@ -4,15 +4,12 @@ import PaginationControl from "../components/PaginationControl.vue";
 // Reference SHA-256: 82F80F3AB4A821165E6B14344C809B5E102CC7DD8013DD69B7F7F39BF9900F34
 const props = defineProps({
   integrationData: { type: Object, default: null },
-  integrationState: { type: String, default: "mock" },
+  integrationState: { type: String, default: "loading" },
 });
-const fallbackRows = [['JF202505060001','应用建设','应用正式上架：供应商评估看板','+30','2,850','2025-05-06 10:18:25','项目经理，应用首次正式上架'],['JF202505060002','应用互动','发布有效应用评论：供应商风险预警','+2','2,820','2025-05-06 09:32:11','同一应用当月首次有效评论'],['JF202505050001','应用使用','使用申请审批通过：AI采购应用实践','+3','2,818','2025-05-05 16:45:32','每个应用首次审批通过'],['JF202505050002','应用互动','首次收藏应用：采购异常预警','+2','2,815','2025-05-05 15:22:07','同一应用首次收藏'],['JF202505040001','培训学习','首次点击课程学习链接：供应链分析','+3','2,813','2025-05-04 11:03:44','每门课程首次'],['JF202505030001','基础活跃','每日首次进入数智展厅','+2','2,810','2025-05-03 14:18:55','每日1次'],['JF202505020001','培训学习','首次查看课程详情：采购数字化实践','+1','2,808','2025-05-02 10:05:18','每门课程1次'],['JF202505010001','应用使用','提交应用使用申请：增值税发票查验机器人','+2','2,807','2025-05-01 17:20:36','每个应用首次提交']];
 const state = reactive({ type: "", source: "", keyword: "", page: 1, pageSize: 10, announcement: "" });
 const remote = computed(() => props.integrationData?.['PTS-002']);
-const remoteMode = computed(() => Array.isArray(remote.value?.items));
 const rows = computed(() =>
-  remoteMode.value
-    ? remote.value.items.map((item) => [
+  (remote.value?.items || []).map((item) => [
         item.serialNo,
         item.pointTypeName || item.pointTypeCode,
         item.sourceName || item.sourceCode,
@@ -21,8 +18,7 @@ const rows = computed(() =>
         item.occurredAt?.replace("T", " ").slice(0, 19) || "",
         item.remark,
         item.statusName || item.statusCode,
-      ])
-    : fallbackRows.map((item) => [...item, "已生效"]),
+      ]),
 );
 const filtered = computed(() =>
   rows.value.filter(
@@ -41,7 +37,7 @@ const paged = computed(() => {
 });
 const types = computed(() => [...new Set(rows.value.map((row) => row[1]).filter(Boolean))]);
 const sources = computed(() => [...new Set(rows.value.map((row) => row[2]).filter(Boolean))]);
-const summary = computed(() => remote.value?.summary || { income: 320, expense: 0, netChange: 320 });
+const summary = computed(() => remote.value?.summary || { income: 0, expense: 0, netChange: 0 });
 function reset() {
   Object.assign(state, { type: "", source: "", keyword: "", page: 1, announcement: "已重置积分筛选" });
 }

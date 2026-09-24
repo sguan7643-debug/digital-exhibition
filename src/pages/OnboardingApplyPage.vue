@@ -5,45 +5,34 @@ import { normalizeAppBasePath, prependAppBasePath } from "../integration/app-bas
 
 const props = defineProps({
   integrationData: { type: Object, default: null },
-  integrationState: { type: String, default: "mock" },
-  integrationMode: { type: String, default: "mock" },
+  integrationState: { type: String, default: "loading" },
+  integrationMode: { type: String, default: "remote" },
 });
 
 const form = reactive({
-  applicant: "linmm",
-  department: "物资采购中心",
-  phone: "13900000000",
-  email: "linmm@example.com",
-  name: "TEST_RPA_应用上架联调",
-  applicationCode: "RPA-TEST-20260910",
-  type: "T003",
-  domain: "BD003",
-  summary: "TEST_RPA 应用上架审批联调",
-  scenario: "用于验证数智展厅 RPA 应用上架审批流程",
-  collaboration: "TEST_内部研发联调",
-  webAddress: "http://127.0.0.1:4174/rpa-test",
-  mobileAddress: "app://test-rpa",
-  contact: "linmm",
-  contactDepartment: "物资采购中心",
-  contactPhone: "13800000000",
-  contactEmail: "linmm@example.com",
-  users: "linmm",
-  accessDepartment: "物资采购中心",
-  roles: "测试用户",
+  applicant: "",
+  department: "",
+  phone: "",
+  email: "",
+  name: "",
+  applicationCode: "",
+  type: "",
+  domain: "",
+  summary: "",
+  scenario: "",
+  collaboration: "",
+  webAddress: "",
+  mobileAddress: "",
+  contact: "",
+  contactDepartment: "",
+  contactPhone: "",
+  contactEmail: "",
+  users: "",
+  accessDepartment: "",
+  roles: "",
   scope: "assigned",
-  remarks: "TEST_应用上架联调记录",
+  remarks: "",
 });
-const applicationTypes = [
-  { label: "可视化", value: "T007" },
-  { label: "报表", value: "T006" },
-  { label: "RPA", value: "T003" },
-  { label: "数据集", value: "T008" },
-  { label: "指标", value: "T009" },
-  { label: "AI", value: "T001" },
-  { label: "海能work应用", value: "T005" },
-  { label: "EAD", value: "T002" },
-  { label: "其他工具", value: "T004" },
-];
 const applicationDetailSchemas = Object.freeze({
   T007: {
     tableName: "可视化驾驶舱详情",
@@ -139,7 +128,7 @@ const applicationDetailSchemas = Object.freeze({
   },
 });
 function createDetailDraft(fields) {
-  return Object.fromEntries(fields.map((field) => [field.key, `TEST_${field.key}`]));
+  return Object.fromEntries(fields.map((field) => [field.key, ""]));
 }
 const detailDrafts = reactive(
   Object.fromEntries(
@@ -149,13 +138,10 @@ const detailDrafts = reactive(
     ])
   )
 );
-Object.assign(detailDrafts.T003, {
-  "RPA所属平台": "测试平台",
-  "操作流程步骤": "1. 提交申请；2. 审批通过；3. 发布应用",
-  应用描述: "TEST_RPA 应用详情",
-});
+const dictionaries = computed(() => props.integrationData?.["COM-005"]?.itemsByType || {});
+const applicationTypes = computed(() => (dictionaries.value.APPLICATION_TYPE || []).map(item => ({ label: item.label, value: item.value })));
 const activeApplicationType = computed(
-  () => applicationTypes.find((item) => item.value === form.type) || applicationTypes[0]
+  () => applicationTypes.value.find((item) => item.value === form.type) || { label: "未选择", value: "" }
 );
 const activeDetailSchema = computed(
   () => applicationDetailSchemas[form.type] || { tableName: "应用详情", fields: [] }
@@ -190,20 +176,7 @@ const feishuAuthHref = computed(() => {
   return `/api/v1/auth/feishu/start?returnTo=${encodeURIComponent(returnTo)}`;
 });
 
-const businessDomains = [
-  { label: "智能办公", value: "BD001" },
-  { label: "综合管理", value: "BD002" },
-  { label: "供应链管理", value: "BD003" },
-  { label: "经营分析", value: "BD004" },
-  { label: "数字化办公", value: "BD005" },
-];
-const departmentCodes = {
-  信息化管理部: "D001",
-  数据智能部: "D002",
-  供应链管理部: "D003",
-  物资采购中心: "D004",
-  经营管理部: "D005",
-};
+const businessDomains = computed(() => (dictionaries.value.BUSINESS_DOMAIN || []).map(item => ({ label: item.label, value: item.value })));
 
 function flattenOrganizations(items, result = []) {
   for (const item of Array.isArray(items) ? items : []) {
@@ -217,15 +190,7 @@ function flattenOrganizations(items, result = []) {
   return result;
 }
 
-const fallbackDepartments = Object.freeze(
-  Object.entries(departmentCodes).map(([name, id]) => ({ id, name }))
-);
-const fallbackUsers = Object.freeze([
-  { adAccount: "linmm", displayName: "林敏敏", departmentId: "D004", departmentName: "物资采购中心" },
-]);
-const remoteDirectoryMode = computed(() => props.integrationMode !== "mock");
 const departmentOptions = computed(() => {
-  if (!remoteDirectoryMode.value) return fallbackDepartments;
   const unique = new Map();
   for (const item of flattenOrganizations(props.integrationData?.["COM-003"]?.items)) {
     if (item.id && item.name) unique.set(item.id, item);
@@ -233,7 +198,6 @@ const departmentOptions = computed(() => {
   return [...unique.values()];
 });
 const userOptions = computed(() => {
-  if (!remoteDirectoryMode.value) return fallbackUsers;
   return (props.integrationData?.["COM-004"]?.items || [])
     .filter((item) => item?.enabled !== false)
     .map((item) => ({
@@ -245,14 +209,13 @@ const userOptions = computed(() => {
     .filter((item) => item.adAccount && item.displayName);
 });
 const directoryState = computed(() => {
-  if (!remoteDirectoryMode.value) return "mock";
   if (props.integrationState === "loading") return "loading";
   if (["authentication-required", "permission-denied"].includes(props.integrationState)) return "permission-denied";
   if (["error", "timeout", "rate-limited", "schema-drift", "security-error"].includes(props.integrationState)) return "error";
   if (props.integrationState === "disabled") return "disabled";
   return departmentOptions.value.length && userOptions.value.length ? "normal" : "empty";
 });
-const directoryDisabled = computed(() => !["mock", "normal"].includes(directoryState.value));
+const directoryDisabled = computed(() => directoryState.value !== "normal");
 function usersInDepartment(departmentName) {
   if (!departmentName) return userOptions.value;
   const department = departmentOptions.value.find((item) => item.name === departmentName || item.id === departmentName);
@@ -283,11 +246,10 @@ function rememberFile(key, event) {
 }
 function saveDraft() {
   saved.value = true;
-  announcement.value = "申请草稿已保存在本地演示会话中";
+  announcement.value = "申请草稿已保存在当前浏览器会话中";
 }
 function departmentId(value) {
   return departmentOptions.value.find((item) => item.name === value || item.id === value)?.id
-    || departmentCodes[value]
     || value;
 }
 function buildRpaApprovalRequest() {
@@ -577,12 +539,12 @@ async function submitApplication() {
         <legend><span>6</span>应用权限开通</legend>
         <div class="field-grid four-cols">
           <label
-            >适用部门<select v-model="form.accessDepartment" :disabled="directoryDisabled" @change="resetApplicableUserForDepartment">
+            >适用部门<b v-if="form.type === 'T005'">*</b><select v-model="form.accessDepartment" :disabled="directoryDisabled" :required="form.type === 'T005'" @change="resetApplicableUserForDepartment">
               <option value="">请选择部门</option>
               <option v-for="department in departmentOptions" :key="department.id" :value="department.name">{{ department.name }}</option>
             </select></label
           >
-          <label>适用用户<select v-model="form.users" :disabled="directoryDisabled || !form.accessDepartment">
+          <label>适用用户<b v-if="form.type === 'T005'">*</b><select v-model="form.users" :disabled="directoryDisabled || !form.accessDepartment" :required="form.type === 'T005'">
             <option value="">请先选择适用部门</option>
             <option v-for="user in applicableUserOptions" :key="user.adAccount" :value="user.adAccount">{{ user.displayName }}（{{ user.adAccount }}）</option>
           </select></label>

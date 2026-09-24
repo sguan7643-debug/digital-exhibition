@@ -1,38 +1,31 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { createProfileController } from '../state/workbench-profile-controllers.js';
-const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'},operationExecutor:{type:Function,default:null}});
+const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'loading'},operationExecutor:{type:Function,default:null}});
 const profile=createProfileController();
 const REFERENCE_SHA256 = 'F08DE51669B152D46224A0031945CFFF85969E40D7416D93849B6E1CDD35FA9A';
-const mockStats=[['我的积分','2,850','积分','本月　+320','/assets/profile-stat-points.png'],['收藏应用','24','个','应用收藏','/assets/profile-stat-favorite.png'],['应用访问次数','128','次','本月访问','/assets/profile-stat-visits.png'],['应用使用次数','56','次','本月使用','/assets/profile-stat-use.png']];
-const mockQuick=[['我的申请','查看我的申请记录及进度','/apps/onboarding/status'],['我的收藏','查看我收藏的应用与内容','/favorites'],['积分明细','查看积分获取与使用明细','/points/details'],['活动报名记录','查看我的活动报名记录','']];
-const mockNotices=[['系统通知','【系统更新】数智产品展厅系统升级通知','05-08 09:32',''],['应用上新','【新应用上线】供应商风险预警应用已发布上线','05-07 16:18',''],['平台公告','平台将于5月10日22:00-23:00进行系统维护','05-05 17:42',''],['活动通知','【活动通知】数智课堂“采购谈判技巧”报名开启','05-05 11:05',''],['系统通知','【系统提醒】您有1条待办事项需要处理','05-04 14:21','']];
-const mockTasks=[['采购合同执行分析看板V2.0版本发布申请','申请时间：2025-05-08 09:15','审核中',''],['供应商准入申请-能源发展股份有限公司','申请时间：2025-05-07 14:22','审核中',''],['采购需求申请-防爆电机设备采购','申请时间：2025-05-06 11:03','已通过',''],['平台使用权限申请-电子发票系统','申请时间：2025-05-05 09:48','已通过',''],['应用接入申请-库存周转分析报表','申请时间：2025-05-04 16:30','已驳回','']];
-const remoteMode=computed(()=>props.integrationState!=='mock');
+const remoteMode=computed(()=>true);
 const summary=computed(()=>props.integrationData?.['WB-003']||null);
 const pageState=computed(()=>{
-  if(!remoteMode.value)return 'normal';
   if(props.integrationState==='loading')return 'loading';
   if(['authentication-required','permission-denied'].includes(props.integrationState))return 'permission-denied';
   if(['error','timeout','rate-limited','schema-drift','security-error'].includes(props.integrationState))return 'error';
   if(props.integrationState==='disabled')return 'disabled';
   return summary.value?.user?'normal':'empty';
 });
-const identity=computed(()=>remoteMode.value?summary.value?.user||null:{displayName:'张三丰',employeeNo:'',orgName:'物资采购中心',departmentName:'物资采购工程师',avatarUrl:'/assets/profile-avatar.png'});
+const identity=computed(()=>summary.value?.user||null);
 const verificationCopyMessage=ref('');
 const sessionIdentity=ref(null);
 const sessionChecked=ref(false);
 const sessionIdentityError=ref('');
-const verificationUserId=computed(()=>remoteMode.value?String(sessionIdentity.value?.userId||identity.value?.userId||''):'' );
+const verificationUserId=computed(()=>String(sessionIdentity.value?.userId||identity.value?.userId||''));
 const stats=computed(()=>{
-  if(!remoteMode.value)return mockStats;
   const value=summary.value?.stats;if(!value)return [];
   return [['我的积分',String(value.pointBalance),'积分',`本月　${value.pointMonthIncrease>=0?'+':''}${value.pointMonthIncrease}`,'/assets/profile-stat-points.png'],['收藏应用',String(value.favoriteCount),'个','应用收藏','/assets/profile-stat-favorite.png'],['应用访问次数',String(value.appVisitCount),'次','累计访问','/assets/profile-stat-visits.png'],['应用使用次数',String(value.appUseCount),'次','累计使用','/assets/profile-stat-use.png']];
 });
-const quick=computed(()=>remoteMode.value?(summary.value?.quickEntries||[]).map(item=>[item.name,item.description,safeLocalPath(item.path),item.enabled]):mockQuick.map(item=>[...item,true]));
-const notices=computed(()=>remoteMode.value?(summary.value?.recentMessages||[]).map(item=>[item.typeName,item.title,item.occurredAt,safeLocalPath(item.targetPath)]):mockNotices);
+const quick=computed(()=>(summary.value?.quickEntries||[]).map(item=>[item.name,item.description,safeLocalPath(item.path),item.enabled]));
+const notices=computed(()=>(summary.value?.recentMessages||[]).map(item=>[item.typeName,item.title,item.occurredAt,safeLocalPath(item.targetPath)]));
 const tasks=computed(()=>{
-  if(!remoteMode.value)return mockTasks;
   const items=props.integrationData?.['WB-004']?.items||summary.value?.todos||[];
   return items.map(item=>[item.title,`申请时间：${item.submittedAt||'—'}`,item.statusName||item.statusCode||'—',safeLocalPath(item.detailPath)]);
 });
@@ -43,7 +36,7 @@ function safeLocalPath(path){
 function safeAvatarUrl(path){return safeLocalPath(path);}
 const avatarStyle=computed(()=>safeAvatarUrl(identity.value?.avatarUrl)?{backgroundImage:`url("${safeAvatarUrl(identity.value.avatarUrl)}")`}:{});
 async function loadSessionIdentity(){
-  if(!remoteMode.value||typeof window==='undefined'||typeof window.fetch!=='function')return;
+  if(typeof window==='undefined'||typeof window.fetch!=='function')return;
   try{
     const response=await window.fetch('/api/v1/auth/feishu/session',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
     if(!response.ok)throw new Error(`session-${response.status}`);

@@ -1,17 +1,17 @@
 <script setup>
 // Reference SHA-256: 4EADBB9CAA596393D67C69CA4F446DBAD38856D2CFF2687E1530F9B8C9EC9E3D
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { PROJECT_FIXTURES, createTalentProjectController } from '../state/talent-project-controller.js';
+import { createTalentProjectController } from '../state/talent-project-controller.js';
 import { routeSession } from '../state/session-store.js';
 import PaginationControl from '../components/PaginationControl.vue';
 
-const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'}});
-const controller=routeSession.controller('talent-projects',()=>createTalentProjectController(PROJECT_FIXTURES));
-const remoteMode=computed(()=>props.integrationState!=='mock');
+const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'loading'}});
+const controller=routeSession.controller('talent-projects',()=>createTalentProjectController());
+const remoteMode=computed(()=>true);
 const remoteState=computed(()=>props.integrationState);
 const mapRemoteProject=item=>({id:item.projectId||item.id,name:item.name||'—',department:'—',owner:item.ownerName||'—',description:item.type||'—',date:item.startDate||'—',progress:item.status||'—',domain:item.type||'—',technology:'—',manager:item.ownerName||'—',members:'—',scale:'—',difficulty:'—'});
-const pageState=computed(()=>{if(!remoteMode.value)return 'normal';if(['error','timeout','rate-limited','schema-drift','security-error'].includes(remoteState.value))return 'error';if(['authentication-required','permission-denied'].includes(remoteState.value))return 'permission-denied';if(remoteState.value==='disabled')return 'disabled';if(remoteState.value==='loading')return 'loading';return controller.fixtures.length?'normal':'empty';});
-watch([()=>props.integrationData,()=>props.integrationState],()=>{controller.fixtures=remoteMode.value?(Array.isArray(props.integrationData?.['TAL-002']?.items)?props.integrationData['TAL-002'].items.map(mapRemoteProject):[]):PROJECT_FIXTURES.map(item=>({...item}));controller.page=1;},{immediate:true});
+const pageState=computed(()=>{if(['error','timeout','rate-limited','schema-drift','security-error'].includes(remoteState.value))return 'error';if(['authentication-required','permission-denied'].includes(remoteState.value))return 'permission-denied';if(remoteState.value==='disabled')return 'disabled';if(remoteState.value==='loading')return 'loading';return controller.fixtures.length?'normal':'empty';});
+watch([()=>props.integrationData,()=>props.integrationState],()=>{controller.fixtures=Array.isArray(props.integrationData?.['TAL-002']?.items)?props.integrationData['TAL-002'].items.map(mapRemoteProject):[];controller.page=1;},{immediate:true});
 const queryDraft=ref(controller.filters.query);
 const dialogRef=ref(null);
 const firstFieldRef=ref(null);
@@ -21,9 +21,9 @@ let opener=null;
 let drawerScrollTop=0;
 const backgroundInertState=new Map();
 const pagedProjects=computed(()=>controller.pagedResults);
-const progresses=[...new Set(PROJECT_FIXTURES.map(item=>item.progress))];
-const domains=[...new Set(PROJECT_FIXTURES.map(item=>item.domain))];
-const managers=[...new Set(PROJECT_FIXTURES.map(item=>item.manager))];
+const progresses=computed(()=>[...new Set(controller.fixtures.map(item=>item.progress).filter(Boolean))]);
+const domains=computed(()=>[...new Set(controller.fixtures.map(item=>item.domain).filter(Boolean))]);
+const managers=computed(()=>[...new Set(controller.fixtures.map(item=>item.manager).filter(Boolean))]);
 
 function setBackgroundInert(value){document.querySelectorAll('.topbar,.sidebar').forEach(node=>{if(value){if(!backgroundInertState.has(node))backgroundInertState.set(node,node.hasAttribute('inert'));node.setAttribute('inert','');return;}if(backgroundInertState.get(node))node.setAttribute('inert','');else node.removeAttribute('inert');});if(!value)backgroundInertState.clear();}
 function writeDrawerQuery(value,mode='replace'){
@@ -36,7 +36,7 @@ async function restoreOrigin(){await nextTick();const main=document.getElementBy
 async function openCreate(event){if(remoteMode.value){controller.announcement='正式人才写入合同尚未提供';return;}opener=event?.currentTarget||null;drawerScrollTop=document.getElementById('main-content')?.scrollTop||0;controller.openCreate();writeDrawerQuery('create','push');setBackgroundInert(true);await focusDrawer();}
 async function openEdit(project,event){if(remoteMode.value){controller.announcement='正式人才写入合同尚未提供';return;}opener=event?.currentTarget||null;drawerScrollTop=document.getElementById('main-content')?.scrollTop||0;controller.openEdit(project.id);writeDrawerQuery(project.id,'push');setBackgroundInert(true);await focusDrawer();}
 async function closeDrawer(){if(window.history.state?.xltProjectDrawer&&window.history.state?.xltDrawerPushed&&window.history.length>1){window.history.back();return;}writeDrawerQuery('');controller.close();setBackgroundInert(false);await restoreOrigin();}
-async function syncDrawer(){const value=new URLSearchParams(window.location.search).get('drawer');if(value){value==='create'?controller.openCreate():controller.openEdit(value);setBackgroundInert(true);await focusDrawer();}else{const wasOpen=controller.drawerOpen;controller.close();setBackgroundInert(false);if(wasOpen)await restoreOrigin();}}
+async function syncDrawer(){const value=new URLSearchParams(window.location.search).get('drawer');if(value){writeDrawerQuery('');controller.close();setBackgroundInert(false);return;}const wasOpen=controller.drawerOpen;controller.close();setBackgroundInert(false);if(wasOpen)await restoreOrigin();}
 function submitFilters(){controller.setFilter('query',queryDraft.value);}
 function resetFilters(){queryDraft.value='';controller.resetFilters();}
 function setFilter(key,event){controller.setFilter(key,event.target.value);}

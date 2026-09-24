@@ -1,11 +1,7 @@
 <script setup>
-import { computed, nextTick, ref } from "vue";
-import {
-  FAVORITE_FIXTURES,
-  createFavoritesController,
-} from "../state/content-controllers.js";
+import { computed, ref } from "vue";
+import { createFavoritesController } from "../state/content-controllers.js";
 import { routeSession } from "../state/session-store.js";
-import { APP_FIXTURES } from "../fixtures/mock-data.js";
 import PaginationControl from "../components/PaginationControl.vue";
 import TypeLineIcon from "../components/TypeLineIcon.vue";
 import {
@@ -16,7 +12,7 @@ import { mapRemoteApp } from "../integration/app-read-model.js";
 
 const props = defineProps({
   integrationData: { type: Object, default: null },
-  integrationState: { type: String, default: "mock" },
+  integrationState: { type: String, default: "loading" },
   operationExecutor: { type: Function, default: null },
   actionExecutor: { type: Function, default: null },
   testWritesEnabled: { type: Boolean, default: false },
@@ -24,12 +20,9 @@ const props = defineProps({
 
 const REFERENCE_SHA256 =
   "9B259ED9F99029ECB68A1F2FB3EB8E745FF23692BC53CFFBD5D6A46008CEAE1A";
-const departmentByRoute = new Map(
-  APP_FIXTURES.map((app) => [app.route, app.department]),
-);
-const departmentFor = (card) => departmentByRoute.get(card.route) || card.domain;
+const departmentFor = (card) => card.department || card.domain;
 const controller = routeSession.controller("favorites", () =>
-  createFavoritesController(FAVORITE_FIXTURES, routeSession),
+  createFavoritesController(),
 );
 const remoteStats = computed(() => props.integrationData?.['FAV-001']);
 const remoteCards = computed(
@@ -45,10 +38,8 @@ const remoteCards = computed(
         favoritedAt: item.favoritedAt,
         favoriteVersion: Number(item.favoriteVersion || 0),
       };
-    }) || null,
+    }) || [],
 );
-const remoteMode = computed(() => Array.isArray(remoteCards.value));
-const liveMode = computed(() => props.integrationState !== "mock");
 const queryDraft = computed({
   get: () => controller.queryDraft,
   set: (value) => {
@@ -56,7 +47,6 @@ const queryDraft = computed({
   },
 });
 const filteredCards = computed(() => {
-  if (!remoteMode.value) return controller.results;
   const query = String(controller.filters.query || "")
     .trim()
     .toLocaleLowerCase("zh-CN");
@@ -73,27 +63,26 @@ const filteredCards = computed(() => {
   );
 });
 const pagedCards = computed(() => {
-  if (!remoteMode.value) return controller.pagedResults;
   const start = (controller.page - 1) * controller.pageSize;
   return filteredCards.value.slice(start, start + controller.pageSize);
 });
 const types = computed(() => [
   ...new Set(
-    (remoteCards.value || FAVORITE_FIXTURES)
+    remoteCards.value
       .map((item) => item.type)
       .filter(Boolean),
   ),
 ]);
 const domains = computed(() => [
   ...new Set(
-    (remoteCards.value || FAVORITE_FIXTURES)
+    remoteCards.value
       .map((item) => item.domain)
       .filter(Boolean),
   ),
 ]);
 const tags = computed(() => [
   ...new Set(
-    (remoteCards.value || FAVORITE_FIXTURES)
+    remoteCards.value
       .map((item) => item.tag)
       .filter(Boolean),
   ),
@@ -111,30 +100,21 @@ function clearFilters() {
 const resultTitleRef = ref(null);
 
 async function cancelFavorite(card) {
-  if (remoteMode.value) {
-    if (!props.testWritesEnabled || !props.actionExecutor || !String(card.id).startsWith("TEST_") || !card.favoriteVersion) {
-      controller.announcement = "仅允许取消当前联调创建的 TEST_ 收藏";
-      return;
-    }
-    try {
-      await props.actionExecutor("FAV-004", {
-        businessKey: card.id,
-        idempotencyKey: `TEST_IDEM_APP_UNFAVORITE_${window.crypto.randomUUID()}`,
-        ifMatch: card.favoriteVersion,
-        fields: {},
-      }, { confirmed: true });
-      controller.announcement = `${card.name}：TEST_ 收藏已由服务端取消`;
-    } catch (error) {
-      controller.announcement = `${card.name}：取消失败，${error.message || "请稍后重试"}`;
-    }
+  if (!props.testWritesEnabled || !props.actionExecutor || !String(card.id).startsWith("TEST_") || !card.favoriteVersion) {
+    controller.announcement = "当前收藏不允许在测试写入通道中取消";
     return;
   }
-  const rows = [...controller.pagedResults];
-  const index = rows.findIndex((item) => item.id === card.id);
-  const fallback = rows[index + 1]?.id || rows[index - 1]?.id;
-  controller.cancel(card.id);
-  await nextTick();
-  restoreFavoriteFocus(fallback);
+  try {
+    await props.actionExecutor("FAV-004", {
+      businessKey: card.id,
+      idempotencyKey: `TEST_IDEM_APP_UNFAVORITE_${window.crypto.randomUUID()}`,
+      ifMatch: card.favoriteVersion,
+      fields: {},
+    }, { confirmed: true });
+    controller.announcement = `${card.name}：收藏已由飞书服务端取消`;
+  } catch (error) {
+    controller.announcement = `${card.name}：取消失败，${error.message || "请稍后重试"}`;
+  }
 }
 
 function restoreFavoriteFocus(id) {
@@ -145,11 +125,6 @@ function restoreFavoriteFocus(id) {
     document.querySelector(".favorite-grid .cancel-favorite") ||
     resultTitleRef.value
   )?.focus();
-}
-
-function resetData() {
-  queryDraft.value = "";
-  controller.resetData();
 }
 
 function changePage(value) {
@@ -167,8 +142,8 @@ function changePageSize(value) {
 }
 
 async function launch(card) {
-  if (!props.operationExecutor || !remoteMode.value) {
-    controller.announcement = `${card.name}：当前为本地展示`;
+  if (!props.operationExecutor) {
+    controller.announcement = `${card.name}：飞书应用启动接口暂不可用`;
     return;
   }
   try {
@@ -176,7 +151,7 @@ async function launch(card) {
       appId: card.appId || card.id,
       launchMode: "NEW_TAB",
       sourcePage: "/favorites",
-      requestedAt: "2026-09-03T00:00:00.000Z",
+      requestedAt: new Date().toISOString(),
     });
     if (response.data.allowed && response.data.launchUrl) {
       window.open(response.data.launchUrl, "_blank", "noopener,noreferrer");
@@ -246,10 +221,9 @@ async function launch(card) {
     <div class="favorite-tools">
       <strong
         >全部收藏
-        {{ remoteMode ? remoteStats?.totalCount ?? filteredCards.length : filteredCards.length }}
+        {{ remoteStats?.totalCount ?? filteredCards.length }}
         个</strong
       ><button type="button" @click="clearFilters">清空筛选</button
-      ><button type="button" @click="resetData">恢复收藏</button
       ><select
         :value="controller.sort"
         aria-label="收藏排序"
@@ -340,38 +314,21 @@ async function launch(card) {
             :href="card.route"
             :data-session-focus="`favorite-detail-${card.id}`"
             >查看详情</a
-          ><a
-            v-if="!remoteMode && applicationAccessMode(card.route) === 'direct'"
-            class="access-action"
-            :href="`${card.route}#usage`"
-            >立即使用</a
           ><button
-            v-else-if="remoteMode"
             class="access-action"
             type="button"
             @click="launch(card)"
           >
             立即使用</button
-          ><button v-else class="access-action" type="button" disabled>
-            立即使用</button
           ><button
             class="cancel-favorite"
             type="button"
-            :disabled="remoteMode && (!testWritesEnabled || !String(card.id).startsWith('TEST_') || !card.favoriteVersion)"
-            :title="remoteMode && (!String(card.id).startsWith('TEST_') || !card.favoriteVersion) ? '只可清理 TEST_ 联调收藏' : ''"
+            :disabled="!testWritesEnabled || !String(card.id).startsWith('TEST_') || !card.favoriteVersion"
+            :title="!String(card.id).startsWith('TEST_') || !card.favoriteVersion ? '当前收藏不允许通过测试写入通道清理' : ''"
             @click="cancelFavorite(card)"
           >
             取消收藏</button
-          ><button
-            v-if="applicationAccessMode(card.route) === 'apply'"
-            class="access-action"
-            type="button"
-            @click="
-              controller.announcement = `${card.name}：申请使用为本地演示操作`
-            "
-          >
-            申请使用</button
-          ><button v-else class="access-action" type="button" disabled>
+          ><button class="access-action" type="button" disabled>
             申请使用
           </button>
         </footer>

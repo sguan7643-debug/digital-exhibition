@@ -5,77 +5,15 @@ import { buildApplicationWriteInput } from "../integration/application-actions.j
 
 const props = defineProps({
   integrationData: { type: Object, default: null },
-  integrationState: { type: String, default: "mock" },
+  integrationState: { type: String, default: "loading" },
   operationExecutor: { type: Function, default: null },
   actionExecutor: { type: Function, default: null },
   testWritesEnabled: { type: Boolean, default: false },
 });
 
-const courses = [
-  {
-    category: "数说心智",
-    date: "09-04（周五）14:00",
-    title: "智能供应链需求预测案例分享",
-    speaker: "王海洋 · 数智与信息化中心",
-    description:
-      "分享智能供应链在需求预测、库存优化和风险预警场景中的实施路径与复盘经验。",
-    count: "1,206",
-    action: "进入直播",
-  },
-  {
-    category: "取经会",
-    date: "09-11（周五）10:00",
-    title: "采购合规共享交流会",
-    speaker: "李明 · 采购管理部",
-    description:
-      "围绕采购合规管理的重点难点，交流供应商准入、过程管控和审计留痕方法。",
-    count: "852",
-    action: "立即报名",
-  },
-  {
-    category: "AI社区",
-    date: "09-18（周五）15:00",
-    title: "大模型在采购场景的应用",
-    speaker: "陈文博 · AI创新实验室",
-    description:
-      "解读大模型在需求洞察、供应商评估与合同审核等采购场景中的可靠应用。",
-    count: "1,532",
-    action: "立即报名",
-  },
-  {
-    category: "数说心智",
-    date: "09-25（周五）14:30",
-    title: "数字化采购转型路径与实践",
-    speaker: "周启航 · 数字化管理办公室",
-    description:
-      "分享采购数字化转型的顶层设计、关键路径和落地方法，助力企业高质量转型。",
-    count: "967",
-    action: "立即报名",
-  },
-  {
-    category: "取经会",
-    date: "10-09（周五）10:00",
-    title: "供应商协同管理经验分享",
-    speaker: "张振宇 · 采购一部",
-    description:
-      "分享供应商协同管理的机制建设、绩效评价和持续改进经验，推动合作共赢。",
-    count: "1,128",
-    action: "立即报名",
-  },
-  {
-    category: "AI社区",
-    date: "10-16（周五）15:00",
-    title: "AI赋能招标智能评审",
-    speaker: "陈文博 · AI创新实验室",
-    description:
-      "介绍AI辅助招标评审的适用边界、审核机制与效果，提升效率和判断准确性。",
-    count: "1,342",
-    action: "立即报名",
-  },
-];
 const selected = ref("全部");
 const announcement = ref("");
-const remoteMode = computed(() => props.integrationState !== "mock");
+const remoteMode = computed(() => true);
 const remoteState = computed(() => props.integrationState);
 const remoteCourses = computed(() =>
   remoteState.value === "error" || remoteState.value === "authentication-required" || remoteState.value === "empty" ? [] : props.integrationData?.['TRN-002']?.items?.map((course) => ({
@@ -88,9 +26,9 @@ const remoteCourses = computed(() =>
     count: String(course.registeredCount ?? 0),
     action: String(course.statusCode).toUpperCase() === "LIVE" ? "进入直播" : "立即报名",
     deliveryMode: course.deliveryMode,
-  })) || null,
+  })) || [],
 );
-const courseSource = computed(() => remoteMode.value ? remoteCourses.value : courses);
+const courseSource = computed(() => remoteCourses.value);
 const tabs = computed(() => {
   const counts = new Map();
   for (const course of courseSource.value) counts.set(course.category, (counts.get(course.category) || 0) + 1);
@@ -119,7 +57,7 @@ async function register(course) {
   }
 }
 async function enterCourse(course) {
-  if (!props.operationExecutor || props.integrationState === 'mock' || !course.id) {
+  if (!props.operationExecutor || !course.id) {
     announcement.value = `${course.title}：真实课程入口未启用`;
     return;
   }
@@ -218,7 +156,7 @@ async function enterCourse(course) {
     </section>
     <section v-if="!visibleCourses.length" class="training-empty" role="status">
       <h2>{{ remoteState === "error" || remoteState === "authentication-required" ? "培训课程加载失败" : "暂无符合条件的培训课程" }}</h2>
-      <p>{{ remoteMode ? "当前未获得 TRN-002 权威课程记录，不回退本地演示数据。" : "请切换培训分类后重试。" }}</p>
+      <p>当前未获得 TRN-002 飞书课程记录。</p>
     </section>
     <footer class="training-pagination">
       <strong>共 {{ courseSource.length }} 条</strong>

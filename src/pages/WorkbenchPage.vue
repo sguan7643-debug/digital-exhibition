@@ -1,17 +1,16 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { HOT_APP_FIXTURES, createWorkbenchController } from '../state/workbench-profile-controllers.js';
+import { createWorkbenchController } from '../state/workbench-profile-controllers.js';
 import { mapRemoteApp } from '../integration/app-read-model.js';
 const props=defineProps({integrationData:{type:Object,default:null},operationExecutor:{type:Function,default:null}});
-const controller=createWorkbenchController(HOT_APP_FIXTURES);
+const controller=createWorkbenchController();
 const remote=computed(()=>props.integrationData?.['WB-001']);
 const remoteSearch=ref(null);
 const searchState=ref('idle');
 let searchRevision=0;
-const remoteApps=computed(()=>remote.value?.hotApps?.map(item=>{const app=mapRemoteApp(item);return{id:app.id,name:app.name,type:app.category,scene:app.scene,description:app.description,count:Number(app.usage||0).toLocaleString('zh-CN'),route:app.route};})||null);
+const remoteApps=computed(()=>(remote.value?.hotApps||[]).map(item=>{const app=mapRemoteApp(item);return{id:app.id,name:app.name,type:app.category,scene:app.scene,description:app.description,count:Number(app.usage||0).toLocaleString('zh-CN'),route:app.route};}));
 const filteredHotApps=computed(()=>{
   if(remoteSearch.value)return remoteSearch.value.map(item=>{const app=mapRemoteApp(item);return{id:app.id,name:app.name,type:app.category,scene:app.scene,description:app.description,count:Number(app.usage||0).toLocaleString('zh-CN'),route:app.route};});
-  if(!remoteApps.value)return controller.results;
   const query=String(controller.query||'').toLocaleLowerCase('zh-CN');
   return remoteApps.value.filter(item=>(!query||`${item.name} ${item.description}`.toLocaleLowerCase('zh-CN').includes(query))&&(!controller.scene||item.scene===controller.scene));
 });
@@ -33,40 +32,20 @@ function receiveWorkbenchFilter(event){const {key,value}=event.detail;if(key==='
 function overviewHref(label){const categories={'数据集':'数据集','帆软报表':'可视化报表','RPA机器人':'RPA','AI智能体':'AI'};return categories[label]?`/apps?category=${encodeURIComponent(categories[label])}`:'/apps';}
 onMounted(()=>window.addEventListener('xlt:workbench-filter',receiveWorkbenchFilter));
 onBeforeUnmount(()=>window.removeEventListener('xlt:workbench-filter',receiveWorkbenchFilter));
-const fallbackOverview = [
-  ['数据集', '186', '/assets/overview-dataset.png'], ['帆软报表', '92', '/assets/overview-report.png'],
-  ['RPA机器人', '64', '/assets/overview-rpa.png'], ['EAD应用', '18', '/assets/overview-ead.png'],
-  ['AI智能体', '27', '/assets/overview-ai.png'], ['其他应用', '35', '/assets/overview-other.png']
-];
-const overview=computed(()=>remote.value?.appTypeOverview?.length?remote.value.appTypeOverview.map(item=>[item.typeName||item.typeCode,Number(item.count||0).toLocaleString('zh-CN')]):fallbackOverview);
-const fallbackCourses = [
-  ['数说心智 · 数智应用案例分享', '分享最新应用实践与创新案例', '/assets/training-ai.png', '立即参加'],
-  ['取经会 · 采购合规效率交流会', '交流采购合规与提效经验', '/assets/training-procurement.png', '立即参加'],
-  ['AI社区 · 大模型在采购场景的应用', '探讨AI赋能采购业务实践', '/assets/training-community.png', '进入活动']
-];
-const courses=computed(()=>remote.value?.courses?.length?remote.value.courses.map(item=>[item.title,item.summary||`${item.category} · ${item.instructorName}`,item.coverUrl||'/assets/training-ai.png','查看课程',`/training?courseId=${encodeURIComponent(item.courseId)}`]):fallbackCourses.map(item=>[...item,'/training']));
-const fallbackNotices = [
-  ['系统上线', '【新应用上线】供应商风险预警应用已发布上线', '05-08 09:32', 'blue'],
-  ['系统更新', '【功能更新】库存分析看板新增多维度筛选功能', '05-07 16:20', 'blue'],
-  ['功能更新', '【系统维护】系统将于本周六凌晨进行维护升级', '05-06 18:15', 'blue']
-];
-const notices=computed(()=>remote.value?.announcements?.length?remote.value.announcements.map(item=>[item.typeName,item.title,item.publishedAt?.replace('T',' ').slice(5,16)||'','blue',item.detailPath]):fallbackNotices.map((item,index)=>[...item,index===0?'/announcements/notice-001':'/announcements']));
-const fallbackUsage = [
-  ['应用使用数', '18', '12', 'up', '/assets/usage-visits.png'], ['报表查看次数', '236', '8', 'up', '/assets/usage-count.png'],
-  ['数据查询次数', '326', '3', 'down', '/assets/usage-users.png'], ['收藏应用数', '12', '5', 'up', '/assets/usage-favorites.png']
-];
-const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value.usage.appVisitCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.visitChange||0),remote.value.usage.visitChange<0?'down':'up'],['应用使用次数',Number(remote.value.usage.appUseCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.useChange||0),remote.value.usage.useChange<0?'down':'up'],['收藏应用数',Number(remote.value.usage.favoriteAppCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.favoriteChange||0),remote.value.usage.favoriteChange<0?'down':'up'],['数据更新时间',remote.value.lastUpdatedAt?.replace('T',' ').slice(5,16)||'—','0','up']]:fallbackUsage);
+const overview=computed(()=>(remote.value?.appTypeOverview||[]).map(item=>[item.typeName||item.typeCode,Number(item.count||0).toLocaleString('zh-CN')]));
+const courses=computed(()=>(remote.value?.courses||[]).map(item=>[item.title,item.summary||`${item.category||''} · ${item.instructorName||''}`,item.coverUrl||'','查看课程',`/training?courseId=${encodeURIComponent(item.courseId)}`]));
+const notices=computed(()=>(remote.value?.announcements||[]).map(item=>[item.typeName,item.title,item.publishedAt?.replace('T',' ').slice(5,16)||'','blue',item.detailPath]));
+const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value.usage.appVisitCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.visitChange||0),remote.value.usage.visitChange<0?'down':'up'],['应用使用次数',Number(remote.value.usage.appUseCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.useChange||0),remote.value.usage.useChange<0?'down':'up'],['收藏应用数',Number(remote.value.usage.favoriteAppCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.favoriteChange||0),remote.value.usage.favoriteChange<0?'down':'up']]:[]);
 </script>
 
 <template>
   <div class="workbench-page"><p class="sr-only" aria-live="polite">{{ searchState==='loading'?'正在从飞书检索应用':searchState==='error'?'飞书检索失败，保留当前结果':controller.announcement }}</p>
     <section class="hero-panel" aria-labelledby="greeting-title">
-      <img class="hero-avatar" src="/assets/user-avatar.png" width="68" height="68" :alt="`${remote?.profile.displayName||'当前用户'}头像`" />
+      <img v-if="remote?.profile.avatarUrl" class="hero-avatar" :src="remote.profile.avatarUrl" width="68" height="68" :alt="`${remote.profile.displayName||'当前用户'}头像`" />
       <div class="greeting">
-        <h1 id="greeting-title">{{ remote?.greeting.text||'上午好，张三丰' }}</h1>
-        <p>{{ remote?.hero.subtitle||'欢迎来到数智产品展厅平台，探索更卓越的应用，助力业务高效运营！' }}</p>
+        <h1 id="greeting-title">{{ remote?.greeting.text||'欢迎使用数智产品展厅' }}</h1>
+        <p>{{ remote?.hero.subtitle||'' }}</p>
         <small v-if="remote">数据截至：{{ remote.dataAsOf?.replace('T',' ').slice(0,16)||'—' }}　　最后更新：{{ remote.lastUpdatedAt?.replace('T',' ').slice(0,16)||'—' }}</small>
-        <small v-else>数据截至：2025-05-08　　最后更新：10:18</small>
       </div>
       <img class="hero-ocean" src="/assets/hero-ocean.png" width="827" height="136" alt="海上钻井平台、船舶与远山插图" />
     </section>
@@ -142,7 +121,8 @@ const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value
    information-led cards matching the approved workbench reference. */
 .workbench-page{padding:18px;color:#152e4e;background:#f5f7fa}.panel{border-color:#d7e0e9;border-radius:8px;box-shadow:0 1px 2px rgb(16 45 78 / 3%)}
 .hero-panel{height:158px;border-color:#d7e0e9;border-radius:8px;background:#fff}.hero-ocean{display:none}.hero-avatar{width:78px;height:78px;margin-left:28px;filter:grayscale(1);opacity:.72}.greeting{margin-left:36px;padding-top:27px}.greeting h1{margin-bottom:9px;color:#102b4d;font-size:27px;font-weight:700}.greeting p{color:#3d536e;font-size:13px}.greeting small{position:static;display:block;width:auto;margin-top:18px;color:#708198;font-size:11px}
-.overview-panel{height:144px;margin-top:12px;padding:16px 18px}.panel h2{color:#102c4d;font-size:17px}.overview-list{grid-template-columns:repeat(6,1fr);gap:0;margin-top:12px}.overview-item{height:79px;gap:0;border:0;border-right:1px solid #dfe5ec;border-radius:0}.overview-item:last-child{border-right:0}.overview-item img{display:none}.overview-item span{justify-items:center;gap:8px}.overview-item small{color:#243a57;font-size:13px}.overview-item strong{color:#102a4c;font-size:25px;font-weight:600}
+.overview-panel{height:auto;min-height:144px;margin-top:12px;padding:16px 18px}.panel h2{color:#102c4d;font-size:17px}.overview-list{grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-rows:minmax(79px,auto);gap:0;margin-top:12px}.overview-item{height:auto;min-height:79px;gap:0;border:0;border-right:1px solid #dfe5ec;border-radius:0}.overview-item:last-child{border-right:0}.overview-item img{display:none}.overview-item span{justify-items:center;gap:8px}.overview-item small{color:#243a57;font-size:13px}.overview-item strong{color:#102a4c;font-size:25px;font-weight:600}
+.overview-item:nth-child(6n){border-right:0}.overview-item:nth-child(n+7){border-top:1px solid #dfe5ec}
 .dashboard-grid{grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.hot-panel,.course-panel{height:322px}.notice-panel,.usage-panel{height:190px}.panel>header{height:48px;padding:0 18px}.panel>header a{color:#0060a6;font-weight:600}
 .hot-list{gap:14px;padding:2px 18px 16px}.hot-card{height:254px;padding:18px 14px 14px;border-color:#dce4ed;border-radius:7px;text-align:left}.hot-card img{display:none}.hot-card h3{height:25px;color:#122e50;font-size:14px}.hot-card mark{padding:3px 9px;color:#0060a6;background:#edf3f8}.hot-card p{height:64px;margin-top:12px;color:#607289;font-size:10px;line-height:19px}.hot-card small{color:#526880}.hot-card>a{left:14px;right:14px;bottom:14px;height:30px;color:#0060a6;border-color:#8eaac5;background:#fff;font-weight:600}
 .course-panel ul{padding:0 22px}.course-panel li{height:88px;gap:16px;border-color:#e0e6ed}.course-panel li img{display:none}.course-panel li::before{content:'▤';width:34px;height:34px;display:grid;place-items:center;flex:0 0 auto;color:#173f68;border:1px solid #ccd7e2;border-radius:5px;font-size:17px}.course-panel li strong{color:#122e50}.course-panel li>a{color:#0060a6;font-weight:600}

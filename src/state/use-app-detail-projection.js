@@ -1,22 +1,21 @@
-import { computed, reactive, unref } from 'vue';
+import { computed, reactive } from 'vue';
 
-export function useAppDetailProjection(props, defaults) {
-  const remoteMode = computed(() => props.integrationState !== 'mock');
+export function useAppDetailProjection(props) {
+  const remoteMode = computed(() => true);
   const remote = computed(() => props.integrationData?.['APP-003'] || null);
   const state = computed(() => {
-    if (!remoteMode.value) return 'normal';
     if (props.integrationState === 'loading') return 'loading';
     if (['authentication-required', 'permission-denied'].includes(props.integrationState)) return 'auth';
     if (['error', 'timeout', 'rate-limited', 'schema-drift', 'security-error'].includes(props.integrationState)) return 'error';
     return remote.value?.appId ? 'normal' : 'empty';
   });
-  const field = (key, fallback = '—') => computed(() => remoteMode.value ? (remote.value?.[key] || fallback) : (unref(defaults[key]) || fallback));
+  const field = (key, fallback = '—') => computed(() => remote.value?.[key] || fallback);
   return reactive({
     remoteMode, state, contentVisible: computed(() => state.value === 'normal'), detail: remote,
-    name: field('name', defaults.name), summary: computed(() => remoteMode.value ? (remote.value?.summary || remote.value?.description || '—') : (defaults.summary || '—')), appCode: field('appCode', defaults.appCode),
-    typeName: computed(() => remoteMode.value ? (remote.value?.typeName || remote.value?.typeCode || '—') : (defaults.typeName || '—')), versionName: field('versionName', defaults.versionName),
-    ownerName: computed(() => remoteMode.value ? (remote.value?.ownerName || remote.value?.developerName || '—') : (defaults.ownerName || '—')),
-    departmentName: computed(() => remoteMode.value ? (remote.value?.departmentName || remote.value?.ownerDepartmentName || '—') : (defaults.departmentName || '—')),
-    updatedAt: field('updatedAt', defaults.updatedAt), attachments: computed(() => remoteMode.value ? (remote.value?.attachments || []) : (defaults.attachments || []))
+    name: field('name'), summary: computed(() => remote.value?.summary || remote.value?.description || '—'), appCode: field('appCode'),
+    typeName: computed(() => remote.value?.typeName || remote.value?.typeCode || '—'), versionName: field('versionName'),
+    ownerName: computed(() => remote.value?.ownerName || remote.value?.developerName || '—'),
+    departmentName: computed(() => remote.value?.departmentName || remote.value?.ownerDepartmentName || '—'),
+    updatedAt: field('updatedAt'), attachments: computed(() => remote.value?.attachments || [])
   });
 }

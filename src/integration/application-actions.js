@@ -16,7 +16,7 @@ export function buildApplicationWriteInput(operationId, resourceId, values = {},
   const suffix = String(options.randomId?.() || globalThis.crypto.randomUUID()).replace(/[^A-Za-z0-9_-]/g, '');
   const common = { businessKey: `TEST_${label}_${suffix}`, idempotencyKey: `TEST_IDEM_${label}_${suffix}` };
   if (operationId === 'APP-005') return { ...common, fields: { 应用ID: id, 申请理由: String(values.reason || 'TEST_申请使用'), 状态: '待处理', 申请时间: now } };
-  if (operationId === 'APP-006') return { ...common, fields: { 应用ID: id, 申请类型: '复用', 申请原因: String(values.reason || 'TEST_申请复用'), 本地状态: '待处理', 提交时间: now } };
+  if (operationId === 'APP-006') return { ...common, fields: { 应用ID: id, 申请类型: '复用', 申请原因: String(values.reason || 'TEST_申请复用'), 状态: '待处理', 提交时间: now } };
   if (operationId === 'APP-008') {
     const comment = String(values.comment || '').trim();
     if (!comment) throw new Error('请输入评论内容');

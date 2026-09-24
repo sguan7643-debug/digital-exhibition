@@ -4,7 +4,7 @@ import { startFeishuLogin, startSameOriginDownload } from '../integration/secure
 import { buildApplicationWriteInput, launchApplication, resolveDownloadFileId, resolveLiveApplicationId } from '../integration/application-actions.js';
 
 const props=defineProps({
-  integrationData:{type:Object,default:null}, integrationState:{type:String,default:'mock'}, operationExecutor:{type:Function,default:null},
+  integrationData:{type:Object,default:null}, integrationState:{type:String,default:'loading'}, operationExecutor:{type:Function,default:null},
   actionExecutor:{type:Function,default:null}, testWritesEnabled:{type:Boolean,default:false}
 });
 const announcement=ref('');
@@ -18,7 +18,7 @@ const materialFacets=computed(()=>props.integrationData?.['MAT-001']);
 const categoryLabel=material=>material.materialType||materialFacets.value?.materialTypes?.find(item=>item.value===material.materialType)?.label||'素材';
 const sizeLabel=material=>material.primaryFile?.sizeBytes?`${(material.primaryFile.sizeBytes/1024/1024).toFixed(2)} MB`:'—';
 async function download(material){
-  if(!props.operationExecutor||props.integrationState==='mock'){announcement.value='当前素材只有展示数据，无法下载';return;}
+  if(!props.operationExecutor){announcement.value='飞书素材下载接口暂不可用';return;}
   announcement.value=`正在准备下载 ${material.name}`;
   try{
     const fileId=resolveDownloadFileId(material);
@@ -31,7 +31,7 @@ async function download(material){
   }
 }
 async function downloadAttachment(file){
-  if(!props.operationExecutor||props.integrationState==='mock'){announcement.value='当前附件只有展示数据，无法下载';return;}
+  if(!props.operationExecutor){announcement.value='飞书附件下载接口暂不可用';return;}
   announcement.value=`正在准备下载 ${file.name}`;
   try{
     const response=await props.operationExecutor('COM-008',{fileId:file.attachmentId,mode:'DOWNLOAD',disposition:'ATTACHMENT',fileNameOverride:file.name});

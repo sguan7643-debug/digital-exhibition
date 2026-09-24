@@ -3,7 +3,7 @@ const extendedStates = new Set([
   'partial','data-stale','schema-drift','conflict','partial-write','cancelled','security-error','authentication-required','initial-syncing'
 ]);
 
-export function createDataState({ data = null, mode = 'mock', state } = {}) {
+export function createDataState({ data = null, mode = 'remote', state } = {}) {
   return Object.freeze({
     state: state || (Array.isArray(data) && data.length === 0 ? 'empty' : 'normal'),
     data, mode, error: null, traceId: null, traceIds: [], announcement: '', isComplete: true,

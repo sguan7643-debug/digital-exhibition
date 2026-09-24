@@ -7,10 +7,7 @@ import {
   ref,
   watch,
 } from "vue";
-import {
-  ANNOUNCEMENT_FIXTURES,
-  createAnnouncementController,
-} from "../state/announcement-controllers.js";
+import { createAnnouncementController } from "../state/announcement-controllers.js";
 import { mapRemoteAnnouncement } from "../integration/announcement-read-model.js";
 import { routeSession } from "../state/session-store.js";
 import PaginationControl from "../components/PaginationControl.vue";
@@ -20,18 +17,17 @@ const REFERENCE_SHA256 =
 const props = defineProps({
   state: { type: String, default: "normal" },
   integrationData: { type: Object, default: null },
-  integrationState: { type: String, default: "mock" },
+  integrationState: { type: String, default: "loading" },
 });
 const emit = defineEmits(["restore"]);
 const controller = routeSession.controller("announcements", () =>
-  createAnnouncementController(ANNOUNCEMENT_FIXTURES),
+  createAnnouncementController([]),
 );
-const remoteMode = computed(() => props.integrationState !== "mock");
 const remoteState = computed(() => props.integrationState);
 const remoteFailed = computed(() => remoteState.value === "error" || remoteState.value === "authentication-required");
 const remoteFacets = computed(() => props.integrationData?.['ANN-001'] || {});
 const remoteList = computed(() => props.integrationData?.['ANN-002'] || {});
-const publishConfigured = computed(() => !remoteMode.value || props.integrationData?.['ANN-004']?.configured === true);
+const publishConfigured = computed(() => props.integrationData?.['ANN-004']?.configured === true);
 const remoteStats = computed(() => ({
   unread: remoteFacets.value.readStateAvailable
     ? Number(remoteFacets.value.unread ?? remoteFacets.value.unreadCount ?? 0)
@@ -50,16 +46,14 @@ const remoteAnnouncements = computed(() =>
     ? remoteList.value.items.map(mapRemoteAnnouncement)
     : [],
 );
-const currentAnnouncements = computed(() =>
-  remoteMode.value ? remoteAnnouncements.value : ANNOUNCEMENT_FIXTURES,
-);
+const currentAnnouncements = computed(() => remoteAnnouncements.value);
 const localState = ref(props.state);
 const state = computed(() => {
-  if (remoteMode.value && remoteFailed.value)
+  if (remoteFailed.value)
     return remoteState.value === "authentication-required"
       ? "permission-denied"
       : "error";
-  if (remoteMode.value && remoteState.value === "empty") return "empty";
+  if (remoteState.value === "empty") return "empty";
   return localState.value;
 });
 const startDateInput = ref(null);
@@ -73,18 +67,16 @@ const controlsDisabled = computed(() => state.value === "disabled");
 const readFilterDisabled = computed(
   () =>
     controlsDisabled.value ||
-    (remoteMode.value && !remoteStats.value.readStateAvailable),
+    !remoteStats.value.readStateAvailable,
 );
 const unreadStat = computed(() =>
-  remoteMode.value ? remoteStats.value.unread : controller.unreadCount,
+  remoteStats.value.unread,
 );
 const weekNewStat = computed(() =>
-  remoteMode.value ? remoteStats.value.weekNew : 9,
+  remoteStats.value.weekNew,
 );
 const announcementTypes = computed(() =>
-  remoteMode.value && remoteStats.value.categories.length
-    ? remoteStats.value.categories
-    : ["平台公告", "应用上线", "活动通知", "系统通知"],
+  remoteStats.value.categories,
 );
 let loadingTimer;
 
@@ -109,11 +101,7 @@ function updateFilter(key, event) {
   controller.setFilter(key, event.target.value);
 }
 function markAllRead() {
-  if (remoteMode.value) {
-    controller.announcement = "真实已读写入暂未开放";
-    return;
-  }
-  controller.markAllRead();
+  controller.announcement = "真实已读写入暂未开放";
 }
 function explainPublishBlocked(event) {
   if (!publishConfigured.value) {
@@ -126,8 +114,7 @@ function rememberDetail(item, event) {
     event.preventDefault();
     return;
   }
-  if (!remoteMode.value) controller.markRead(item.id);
-  else controller.announcement = "真实已读写入暂未开放";
+  controller.announcement = "真实已读写入暂未开放";
   window.history.replaceState(
     { ...window.history.state, xltRestoreFocus: `announcement-${item.id}` },
     "",
@@ -135,15 +122,10 @@ function rememberDetail(item, event) {
   );
 }
 function explainAnnouncement(item) {
-  if (remoteMode.value) {
-    controller.announcement = "真实已读写入暂未开放";
-    return;
-  }
-  controller.explain(item);
+  controller.announcement = "真实已读写入暂未开放";
 }
 function resetEmpty() {
-  if (remoteMode.value) controller.resetFilters();
-  else controller.resetData();
+  controller.resetFilters();
   emit("restore");
 }
 
@@ -343,7 +325,7 @@ onBeforeUnmount(() => window.clearTimeout(loadingTimer));
     </section>
     <section v-else-if="state === 'error'" class="notice-state" role="alert">
       <h1>公告加载失败</h1>
-      <p>演示数据暂时不可用。</p>
+      <p>飞书公告数据暂时不可用。</p>
       <button type="button" @click="beginRetry">重试</button>
     </section>
     <section

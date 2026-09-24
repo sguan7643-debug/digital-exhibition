@@ -7,19 +7,30 @@ const detailAppIds = Object.freeze({
 const routeSpecificInputs = Object.freeze({
   '/workbench': Object.freeze({
     'COM-001': {}, 'COM-002': { platform: 'WEB' },
-    'COM-005': { dictTypes: ['APP_TYPE', 'BUSINESS_DOMAIN', 'SCENE'], includeDisabled: false },
+    'COM-005': { dictTypes: ['APPLICATION_TYPE', 'BUSINESS_DOMAIN', 'SCENE'], includeDisabled: false },
     'WB-001': { hotLimit: 4, courseLimit: 3, noticeLimit: 4 },
     'WB-002': { page: 1, pageSize: 20, sort: 'RELEVANCE' }
   }),
   '/messages': Object.freeze({ 'MSG-001': {}, 'MSG-002': { page: 1, pageSize: 100 } }),
   '/favorites': Object.freeze({ 'FAV-001': { resourceType: 'APP' }, 'FAV-002': { resourceType: 'APP', page: 1, pageSize: 100 } }),
   '/profile': Object.freeze({ 'COM-001': {}, 'COM-003': { includeUsers: false, maxDepth: 5 }, 'COM-004': { page: 1, pageSize: 20, sort: 'name,asc' }, 'WB-003': { recentMessageLimit: 5, todoLimit: 5 }, 'WB-004': { page: 1, pageSize: 20, sort: 'submittedAt,desc' } }),
-  '/apps/onboarding/apply': Object.freeze({ 'COM-003': { includeUsers: false, maxDepth: 5 }, 'COM-004': { page: 1, pageSize: 100, sort: 'name,asc' } }),
+  '/apps/onboarding/apply': Object.freeze({
+    'COM-003': { includeUsers: false, maxDepth: 5 },
+    'COM-004': { page: 1, pageSize: 100, sort: 'name,asc' },
+    'COM-005': { dictTypes: ['APPLICATION_TYPE', 'BUSINESS_DOMAIN'], includeDisabled: false }
+  }),
   '/points': Object.freeze({ 'PTS-001': {}, 'PTS-003': { groupBy: 'SOURCE' }, 'PTS-004': { page: 1, pageSize: 10 } }),
   '/points/details': Object.freeze({ 'PTS-002': { page: 1, pageSize: 100 } }),
   '/announcements/notice-001': Object.freeze({
     'ANN-003': { announcementId: 'AN004', markRead: false },
     'ANN-005': { announcementId: 'AN004', page: 1, pageSize: 100 }
+  }),
+  '/operations/announcements/notice-001/edit': Object.freeze({
+    'OAN-003': { announcementId: 'AN004' }
+  }),
+  '/operations/apps/app-001/edit': Object.freeze({
+    'OAP-003': { appId: 'APP001', include: 'attachments,trainings,relatedMaterials' },
+    'OAP-006': { appId: 'APP001' }
   })
 });
 const interactionReadOperationIds = new Set(['OAN-008', 'APP-004', 'MAT-003', 'COM-008', 'COM-010']);

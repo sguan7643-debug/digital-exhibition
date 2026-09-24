@@ -33,6 +33,7 @@ const session = Object.freeze({
   identity: Object.freeze({ userId: 'u_test', openId: 'ou_test', tenantKey: 'tenant_test', orgId: 'org_test', permissions: ['apps.onboarding.test'], displayName: '测试用户' }),
   accessToken: 'user-token-server-only'
 });
+const authorizationScope = Object.freeze({ users: 'authorized-user-001', accessDepartment: 'authorized-dept-001' });
 const service = createFeishuApprovalService({ client, now: () => 1_000_000 });
 
 const definition = await service.ensureTestDefinition(session);
@@ -46,7 +47,7 @@ const created = await service.createInstance({
   applicationCode: 'HW-001',
   description: 'TEST_端到端审批实例',
   businessKey: 'TEST_BUSINESS_001', resourceId: 'TEST_HW_001',
-  idempotencyKey: 'TEST_IDEM_001'
+  idempotencyKey: 'TEST_IDEM_001', application: authorizationScope
 }, session);
 assert.deepEqual(created, { instanceId: 'TEST_INSTANCE', status: 'PENDING' });
 assert.equal(calls[1][1].applicantUserId, 'u_test');
@@ -64,7 +65,8 @@ assert.equal(calls.filter(call => call[0] === 'instance').length, 1, 'replay mus
 
 const concurrentInputs = {
   applicationType: 'T005', title: 'TEST_并发审批', applicationCode: 'TEST_CONCURRENT_001',
-  description: 'TEST_并发幂等', businessKey: 'TEST_BUSINESS_CONCURRENT_001', resourceId: 'TEST_CONCURRENT_001', idempotencyKey: 'TEST_IDEM_CONCURRENT_001'
+  description: 'TEST_并发幂等', businessKey: 'TEST_BUSINESS_CONCURRENT_001', resourceId: 'TEST_CONCURRENT_001', idempotencyKey: 'TEST_IDEM_CONCURRENT_001',
+  application: authorizationScope
 };
 const [concurrentA, concurrentB] = await Promise.all([
   service.createInstance(concurrentInputs, session),
@@ -109,6 +111,15 @@ await assert.rejects(
   service.createInstance({ applicationType: 'T005', title: 'TEST_应用' }, null),
   error => error.code === 'USER_AUTH_REQUIRED' && error.status === 401
 );
+const instanceCallsBeforeMissingAuthorization = calls.filter(call => call[0] === 'instance').length;
+await assert.rejects(
+  service.createInstance({
+    applicationType: 'T005', title: 'TEST_缺少授权范围', applicationCode: 'TEST_SCOPE_001',
+    resourceId: 'TEST_SCOPE_001', businessKey: 'TEST_BUSINESS_SCOPE_001', idempotencyKey: 'TEST_IDEM_SCOPE_001'
+  }, session),
+  error => error.code === 'APPROVAL_AUTHORIZATION_REQUIRED' && error.status === 400
+);
+assert.equal(calls.filter(call => call[0] === 'instance').length, instanceCallsBeforeMissingAuthorization, '缺少适用用户或适用部门时不得调用飞书创建审批');
 
 const status = await service.getInstance('TEST_INSTANCE', session);
 assert.equal(status.status, 'APPROVED');
@@ -144,7 +155,7 @@ const retryClient = {
     return { instanceCode: 'TEST_RECOVERED', status: 'PENDING' };
   }
 };
-const retryInput = { applicationType: 'T005', title: 'TEST_恢复审批', applicationCode: 'TEST_RECOVERY_001', resourceId: 'TEST_RECOVERY_001', businessKey: 'TEST_BUSINESS_RECOVERY_001', idempotencyKey: 'TEST_IDEM_RECOVERY_001' };
+const retryInput = { applicationType: 'T005', title: 'TEST_恢复审批', applicationCode: 'TEST_RECOVERY_001', resourceId: 'TEST_RECOVERY_001', businessKey: 'TEST_BUSINESS_RECOVERY_001', idempotencyKey: 'TEST_IDEM_RECOVERY_001', application: authorizationScope };
 const retryService = createFeishuApprovalService({ client: retryClient, registryFile: persistFile, now: () => 1_000_000 });
 await assert.rejects(retryService.createInstance(retryInput, session), /upstream timeout/);
 const recoveredService = createFeishuApprovalService({ client: retryClient, registryFile: persistFile, now: () => 1_000_000 });

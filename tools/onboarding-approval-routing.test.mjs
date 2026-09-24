@@ -17,6 +17,8 @@ const submitted = await submitOnboarding({
   name: 'TEST_海能Work',
   applicationCode: 'TEST_HW_001',
   summary: 'TEST_申请',
+  users: 'authorized-user-001',
+  accessDepartment: 'authorized-dept-001',
   detailFields: { 使用指南: 'TEST_使用指南', 使用功能: 'TEST_使用功能' }
 }, [], fetchImpl);
 assert.deepEqual(submitted, { kind: 'feishu', instanceId: 'TEST_INSTANCE', resourceId: 'TEST_HW_001', status: 'PENDING', message: '飞书审批已提交' });
@@ -33,6 +35,8 @@ assert.match(requestBody.idempotencyKey, /^TEST_IDEM_T005_TEST_HW_001_/);
 assert.equal(requestBody.description, 'TEST_申请');
 assert.deepEqual(requestBody.detailFields, { 使用指南: 'TEST_使用指南', 使用功能: 'TEST_使用功能' });
 assert.deepEqual(requestBody.application.detailFields, { 使用指南: 'TEST_使用指南', 使用功能: 'TEST_使用功能' });
+assert.equal(requestBody.application.users, 'authorized-user-001', '适用用户必须作为授权用户提交到服务端');
+assert.equal(requestBody.application.accessDepartment, 'authorized-dept-001', '适用部门必须作为授权部门提交到服务端');
 assert.doesNotMatch(calls[0].options.body, /token|secret/i);
 
 const status = await getOnboardingStatus('TEST_INSTANCE', fetchImpl);

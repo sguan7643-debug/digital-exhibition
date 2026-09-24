@@ -1,20 +1,14 @@
 <script setup>
 // Reference SHA-256: 5F2DC6F56EF909A2EBADED1184353856CB105F2BA33B5BEFD7B8AF00AA342E11
 import { computed } from 'vue';
-import { createOperationsController } from '../state/operations-controller.js';
 
-const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'}});
-const controller=createOperationsController();
+const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'loading'}});
 const periods=[['day','日'],['week','周'],['month','月'],['quarter','季度']];
-const mockApps=['智能合同审查助手','招标文件智能校验','供应链风险预警','采购问答助手','票据识别助手','智能客服机器人','文档摘要助手','会议纪要助手','设备故障预测','安全隐患识别'];
-const mockNotices=['关于优化数字化认证访问权限的通知','数据顺序产品需求变更（2025年Q2）','信息安全宣传周正式上线','新版本发布安排与功能说明','关于开放应用使用满意度调研的通知'];
 const iconNames=['usage-visits.png','overview-ead.png','points-month.png','overview-rpa.png','points-use.png'];
-const remoteMode=computed(()=>props.integrationState!=='mock');
 const remoteState=computed(()=>props.integrationState);
 const remoteDashboard=computed(()=>props.integrationData?.['OPS-001']??null);
 const remoteDefinitions=computed(()=>Array.isArray(props.integrationData?.['OPS-003']?.items)?props.integrationData['OPS-003'].items:[]);
 const pageState=computed(()=>{
-  if(!remoteMode.value)return 'normal';
   if(remoteState.value==='error'||remoteState.value==='timeout'||remoteState.value==='rate-limited'||remoteState.value==='schema-drift'||remoteState.value==='security-error')return 'error';
   if(remoteState.value==='authentication-required'||remoteState.value==='permission-denied')return 'permission-denied';
   if(remoteState.value==='empty')return 'empty';
@@ -22,45 +16,29 @@ const pageState=computed(()=>{
   return remoteDashboard.value?'normal':'empty';
 });
 const dashboard=computed(()=>remoteDashboard.value||{});
-const stats=computed(()=>remoteMode.value
-  ? (Array.isArray(dashboard.value.metrics)?dashboard.value.metrics:[]).map(metric=>({label:metric.label||metric.code||'未命名指标',value:Number(metric.value??0).toLocaleString('zh-CN'),change:`${Number(metric.changeRate??0).toFixed(1)}%`,direction:metric.direction||'FLAT'}))
-  : controller.stats);
-const trend=computed(()=>remoteMode.value
-  ? (Array.isArray(dashboard.value.visitTrend)?dashboard.value.visitTrend.map(item=>Number(item.visitCount??0)):[])
-  : controller.trend);
-const usageTrend=computed(()=>remoteMode.value
-  ? (Array.isArray(dashboard.value.appUsageTrend)?dashboard.value.appUsageTrend.map(item=>Number(item.usageCount??0)):[])
-  : controller.trend);
-const rankingApps=computed(()=>remoteMode.value
-  ? (Array.isArray(dashboard.value.topApps)?dashboard.value.topApps.map((item,index)=>({name:item.appName||item.appId||'未命名应用',usage:Number(item.usageCount??0),rank:Number(item.rank??index+1)})):[])
-  : mockApps.map((name,index)=>({name,usage:2375-index*182,rank:index+1})));
-const noticeRows=computed(()=>remoteMode.value
-  ? (Array.isArray(dashboard.value.announcements)?dashboard.value.announcements.map(item=>({title:item.title||'未命名公告',publisher:item.publisherOrgName||'—',date:String(item.publishAt||'').slice(0,10)||'—'})):[])
-  : mockNotices.map((title,index)=>({title,publisher:['系统公告','数据产品部','信息管理部','数字监管部','运营管理部'][index],date:`2026-08-${19-index}`})));
-const activity=computed(()=>remoteMode.value?dashboard.value.userActivity||{}:{activeUserCount:controller.stats[2].value,activeRate:36.2,visitsPerUser:6.57,appsPerUser:3.20});
-const distribution=computed(()=>remoteMode.value
-  ? (Array.isArray(dashboard.value.appTypeDistribution)?dashboard.value.appTypeDistribution:[])
-  : ['AI 76 (15.8%)','EAD 42 (8.7%)','可视化驾驶舱 58 (12.0%)','可视化报表 74 (15.3%)','数据集 61 (12.7%)','指标 53 (11.0%)','海能work应用 69 (14.3%)','RPA 49 (10.2%)'].map(item=>({typeName:item})));
-const range=computed(()=>remoteMode.value?{start:dashboard.value.period?.startDate||'',end:dashboard.value.period?.endDate||''}:controller.range);
-const rangeLabel=computed(()=>remoteMode.value?`${range.value.start||'—'} 至 ${range.value.end||'—'}`:controller.rangeLabel);
+const stats=computed(()=>(Array.isArray(dashboard.value.metrics)?dashboard.value.metrics:[]).map(metric=>({label:metric.label||metric.code||'未命名指标',value:Number(metric.value??0).toLocaleString('zh-CN'),change:`${Number(metric.changeRate??0).toFixed(1)}%`,direction:metric.direction||'FLAT'})));
+const trend=computed(()=>(Array.isArray(dashboard.value.visitTrend)?dashboard.value.visitTrend.map(item=>Number(item.visitCount??0)):[]));
+const usageTrend=computed(()=>(Array.isArray(dashboard.value.appUsageTrend)?dashboard.value.appUsageTrend.map(item=>Number(item.usageCount??0)):[]));
+const rankingApps=computed(()=>(Array.isArray(dashboard.value.topApps)?dashboard.value.topApps.map((item,index)=>({name:item.appName||item.appId||'未命名应用',usage:Number(item.usageCount??0),rank:Number(item.rank??index+1)})):[]));
+const noticeRows=computed(()=>(Array.isArray(dashboard.value.announcements)?dashboard.value.announcements.map(item=>({title:item.title||'未命名公告',publisher:item.publisherOrgName||'—',date:String(item.publishAt||'').slice(0,10)||'—'})):[]));
+const activity=computed(()=>dashboard.value.userActivity||{});
+const distribution=computed(()=>(Array.isArray(dashboard.value.appTypeDistribution)?dashboard.value.appTypeDistribution:[]));
+const range=computed(()=>({start:dashboard.value.period?.startDate||'',end:dashboard.value.period?.endDate||''}));
+const rangeLabel=computed(()=>`${range.value.start||'—'} 至 ${range.value.end||'—'}`);
 const totalVisits=computed(()=>stats.value[0]?.value??0);
 const maxTrend=computed(()=>Math.max(1,...trend.value,...usageTrend.value));
 const periodCode=computed(()=>String(dashboard.value.period?.period||'').toLowerCase());
-function setPeriod(period){if(!remoteMode.value)controller.setPeriod(period);}
-function setRange(key,value){if(!remoteMode.value)controller.setRange(key,value);}
-function refresh(){if(!remoteMode.value)controller.refresh();}
 </script>
 
 <template>
   <article class="operations-page" aria-labelledby="ops-title" :data-state="pageState">
-    <p class="sr-only" aria-live="polite">{{ controller.announcement }}</p>
     <header>
       <h1 id="ops-title">运营看板</h1>
       <p>全面掌握数智展厅运营核心指标与运行状态，助力数据化运营与持续优化</p>
       <div class="period" role="group" aria-label="统计周期">
-        <button v-for="item in periods" :key="item[0]" type="button" :disabled="remoteMode" :aria-pressed="(remoteMode?periodCode:controller.period)===item[0]" @click="setPeriod(item[0])">{{ item[1] }}</button>
-        <label>开始日期<input type="date" :disabled="remoteMode" :value="range.start" @change="setRange('start',$event.target.value)" /></label><span aria-hidden="true">至</span><label>结束日期<input type="date" :disabled="remoteMode" :value="range.end" @change="setRange('end',$event.target.value)" /></label>
-        <button type="button" disabled :title="remoteMode?'真实运营导出服务暂未开放':'本地演示不生成导出文件'">导出数据</button>
+        <button v-for="item in periods" :key="item[0]" type="button" disabled :aria-pressed="periodCode===item[0]">{{ item[1] }}</button>
+        <label>开始日期<input type="date" disabled :value="range.start" /></label><span aria-hidden="true">至</span><label>结束日期<input type="date" disabled :value="range.end" /></label>
+        <button type="button" disabled title="飞书运营导出服务暂未开放">导出数据</button>
       </div>
     </header>
     <section v-if="pageState==='loading'" class="ops-state-surface" role="status">正在加载运营看板数据…</section>
@@ -70,14 +48,14 @@ function refresh(){if(!remoteMode.value)controller.refresh();}
     <template v-else>
       <section class="ops-stats" aria-label="运营指标"><article v-for="(stat,index) in stats" :key="stat.label"><AppIcon :name="iconNames[index%iconNames.length]" :size="58"/><div><small>{{ stat.label }}</small><strong>{{ stat.value }}</strong><p>较上期 {{ stat.direction==='DOWN'?'↓':'↑' }} {{ stat.change }}</p></div></article></section>
       <section class="ops-grid">
-        <article class="trend"><h2>访问趋势 <span>总访问量 {{ totalVisits }}</span></h2><div class="line" role="img" :aria-label="`访问趋势：${trend.join('、')}`"><i v-for="(value,index) in trend" :key="`${controller.revision}-${index}`" :style="{height:`${Math.max(18,Math.round(value/maxTrend*100))}%`}"><b>{{ value }}</b></i></div></article>
+        <article class="trend"><h2>访问趋势 <span>总访问量 {{ totalVisits }}</span></h2><div class="line" role="img" :aria-label="`访问趋势：${trend.join('、')}`"><i v-for="(value,index) in trend" :key="index" :style="{height:`${Math.max(18,Math.round(value/maxTrend*100))}%`}"><b>{{ value }}</b></i></div></article>
         <article class="ranking"><h2>热门应用 Top 10</h2><ol><li v-for="item in rankingApps" :key="`${item.rank}-${item.name}`"><b>{{ item.rank }}</b><span>{{ item.name }}</span><strong>{{ item.usage }}</strong></li></ol></article>
         <article class="ops-notices"><h2>公告列表 <a href="/operations/announcements">查看全部</a></h2><ul><li v-for="item in noticeRows" :key="`${item.date}-${item.title}`"><span>{{ item.title }}</span><b>{{ item.publisher }}</b><time>{{ item.date }}</time></li></ul></article>
         <article class="donut"><h2>用户活跃度</h2><div class="ring" role="img" :aria-label="`活跃用户占比 ${Number(activity.activeRate??0).toFixed(1)}%`">{{ Number(activity.activeRate??0).toFixed(1) }}%</div><dl><div><dt>活跃用户数</dt><dd>{{ activity.activeUserCount??0 }}</dd></div><div><dt>人均访问次数</dt><dd>{{ Number(activity.visitsPerUser??0).toFixed(2) }}</dd></div><div><dt>人均使用应用数</dt><dd>{{ Number(activity.appsPerUser??0).toFixed(2) }}</dd></div></dl></article>
         <article class="usage-chart"><h2>应用使用统计</h2><div class="line small" role="img" :aria-label="`应用使用统计：${usageTrend.join('、')}`"><i v-for="(value,index) in usageTrend" :key="index" :style="{height:`${Math.max(18,Math.round(value/maxTrend*100))}%`}"></i></div></article>
         <article class="distribution"><h2>应用类型分布</h2><div class="ring multi" role="img" :aria-label="`应用类型分布，共 ${distribution.reduce((total,item)=>total+Number(item.count??0),0)} 个应用`">{{ distribution.reduce((total,item)=>total+Number(item.count??0),0) }}</div><ul><li v-for="(item,index) in distribution" :key="item.typeCode||item.typeName"><i :style="{background:['#7755ee','#17bd97','#f28a16','#0060a6'][index%4]}"></i>{{ item.typeName }}<template v-if="item.count!=null"> {{ item.count }} ({{ Number(item.percentage??0).toFixed(1) }}%)</template></li></ul></article>
       </section>
-      <footer>数据统计区间：{{ rangeLabel }}　　数据来源：{{ remoteMode?(dashboard.sourceNames||[]).join('、')||'受控代理数据':'数智产品展厅' }}<small v-if="remoteMode">　已加载 {{ remoteDefinitions.length }} 项指标口径</small><button type="button" :disabled="remoteMode" :title="remoteMode?'真实运营刷新任务暂未开放':''" @click="refresh">刷新数据</button></footer>
+      <footer>数据统计区间：{{ rangeLabel }}　　数据来源：{{ (dashboard.sourceNames||[]).join('、')||'飞书多维表格' }}<small>　已加载 {{ remoteDefinitions.length }} 项指标口径</small><button type="button" disabled title="飞书运营刷新任务暂未开放">刷新数据</button></footer>
     </template>
   </article>
 </template>

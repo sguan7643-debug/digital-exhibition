@@ -1,17 +1,16 @@
 <script setup>
 // Reference SHA-256: 3F38FEA2909904F070F5CFBF4FB110337856035CE5774519545689776FD4C558
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { PEOPLE_FIXTURES } from "../fixtures/mock-data.js";
 import { createTalentController } from "../state/interaction-controllers.js";
 import PaginationControl from "../components/PaginationControl.vue";
 
-const props = defineProps({ integrationData: { type: Object, default: null }, integrationState: { type: String, default: "mock" } });
-const controller = createTalentController(PEOPLE_FIXTURES);
-const remoteMode = computed(() => props.integrationState !== "mock");
+const props = defineProps({ integrationData: { type: Object, default: null }, integrationState: { type: String, default: "loading" } });
+const controller = createTalentController([]);
+const remoteMode = computed(() => true);
 const remoteState = computed(() => props.integrationState);
 const mapRemotePerson = (item) => ({ id: item.id, name: item.name || "—", age: "—", inPool: item.status || "—", type: item.type || "—", department: item.departmentName || "—", domain: item.specialties?.join(" / ") || "—", office: "—", tags: item.specialties?.join(" / ") || "—", direction: item.level || "—", start: "—", end: "—" });
-const pageState = computed(() => { if (!remoteMode.value) return "normal"; if (["error", "timeout", "rate-limited", "schema-drift", "security-error"].includes(remoteState.value)) return "error"; if (["authentication-required", "permission-denied"].includes(remoteState.value)) return "permission-denied"; if (remoteState.value === "disabled") return "disabled"; if (remoteState.value === "loading") return "loading"; return controller.fixtures.length ? "normal" : "empty"; });
-watch([() => props.integrationData, () => props.integrationState], () => { controller.fixtures = remoteMode.value ? (Array.isArray(props.integrationData?.['TAL-001']?.items) ? props.integrationData['TAL-001'].items.map(mapRemotePerson) : []) : PEOPLE_FIXTURES.map((item) => ({ ...item })); controller.page = 1; }, { immediate: true });
+const pageState = computed(() => { if (["error", "timeout", "rate-limited", "schema-drift", "security-error"].includes(remoteState.value)) return "error"; if (["authentication-required", "permission-denied"].includes(remoteState.value)) return "permission-denied"; if (remoteState.value === "disabled") return "disabled"; if (remoteState.value === "loading") return "loading"; return controller.fixtures.length ? "normal" : "empty"; });
+watch([() => props.integrationData, () => props.integrationState], () => { controller.fixtures = Array.isArray(props.integrationData?.['TAL-001']?.items) ? props.integrationData['TAL-001'].items.map(mapRemotePerson) : []; controller.page = 1; }, { immediate: true });
 const queryDraft = ref("");
 const dialogRef = ref(null);
 const closeButtonRef = ref(null);
@@ -83,12 +82,8 @@ async function openDetail(person, event) {
   await focusDrawer();
 }
 
-async function openCreate(event) {
-  rememberOrigin(event);
-  controller.openCreate();
-  updateDrawerQuery("create", "push");
-  setBackgroundInert(true);
-  await focusDrawer();
+function openCreate() {
+  controller.announcement = "正式人才写入接口尚未启用";
 }
 
 async function closeDetail() {
@@ -105,16 +100,8 @@ async function closeDetail() {
   await restoreDrawerOrigin();
 }
 
-async function submitCreate() {
-  const saved = controller.saveNew();
-  if (!saved) {
-    await nextTick();
-    dialogRef.value?.querySelector('[aria-invalid="true"]')?.focus();
-    return;
-  }
-  updateDrawerQuery("");
-  setBackgroundInert(false);
-  await restoreDrawerOrigin();
+function submitCreate() {
+  controller.announcement = "正式人才写入接口尚未启用";
 }
 
 function submitSearch() {
@@ -131,7 +118,11 @@ function resetFilters() {
 
 async function syncDrawer() {
   const id = new URLSearchParams(window.location.search).get("drawer");
-  if (id === "create") controller.openCreate();
+  if (id === "create") {
+    updateDrawerQuery("");
+    controller.close();
+    return;
+  }
   else if (id) controller.open(id);
   else {
     const wasOpen = controller.drawerOpen;
@@ -373,7 +364,7 @@ onBeforeUnmount(() => {
           novalidate
           @submit.prevent="submitCreate"
         >
-          <p>请填写人才库列表中展示的基础字段，保存后将加入本地人才数据。</p>
+          <p>人才写入接口尚未启用。</p>
           <label
             ><span>员工姓名<b>*</b></span
             ><input

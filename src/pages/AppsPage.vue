@@ -1,7 +1,6 @@
 <script setup>
 // Reference SHA-256: E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { APP_CATEGORIES, APP_FIXTURES } from "../fixtures/mock-data.js";
 import {
   categoryIconName,
   applicationAccessMode,
@@ -19,26 +18,26 @@ import { buildApplicationDirectorySearchInput } from "../integration/application
 
 const props = defineProps({
   integrationData: { type: Object, default: null },
-  integrationState: { type: String, default: 'mock' },
+  integrationState: { type: String, default: 'loading' },
   operationExecutor: { type: Function, default: null },
   actionExecutor: { type: Function, default: null },
   testWritesEnabled: { type: Boolean, default: false },
 });
 
 const controller = routeSession.controller("apps", () =>
-  createAppsController(APP_FIXTURES),
+  createAppsController([]),
 );
 const directorySearchBusy = ref(false);
 const directorySearchError = ref("");
 const queriedRemoteItems = ref(null);
-const remoteMode = computed(() => props.integrationState !== 'mock');
 const remoteApps = computed(() => {
   const items = queriedRemoteItems.value ?? props.integrationData?.['APP-002']?.items;
   return Array.isArray(items) ? projectApplicationCards(items) : [];
 });
-const displayedApps = computed(() => remoteMode.value ? remoteApps.value : APP_FIXTURES);
+const displayedApps = computed(() => remoteApps.value);
 watch([displayedApps, () => props.integrationState], ([apps, state]) => {
-  if (state !== 'mock') controller.replaceFixtures(apps);
+  controller.replaceFixtures(apps);
+  apps.forEach(app => routeSession.registerFavorite(app.id, app.route));
 }, { immediate: true });
 const queryDraft = computed({
   get: () => controller.queryDraft,
@@ -54,13 +53,16 @@ const remoteDetailCountByCategory = computed(() => new Map(
     : [])
     .map((item) => [item.category, Number(item.count) || 0]),
 ));
+const appCategories = computed(() => [...new Set([
+  ...remoteDetailCountByCategory.value.keys(),
+  ...displayedApps.value.map(app => normalizeAppCategory(app.category))
+].filter(Boolean))]);
 const appTypeStats = computed(() =>
-  APP_CATEGORIES.map((category) => ({
+  appCategories.value.map((category) => ({
     category,
     labelParts: category === "海能work应用" ? ["海能work", "应用"] : [category],
-    count: remoteMode.value
-      ? (remoteDetailCountByCategory.value.get(category) || 0)
-      : APP_FIXTURES.filter((app) => normalizeAppCategory(app.category) === category).length,
+    count: remoteDetailCountByCategory.value.get(category)
+      || displayedApps.value.filter(app => normalizeAppCategory(app.category) === category).length,
     icon: categoryIconName(category),
   })),
 );
@@ -78,7 +80,7 @@ function setCategory(category) {
 }
 async function submitSearch() {
   controller.setFilter("query", queryDraft.value);
-  if (!remoteMode.value || directorySearchBusy.value) return;
+  if (directorySearchBusy.value) return;
   directorySearchError.value = "";
   if (!props.operationExecutor) {
     directorySearchError.value = "当前无法连接应用索引，请稍后重试。";
@@ -111,7 +113,7 @@ function resetFilters() {
     window.location.pathname,
   );
   window.dispatchEvent(new PopStateEvent("popstate"));
-  if (remoteMode.value) submitSearch();
+  submitSearch();
 }
 function setFilter(key, value) {
   controller.setFilter(key, value);
@@ -120,14 +122,7 @@ function toggleFavorite(route) {
   const selected = routeSession.toggleRouteFavorite(route);
   controller.announcement = selected ? "已收藏应用" : "已取消收藏";
 }
-function localAction(label, app) {
-  controller.announcement = `${app.name}：${label}为本地演示操作`;
-}
 async function launch(app) {
-  if (!remoteMode.value) {
-    localAction('立即使用', app);
-    return;
-  }
   try {
     const result = await launchApplication(props.operationExecutor, app.appId || app.id, { sourcePage: '/apps' });
     controller.announcement = `${app.name}：${result.message}`;
@@ -136,10 +131,6 @@ async function launch(app) {
   }
 }
 async function requestUse(app) {
-  if (!remoteMode.value) {
-    localAction('申请使用', app);
-    return;
-  }
   if (!props.testWritesEnabled || !props.actionExecutor) {
     controller.announcement = `${app.name}：TEST_ 申请通道未启用`;
     return;
@@ -232,7 +223,7 @@ onBeforeUnmount(() => {
           @change="setFilter('type', $event.target.value)"
         >
           <option value="">请选择应用类型</option>
-          <option v-for="category in APP_CATEGORIES" :key="category">
+          <option v-for="category in appCategories" :key="category">
             {{ category }}
           </option>
         </select></label
@@ -324,8 +315,7 @@ onBeforeUnmount(() => {
             <div><dt>收藏量：</dt><dd>{{ app.favorites.toLocaleString("zh-CN") }}</dd></div>
           </dl>
           <div class="catalog-actions">
-            <a v-if="!remoteMode && applicationAccessMode(app.route) === 'direct'" class="card-access" :href="`${app.route}#usage`">立即使用</a>
-            <button v-else-if="applicationAccessMode(app.route) === 'direct'" class="card-access" type="button" :disabled="!operationExecutor" @click="launch(app)">立即使用</button>
+            <button v-if="applicationAccessMode(app.route) === 'direct'" class="card-access" type="button" :disabled="!operationExecutor" @click="launch(app)">立即使用</button>
             <button v-else-if="applicationAccessMode(app.route) === 'apply'" class="card-access" type="button" @click="requestUse(app)">申请使用</button>
             <button v-else class="card-access" type="button" disabled>暂不可用</button>
           </div>

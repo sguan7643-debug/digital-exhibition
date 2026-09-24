@@ -1,11 +1,10 @@
 <script setup>
 import { computed } from 'vue';
-const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'mock'}});
+const props=defineProps({integrationData:{type:Object,default:null},integrationState:{type:String,default:'loading'}});
 const organizations=computed(()=>props.integrationData?.['COM-003']?.items||[]);
 const contacts=computed(()=>props.integrationData?.['COM-004']?.items||[]);
 const todos=computed(()=>props.integrationData?.['WB-003']?.todos||[]);
 const remoteState=computed(()=>{
-  if(props.integrationState==='mock')return 'mock';
   if(props.integrationState==='loading')return 'loading';
   if(['authentication-required','permission-denied'].includes(props.integrationState))return 'permission-denied';
   if(['error','timeout','rate-limited','schema-drift','security-error'].includes(props.integrationState))return 'error';
@@ -18,7 +17,7 @@ function safeLocalPath(path){
 </script>
 
 <template>
-  <div v-if="remoteState!=='mock'" class="profile-live" data-live-profile-sections :data-state="remoteState">
+  <div class="profile-live" data-live-profile-sections :data-state="remoteState">
     <p v-if="remoteState==='loading'" class="live-state" role="status">正在加载组织、联系人和待办…</p>
     <p v-else-if="remoteState==='permission-denied'" class="live-state" role="alert">当前身份无权查看组织、联系人和待办。</p>
     <p v-else-if="remoteState==='error'" class="live-state" role="alert">组织、联系人和待办暂不可用。</p>

@@ -16,10 +16,15 @@ assert.doesNotMatch(appSource, /@keydown\.stop\.prevent/, '业务请求提示不
 assert.match(appSource, /requestActivity\.activeCount\s*>\s*1/, '并发请求必须显示请求数量');
 assert.match(appSource, /正在处理\s*\{\{\s*requestActivity\.activeCount\s*\}\}\s*项请求/, '并发请求文案必须为“正在处理 N 项请求”');
 assert.match(appSource, /页面其他区域仍可继续使用/, '请求提示必须明确说明页面并未被锁定');
+assert.match(appSource, /class="integration-toast-close"/, '持久请求气泡必须提供统一关闭按钮');
+assert.match(appSource, /aria-label="关闭数据请求提示"/, '关闭按钮必须有可访问名称');
+assert.match(appSource, /@click="dismissIntegrationRecovery"/, '点击关闭按钮必须隐藏当前请求气泡');
 
 const bannerRule = styleSource.match(/\.request-activity-banner\{[^}]+\}/)?.[0] || '';
 assert.doesNotMatch(bannerRule, /position:fixed|inset:0|pointer-events:auto/, '请求提示不得覆盖视口或接管指针事件');
 assert.match(styleSource, /\.request-activity-banner__bar\{[^}]+border-radius:50%/, '请求提示必须包含清晰的加载进度标识');
+assert.match(styleSource, /\.integration-toast-close\{[^}]*position:absolute[^}]*border-radius:50%/, '气泡关闭按钮必须位于气泡右上角并显示为小圆形图标');
+assert.match(styleSource, /\.integration-toast-close:focus-visible\{[^}]*outline:/, '气泡关闭按钮必须提供清晰的键盘焦点');
 assert.match(styleSource, /@media\(prefers-reduced-motion:reduce\)[\s\S]*animation:none/, '必须尊重 reduced-motion');
 
 const first = beginRequest('正在查询审批状态');
