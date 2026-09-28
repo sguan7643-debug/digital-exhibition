@@ -22,9 +22,7 @@ export function resolveIntegrationRuntime(options = {}) {
   const contractEvidenceComplete = options.contractEvidenceComplete === true;
   const testWritesEnabled = options.testWritesEnabled === true && requestedMode === 'remote' && remoteEnabled && contractEvidenceComplete;
   const configuredTimeoutMs = Number.isFinite(options.timeoutMs) && options.timeoutMs > 0 ? options.timeoutMs : null;
-  const timeoutMs = remoteEnabled
-    ? Math.min(configuredTimeoutMs ?? 12_000, 12_000)
-    : configuredTimeoutMs;
+  const timeoutMs = remoteEnabled ? (configuredTimeoutMs ?? 30_000) : configuredTimeoutMs;
   let mode = requestedMode;
   let reason = 'explicit-mode';
   if (requestedMode === 'remote' && (!remoteEnabled || !contractEvidenceComplete || !timeoutMs)) {

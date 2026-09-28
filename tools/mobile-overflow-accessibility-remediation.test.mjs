@@ -4,7 +4,6 @@ import { readFileSync } from 'node:fs';
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const h5 = read('src/h5.css');
 const shell = read('src/components/ExhibitionShell.vue');
-const gallery = read('src/components/BusinessPreviewGallery.vue');
 
 assert.doesNotMatch(h5, /html,\s*\n\s*body,\s*\n\s*#app\s*\{[^}]*overflow:\s*hidden/s,
   '移动适配不得用根级 overflow:hidden 掩盖页面宽度缺陷');
@@ -36,11 +35,4 @@ for (const token of ['.table-scroll','.talent-body main>section','.progress-tabl
   assert.ok(shell.includes(token), `共享滚动增强必须覆盖 ${token}`);
 }
 
-assert.match(gallery, /<caption>\{\{ card\.title \}\}趋势数据<\/caption>/,
-  '趋势图必须提供可感知标题');
-assert.match(gallery, /<th scope="col">周期<\/th>[\s\S]*<th scope="col">实际值<\/th>[\s\S]*<th scope="col">目标值<\/th>/,
-  '趋势图必须提供类别、实际值与目标值的完整文本等价表格');
-assert.match(gallery, /v-for="\(period,periodIndex\) in periods"/,
-  '趋势图文本等价信息必须逐项覆盖全部周期');
-
-console.log('360px 路由壳、局部横向滚动与图表文本等价合同通过');
+console.log('360px 路由壳与局部横向滚动无障碍合同通过；已删除图表组件断言由退役映射单独追踪');

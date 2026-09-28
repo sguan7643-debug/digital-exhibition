@@ -104,6 +104,66 @@ export function describeDataSourceEnvelope(envelope) {
   return '当前页面真实数据接入未启用';
 }
 
+function homepageAggregateEvent(contract, result) {
+  const { status, body } = result;
+  if (status === 202) {
+    const sectionRecords = Object.fromEntries(contract.readOperationIds.map(operationId => [operationId, {
+      available: false,
+      traceId: body.traceId || null,
+      sourceUpdatedAt: null,
+      dataStale: false,
+      isComplete: false,
+      errorState: 'initial-syncing',
+      retryable: true,
+      retryAfterSeconds: Math.max(1, Math.round(Number(body.pollAfterMs || 2000) / 1000))
+    }]));
+    return {
+      type: 'fail', code: 'initial-syncing', error: '正式飞书数据正在首次同步',
+      traceId: body.traceId || null, traceIds: body.traceId ? [body.traceId] : [],
+      isComplete: false, dataStale: false, lastSyncedAt: null,
+      unavailableSections: [...contract.readOperationIds], unavailableReasonCode: 'initial-syncing',
+      retryScope: [...contract.readOperationIds], sectionRecords,
+      refreshing: true, syncId: body.syncId, syncState: body.state, syncError: null
+    };
+  }
+  const sectionRecords = Object.fromEntries(contract.readOperationIds.map(operationId => {
+    const section = body.sections?.[operationId] || {};
+    return [operationId, {
+      available: section.available === true,
+      data: section.data,
+      traceId: section.traceId || body.traceId || null,
+      sourceUpdatedAt: section.sourceUpdatedAt || null,
+      dataStale: section.dataStale === true,
+      isComplete: section.isComplete !== false,
+      errorState: section.available === true ? null : section.state === 'syncing' ? 'initial-syncing' : 'error',
+      retryable: section.retryable !== false,
+      retryAfterSeconds: 2
+    }];
+  }));
+  const unavailableSections = contract.readOperationIds.filter(operationId => sectionRecords[operationId]?.available !== true);
+  const retryScope = contract.readOperationIds.filter(operationId => {
+    const section = sectionRecords[operationId];
+    return section?.retryable === true && (section.available !== true || section.dataStale === true);
+  });
+  const traceIds = [...new Set(Object.values(sectionRecords).map(section => section.traceId).filter(Boolean))];
+  return {
+    type: 'success',
+    state: body.aggregateState === 'fresh' ? 'normal' : body.aggregateState === 'stale' ? 'data-stale' : 'partial',
+    data: body.data || {}, traceId: body.traceId || null, traceIds,
+    isComplete: unavailableSections.length === 0,
+    dataStale: body.dataStale === true,
+    lastSyncedAt: body.sourceUpdatedAt || null,
+    unavailableSections,
+    unavailableReasonCode: unavailableSections.length ? 'partial-read' : body.dataStale ? 'data-stale' : null,
+    retryScope,
+    sectionRecords,
+    refreshing: body.refreshing === true,
+    syncId: body.syncId || null,
+    syncState: body.refreshing ? 'running' : body.syncId ? 'failed' : null,
+    syncError: null
+  };
+}
+
 export function assertWriteActionContext(action, operation, context = {}) {
   if (action?.remoteEnabled !== true) throw new Error('操作独立门禁未启用');
   if (!operation || operation.access !== 'write' || operation.remoteEnabled !== true) throw new Error('写 operation 未启用');
@@ -117,7 +177,7 @@ export function assertWriteActionContext(action, operation, context = {}) {
   return true;
 }
 
-export function createPageDataSource({ route, runtime, client, operationResolver = getOperation }) {
+export function createPageDataSource({ route, runtime, client, homepageClient, operationResolver = getOperation }) {
   const contract = getPageIntegrationContract(route);
   if (!contract) throw new Error(`未登记页面接入合同：${route}`);
   const initialMode = runtime.mode;
@@ -156,6 +216,12 @@ export function createPageDataSource({ route, runtime, client, operationResolver
 
       const stableEnvelope = envelope;
       envelope = reduceDataState({ ...envelope, mode: 'remote' }, { type: 'load' });
+      if (route === '/workbench' && homepageClient) {
+        const result = await homepageClient.load({ forceRefresh: options.forceRefresh === true, signal: controller.signal });
+        if (currentGeneration !== generation) return withContract(envelope);
+        envelope = reduceDataState({ ...envelope, mode: 'remote' }, homepageAggregateEvent(contract, result));
+        return withContract(envelope);
+      }
       const settled = await Promise.allSettled(requestedOperationIds.map(operationId => client.execute(
         operationId,
         options.inputByOperation?.[operationId] || input,
@@ -174,8 +240,50 @@ export function createPageDataSource({ route, runtime, client, operationResolver
   }
 
   async function retry(input = {}, options = {}) {
+    if (route === '/workbench' && homepageClient) return load(input, { ...options, forceRefresh: true });
     if (!envelope.retryScope.length) return withContract(envelope);
     return load(input, { ...options, operationIds: [...envelope.retryScope] });
+  }
+
+  async function pollSync(options = {}) {
+    if (route !== '/workbench' || !homepageClient || !envelope.syncId) return withContract(envelope);
+    const currentGeneration = generation;
+    const syncId = envelope.syncId;
+    activeController?.abort(new DOMException('由更新的同步状态查询取代', 'AbortError'));
+    const controller = new AbortController();
+    activeController = controller;
+    const abortFromCaller = () => controller.abort(options.signal?.reason || new DOMException('同步状态查询已取消', 'AbortError'));
+    if (options.signal?.aborted) abortFromCaller();
+    else options.signal?.addEventListener?.('abort', abortFromCaller, { once: true });
+    let status;
+    try {
+      status = await homepageClient.status(syncId, { signal: controller.signal });
+    } finally {
+      options.signal?.removeEventListener?.('abort', abortFromCaller);
+      if (activeController === controller) activeController = null;
+    }
+    if (currentGeneration !== generation || syncId !== envelope.syncId) return withContract(envelope);
+    if (status.state === 'queued' || status.state === 'running') {
+      envelope = Object.freeze({ ...envelope, refreshing: true, syncState: status.state, traceId: status.traceId || envelope.traceId });
+      return withContract(envelope);
+    }
+    if (status.state === 'completed') return load({}, options.loadOptions || {});
+    envelope = reduceDataState({ ...envelope, mode: 'remote' }, {
+      type: 'fail',
+      code: envelope.data && Object.keys(envelope.data).length ? 'data-stale' : 'error',
+      error: status.errorCode || '首页数据同步失败',
+      traceId: status.traceId || envelope.traceId,
+      isComplete: false,
+      dataStale: envelope.dataStale,
+      unavailableSections: envelope.unavailableSections,
+      retryScope: envelope.retryScope.length ? envelope.retryScope : [...contract.readOperationIds],
+      sectionRecords: envelope.sectionRecords,
+      refreshing: false,
+      syncId,
+      syncState: status.state,
+      syncError: status.errorCode || 'HOMEPAGE_SYNC_FAILED'
+    });
+    return withContract(envelope);
   }
 
   function cancel(reason = '页面已切换') {
@@ -196,5 +304,5 @@ export function createPageDataSource({ route, runtime, client, operationResolver
     }, { signal: context.signal });
   }
 
-  return Object.freeze({ load, retry, cancel, executeAction, snapshot: () => withContract(envelope), contract });
+  return Object.freeze({ load, retry, pollSync, cancel, executeAction, snapshot: () => withContract(envelope), contract });
 }

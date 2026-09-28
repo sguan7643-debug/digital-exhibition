@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRenderer, h, nextTick } from 'vue';
-import { APP_CATEGORIES, APP_FIXTURES, PEOPLE_FIXTURES } from '../src/fixtures/mock-data.js';
 import {
   createAppsController,
   createShellController,
@@ -10,6 +9,32 @@ import {
   normalizeAppCategory,
   applicationAccessMode
 } from '../src/state/interaction-controllers.js';
+
+const APP_CATEGORIES = ['可视化', '报表', 'RPA', '数据集', '指标', 'AI', '海能work应用', 'EAD', '其他工具'];
+const appSample = (id, name, category, route, usage = 1) => ({
+  id, name, category, route, usage, favorites: usage, description: `${name}说明`,
+  owner: '测试负责人', department: '测试部门', developer: '测试开发者', developerDepartment: '测试开发部',
+  domain: '测试业务域', scene: '测试场景', tag: '测试标签', accessMode: applicationAccessMode(route),
+});
+const APP_FIXTURES = [
+  appSample('app-visual', '测试驾驶舱', '大屏', '/apps/dashboard-001', 11),
+  appSample('app-dashboard', '测试可视化驾驶舱', '驾驶舱', '/apps/dashboard-001', 12),
+  appSample('app-report', '测试报表', '可视化报表', '/apps/report-001', 10),
+  appSample('app-rpa-001', '发票识别测试', 'RPA', '/apps/rpa-001', 20),
+  appSample('app-dataset', '测试数据集', '数据集', '/apps/dataset-001', 9),
+  appSample('app-metric', '测试指标', '指标', '/apps/metric-001', 8),
+  appSample('app-ai', '测试 AI', 'AI', '/apps/ai-001', 7),
+  appSample('app-work', '测试海能work', '海能work应用', '/apps/haineng-work-001', 6),
+  appSample('app-ead', '测试 EAD', 'EAD', '/apps/ead-001', 5),
+  appSample('app-tool', '测试工具', '其他工具', '/apps/tool-001', 4),
+];
+const PEOPLE_FIXTURES = Array.from({ length: 12 }, (_, index) => ({
+  id: `person-${String(index + 1).padStart(3, '0')}`,
+  name: `测试人才${index + 1}`,
+  department: index === 9 ? '技术研发部' : index === 1 ? '技术研发部' : '业务部',
+  domain: index === 9 ? '云架构' : '数字化', office: '测试科室', inPool: '是',
+  tags: index === 9 ? '云架构' : '测试', direction: '测试方向',
+}));
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -26,7 +51,7 @@ assert.equal(shell.appsExpanded, false);
 assert.equal(shell.announcement, '应用中心子菜单已收起');
 
 assert.deepEqual([...new Set(APP_FIXTURES.map(app => app.category))].sort(),
-  ['AI', 'EAD', 'RPA', '其他工具', '可视化报表', '大屏', '数据集', '指标', '海能work应用', '驾驶舱'].sort());
+  ['AI', 'EAD', 'RPA', '其他工具', '可视化报表', '大屏', '驾驶舱', '数据集', '指标', '海能work应用'].sort());
 for (const app of APP_FIXTURES) {
   assert.ok(app.department?.trim(), `${app.name} 必须提供负责部门`);
   assert.ok(app.developerDepartment?.trim(), `${app.name} 必须提供开发部门`);
@@ -72,8 +97,8 @@ assert.deepEqual(talent.results.map(person => person.id), ['person-010']);
 talent.reset();
 assert.equal(talent.results.length, PEOPLE_FIXTURES.length);
 assert.equal(talent.selectedId, null);
-assert.equal(PEOPLE_FIXTURES.length, 32);
-assert.equal(talent.totalPages, 4);
+assert.equal(PEOPLE_FIXTURES.length, 12);
+assert.equal(talent.totalPages, 2);
 assert.equal(talent.pagedResults.length, 10);
 talent.setPage(2);
 assert.equal(talent.page, 2);
@@ -83,20 +108,17 @@ const talentCreate = createTalentController(PEOPLE_FIXTURES);
 talentCreate.openCreate();
 assert.equal(talentCreate.creating, true);
 assert.equal(talentCreate.drawerOpen, true);
-assert.equal(talentCreate.saveNew(), false);
+assert.equal(talentCreate.validateDraft(), false);
 assert.ok(Object.keys(talentCreate.errors).length > 0);
 Object.assign(talentCreate.draft, {
   name: '测试人才', age: '35', inPool: '是', type: '专业人才', department: '采购管理部',
   domain: '供应链', office: '采购一室', tags: '采购,数据', direction: '数字化采购',
   start: '2026-09-01', end: '2026-12-31'
 });
-const createdTalent = talentCreate.saveNew();
-assert.equal(createdTalent.id, 'person-local-033');
-assert.equal(createdTalent.age, 35);
-assert.equal(talentCreate.fixtures.length, PEOPLE_FIXTURES.length + 1);
-assert.equal(talentCreate.fixtures[0].id, createdTalent.id);
-assert.equal(talentCreate.drawerOpen, false);
-assert.equal(talentCreate.page, 1);
+assert.equal(talentCreate.validateDraft(), true);
+assert.equal(talentCreate.saveNew(), false);
+assert.equal(talentCreate.fixtures.length, PEOPLE_FIXTURES.length);
+assert.equal(talentCreate.announcement, '正式人才写入接口尚未启用');
 
 const scheduled = [];
 const sixState = createSixStateController('error', (callback, delay) => scheduled.push({ callback, delay }));
@@ -165,10 +187,10 @@ for (const contract of ['pagedPeople', 'controller.setPage'])
   assert.ok(talentSource.includes(contract), `人才库真实分页合同缺失：${contract}`);
 assert.match(talentSource, /<PaginationControl[\s\S]*?:total="filteredPeople\.length"/,
   '人才库分页总数必须来自当前筛选结果');
-for (const contract of ['@click="openCreate"', 'controller.openCreate()', 'updateDrawerQuery("create"', 'submitCreate'])
-  assert.ok(talentSource.includes(contract), `新增人才右侧填写合同缺失：${contract}`);
+for (const contract of ['@click="openCreate"', ':disabled="remoteMode"', '正式人才写入接口尚未启用'])
+  assert.ok(talentSource.includes(contract), `人才写入真实能力边界缺失：${contract}`);
 assert.ok(!talentSource.includes('>更多<'), '人才库不得保留“更多”操作');
-for (const contract of ['handleInternalNavigation', 'window.history.pushState', 'restoreRouteSession', '(target||main).focus()'])
+for (const contract of ['handleInternalNavigation', 'window.history.pushState', 'restoreRouteSession', "document.getElementById('onboarding-title')||main).focus()"])
   assert.ok(appSource.includes(contract), `站内路由未保持壳层状态/焦点：${contract}`);
 
 console.log('第一批 mounted/interaction：壳层、应用中心、人才库、六态行为通过');

@@ -1,0 +1,70 @@
+{
+  "task_id": "DEH-HAINENG-APPROVAL-FIELDS-20260924",
+  "title": "海能Work上架申请审批字段完整写入",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "确保海能Work上架申请创建或幂等重放时，上架申请表中的审批实例ID、授权用户和授权部门始终由真实审批结果及页面适用范围完整写入。",
+  "target_user": "在应用上架申请页面提交海能Work审批的已授权Web用户，以及核对飞书上架申请记录的审批运营人员。",
+  "in_scope": [
+    "将飞书审批实例ID写入上架申请表的审批实例ID字段",
+    "将页面适用用户原值写入上架申请表的授权用户字段",
+    "将页面适用部门原值写入上架申请表的授权部门字段",
+    "相同TEST_业务记录幂等重放时补齐或纠正上述字段以及当前审批状态",
+    "只有上架申请投影写入成功后审批提交接口才返回成功",
+    "增加服务端自动化测试和现有构建回归验证"
+  ],
+  "out_of_scope": [
+    "自动回填本任务上线前已经存在的历史飞书记录",
+    "修改海能Work以外的应用类型审批流程",
+    "改变上架申请页面表单字段、视觉样式或交互",
+    "修改飞书多维表格字段结构或字段类型",
+    "部署、发布、GitHub推送或主分支合并"
+  ],
+  "success_metric": "新提交及同一TEST_业务键重放的海能Work申请，在接口成功响应前，上架申请表同一记录的审批实例ID、授权用户、授权部门均为非空且分别等于飞书实例ID、页面适用用户、页面适用部门。",
+  "deadline": "尽快完成",
+  "risk_level": "medium",
+  "state": "development",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "user",
+      "approved_at": "2026-09-24T09:02:01.7414504Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "user",
+      "approved_at": "2026-09-24T09:10:39.0184101Z"
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": false,
+    "mobile_passed": false,
+    "web_evidence": "",
+    "web_checked_at": "",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": false,
+    "blocking_defects": 0,
+    "evidence": "",
+    "recorded_at": ""
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

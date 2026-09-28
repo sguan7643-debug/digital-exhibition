@@ -11,7 +11,7 @@ const plan = buildPageReadRequestPlan({
   }
 });
 assert.deepEqual(plan.operationIds, ['COM-005', 'WB-002'], 'a workbench plan must not dispatch the same operation twice');
-assert.equal(resolveIntegrationRuntime({ remoteEnabled: true }).timeoutMs, 12000);
+assert.equal(resolveIntegrationRuntime({ remoteEnabled: true }).timeoutMs, 30000);
 
 const detailPlan = buildPageReadRequestPlan({
   route: '/apps/report-001',
@@ -26,4 +26,4 @@ const detailPlan = buildPageReadRequestPlan({
 });
 assert.deepEqual(detailPlan.inputByOperation['MAT-001'], {}, 'MAT-001 facet read must not receive unsupported pagination input');
 
-console.log('workbench request plan deduplication and 12-second remote default passed');
+console.log('workbench request plan deduplication and 30-second remote default passed');

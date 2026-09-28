@@ -1,7 +1,8 @@
 <script setup>
 // Reference SHA-256: 68508151B1490F117074C44F464732A6986DAE68DDE5C23296DB0529C2C12E86
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { buildApplicationWriteInput } from "../integration/application-actions.js";
+import PaginationControl from "../components/PaginationControl.vue";
 
 const props = defineProps({
   integrationData: { type: Object, default: null },
@@ -13,8 +14,11 @@ const props = defineProps({
 
 const selected = ref("全部");
 const announcement = ref("");
+const page = ref(1);
+const pageSize = ref(6);
 const remoteMode = computed(() => true);
 const remoteState = computed(() => props.integrationState);
+const publicAssetPath = (fileName) => `${import.meta.env.BASE_URL}${String(fileName).replace(/^\/+/, "")}`;
 const remoteCourses = computed(() =>
   remoteState.value === "error" || remoteState.value === "authentication-required" || remoteState.value === "empty" ? [] : props.integrationData?.['TRN-002']?.items?.map((course) => ({
     id: course.courseId,
@@ -25,6 +29,7 @@ const remoteCourses = computed(() =>
     description: course.summary || "暂无课程简介",
     count: String(course.registeredCount ?? 0),
     action: String(course.statusCode).toUpperCase() === "LIVE" ? "进入直播" : "立即报名",
+    statusCode: String(course.statusCode || "").toUpperCase(),
     deliveryMode: course.deliveryMode,
   })) || [],
 );
@@ -39,10 +44,36 @@ const visibleCourses = computed(() =>
     ? courseSource.value
     : courseSource.value.filter((course) => course.category === selected.value),
 );
+const pagedCourses = computed(() => {
+  const start = (page.value - 1) * pageSize.value;
+  return visibleCourses.value.slice(start, start + pageSize.value);
+});
+const registrationCount = computed(() => courseSource.value.filter((course) =>
+  ["OPEN", "REGISTRATION", "REGISTERING"].includes(course.statusCode) || course.action === "立即报名",
+).length);
+const upcomingCount = computed(() => courseSource.value.filter((course) => {
+  if (course.statusCode === "UPCOMING") return true;
+  const timestamp = Date.parse(course.date);
+  return Number.isFinite(timestamp) && timestamp > Date.now();
+}).length);
 function selectTab(tab) {
   selected.value = tab;
+  page.value = 1;
   announcement.value = `已筛选${tab}培训，共 ${visibleCourses.value.length} 项近期活动`;
 }
+function changePage(value) {
+  page.value = value;
+  announcement.value = `已切换到第 ${value} 页`;
+}
+function changePageSize(value) {
+  pageSize.value = value;
+  page.value = 1;
+  announcement.value = `每页显示 ${value} 条培训`;
+}
+watch(visibleCourses, (items) => {
+  const lastPage = Math.max(1, Math.ceil(items.length / pageSize.value));
+  if (page.value > lastPage) page.value = lastPage;
+});
 async function register(course) {
   if (!props.testWritesEnabled || !props.actionExecutor || !course.id) {
     announcement.value = `${course.title}：真实 TEST_ 报名通道未启用`;
@@ -88,24 +119,24 @@ async function enterCourse(course) {
         <div class="hero-stats">
           <article>
             <AppIcon name="training-stat-total" :size="58" /><span
-              >活动总数<strong>186</strong></span
+              >活动总数<strong>{{ courseSource.length }}</strong></span
             >
           </article>
           <article>
             <AppIcon name="training-stat-registered" :size="58" /><span
-              >报名中<strong>78</strong></span
+              >报名中<strong>{{ registrationCount }}</strong></span
             >
           </article>
           <article>
             <AppIcon name="training-stat-soon" :size="58" /><span
-              >即将开始<strong>28</strong></span
+              >即将开始<strong>{{ upcomingCount }}</strong></span
             >
           </article>
         </div>
       </div>
       <img
         class="hero-illustration"
-        src="/assets/training-hero-illustration.png"
+        :src="publicAssetPath('assets/training-hero-illustration.png')"
         width="610"
         height="226"
         alt="培训课堂蓝色书本与学士帽插图"
@@ -123,7 +154,7 @@ async function enterCourse(course) {
       </button>
     </nav>
     <section class="course-grid" aria-label="近期培训活动">
-      <article v-for="course in visibleCourses" :key="course.id || course.title">
+      <article v-for="course in pagedCourses" :key="course.id || course.title">
         <header>
           <div class="course-meta">
             <mark>{{ course.category }}</mark
@@ -158,15 +189,16 @@ async function enterCourse(course) {
       <h2>{{ remoteState === "error" || remoteState === "authentication-required" ? "培训课程加载失败" : "暂无符合条件的培训课程" }}</h2>
       <p>当前未获得 TRN-002 飞书课程记录。</p>
     </section>
-    <footer class="training-pagination">
-      <strong>共 {{ courseSource.length }} 条</strong>
-      <nav aria-label="分页">
-        <button type="button">上一页</button
-        ><button type="button" aria-current="page">1</button
-        ><button type="button">2</button><button type="button">3</button
-        ><button type="button">下一页</button>
-      </nav>
-    </footer>
+    <PaginationControl
+      class="training-pagination"
+      :total="visibleCourses.length"
+      :page="page"
+      :page-size="pageSize"
+      :page-sizes="[6, 12, 24]"
+      label="培训分页"
+      @update:page="changePage"
+      @update:page-size="changePageSize"
+    />
   </article>
 </template>
 

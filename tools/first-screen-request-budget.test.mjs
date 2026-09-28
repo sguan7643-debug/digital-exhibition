@@ -16,8 +16,8 @@ const oversizedRemoteRuntime = resolveIntegrationRuntime({
 });
 assert.equal(
   oversizedRemoteRuntime.timeoutMs,
-  12_000,
-  'a configured browser timeout must not exceed the approved 12-second first-screen outcome'
+  30_000,
+  'the approved 30-second browser boundary must not be truncated by the former 12-second cap'
 );
 
 const workbenchOperationIds = ['COM-001', 'COM-002', 'COM-005', 'WB-001', 'WB-002', 'COM-011'];

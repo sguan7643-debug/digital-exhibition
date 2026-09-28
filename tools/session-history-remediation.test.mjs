@@ -24,8 +24,8 @@ const favorites=read('src/pages/FavoritesPage.vue');
 const messages=read('src/pages/MessagesPage.vue');
 for(const contract of ['captureRouteSession','restoreRouteSession','routeSession.snapshot'])assert.ok(app.includes(contract),`F04 路由会话缺失：${contract}`);
 assert.ok(apps.includes('routeSession.isRouteFavorite')&&apps.includes('routeSession.toggleRouteFavorite'),'应用中心必须通过 canonical route 映射使用收藏集合');
-assert.match(favorites,/createFavoritesController\(\s*FAVORITE_FIXTURES\s*,\s*routeSession\s*\)/,
-  '收藏页必须按唯一收藏 ID 使用共享集合');
+assert.match(favorites,/routeSession\.controller\(["']favorites["'][\s\S]*createFavoritesController\(\)/,
+  '收藏页必须复用共享控制器，并由飞书收藏记录提供唯一收藏 ID');
 for(const source of [apps,favorites,messages])assert.ok(source.includes('routeSession.controller'),'已实现页面必须复用共享控制器');
 for(const [label,contract] of [
   ['hash 读取',/window\.location\.hash/],

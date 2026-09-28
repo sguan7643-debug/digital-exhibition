@@ -1,31 +1,30 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { PAGE_CONTENT } from '../src/fixtures/page-content.js';
+import { PAGE_MATRIX, resolvePage } from '../src/fixtures/pages.js';
 
-const expectedKinds = {
-  '02': 'messages', '03': 'cards', '04': 'profile', '05': 'announcements', '06': 'notice-detail',
-  '07': 'apps', '08': 'app-detail', '09': 'app-detail', '10': 'app-detail', '11': 'app-detail',
-  '12': 'app-detail', '13': 'app-detail', '14': 'app-detail', '15': 'app-detail', '16': 'app-detail',
-  '17': 'onboarding', '18': 'points', '19': 'points-detail', '20': 'training', '21': 'operations',
-  '22': 'management-table', '23': 'editor', '24': 'management-table', '25': 'editor', '26': 'admin',
-  '27': 'certification', '28': 'talent-table', '29': 'talent-table', '30': 'talent-table'
-};
+assert.equal(PAGE_MATRIX.length, 30, '权威路由矩阵必须保留 30 个基线页面');
+assert.deepEqual(PAGE_MATRIX.map((page) => page.id), Array.from({ length: 30 }, (_, index) => String(index + 1).padStart(2, '0')));
 
-assert.deepEqual(Object.keys(PAGE_CONTENT), Object.keys(expectedKinds));
-for (const [id, kind] of Object.entries(expectedKinds)) {
-  const content = PAGE_CONTENT[id];
-  assert.equal(content.kind, kind, `${id} 的页面类型错误`);
-  assert.ok(content.heading.length > 1, `${id} 缺少标题`);
-  assert.ok(content.description.length > 5, `${id} 缺少说明`);
-  assert.ok(content.items.length >= 3, `${id} 缺少稳定 mock 条目`);
+for (const page of PAGE_MATRIX) {
+  assert.ok(page.route.startsWith('/'), `${page.id} 路由必须是站内绝对路径`);
+  assert.ok(page.title.length > 1, `${page.id} 缺少页面标题`);
+  assert.ok(page.role.length > 1, `${page.id} 缺少访问角色`);
+  assert.ok(page.states.includes('normal'), `${page.id} 缺少正常态`);
+  assert.ok(page.states.includes('loading'), `${page.id} 缺少加载态`);
+  assert.ok(page.states.includes('error'), `${page.id} 缺少错误态`);
+  assert.ok(page.states.includes('disabled'), `${page.id} 缺少禁用态`);
+  assert.ok(page.states.includes('permission-denied'), `${page.id} 缺少权限不足态`);
+  assert.equal(resolvePage(`http://127.0.0.1:4173/test2${page.route}`, 'normal', '/test2')?.id, page.id,
+    `${page.id} 必须能在 /test2 子路径部署下解析`);
 }
 
-const portal = readFileSync(new URL('../src/pages/PortalPage.vue', import.meta.url), 'utf8');
 const app = readFileSync(new URL('../src/App.vue', import.meta.url), 'utf8');
-for (const kind of new Set(Object.values(expectedKinds))) assert.ok(portal.includes(kind), `模板缺少 ${kind}`);
-assert.match(portal, /aria-label="筛选条件"/);
-assert.match(portal, /<table/);
-assert.match(portal, /<form/);
-assert.match(app, /<portal-page/);
+for (const page of PAGE_MATRIX) {
+  assert.ok(app.includes(`page.id === '${page.id}'`), `${page.id} 必须挂载专用 Vue 页面实现`);
+}
+assert.doesNotMatch(app, /PortalPage|portal-page/,
+  '真实路由不得回退到旧的通用 Portal 模板和稳定 mock 条目');
+assert.match(app, /<page-state-boundary/,
+  '全部专用页面必须继续由统一六态边界承载');
 
-console.log('其余 29 页的权威页面类型与确定性内容合同测试通过');
+console.log('30 个权威路由、专用 Vue 页面与统一六态合同测试通过');

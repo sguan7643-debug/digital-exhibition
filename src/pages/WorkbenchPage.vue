@@ -5,6 +5,17 @@ import { mapRemoteApp } from '../integration/app-read-model.js';
 const props=defineProps({integrationData:{type:Object,default:null},operationExecutor:{type:Function,default:null}});
 const controller=createWorkbenchController();
 const remote=computed(()=>props.integrationData?.['WB-001']);
+const localAvatarFallback=`${import.meta.env.BASE_URL}${'assets/top-avatar.png'}`;
+const heroAvatarUrl=computed(()=>{
+  const raw=remote.value?.profile?.avatarUrl;
+  if(!raw||typeof window==='undefined')return localAvatarFallback;
+  try{
+    const url=new URL(raw,window.location.origin);
+    return url.origin===window.location.origin&&url.pathname.startsWith('/')&&!url.pathname.startsWith('//')
+      ?`${url.pathname}${url.search}${url.hash}`
+      :localAvatarFallback;
+  }catch{return localAvatarFallback;}
+});
 const remoteSearch=ref(null);
 const searchState=ref('idle');
 let searchRevision=0;
@@ -41,7 +52,7 @@ const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value
 <template>
   <div class="workbench-page"><p class="sr-only" aria-live="polite">{{ searchState==='loading'?'正在从飞书检索应用':searchState==='error'?'飞书检索失败，保留当前结果':controller.announcement }}</p>
     <section class="hero-panel" aria-labelledby="greeting-title">
-      <img v-if="remote?.profile.avatarUrl" class="hero-avatar" :src="remote.profile.avatarUrl" width="68" height="68" :alt="`${remote.profile.displayName||'当前用户'}头像`" />
+      <img v-if="remote?.profile" class="hero-avatar" :src="heroAvatarUrl" width="68" height="68" :alt="`${remote.profile.displayName||'当前用户'}头像`" />
       <div class="greeting">
         <h1 id="greeting-title">{{ remote?.greeting.text||'欢迎使用数智产品展厅' }}</h1>
         <p>{{ remote?.hero.subtitle||'' }}</p>

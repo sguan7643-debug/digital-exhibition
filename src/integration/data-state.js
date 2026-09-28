@@ -8,7 +8,7 @@ export function createDataState({ data = null, mode = 'remote', state } = {}) {
     state: state || (Array.isArray(data) && data.length === 0 ? 'empty' : 'normal'),
     data, mode, error: null, traceId: null, traceIds: [], announcement: '', isComplete: true,
     dataStale: false, lastSyncedAt: null, unavailableSections: [], unavailableReasonCode: null,
-    retryScope: [], sectionRecords: {}
+    retryScope: [], sectionRecords: {}, refreshing: false, syncId: null, syncState: null, syncError: null
   });
 }
 export function reduceDataState(previous, event) {
@@ -28,6 +28,8 @@ export function reduceDataState(previous, event) {
       dataStale: event.dataStale ?? false, lastSyncedAt: event.lastSyncedAt || null,
       unavailableSections: event.unavailableSections || [], unavailableReasonCode: event.unavailableReasonCode || null,
       retryScope: event.retryScope || [], sectionRecords: event.sectionRecords || previous.sectionRecords,
+      refreshing: event.refreshing ?? false, syncId: event.syncId ?? null,
+      syncState: event.syncState ?? null, syncError: event.syncError ?? null,
       announcement
     });
   }
@@ -60,6 +62,10 @@ export function reduceDataState(previous, event) {
       unavailableReasonCode: event.unavailableReasonCode || event.code,
       retryScope: event.retryScope || previous.retryScope,
       sectionRecords: event.sectionRecords || previous.sectionRecords,
+      refreshing: event.refreshing ?? previous.refreshing,
+      syncId: event.syncId ?? previous.syncId,
+      syncState: event.syncState ?? previous.syncState,
+      syncError: event.syncError ?? previous.syncError,
       announcement
     });
   }

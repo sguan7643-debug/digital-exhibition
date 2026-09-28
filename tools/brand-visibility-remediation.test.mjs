@@ -9,8 +9,7 @@ const runtimeFiles = [
     .map((name) => `src/components/${name}`),
   ...readdirSync(new URL('../src/pages/', import.meta.url))
     .filter((name) => name.endsWith('.vue'))
-    .map((name) => `src/pages/${name}`),
-  'src/fixtures/page-content.js'
+    .map((name) => `src/pages/${name}`)
 ];
 
 const forbiddenBrand = /中国海油|中海油|海油|CNOOC|cnooc-logo/i;

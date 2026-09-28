@@ -59,7 +59,8 @@ assert.match(workbench, /\.hero-avatar\{filter:none;opacity:1\}/,
 assert.match(styles, /\.profile-page \.identity>img[^}]*\{[^}]*filter:none!important;[^}]*opacity:1!important/,
   '个人中心头像必须覆盖装饰图片灰度规则');
 
-assert.match(workbench, /上午好，张三丰/);
+assert.match(workbench, /remote\?\.greeting\.text\|\|'欢迎使用数智产品展厅'/,
+  '工作台问候语必须优先使用真实首页聚合数据，并提供无数据兜底');
 assert.match(workbench, /应用类型概览/);
 assert.match(workbench, /热门应用推荐/);
 assert.match(workbench, /培训课堂/);
@@ -68,7 +69,7 @@ assert.match(workbench, /我的使用统计/);
 
 assert.match(stateBoundary, /permission-denied/);
 assert.match(stateBoundary, /aria-busy/);
-assert.match(stateBoundary, /本地演示数据暂时不可用/);
+assert.match(stateBoundary, /飞书数据暂时不可用/);
 assert.match(stateBoundary, /当前角色无权访问该页面。/);
 assert.match(stateBoundary, /800/);
 assert.match(stateBoundary, /:inert="contentDisabled \|\| !contentVisible"/);

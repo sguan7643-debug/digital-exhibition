@@ -1,25 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { reactive } from 'vue';
-import { createDetailController } from '../src/state/detail-controller.js';
-
-const favorites=reactive(new Set(['/apps/report-001']));
-const detail=createDetailController('/apps/report-001',favorites,{name:'经营分析可视化报表'});
-assert.equal(detail.favorite,true);
-detail.toggleFavorite();
-assert.equal(detail.favorite,false);
-detail.apply('个性化指标构建申请（库存周转率）');
-assert.equal(detail.announcement,'经营分析可视化报表：个性化指标构建申请（库存周转率）已在本地演示中登记');
-detail.mockDownload('经营指标口径说明.xlsx');
-assert.match(detail.announcement,/零请求|不提供真实下载/);
-detail.commentDraft='指标摘要清晰';
-assert.equal(detail.submitComment(),true);
-
-const source=readFileSync(new URL('../src/pages/ReportDetailPage.vue',import.meta.url),'utf8');
-for(const contract of ['createDetailController','aria-pressed','detail.mockDownload','detail.submitComment','detail.comments','figcaption','href="/training"','IndicatorBuildDialog','openMetricBuild','submitMetricBuild','个性化指标构建'])assert.ok(source.includes(contract),`PP10 未接线：${contract}`);
-assert.match(source,/createDetailController\(\s*["']\/apps\/report-001["']\s*,\s*routeSession/,'PP10 必须绑定报表详情路由状态');
-assert.doesNotMatch(source,/申请复用/,'报表详情不得保留旧的申请复用操作');
-assert.doesNotMatch(source,/href="#main-content"/,'报表预览与下载不得使用假锚点');
-assert.doesNotMatch(source,/window\.open|location\.(?:assign|replace)/,'报表详情不得打开真实业务系统');
-
-console.log('第八批 interaction：可视化报表详情收藏、指标构建、预览摘要、附件和评论行为通过');
+const read=path=>readFileSync(new URL(`../${path}`,import.meta.url),'utf8');
+const source=read('src/pages/ReportDetailPage.vue');
+const body=read('src/components/AppDetailAuthoritativeBody.vue');
+assert.match(source,/RemoteAppDetailPage/,'报表详情必须复用统一远端详情组件');
+assert.match(source,/icon="report"/,'报表详情必须关联报表线稿图标');
+for(const section of ['指标','预览','附件','使用指南','相关培训'])assert.ok(body.includes(section),`报表远端详情缺少 ${section} 区域`);
+assert.doesNotMatch(source,/本地演示|mockDownload|createDetailController|IndicatorBuildDialog/,
+  '报表详情不得保留未接入的本地写入或伪下载交互');
+console.log('第八批 interaction：可视化报表远端详情与权威内容合同通过');

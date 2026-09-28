@@ -1,0 +1,91 @@
+{
+  "task_id": "DEH-ONBOARDING-POC-20260926",
+  "title": "应用上线申请完整 POC 闭环",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "完成从应用中心查看申请入口、提交海能Work上线申请、查看我的申请与详情、同步和展示真实飞书审批进度的完整Web POC闭环；为使POC通过，允许补齐缺失页面、接口、飞书表与字段以及可清理的TEST_验证数据。",
+  "target_user": "需要申请应用上线并持续查看本人审批进度的已授权Web用户，以及验证申请结果的业务运营人员。",
+  "in_scope": [
+    "应用中心展示清晰的应用上线申请入口与我的申请入口",
+    "申请表单使用真实飞书目录和字典数据并完成必要校验",
+    "海能Work申请提交真实飞书审批并写入飞书上架申请记录",
+    "提供当前用户的我的上线申请列表并展示关键状态和提交信息",
+    "提供单条申请详情和真实审批状态刷新能力",
+    "飞书侧审批通过或拒绝后Web端可同步展示最终状态",
+    "创建完整闭环所缺失的Web页面、路由和服务端接口",
+    "在指定飞书POC多维表格中以幂等方式创建缺失表和字段，不删除或破坏既有结构",
+    "在真实数据为空时创建带TEST_标识、可追踪且可清理的POC验证数据",
+    "持久化海能Work申请所需应用图标和附件，并在申请详情中可核验",
+    "补齐加载、空数据、失败、重试、提交成功和无跟踪编号状态",
+    "增加自动化测试、真实浏览器POC验证、数据清理能力和生产构建回归"
+  ],
+  "out_of_scope": [
+    "在本系统内替代飞书提供审批人操作界面",
+    "批量迁移或修复历史申请数据",
+    "重做RPA审批协议或其他应用类型审批后端",
+    "移动端或uni-app实现",
+    "部署、发布、GitHub推送或主分支合并"
+  ],
+  "success_metric": "已授权用户可从应用中心进入申请页，使用真实飞书或明确创建的TEST_验证数据提交一条完整海能Work申请，在我的申请列表中看到该记录并打开详情；飞书审批状态变化后，页面刷新可显示相同实例的最新状态，所需页面、接口、表、字段和附件链路均可验证且不依赖前端模拟业务数据。",
+  "deadline": "尽快完成当前POC验证",
+  "risk_level": "high",
+  "state": "qa",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "user",
+      "approved_at": "2026-09-26T08:53:32.5934030Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "user",
+      "approved_at": "2026-09-26T09:24:45.4926597Z"
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": true,
+    "mobile_passed": false,
+    "web_evidence": ".ai-team/tasks/DEH-ONBOARDING-POC-20260926/handoffs/web.md",
+    "web_checked_at": "2026-09-26T13:43:27.5826026Z",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": false,
+    "blocking_defects": 0,
+    "evidence": "",
+    "recorded_at": ""
+  },
+  "repair_attempts": 2,
+  "repair_history": [
+    {
+      "attempt": 1,
+      "platform": "web",
+      "evidence": "QA-DEF-01 | .ai-team/tasks/DEH-ONBOARDING-POC-20260926/qa-report.md",
+      "qa_evidence": ".ai-team/tasks/DEH-ONBOARDING-POC-20260926/qa-report.md",
+      "recorded_at": "2026-09-26T12:46:03.7734667Z"
+    },
+    {
+      "attempt": 2,
+      "platform": "web",
+      "evidence": "QA-DEF-02 + QA-DEF-03 | .ai-team/tasks/DEH-ONBOARDING-POC-20260926/qa-report.md",
+      "qa_evidence": ".ai-team/tasks/DEH-ONBOARDING-POC-20260926/qa-report.md",
+      "recorded_at": "2026-09-26T13:34:21.5147064Z"
+    }
+  ]
+}

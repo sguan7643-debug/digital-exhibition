@@ -39,6 +39,20 @@ try {
   assert.equal(sessionResponse.status, 401);
   assert.equal((await sessionResponse.json()).code, 'USER_AUTH_REQUIRED');
 
+  const onboardingResponse = await fetch(`${origin}/api/v1/onboarding/applications`, {
+    headers: { Origin: origin }
+  });
+  assert.equal(onboardingResponse.status, 401, 'test deployment server must mount the onboarding API before static fallback');
+  assert.equal((await onboardingResponse.json()).code, 'USER_AUTH_REQUIRED');
+
+  const liveResponse = await fetch(`${origin}/api/v1/health/live`);
+  assert.equal(liveResponse.status, 200);
+  assert.equal((await liveResponse.json()).state, 'live');
+
+  const readyResponse = await fetch(`${origin}/api/v1/health/ready`);
+  assert.equal(readyResponse.status, 200, 'prewarm-disabled test service must be ready immediately');
+  assert.equal((await readyResponse.json()).ready, true);
+
   const traversalResponse = await fetch(`${origin}/test2/%2e%2e/server/test-deployment-server.mjs`);
   assert.equal(traversalResponse.status, 404);
 } finally {

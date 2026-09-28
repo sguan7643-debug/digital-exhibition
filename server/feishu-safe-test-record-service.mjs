@@ -26,6 +26,27 @@ function textFieldValue(value) {
   return String(value ?? '');
 }
 
+function normalizeReconcileFields(value) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) {
+    throw new FeishuProxyError('INVALID_RECONCILE_FIELDS', '重放修复字段白名单必须是数组', 400);
+  }
+  const fields = value.map(item => String(item || '').trim());
+  if (fields.some(field => !field || field.length > 128)) {
+    throw new FeishuProxyError('INVALID_RECONCILE_FIELDS', '重放修复字段白名单包含非法字段名', 400);
+  }
+  return [...new Set(fields)];
+}
+
+function comparableFieldValue(value) {
+  if (Array.isArray(value)) {
+    if (value.every(item => item && typeof item === 'object' && 'text' in item)) return textFieldValue(value);
+    return JSON.stringify(value);
+  }
+  if (value && typeof value === 'object') return JSON.stringify(value);
+  return String(value ?? '');
+}
+
 export function createFeishuSafeTestRecordService({ client, wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)) }) {
   if (!client) throw new Error('缺少飞书记录客户端');
 
@@ -41,7 +62,7 @@ export function createFeishuSafeTestRecordService({ client, wait = milliseconds 
     return result.items[0] || null;
   }
 
-  async function createOnce({ tableName, keyField, businessKey, idempotencyKey, fields = {}, governance = {} }) {
+  async function createOnce({ tableName, keyField, businessKey, idempotencyKey, fields = {}, governance = {}, reconcileFields }) {
     const key = requireTestKey(businessKey);
     const idempotency = requireTestKey(idempotencyKey, '幂等键');
     const table = await resolveTable(tableName);
@@ -54,7 +75,26 @@ export function createFeishuSafeTestRecordService({ client, wait = milliseconds 
       if (traceField && textFieldValue(existing.fields?.[traceField]) !== idempotency) {
         throw new FeishuProxyError('TEST_KEY_CONFLICT', 'TEST_ 业务键已被其他幂等请求占用', 409);
       }
-      return { record: existing, replayed: true, version: recordVersion(existing, versionField) };
+      const allowlist = normalizeReconcileFields(reconcileFields);
+      if (allowlist.length && versionField) {
+        throw new FeishuProxyError('RECONCILE_VERSIONED_TABLE_FORBIDDEN', '带版本字段的记录必须使用乐观锁更新', 409);
+      }
+      const protectedFields = new Set([keyField, versionField, traceField, sourceField, deletedField].filter(Boolean));
+      const patch = {};
+      for (const field of allowlist) {
+        if (protectedFields.has(field) || !Object.hasOwn(fields, field)) continue;
+        if (comparableFieldValue(existing.fields?.[field]) !== comparableFieldValue(fields[field])) patch[field] = fields[field];
+      }
+      if (Object.keys(patch).length) {
+        const updated = await client.updateRecord(table.table_id, existing.record_id, patch);
+        const record = {
+          ...existing,
+          ...updated,
+          fields: { ...(existing.fields || {}), ...(updated?.fields || {}) }
+        };
+        return { record, tableId: table.table_id, replayed: true, reconciled: true, version: recordVersion(record, versionField) };
+      }
+      return { record: existing, tableId: table.table_id, replayed: true, reconciled: false, version: recordVersion(existing, versionField) };
     }
     const managed = {};
     if (versionField) managed[versionField] = 1;
@@ -62,7 +102,7 @@ export function createFeishuSafeTestRecordService({ client, wait = milliseconds 
     if (traceField) managed[traceField] = idempotency;
     if (deletedField) managed[deletedField] = false;
     const record = await client.createRecord(table.table_id, { ...fields, [keyField]: key, ...managed });
-    return { record, replayed: false, version: versionField ? 1 : 0 };
+    return { record, tableId: table.table_id, replayed: false, version: versionField ? 1 : 0 };
   }
 
   async function update({ tableName, keyField, businessKey, ifMatch, fields = {}, governance = {} }) {

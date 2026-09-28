@@ -24,7 +24,7 @@ async function download(material){
     const fileId=resolveDownloadFileId(material);
     if(!fileId){announcement.value=`${material.name} 暂无可下载文件`;return;}
     const response=await props.operationExecutor('MAT-003',{materialId:material.materialId,fileId,purpose:'USER_DOWNLOAD',sourcePage:window.location.pathname,clientOccurredAt:props.integrationData?.['APP-003']?.updatedAt||new Date().toISOString()});
-    startSameOriginDownload(response.data.accessUrl,file.name);
+    startSameOriginDownload(response.data.accessUrl,material.primaryFile?.fileName||material.name);
   }catch(error){
     if(error?.status===401){startFeishuLogin();return;}
     announcement.value=`${material.name} 下载失败，请稍后重试`;

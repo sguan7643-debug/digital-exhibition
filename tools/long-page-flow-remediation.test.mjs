@@ -10,7 +10,7 @@ const pageContracts = [
   ['src/pages/MaterialsPage.vue', '.materials-page', /\.materials-page\{[^}]*min-height:100%;[^}]*overflow:visible;/s],
   ['src/pages/AppsPage.vue', '.apps-page', /\.apps-page\s*\{[^}]*min-height:\s*100%;[^}]*overflow:\s*visible;/s],
   ['src/pages/FavoritesPage.vue', '.favorites-page', /\.favorites-page\s*\{[^}]*min-height:[^;]+;[^}]*overflow:\s*visible;/s],
-  ['src/pages/ReportDetailPage.vue', '.report-detail', /\.report-detail\s*\{[^}]*min-height:\s*100%;[^}]*overflow:\s*visible;/s],
+  ['src/components/RemoteAppDetailPage.vue', '.remote-app-detail', /\.remote-app-detail\s*\{[^}]*min-height:\s*100%;[^}]*overflow:\s*visible;/s],
   ['src/pages/WorkbenchPage.vue', '.workbench-page', /\.workbench-page\{[^}]*min-height:100%;[^}]*overflow:visible;/s],
   ['src/pages/ProfilePage.vue', '.profile-page', /\.profile-page\{[^}]*min-height:[^;]+;[^}]*overflow:visible;/s],
   ['src/pages/PointsPage.vue', '.points-page', /\.points-page\{[^}]*min-height:100%;[^}]*overflow:visible;/s],

@@ -15,7 +15,7 @@ for (const tag of ['talent-people-page', 'talent-projects-page', 'talent-progres
 for (const [name, source] of Object.entries(pages)) {
   assert.match(source, /integrationData:\s*\{\s*type:\s*Object/, `${name} must declare integrationData`);
   assert.match(source, /integrationState:\s*\{\s*type:\s*String/, `${name} must declare integrationState`);
-  assert.match(source, /props\.integrationState\s*!==\s*['"]mock['"]/, `${name} must distinguish remote mode from mock`);
+  assert.match(source, /const remoteMode\s*=\s*computed\(\(\)\s*=>\s*true\)/, `${name} must remain real-data-only`);
   assert.match(source, /authentication-required|permission-denied/, `${name} must render authentication state truthfully`);
   assert.match(source, /正式人才写入合同尚未提供/, `${name} must explain unavailable remote writes`);
   assert.match(source, /:disabled="remoteMode"/, `${name} must disable remote mutations`);

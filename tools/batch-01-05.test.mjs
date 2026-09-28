@@ -21,7 +21,8 @@ for (const [id, [path, sha]] of Object.entries(files)) {
 }
 
 for (const asset of ['workbench', 'apps', 'materials', 'certification', 'training', 'talent', 'operations']) {
-  assert.ok(shell.includes(`/assets/nav-${asset}.png`), `共享壳缺少 ASCII 同源图标：${asset}`);
+  assert.match(shell, new RegExp(`publicAssetPath\\(['"]assets/nav-${asset}\\.png['"]\\)`),
+    `共享壳缺少兼容子路径部署的 ASCII 同源图标：${asset}`);
 }
 assert.doesNotMatch(shell, /\/assets\/nav-[^'"/]*[\u3400-\u9fff]/u, '共享壳不能使用可能被静态服务器错误解码的 Unicode 资产 URL');
 assert.doesNotMatch(shell, /[●◆■▲✦⬢▣◇]/u);

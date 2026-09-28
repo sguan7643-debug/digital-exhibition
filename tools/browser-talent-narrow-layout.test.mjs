@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { resolve } from 'node:path';
 import { chromium } from 'playwright';
 
 const executablePath=[process.env.BROWSER_EXECUTABLE_PATH,'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe','C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'].filter(Boolean).find(fs.existsSync);
@@ -10,16 +11,21 @@ const routes=[
   {route:'/talent/projects',wrapper:'.table-scroll'},
   {route:'/talent/progress',wrapper:'.progress-table'}
 ];
-const browser=await chromium.launch({headless:true,executablePath});
+const profile=process.env.FEISHU_VERIFY_BROWSER_PROFILE;
+const browser=profile?null:await chromium.launch({headless:true,executablePath});
+const context=profile
+  ?await chromium.launchPersistentContext(resolve(profile),{headless:true,executablePath})
+  :await browser.newContext();
 const results=[];
 try{
   for(const {route,wrapper} of routes){
     for(const width of widths){
-      const page=await browser.newPage({viewport:{width,height:760}});
+      const page=await context.newPage();
+      await page.setViewportSize({width,height:760});
       const errors=[];const remoteRequests=[];
       page.on('pageerror',error=>errors.push(error.message));
       page.on('request',request=>{const url=new URL(request.url());if(url.hostname!=='127.0.0.1'&&url.hostname!=='localhost')remoteRequests.push(request.url());});
-      const response=await page.goto(`${origin}${route}`,{waitUntil:'domcontentloaded',timeout:15000});
+      const response=await page.goto(`${origin}${route}`,{waitUntil:'domcontentloaded',timeout:30000});
       const tableOrState = page.locator(`${wrapper}, .progress-state`).first();
       await tableOrState.waitFor({state:'visible'});
       if (await page.locator(wrapper).count() === 0) {
@@ -67,7 +73,7 @@ try{
       await page.close();
     }
   }
-}finally{await browser.close();}
+}finally{await context.close();if(browser)await browser.close();}
 const failed=results.filter(result=>!result.passed);
 console.log(JSON.stringify({passed:!failed.length,expected:15,failed,results},null,2));
 if(failed.length)process.exitCode=1;

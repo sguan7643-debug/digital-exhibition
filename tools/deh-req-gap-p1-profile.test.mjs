@@ -7,8 +7,8 @@ const live = readFileSync(new URL('../src/components/ProfileLiveSections.vue', i
 
 assert.match(app, /<profile-page[^>]*:integration-data="integrationEnvelope\.data"[^>]*:integration-state="integrationEnvelope\.state"[^>]*:operation-executor="executeReadOperation"/s);
 assert.match(app, /<profile-live-sections[^>]*:integration-data="integrationEnvelope\.data"[^>]*:integration-state="integrationEnvelope\.state"/s);
-assert.match(profile, /integrationState:\s*\{\s*type:\s*String,\s*default:\s*['"]mock['"]/);
-assert.match(profile, /const remoteMode\s*=\s*computed\(\(\)\s*=>\s*props\.integrationState\s*!==\s*['"]mock['"]\)/);
+assert.match(profile, /integrationState:\s*\{\s*type:\s*String,\s*default:\s*['"]loading['"]/);
+assert.match(profile, /const remoteMode\s*=\s*computed\(\(\)\s*=>\s*true\)/);
 assert.match(profile, /\['WB-003'\]/);
 assert.match(profile, /\['WB-004'\]/);
 assert.match(profile, /safeLocalPath/);
@@ -20,7 +20,7 @@ assert.match(profile, /\/api\/v1\/auth\/feishu\/session/, '个人中心必须独
 assert.match(profile, /sessionIdentity/, '个人聚合读取失败时仍必须保留会话身份标识');
 assert.match(profile, /v-if="remoteMode&&sessionChecked"/, '空态页面也必须展示已授权身份的验证标识');
 assert.doesNotMatch(profile, /remoteMode\.value\s*\?[^:]+:\s*stats/, 'remote states must not fall back to mock stats');
-assert.match(live, /integrationState:\s*\{\s*type:\s*String,\s*default:\s*['"]mock['"]/);
+assert.match(live, /integrationState:\s*\{\s*type:\s*String,\s*default:\s*['"]loading['"]/);
 assert.match(live, /authentication-required|permission-denied/);
 
 console.log('DEH profile governed remote projection contract passed.');

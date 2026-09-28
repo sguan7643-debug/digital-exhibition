@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadFeishuIdentifierContract } from '../server/feishu-identifier-contract.mjs';
-import { createFeishuReadOnlyService } from '../server/feishu-read-only-service.mjs';
+import { createFeishuReadOnlyService, resolveFeishuReadBudgetMs } from '../server/feishu-read-only-service.mjs';
+
+assert.equal(resolveFeishuReadBudgetMs(undefined), 35_000, '整表读取预算默认应为35秒');
+assert.equal(resolveFeishuReadBudgetMs(50_000), 50_000, '整表读取预算不得再被15秒硬上限截断');
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const identifierContract = loadFeishuIdentifierContract(path.join(root, 'server', 'contracts', 'feishu-base-identifiers.json'));

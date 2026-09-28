@@ -1,15 +1,21 @@
 import fs from 'node:fs';
+import { resolve } from 'node:path';
 import { chromium } from 'playwright';
 import { PAGE_MATRIX } from '../src/fixtures/pages.js';
 
 const origin = process.env.EXHIBITION_TEST_ORIGIN || 'http://127.0.0.1:4173';
 const cdpUrl = process.env.EDGE_CDP_URL;
+const profile = process.env.FEISHU_VERIFY_BROWSER_PROFILE;
 const candidates = [process.env.BROWSER_EXECUTABLE_PATH, 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', 'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'].filter(Boolean);
 const executablePath = candidates.find(candidate => fs.existsSync(candidate));
 if (!cdpUrl && !executablePath) throw new Error('未找到 Edge；可通过 EDGE_CDP_URL 复用受控浏览器');
 
-const browser = cdpUrl ? await chromium.connectOverCDP(cdpUrl) : await chromium.launch({ headless: true, executablePath });
-const context = cdpUrl ? (browser.contexts()[0] || await browser.newContext()) : await browser.newContext({ viewport: { width: 360, height: 800 } });
+const browser = cdpUrl ? await chromium.connectOverCDP(cdpUrl) : profile ? null : await chromium.launch({ headless: true, executablePath });
+const context = cdpUrl
+  ? (browser.contexts()[0] || await browser.newContext())
+  : profile
+    ? await chromium.launchPersistentContext(resolve(profile), { headless: true, executablePath, viewport: { width: 360, height: 800 } })
+    : await browser.newContext({ viewport: { width: 360, height: 800 } });
 const page = await context.newPage();
 await page.setViewportSize({ width: 360, height: 800 });
 const results = [];
@@ -54,7 +60,8 @@ try {
   }
 } finally {
   await page.close();
-  if (!cdpUrl) await browser.close();
+  if (profile) await context.close();
+  if (!cdpUrl) await browser?.close();
 }
 const failed = results.filter(result => !result.passed);
 console.log(JSON.stringify({ passed: results.length === 30 && !failed.length, expected: 30, verified: results.length, failed, results }, null, 2));

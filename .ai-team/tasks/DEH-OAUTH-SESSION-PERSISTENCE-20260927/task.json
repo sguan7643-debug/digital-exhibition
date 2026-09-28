@@ -1,0 +1,69 @@
+{
+  "task_id": "DEH-OAUTH-SESSION-PERSISTENCE-20260927",
+  "title": "飞书 OAuth 授权会话持久化",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "在本地开发服务重启后，已完成飞书用户授权的浏览器不再因服务进程重启而被要求再次授权，同时保持授权失效、登出和安全校验行为明确可控。",
+  "target_user": "在本地验证应用上线申请 POC、且需要多次重启开发服务的已授权业务用户。",
+  "in_scope": [
+    "将飞书 OAuth 授权会话从进程内存迁移至本地受保护的持久化存储",
+    "服务重启后恢复有效的浏览器授权会话",
+    "对失效、过期或不完整的会话返回可理解的重新授权引导",
+    "保留现有 OAuth state、回调校验和登出语义",
+    "增加针对服务重启后会话恢复的自动化和浏览器验证"
+  ],
+  "out_of_scope": [
+    "修改飞书应用权限、审批逻辑、Base 表结构或业务数据",
+    "把授权令牌写入前端、日志或仓库",
+    "生产部署、发布、GitHub 推送或主分支合并",
+    "移动端或 uni-app 实现",
+    "替换飞书 OAuth 提供方或新增第三方身份系统"
+  ],
+  "success_metric": "同一浏览器完成一次飞书授权后，在本地开发服务重启并刷新应用上线申请页时可恢复已授权会话；失效会话仅在确实无法恢复时提示重新授权，且令牌不出现在浏览器响应、源代码或日志中。",
+  "deadline": "尽快消除本地 POC 验证中的重复授权阻塞",
+  "risk_level": "high",
+  "state": "scope_review",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    },
+    "design": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": false,
+    "mobile_passed": false,
+    "web_evidence": "",
+    "web_checked_at": "",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": false,
+    "blocking_defects": 0,
+    "evidence": "",
+    "recorded_at": ""
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

@@ -7,10 +7,12 @@ const sensitiveKeySegments = Object.freeze([
   'appsecret','apptoken','tenantaccesstoken','useraccesstoken','accesstoken',
   'tableid','viewid','tenantkey','authorization','cookie','secret','token'
 ]);
+const approvedDisplayTokenKeys = new Set(['colortoken']);
 
 const normalizeKey = key => String(key).replace(/[^a-z0-9]/gi, '').toLowerCase();
 const isSensitiveKey = key => {
   const normalized = normalizeKey(key);
+  if (approvedDisplayTokenKeys.has(normalized)) return false;
   return sensitiveKeySegments.some(segment => normalized.includes(segment));
 };
 

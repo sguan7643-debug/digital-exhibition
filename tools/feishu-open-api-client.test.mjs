@@ -5,13 +5,13 @@ const { createFeishuOpenApiClient } = openApiClientModule;
 
 assert.equal(
   openApiClientModule.resolveFeishuUpstreamTimeoutMs?.(20_000),
-  12_000,
-  'an oversized Feishu upstream timeout must be capped at the approved 12-second background deadline'
+  20_000,
+  'the configured 20-second Feishu upstream timeout must not be truncated by the former 12-second cap'
 );
 assert.equal(
   openApiClientModule.resolveFeishuUpstreamTimeoutMs?.(undefined),
-  12_000,
-  'the Feishu upstream timeout must default to the approved 12-second background deadline'
+  20_000,
+  'the Feishu upstream timeout must default to 20 seconds'
 );
 
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));

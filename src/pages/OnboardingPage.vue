@@ -1,44 +1,94 @@
 <script setup>
-// Reference SHA-256: FC7F33ED038DD52F20892D1C4A7F58FAFF57FB54658B06443A1A885B1EB86F68
-import { computed, onMounted, ref } from 'vue';
-import { getOnboardingStatus } from '../integration/onboarding-approval.js';
-import { normalizeAppBasePath, prependAppBasePath } from '../integration/app-base-path.js';
+import { computed, nextTick, onMounted, ref } from 'vue';
+import { authorizeOnboardingFile, getOnboardingApplication, listOnboardingApplications, syncOnboardingApplication } from '../integration/onboarding-approval.js';
+import { startSameOriginDownload } from '../integration/secure-download.js';
 
 const query = new URLSearchParams(window.location.search);
-const instanceId = query.get('instanceId') || '';
-const source = query.get('source') || '';
-const resourceId = query.get('resourceId') || '';
-const status = ref(instanceId ? 'LOADING' : source ? 'SUBMITTED_UNTRACKED' : 'NOT_STARTED');
+const applicationId = query.get('applicationId') || '';
+const mode = applicationId ? 'detail' : 'list';
+const state = ref('loading');
+const items = ref([]);
+const detail = ref(null);
 const error = ref('');
-const labels = Object.freeze({
-  NOT_STARTED: ['待申请', '尚未发起申请'], LOADING: ['查询中', '正在读取真实审批状态'],
-  PENDING: ['审批中', '审批流程进行中'], APPROVED: ['审批完成', '审批已通过'],
-  REJECTED: ['审批退回', '审批未通过，已退回'], CANCELLED: ['审批取消', '审批申请已取消'],
-  ERROR: ['查询失败', '暂时无法读取审批状态'],
-  ACCEPTED_UNTRACKED: ['已受理', '已受理但暂无可查询编号，请稍后重试'],
-  SUBMITTED_UNTRACKED: ['已受理', '已受理但暂无可查询编号，请稍后重试']
+const syncError = ref('');
+const syncing = ref(false);
+const announcement = ref('');
+const fileErrors = ref({});
+let automaticSyncStarted = false;
+const statusMeta = Object.freeze({
+  PENDING: { label: '审批中', icon: '◷', tone: 'pending' }, APPROVED: { label: '已通过', icon: '✓', tone: 'approved' },
+  REJECTED: { label: '已拒绝', icon: '×', tone: 'rejected' }, CANCELLED: { label: '已取消', icon: '■', tone: 'cancelled' },
+  UNKNOWN: { label: '状态暂不可确认', icon: '?', tone: 'unknown' }
 });
-const current = computed(() => labels[status.value] || labels.ERROR);
-const appBasePath = normalizeAppBasePath(import.meta.env.VITE_EXHIBITION_APP_BASE || import.meta.env.BASE_URL);
-const submittedAppHref = computed(() => resourceId
-  ? prependAppBasePath(`/apps/haineng-work-001?appId=${encodeURIComponent(resourceId)}`, appBasePath)
-  : '');
-
-async function loadStatus() {
-  if (!instanceId) return;
-  status.value = 'LOADING';
-  error.value = '';
+const currentStatus = computed(() => statusMeta[detail.value?.status] || statusMeta.UNKNOWN);
+const title = computed(() => mode === 'list' ? '我的上线申请' : (detail.value?.applicationName ? `${detail.value.applicationName} 上线申请` : '上线申请详情'));
+function formatTime(value) { if (!value) return '—'; const date = new Date(value); return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(date); }
+function formatSize(value) { const bytes = Number(value || 0); if (bytes < 1024) return `${bytes} B`; if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`; return `${(bytes / 1024 / 1024).toFixed(1)} MB`; }
+function statusFor(value) { return statusMeta[value] || statusMeta.UNKNOWN; }
+function classifyError(reason) { const status = Number(reason?.status || 0); if ([401, 403, 404].includes(status) || reason?.code === 'ONBOARDING_APPLICATION_NOT_AVAILABLE') return 'permission-denied'; if (status === 503 && ['POC_BASE_FINGERPRINT_REQUIRED', 'POC_BASE_FINGERPRINT_MISMATCH', 'POC_SCHEMA_WRITE_DISABLED', 'POC_GATES_NOT_READY'].includes(reason?.code)) return 'disabled'; return 'error'; }
+async function focusTitle() { await nextTick(); document.getElementById('onboarding-title')?.focus(); }
+async function load() {
+  state.value = 'loading'; error.value = ''; detail.value = null; items.value = [];
   try {
-    const result = await getOnboardingStatus(instanceId, globalThis.fetch, resourceId);
-    status.value = result.status;
-  } catch (reason) {
-    status.value = 'ERROR';
-    error.value = reason instanceof Error ? reason.message : '审批状态查询失败';
-  }
+    if (mode === 'list') {
+      const result = await listOnboardingApplications(); items.value = Array.isArray(result.items) ? result.items : [];
+      state.value = items.value.length ? 'normal' : 'empty'; announcement.value = items.value.length ? `已加载 ${items.value.length} 条上线申请` : '暂无上线申请';
+    } else {
+      detail.value = await getOnboardingApplication(applicationId); state.value = 'normal'; announcement.value = '上线申请详情已加载'; await focusTitle();
+      if (detail.value.instanceId && !automaticSyncStarted) { automaticSyncStarted = true; await refreshStatus(true); }
+    }
+  } catch (reason) { state.value = classifyError(reason); error.value = reason instanceof Error ? reason.message : '上线申请数据暂不可用'; if (state.value === 'permission-denied') detail.value = null; await focusTitle(); }
 }
-
-onMounted(loadStatus);
+async function refreshStatus(automatic = false) {
+  if (syncing.value || !detail.value?.instanceId) return; syncing.value = true; syncError.value = '';
+  try { detail.value = await syncOnboardingApplication(applicationId); announcement.value = `${automatic ? '自动同步' : '刷新'}完成，当前状态：${statusFor(detail.value.status).label}，最近同步时间 ${formatTime(detail.value.lastSyncedAt)}`; }
+  catch (reason) { syncError.value = reason instanceof Error ? reason.message : '状态同步失败'; announcement.value = '状态同步失败，已保留最后成功结果'; }
+  finally { syncing.value = false; }
+}
+async function accessFile(file, modeValue) {
+  fileErrors.value = { ...fileErrors.value, [file.fileId]: '' };
+  try {
+    const grant = await authorizeOnboardingFile(applicationId, file.fileId, modeValue);
+    if (modeValue === 'DOWNLOAD') startSameOriginDownload(grant.url, file.fileName);
+    else { const target = new URL(grant.url, window.location.origin); if (target.origin !== window.location.origin) throw new Error('文件地址不是受控同源地址'); const opened = window.open(`${target.pathname}${target.search}`, '_blank', 'noopener,noreferrer'); if (opened) opened.opener = null; }
+    announcement.value = `${file.fileName} 已交给浏览器处理`;
+  } catch (reason) { fileErrors.value = { ...fileErrors.value, [file.fileId]: Number(reason?.status) === 410 ? '访问权限已过期，请重新获取访问权限' : (reason?.message || '文件访问失败') }; }
+}
+onMounted(async () => { await focusTitle(); await load(); });
 </script>
-<template><article class="onboarding-page" aria-labelledby="onboarding-title"><nav aria-label="面包屑">我的首页　/　数字化认证　/　应用审批</nav><section><h1 id="onboarding-title">审批状态</h1><div class="approval-live" role="status" aria-live="polite"><span :class="status.toLowerCase()" aria-hidden="true">{{ status === 'APPROVED' ? '✓' : status === 'REJECTED' ? '!' : '…' }}</span><div><strong>{{ current[0] }}</strong><p>{{ current[1] }}</p><small v-if="instanceId">实例：{{ instanceId }}</small></div></div><p v-if="error" class="status-error" role="alert">{{ error }}</p><button v-if="status === 'ERROR'" type="button" @click="loadStatus">重新查询</button><a v-if="submittedAppHref" :href="submittedAppHref">查看本次申请的应用详情</a><a v-if="!instanceId" href="/apps/onboarding/apply">发起应用上架申请</a></section></article></template>
-<style scoped>.onboarding-page{padding:17px;color:#17304f}.onboarding-page>nav{height:32px;color:#60758d;font-size:12px}.onboarding-page>section{min-height:240px;padding:28px;background:#fff;border:1px solid #dce5ef;border-radius:6px}.onboarding-page h1{margin:0 0 28px;font-size:18px}.approval-live{display:flex;align-items:center;gap:18px}.approval-live>span{width:54px;height:54px;display:grid;place-items:center;color:#0060a6;background:#fff;border:2px solid #0060a6;border-radius:50%;font-weight:700}.approval-live>span.approved{color:#18865f;border-color:#18865f}.approval-live>span.rejected,.approval-live>span.cancelled,.approval-live>span.error{color:#c93737;border-color:#c93737}.approval-live strong{font-size:16px}.approval-live p{margin:8px 0;color:#6b7d93;font-size:12px}.approval-live small{color:#7a8c9e}.status-error{color:#a52222}.onboarding-page button,.onboarding-page a{display:inline-flex;margin-top:22px;padding:9px 16px;color:#0060a6;background:#fff;border:1px solid #7da8d6;border-radius:4px}.onboarding-page :is(button,a):focus-visible{outline:3px solid rgba(11,103,199,.28);outline-offset:2px}@media(max-width:700px){.onboarding-page>section{padding:20px}}
+
+<template>
+  <article class="onboarding-page" :data-state="state" aria-labelledby="onboarding-title">
+    <p class="sr-only" role="status" aria-live="polite">{{ announcement }}</p>
+    <nav class="crumb" aria-label="面包屑"><a href="/apps">应用中心</a><span aria-hidden="true">/</span><span>{{ mode === 'list' ? '我的申请' : '申请详情' }}</span></nav>
+    <header class="page-heading"><div><h1 id="onboarding-title" tabindex="-1">{{ title }}</h1><p>{{ mode === 'list' ? '查看本人提交的海能Work上线申请与真实审批进度。' : '查看持久化申请信息、审批进度和真实附件。' }}</p></div><a v-if="mode === 'list'" class="primary-action" href="/apps/onboarding/apply">发起申请</a><a v-else class="secondary-action" href="/apps/onboarding/status" data-detail-return>返回我的申请</a></header>
+    <section v-if="state === 'loading'" class="state-card loading" role="status" aria-busy="true">正在加载{{ mode === 'list' ? '我的上线申请' : '申请详情' }}…</section>
+    <section v-else-if="state === 'permission-denied'" class="state-card denied" role="alert"><h2>无法查看该申请</h2><p>请确认已完成飞书授权且当前账号拥有访问权限。</p><a href="/apps/onboarding/status">返回我的申请</a></section>
+    <section v-else-if="state === 'disabled'" class="state-card disabled" role="status"><h2>申请服务暂不可用</h2><p>{{ error }}</p><a href="/apps">返回应用中心</a></section>
+    <section v-else-if="state === 'error'" class="state-card error" role="alert"><h2>读取失败</h2><p>{{ error }}</p><button type="button" @click="load">重新读取</button></section>
+    <template v-else-if="mode === 'list'">
+      <section v-if="state === 'empty'" class="state-card empty" role="status"><h2>暂无上线申请</h2><p>你可以发起新的海能Work应用上线申请。</p><div><a class="primary-action" href="/apps/onboarding/apply">发起申请</a><a class="secondary-action" href="/apps">返回应用中心</a></div></section>
+      <section v-else class="list-card" aria-labelledby="application-list-title"><h2 id="application-list-title" class="sr-only">上线申请列表</h2><table><caption class="sr-only">当前用户的海能Work上线申请，按提交时间倒序</caption><thead><tr><th scope="col">应用名称 / 编码</th><th scope="col">状态</th><th scope="col">提交时间</th><th scope="col">当前节点</th><th scope="col">详情</th></tr></thead><tbody><tr v-for="item in items" :key="item.applicationId"><td data-label="应用"><strong>{{ item.applicationName || '—' }}</strong><small>{{ item.applicationCode || '—' }}</small></td><td data-label="状态"><span class="status-badge" :class="statusFor(item.status).tone"><i aria-hidden="true">{{ statusFor(item.status).icon }}</i>{{ statusFor(item.status).label }}</span></td><td data-label="提交时间">{{ formatTime(item.submittedAt) }}</td><td data-label="当前节点">{{ item.currentNode || '—' }}</td><td data-label="详情"><a :id="`onboarding-application-${item.applicationId}`" :data-session-focus="`onboarding-application-${item.applicationId}`" :href="`/apps/onboarding/status?applicationId=${encodeURIComponent(item.applicationId)}`" :aria-label="`查看详情：${item.applicationName || '上线申请'}`">查看详情</a></td></tr></tbody></table></section>
+    </template>
+    <template v-else-if="detail">
+      <section class="status-summary" :class="currentStatus.tone" aria-labelledby="status-summary-title" :aria-busy="syncing"><div><h2 id="status-summary-title"><span class="status-badge" :class="currentStatus.tone"><i aria-hidden="true">{{ currentStatus.icon }}</i>{{ currentStatus.label }}</span></h2><p>当前节点：{{ detail.currentNode || '—' }}</p><p>最近同步：{{ formatTime(detail.lastSyncedAt) }}</p><p v-if="syncing" role="status">正在同步…</p></div><div class="sync-actions"><button type="button" :disabled="syncing || !detail.instanceId" :aria-describedby="!detail.instanceId ? 'untracked-reason' : undefined" @click="refreshStatus(false)">{{ syncing ? '正在刷新…' : '刷新审批状态' }}</button><small v-if="!detail.instanceId" id="untracked-reason">暂无审批跟踪编号</small></div><p v-if="syncError" class="sync-error" role="alert">状态同步失败，以下为 {{ formatTime(detail.lastSyncedAt) }} 的最后成功结果：{{ syncError }} <button type="button" @click="refreshStatus(false)">重新刷新</button></p></section>
+      <ol class="timeline" aria-label="审批时间线"><li><span class="timeline-track" aria-hidden="true"><i aria-hidden="true">✓</i></span><span class="timeline-copy"><strong>提交申请</strong><time>{{ formatTime(detail.submittedAt) }}</time></span></li><li :class="currentStatus.tone"><span class="timeline-track" aria-hidden="true"><i aria-hidden="true">{{ currentStatus.icon }}</i></span><span class="timeline-copy"><strong>{{ detail.currentNode || currentStatus.label }}</strong><time>{{ formatTime(detail.completedAt || detail.lastSyncedAt) }}</time></span></li></ol>
+      <div class="detail-grid">
+        <section class="detail-card"><h2>标识信息</h2><dl><div><dt>businessId</dt><dd>{{ detail.businessId || '—' }}</dd></div><div><dt>applicationId</dt><dd>{{ detail.applicationId }}</dd></div><div><dt>resourceId</dt><dd>{{ detail.resourceId || '—' }}</dd></div><div><dt>instanceId</dt><dd>{{ detail.instanceId || '暂无审批跟踪编号' }}</dd></div></dl></section>
+        <section class="detail-card"><h2>应用信息</h2><dl><div><dt>应用名称</dt><dd>{{ detail.applicationName || '—' }}</dd></div><div><dt>应用编码</dt><dd>{{ detail.applicationCode || '—' }}</dd></div><div><dt>应用类型</dt><dd>{{ detail.applicationType || '—' }}</dd></div><div><dt>业务域</dt><dd>{{ detail.businessDomain || '—' }}</dd></div></dl></section>
+        <section class="detail-card"><h2>申请信息</h2><dl><div><dt>申请人</dt><dd>{{ detail.applicantName || detail.applicant || '—' }}</dd></div><div><dt>提交时间</dt><dd>{{ formatTime(detail.submittedAt) }}</dd></div><div><dt>完成时间</dt><dd>{{ formatTime(detail.completedAt) }}</dd></div><div><dt>退回原因</dt><dd>{{ detail.rejectionReason || '—' }}</dd></div></dl></section>
+        <section class="detail-card"><h2>授权范围</h2><dl><div><dt>授权用户</dt><dd>{{ detail.authorizedUsers?.join('、') || '—' }}</dd></div><div><dt>授权部门</dt><dd>{{ detail.authorizedDepartments?.join('、') || '—' }}</dd></div></dl></section>
+      </div>
+      <section class="detail-card files-card"><h2>图标和申请附件</h2><div v-if="detail.icon" class="icon-file"><span class="icon-preview" aria-hidden="true">{{ detail.icon.detectedType }}</span><div><strong>{{ detail.icon.fileName }}</strong><small>{{ detail.icon.mimeType }} · {{ formatSize(detail.icon.sizeBytes) }}</small><code>SHA-256：{{ detail.icon.sha256 }}</code><div class="file-actions"><button v-if="detail.icon.previewable" type="button" @click="accessFile(detail.icon, 'PREVIEW')">查看图标 {{ detail.icon.fileName }}</button><button type="button" @click="accessFile(detail.icon, 'DOWNLOAD')">下载图标 {{ detail.icon.fileName }}</button></div><p v-if="fileErrors[detail.icon.fileId]" role="alert">{{ fileErrors[detail.icon.fileId] }}</p></div></div><p v-else>暂无应用图标</p>
+        <table v-if="detail.attachments?.length" class="attachment-table"><caption class="sr-only">申请附件</caption><thead><tr><th scope="col">文件名</th><th scope="col">类型 / 大小</th><th scope="col">SHA-256</th><th scope="col">上传时间</th><th scope="col">操作</th></tr></thead><tbody><tr v-for="file in detail.attachments" :key="file.fileId"><td data-label="文件名">{{ file.fileName }}</td><td data-label="类型 / 大小">{{ file.mimeType }}<br>{{ formatSize(file.sizeBytes) }}</td><td data-label="SHA-256"><code>{{ file.sha256 }}</code></td><td data-label="上传时间">{{ formatTime(file.uploadedAt) }}</td><td data-label="操作"><div class="file-actions"><button v-if="file.previewable" type="button" @click="accessFile(file, 'PREVIEW')">查看 {{ file.fileName }}</button><button type="button" @click="accessFile(file, 'DOWNLOAD')">下载 {{ file.fileName }}</button></div><p v-if="fileErrors[file.fileId]" role="alert">{{ fileErrors[file.fileId] }}</p></td></tr></tbody></table><p v-else class="no-files">暂无附件</p>
+      </section>
+    </template>
+  </article>
+</template>
+
+<style scoped>
+.onboarding-page{min-height:100%;padding:18px 22px 32px;color:#102a4c}.crumb{display:flex;gap:8px;margin-bottom:10px;color:#61758c;font-size:13px}.crumb a{color:#0060a6}.page-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:14px;padding:18px 20px;background:#fff;border:1px solid #d9e2ec;border-radius:7px}.page-heading h1{margin:0;font-size:clamp(26px,calc(23.5px + .28vw),32px)}.page-heading p{margin:5px 0 0;color:#61758c}.primary-action,.secondary-action,.state-card a,.state-card button,.status-summary button,.file-actions button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 16px;border-radius:7px}.primary-action{color:#fff;background:#0060a6;border:1px solid #0060a6}.secondary-action,.state-card a,.state-card button,.status-summary button,.file-actions button{color:#0060a6;background:#fff;border:1px solid #7891a8}.state-card{min-height:260px;display:grid;place-content:center;justify-items:center;gap:10px;padding:28px;text-align:center;background:#fff;border:1px solid #d9e2ec;border-radius:7px}.state-card h2,.state-card p{margin:0}.state-card>div{display:flex;gap:10px}.state-card.error,.state-card.denied{color:#a52222;background:#fff5f5;border-color:#efb8b8}.state-card.disabled{color:#3e5571;background:#f2f4f7}.list-card,.status-summary,.detail-card,.timeline{margin-bottom:14px;background:#fff;border:1px solid #d9e2ec;border-radius:7px;box-shadow:0 1px 3px rgba(13,45,80,.05)}table{width:100%;border-collapse:collapse;table-layout:fixed}th{padding:13px;text-align:left;color:#28405f;background:#f4f7fa}td{padding:13px;border-top:1px solid #e7edf3;color:#3e5571;overflow-wrap:anywhere}td:first-child strong,td:first-child small{display:block}td:first-child small{margin-top:4px;color:#61758c}td a{color:#0060a6;text-decoration:underline}.status-badge{display:inline-flex;align-items:center;gap:6px;width:max-content;padding:5px 9px;border-radius:999px;font-weight:700}.status-badge.pending{color:#174a7a;background:#eef6ff}.status-badge.approved{color:#165f45;background:#f0faf6}.status-badge.rejected,.status-badge.cancelled{color:#a52222;background:#fff5f5}.status-badge.unknown{color:#664c12;background:#fffae8}.status-summary{display:grid;grid-template-columns:1fr auto;gap:16px;padding:18px}.status-summary h2,.status-summary p{margin:0 0 7px}.sync-actions{display:grid;align-content:start;justify-items:end;gap:6px}.sync-actions small{color:#3e5571}.sync-error{grid-column:1/-1;padding:10px;color:#a52222;background:#fff5f5;border:1px solid #efb8b8;border-radius:6px}.timeline{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));list-style:none;padding:18px}.timeline li{display:grid;grid-template-rows:28px auto;min-width:0}.timeline-track{position:relative;display:grid;justify-items:center;height:28px}.timeline li:not(:last-child) .timeline-track::after{content:'';position:absolute;z-index:0;top:13px;left:calc(50% + 14px);width:calc(100% - 28px);height:2px;background:#7891a8}.timeline i{position:relative;z-index:1;width:28px;height:28px;display:grid;place-items:center;color:#fff;background:#165f45;border-radius:50%;font-style:normal}.timeline li.pending i{background:#0060a6}.timeline li.rejected i,.timeline li.cancelled i{background:#a52222}.timeline li.unknown i{background:#8a6a18}.timeline-copy{display:grid;gap:4px;min-width:0;padding-top:8px;text-align:center;white-space:normal;overflow-wrap:anywhere}.timeline time{color:#61758c;font-size:13px}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.detail-card{padding:16px 18px}.detail-card h2{margin:0 0 14px;padding-left:10px;border-left:3px solid #0060a6;font-size:18px}.detail-card dl{margin:0}.detail-card dl>div{display:grid;grid-template-columns:156px minmax(0,1fr);gap:12px;padding:8px 0;border-bottom:1px solid #e7edf3}.detail-card dt{color:#61758c}.detail-card dd{margin:0;color:#3e5571;overflow-wrap:anywhere}.files-card{margin-top:14px}.icon-file{display:flex;gap:14px;margin-bottom:16px}.icon-preview{width:74px;height:74px;display:grid;place-items:center;flex:0 0 74px;color:#174a7a;background:#eef6ff;border:1px solid #d9e2ec;border-radius:8px}.icon-file>div{display:grid;gap:5px;min-width:0}.icon-file small,.icon-file code{color:#61758c;overflow-wrap:anywhere}.file-actions{display:flex;flex-wrap:wrap;gap:8px}.file-actions button{min-height:38px}.attachment-table code{overflow-wrap:anywhere}.no-files{color:#61758c}.onboarding-page :is(a,button):hover{background:#eff7fc}.onboarding-page .primary-action:hover{color:#fff;background:#00528e}.onboarding-page :is(a,button):focus-visible{outline:3px solid #ffb648;outline-offset:3px;box-shadow:0 0 0 2px #0060a6}.onboarding-page h1:focus{outline:none}
+.icon-file>div{grid-template-columns:minmax(0,1fr);flex:1 1 0;max-width:100%}.icon-file code{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;white-space:normal;word-break:break-all}
+@media(max-width:1180px){.detail-grid{grid-template-columns:1fr}}@media(max-width:900px){.list-card table,.list-card thead,.list-card tbody,.list-card tr,.list-card th,.list-card td{display:block}.list-card thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.list-card tbody{display:grid;gap:12px;padding:12px}.list-card tr{padding:14px;border:1px solid #d9e2ec;border-radius:10px}.list-card td{display:grid;grid-template-columns:120px minmax(0,1fr);padding:8px;border:0}.list-card td::before{content:attr(data-label);color:#61758c;font-weight:700}}
+@media(max-width:760px){.onboarding-page{padding:10px 12px}.page-heading{align-items:stretch;flex-direction:column}.page-heading>a{min-height:44px}.status-summary{grid-template-columns:1fr}.sync-actions{justify-items:stretch}.status-summary button,.file-actions button{min-height:44px}.timeline{grid-template-columns:1fr;gap:18px}.timeline li{grid-template-columns:28px minmax(0,1fr);grid-template-rows:auto;gap:10px}.timeline-track{grid-column:1;grid-row:1;height:auto;min-height:28px;align-self:stretch;align-items:start}.timeline-copy{grid-column:2;grid-row:1;padding-top:0;text-align:left}.timeline li:not(:last-child) .timeline-track::after{top:28px;bottom:-18px;left:13px;width:2px;height:auto}.detail-card dl>div{grid-template-columns:128px minmax(0,1fr)}.attachment-table,.attachment-table thead,.attachment-table tbody,.attachment-table tr,.attachment-table th,.attachment-table td{display:block}.attachment-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.attachment-table tr{padding:10px;border:1px solid #d9e2ec;border-radius:8px}.attachment-table td{display:grid;grid-template-columns:110px minmax(0,1fr);padding:7px;border:0}.attachment-table td::before{content:attr(data-label);color:#61758c;font-weight:700}.icon-file{align-items:flex-start}}@media(max-width:639px){.detail-card dl>div,.list-card td,.attachment-table td{grid-template-columns:1fr}.state-card>div,.file-actions{display:grid;width:100%}.page-heading>a,.file-actions button{width:100%}}@media(forced-colors:active){.onboarding-page :is(a,button):focus-visible{outline-color:Highlight}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 </style>

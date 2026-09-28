@@ -7,10 +7,10 @@ for(const [tag,name] of [['announcement-admin-page','announcement admin'],['app-
 }
 for(const [source,operation] of [[announcements,'OAN-001'],[announcements,'OAN-002'],[apps,'OAP-001'],[apps,'OAP-002'],[apps,'OAP-011']])assert.match(source,new RegExp(`\\['${operation}'\\]`));
 for(const source of [announcements,apps]){
-  assert.match(source,/integrationState:\s*\{\s*type:\s*String,\s*default:\s*['"]mock['"]/);
-  assert.match(source,/authentication-required/);assert.match(source,/permission-denied/);assert.match(source,/remoteMode/);
+  assert.match(source,/integrationState:\s*\{\s*type:\s*String,\s*default:\s*['"]loading['"]/);
+  assert.match(source,/authentication-required/);assert.match(source,/permission-denied/);
   assert.match(source,/<caption/,'remote admin table must keep a perceptible caption');
-  assert.match(source,/:disabled="remoteMode"/,'remote writes must be disabled');
+  assert.match(source,/<button type="button" disabled/,'remote writes must be disabled');
 }
 assert.match(announcements,/announcementId\|\|item\.id/);assert.match(apps,/appId\|\|item\.applicationId\|\|item\.id/);
 console.log('P1 operation announcement/app remote-only list contracts passed');

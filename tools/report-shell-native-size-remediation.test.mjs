@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const shell = read('src/components/ExhibitionShell.vue');
-const gallery = read('src/components/BusinessPreviewGallery.vue');
+const report = read('src/pages/ReportDetailPage.vue');
+const remoteDetail = read('src/components/RemoteAppDetailPage.vue');
 
 assert.doesNotMatch(shell, /<template v-if="props\.page\.id === '10'">/,
   '报表详情不得绕过统一素材/应用分组侧栏');
@@ -15,9 +16,12 @@ assert.match(shell, /\.page-frame\{[^}]*grid-template-columns:220px minmax\(0,1f
   '报表详情必须复用统一的 220px 固定侧栏几何');
 assert.match(shell, /main\{[^}]*overflow-y:auto;[^}]*background:#f5f7fa;/,
   '报表详情必须复用统一主内容纵向滚动区域');
-assert.doesNotMatch(gallery, /@media\(max-width:1100px\)\{\.business-previews\{grid-template-columns:1fr\}/,
-  '桌面报表画布不得把三项演示预览强制堆成单列');
-assert.match(gallery, /@media\(max-width:760px\)\{\.business-previews\{grid-template-columns:1fr\}/,
-  '仅窄屏才将三项演示预览切为单列');
+assert.match(report, /RemoteAppDetailPage/, '报表详情必须复用统一远端应用详情组件');
+assert.match(report, /icon="report"/, '报表详情必须声明报表类型图标');
+assert.match(report, /useAppDetailProjection/, '报表详情必须使用飞书远端投影而非静态演示数据');
+assert.match(remoteDetail, /class="product-detail remote-app-detail"/,
+  '统一远端应用详情必须保留原生详情画布结构');
+assert.match(remoteDetail, /AppDetailAuthoritativeBody/,
+  '统一远端应用详情必须渲染权威业务内容区');
 
-console.log('报表详情统一固定壳层与演示预览原生尺寸合同通过');
+console.log('报表详情统一固定壳层与远端权威内容合同通过');

@@ -1,10 +1,17 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  ANNOUNCEMENT_FIXTURES,
   createAnnouncementController,
   createNoticeDetailController
 } from '../src/state/announcement-controllers.js';
+
+const ANNOUNCEMENT_FIXTURES = Array.from({ length: 128 }, (_, index) => ({
+  id: `announcement-${String(index + 1).padStart(3, '0')}`,
+  type: index % 2 ? '活动通知' : '系统公告',
+  title: `测试公告 ${index + 1}`,
+  date: '2025-05-03',
+  read: index >= 18,
+}));
 
 const announcements=createAnnouncementController(ANNOUNCEMENT_FIXTURES);
 assert.equal(ANNOUNCEMENT_FIXTURES.length,128,'PP05 应提供 128 条确定性公告');
@@ -29,10 +36,8 @@ assert.equal(announcements.page,7,'越界页码应归一到最后一页');
 assert.equal(announcements.pagedResults.length,8);
 
 const detail=createNoticeDetailController();
-detail.mockDownload('供应商风险预警应用操作手册（V1.0）.pdf');
-assert.match(detail.announcement,/演示环境不提供真实下载/);
 detail.explain('风险管理交流会');
-assert.equal(detail.announcement,'风险管理交流会：当前演示未提供独立详情页');
+assert.equal(detail.announcement,'风险管理交流会：飞书未返回独立详情地址');
 assert.equal(detail.associatedRoute('supplier-risk'),'/apps/report-001');
 assert.equal(detail.associatedRoute('unknown'),null);
 
@@ -42,7 +47,7 @@ const notice=read('src/pages/NoticeDetailPage.vue');
 const app=read('src/App.vue');
 for(const contract of ['createAnnouncementController','applyAnnouncementFilters','markAllRead','pagedAnnouncements','PaginationControl','validationError','state === \'empty\''])
   assert.ok(list.includes(contract),`PP05 未接线：${contract}`);
-for(const contract of ['createNoticeDetailController','mockDownload','goBack','aria-live="polite"','state === \'permission-denied\''])
+for(const contract of ['createNoticeDetailController','downloadRemoteAttachment','sameOriginDownloadUrl','goBack','aria-live="polite"','state === \'permission-denied\''])
   assert.ok(notice.includes(contract),`PP06 未接线：${contract}`);
 assert.ok(app.includes(':state="page.state"'), 'PP05/PP06 必须接收页面级六态');
 assert.ok(app.includes('xltSource'), '同壳层详情返回必须记录来源 entry、query、滚动和焦点');

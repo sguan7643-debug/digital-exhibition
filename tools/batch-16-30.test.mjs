@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { PAGE_MATRIX } from '../src/fixtures/pages.js';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const app = read('src/App.vue');
+const remoteDetail = read('src/components/RemoteAppDetailPage.vue');
+const remoteRecord = read('src/components/RemoteRecordPage.vue');
 const files = {
   '16':['src/pages/RpaDetailPage.vue','C66930E5C44E4ADAEB81872C7E64E8D41DC17A5BB46256314E404A9177C2923A'],
   '17':['src/pages/OnboardingPage.vue','FC7F33ED038DD52F20892D1C4A7F58FAFF57FB54658B06443A1A885B1EB86F68'],
@@ -22,10 +25,28 @@ const files = {
 };
 for(const [id,[path,sha]] of Object.entries(files)){
   const source=read(path);
-  assert.ok(source.includes(sha),`${id} 缺少参考 SHA`);
+  assert.equal(PAGE_MATRIX.find((page)=>page.id===id)?.sha256,sha,`${id} 路由矩阵缺少参考 SHA`);
   assert.ok(app.includes(`page.id === '${id}'`),`${id} 未绑定独立组件`);
-  assert.match(source,/<h1|<h2/);
-  assert.match(source,/:focus-visible/);
-  assert.doesNotMatch(source,/[●◆■▲✦⬢▣◇]/u);
+  if(id==='16'){
+    assert.match(source,/RemoteAppDetailPage/,`${id} 必须复用统一远端详情组件`);
+    assert.match(source,/icon="rpa"/,`${id} 必须声明 RPA 类型图标`);
+  }else if(source.includes('RemoteRecordPage')){
+    assert.match(source,/<RemoteRecordPage/,`${id} 必须渲染统一远端记录组件`);
+    assert.match(source,/(?:^|\s):?title=/m,`${id} 必须向统一远端记录组件传递标题`);
+  }else{
+    assert.match(source,/<h1|<h2/);
+    assert.match(source,/:focus-visible/);
+  }
+  if(id==='17'){
+    assert.match(source,/statusMeta[\s\S]*aria-hidden="true"/,
+      '审批状态符号只能作为带文字标签的隐藏装饰使用');
+  }else{
+    assert.doesNotMatch(source,/[●◆■▲✦⬢▣◇]/u);
+  }
 }
+assert.match(remoteDetail,/<h1|<h2/,'统一远端详情组件必须保留语义标题');
+assert.match(remoteDetail,/:focus-visible/,'统一远端详情组件必须保留键盘焦点样式');
+assert.match(remoteRecord,/<h1|<h2/,'统一远端记录组件必须保留语义标题');
+assert.match(remoteRecord,/role="status"/,'统一远端记录组件必须向辅助技术通报加载和空状态');
+assert.match(remoteRecord,/role="alert"/,'统一远端记录组件必须向辅助技术通报错误状态');
 console.log('16–30 独立页面、参考 SHA、语义和焦点合同测试通过');

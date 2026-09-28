@@ -1,6 +1,6 @@
 <script setup>
-import { computed, reactive, ref } from "vue";
-import { submitOnboarding } from "../integration/onboarding-approval.js";
+import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
+import { confirmOnboardingAttempt, createOnboardingAttempt, normalizeApplicationType, removeOnboardingFile, submitOnboarding, uploadOnboardingFile } from "../integration/onboarding-approval.js";
 import { normalizeAppBasePath, prependAppBasePath } from "../integration/app-base-path.js";
 
 const props = defineProps({
@@ -139,7 +139,10 @@ const detailDrafts = reactive(
   )
 );
 const dictionaries = computed(() => props.integrationData?.["COM-005"]?.itemsByType || {});
-const applicationTypes = computed(() => (dictionaries.value.APPLICATION_TYPE || []).map(item => ({ label: item.label, value: item.value })));
+const applicationTypes = computed(() => (dictionaries.value.APPLICATION_TYPE || []).map(item => ({
+  label: item.label,
+  value: normalizeApplicationType(item.value),
+})));
 const activeApplicationType = computed(
   () => applicationTypes.value.find((item) => item.value === form.type) || { label: "未选择", value: "" }
 );
@@ -154,8 +157,13 @@ function buildDetailFields() {
     ])
   );
 }
-const files = reactive({ icon: "", materials: "", attachment: "" });
-const selectedFiles = { icon: [], materials: [], attachment: [] };
+const selectedFiles = { icon: [], attachment: [] };
+const iconUploads = reactive([]);
+const attachmentUploads = reactive([]);
+const uploadBusy = computed(() => [...iconUploads, ...attachmentUploads].some(item => ["uploading", "removing"].includes(item.state)));
+const readyUploads = computed(() => [...iconUploads, ...attachmentUploads].filter(item => item.state === "ready"));
+const uploadedIconReady = computed(() => iconUploads.some(item => item.state === "ready" && item.result?.uploadId));
+const attemptId = ref(createOnboardingAttempt());
 const saved = ref(false);
 const submitted = ref(false);
 const submitting = ref(false);
@@ -163,19 +171,15 @@ const submitError = ref("");
 const submitMessage = ref("");
 const announcement = ref("");
 const approvalResult = ref(null);
+const uncertainResult = ref(false);
+const validationErrors = ref([]);
 const appBasePath = normalizeAppBasePath(import.meta.env.VITE_EXHIBITION_APP_BASE || import.meta.env.BASE_URL);
 const statusHref = computed(() => {
   if (!approvalResult.value) return prependAppBasePath("/apps/onboarding/status", appBasePath);
-  const query = new URLSearchParams({ source: approvalResult.value.kind });
-  if (approvalResult.value.instanceId) query.set("instanceId", approvalResult.value.instanceId);
-  if (approvalResult.value.resourceId) query.set("resourceId", approvalResult.value.resourceId);
+  const query = new URLSearchParams();
+  if (approvalResult.value.applicationId) query.set("applicationId", approvalResult.value.applicationId);
   return prependAppBasePath(`/apps/onboarding/status?${query}`, appBasePath);
 });
-const feishuAuthHref = computed(() => {
-  const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-  return `/api/v1/auth/feishu/start?returnTo=${encodeURIComponent(returnTo)}`;
-});
-
 const businessDomains = computed(() => (dictionaries.value.BUSINESS_DOMAIN || []).map(item => ({ label: item.label, value: item.value })));
 
 function flattenOrganizations(items, result = []) {
@@ -208,6 +212,29 @@ const userOptions = computed(() => {
     }))
     .filter((item) => item.adAccount && item.displayName);
 });
+const sessionApplicant = ref(null);
+const sessionApplicantChecked = ref(false);
+const sessionApplicantError = ref("");
+const applicantDisplay = computed(() => {
+  const user = userOptions.value.find((item) => item.adAccount === form.applicant);
+  return user ? `${user.displayName}（${user.adAccount}）` : form.applicant;
+});
+async function loadCurrentApplicant() {
+  try {
+    const response = await window.fetch("/api/v1/auth/feishu/session", { credentials: "same-origin", cache: "no-store", headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error(`session-${response.status}`);
+    const body = await response.json();
+    const userId = String(body?.identity?.userId || "").trim();
+    if (!userId) throw new Error("session-user-id-missing");
+    sessionApplicant.value = { userId, displayName: String(body?.identity?.displayName || body?.identity?.name || "") };
+    form.applicant = userId;
+    syncApplicantDepartment();
+  } catch {
+    sessionApplicantError.value = "未读取到当前飞书授权用户，暂不能提交申请。";
+  } finally {
+    sessionApplicantChecked.value = true;
+  }
+}
 const directoryState = computed(() => {
   if (props.integrationState === "loading") return "loading";
   if (["authentication-required", "permission-denied"].includes(props.integrationState)) return "permission-denied";
@@ -236,13 +263,73 @@ function resetApplicableUserForDepartment() {
   if (!applicableUserOptions.value.some((item) => item.adAccount === form.users)) form.users = "";
 }
 
-function rememberFile(key, event) {
+const fileRules = Object.freeze({
+  APPLICATION_ICON: { maximum: 5 * 1024 * 1024, count: 1, extensions: ["png", "jpg", "jpeg", "webp"] },
+  APPLICATION_ATTACHMENT: { maximum: 20 * 1024 * 1024, count: 3, extensions: ["pdf", "docx", "xlsx", "png", "jpg", "jpeg"] },
+});
+function validateSelectedFile(file, purpose, currentCount) {
+  const rule = fileRules[purpose];
+  const extension = String(file.name || "").split(".").pop().toLowerCase();
+  if (currentCount >= rule.count) throw new Error(purpose === "APPLICATION_ICON" ? "应用图标最多 1 个" : "申请附件最多 3 个");
+  if (!rule.extensions.includes(extension)) throw new Error(purpose === "APPLICATION_ICON" ? "图标仅支持 PNG、JPEG、WebP" : "附件仅支持 PDF、DOCX、XLSX、PNG、JPEG");
+  if (!file.size || file.size > rule.maximum) throw new Error(purpose === "APPLICATION_ICON" ? "图标必须大于 0 且不超过 5MB" : "单个附件必须大于 0 且不超过 20MB");
+}
+watch(userOptions, () => {
+  if (sessionApplicant.value?.userId) {
+    form.applicant = sessionApplicant.value.userId;
+    syncApplicantDepartment();
+  }
+});
+async function uploadOne(file, purpose, target) {
+  const item = reactive({ file, name: file.name, state: "uploading", error: "", result: null });
+  target.push(item);
+  try {
+    item.result = await uploadOnboardingFile({ attemptId: attemptId.value, purpose, file });
+    item.state = "ready";
+    announcement.value = `${file.name} 已上传`;
+  } catch (error) {
+    item.state = "failed";
+    item.error = error instanceof Error ? error.message : "文件上传失败";
+    announcement.value = `${file.name} 上传失败`;
+  }
+}
+async function chooseFiles(purpose, event) {
+  const target = purpose === "APPLICATION_ICON" ? iconUploads : attachmentUploads;
   const selected = Array.from(event.target.files || []);
-  selectedFiles[key] = selected;
-  files[key] = selected.map((file) => file.name).join("、");
-  announcement.value = selected.length
-    ? `已选择 ${selected.length} 个文件`
-    : "未选择文件";
+  event.target.value = "";
+  try {
+    selected.forEach((file, index) => validateSelectedFile(file, purpose, target.filter(item => item.state !== "removed").length + index));
+  } catch (error) {
+    submitError.value = error.message;
+    announcement.value = error.message;
+    return;
+  }
+  if (form.type !== "T005") {
+    selectedFiles[purpose === "APPLICATION_ICON" ? "icon" : "attachment"] = selected;
+    selected.forEach(file => target.push(reactive({ file, name: file.name, state: "ready", result: { uploadId: "" }, error: "" })));
+    return;
+  }
+  for (const file of selected) await uploadOne(file, purpose, target);
+}
+async function retryUpload(item, purpose) {
+  const target = purpose === "APPLICATION_ICON" ? iconUploads : attachmentUploads;
+  target.splice(target.indexOf(item), 1);
+  await uploadOne(item.file, purpose, target);
+}
+async function removeUpload(item, target) {
+  const previousState = item.state;
+  item.state = "removing";
+  item.error = "";
+  try {
+    if (item.result?.uploadId) await removeOnboardingFile(item.result.uploadId);
+    const index = target.indexOf(item);
+    if (index >= 0) target.splice(index, 1);
+    announcement.value = `已移除 ${item.name}`;
+  } catch (error) {
+    item.state = previousState;
+    item.error = error instanceof Error ? `移除失败：${error.message}` : "移除失败，请重试";
+    announcement.value = `${item.name} 移除失败`;
+  }
 }
 function saveDraft() {
   saved.value = true;
@@ -287,21 +374,65 @@ function buildRpaApprovalRequest() {
     },
   };
 }
-async function submitApplication() {
+function invalidControlLabel(control, index) {
+  const label = control.closest?.("label");
+  const first = label?.querySelector?.(":scope > span");
+  return String(first?.textContent || label?.firstChild?.textContent || control.getAttribute?.("aria-label") || `第 ${index + 1} 个字段`)
+    .replace(/\*/g, "").replace(/\s+/g, " ").trim();
+}
+async function collectValidationErrors(formElement) {
+  const controls = [...(formElement?.elements || [])].filter(control => typeof control.checkValidity === "function" && !control.checkValidity());
+  validationErrors.value = controls.map((control, index) => {
+    if (!control.id) control.id = `onboarding-invalid-${index + 1}`;
+    return { id: control.id, label: invalidControlLabel(control, index) };
+  });
+  if (!controls.length) return false;
+  submitError.value = "请先补全必填项或修正格式错误";
+  announcement.value = `请检查以下 ${controls.length} 项`;
+  await nextTick();
+  controls[0].focus();
+  return true;
+}
+function focusInvalidField(id) {
+  document.getElementById(id)?.focus();
+}
+function clearValidationSummary() {
+  if (validationErrors.value.length) validationErrors.value = [];
+}
+async function submitApplication(event) {
   if (submitting.value) return;
+  if (await collectValidationErrors(event?.currentTarget)) return;
+  if (!sessionApplicant.value?.userId || form.applicant !== sessionApplicant.value.userId) {
+    submitError.value = sessionApplicantError.value || "申请人必须是当前飞书授权用户";
+    announcement.value = submitError.value;
+    return;
+  }
   if (directoryDisabled.value) {
     submitError.value = "飞书部门和人员数据尚未加载完成";
+    announcement.value = submitError.value;
+    return;
+  }
+  if (form.type === "T005" && !uploadedIconReady.value) {
+    submitError.value = "请上传 1 个有效的应用图标";
+    announcement.value = submitError.value;
+    return;
+  }
+  if (uploadBusy.value) {
+    submitError.value = "文件仍在上传，请完成后再提交";
     announcement.value = submitError.value;
     return;
   }
   submitting.value = true;
   submitError.value = "";
   submitted.value = false;
+  uncertainResult.value = false;
   announcement.value = form.type === "T005" ? "正在提交海能Work飞书审批" : "正在提交 RPA 应用审批";
   try {
     approvalResult.value = await submitOnboarding(
       {
         ...form,
+        attemptId: attemptId.value,
+        uploadIds: readyUploads.value.map(item => item.result?.uploadId).filter(Boolean),
         detailFields: buildDetailFields(),
         rpaRequest: buildRpaApprovalRequest(),
       },
@@ -317,11 +448,29 @@ async function submitApplication() {
     window.location.assign(statusHref.value);
   } catch (error) {
     submitError.value = error instanceof Error ? error.message : "审批接口请求失败";
+    uncertainResult.value = Boolean(error?.uncertain);
     announcement.value = submitError.value;
   } finally {
     submitting.value = false;
   }
 }
+async function confirmOriginalAttempt() {
+  if (submitting.value) return;
+  submitting.value = true;
+  submitError.value = "";
+  try {
+    approvalResult.value = await confirmOnboardingAttempt(attemptId.value);
+    uncertainResult.value = false;
+    window.location.assign(prependAppBasePath(`/apps/onboarding/status?applicationId=${encodeURIComponent(approvalResult.value.applicationId)}`, appBasePath));
+  } catch (error) {
+    submitError.value = error instanceof Error ? error.message : "原提交结果仍无法确认";
+    uncertainResult.value = true;
+  } finally { submitting.value = false; }
+}
+onMounted(() => {
+  loadCurrentApplicant();
+  nextTick(() => document.getElementById("apply-title")?.focus());
+});
 </script>
 
 <template>
@@ -332,14 +481,13 @@ async function submitApplication() {
     </nav>
     <header class="apply-heading">
       <div>
-        <h1 id="apply-title">应用上架申请</h1>
+        <h1 id="apply-title" tabindex="-1">应用上架申请</h1>
         <p>
           请准确填写申请信息，带
           <b>*</b> 的项目为必填项。提交后可在审批状态页查看进度。
         </p>
       </div>
       <div class="heading-actions">
-        <a class="feishu-auth-link" :href="feishuAuthHref" data-native-navigation>飞书授权</a>
         <a class="back-link" href="/apps">返回应用中心</a>
       </div>
     </header>
@@ -352,8 +500,10 @@ async function submitApplication() {
       </div>
       <a :href="statusHref">查看审批状态</a>
     </section>
-    <section v-if="submitError" class="submit-error" role="alert">
-      {{ submitError }}，请检查网络后重试。
+    <section v-if="submitError" class="submit-error" :class="{ uncertain: uncertainResult }" role="alert">
+      <strong>{{ uncertainResult ? "提交结果待确认" : "申请未提交" }}</strong>
+      <p>{{ submitError }}</p>
+      <button v-if="uncertainResult" type="button" :disabled="submitting" @click="confirmOriginalAttempt">继续确认提交结果</button>
     </section>
     <section v-if="submitting" class="submit-loading" role="status" aria-live="assertive">
       <span class="submit-spinner" aria-hidden="true"></span>
@@ -363,19 +513,22 @@ async function submitApplication() {
       </div>
     </section>
 
-    <form class="apply-form" :aria-busy="submitting" @submit.prevent="submitApplication">
+    <form class="apply-form" novalidate :aria-busy="submitting" @input="clearValidationSummary" @change="clearValidationSummary" @submit.prevent="submitApplication">
+      <section v-if="validationErrors.length" class="validation-summary" role="alert" aria-labelledby="validation-summary-title">
+        <h2 id="validation-summary-title">请检查以下 {{ validationErrors.length }} 项</h2>
+        <ul><li v-for="item in validationErrors" :key="item.id"><button type="button" @click="focusInvalidField(item.id)">{{ item.label }}</button></li></ul>
+      </section>
       <p v-if="directoryState === 'loading'" class="directory-state" role="status">正在从飞书读取部门和人员数据…</p>
       <p v-else-if="directoryState === 'permission-denied'" class="directory-state directory-state-error" role="alert">需要完成飞书授权或获得通讯录读取权限后才能选择部门和人员。</p>
       <p v-else-if="directoryState === 'error'" class="directory-state directory-state-error" role="alert">飞书部门或人员数据读取失败，请稍后重试。</p>
       <p v-else-if="directoryState === 'disabled'" class="directory-state directory-state-error" role="alert">飞书部门和人员接口尚未启用。</p>
       <p v-else-if="directoryState === 'empty'" class="directory-state directory-state-error" role="alert">当前飞书账号下没有可选择的部门或人员。</p>
+      <p v-if="!sessionApplicantChecked" class="directory-state" role="status">正在确认当前飞书申请人…</p>
+      <p v-else-if="sessionApplicantError" class="directory-state directory-state-error" role="alert">{{ sessionApplicantError }}</p>
       <fieldset>
         <legend><span>1</span>申请人信息</legend>
         <div class="field-grid four-cols">
-          <label>申请人<b>*</b><select v-model="form.applicant" :disabled="directoryDisabled" required @change="syncApplicantDepartment">
-            <option value="" disabled>请选择申请人</option>
-            <option v-for="user in userOptions" :key="user.adAccount" :value="user.adAccount">{{ user.displayName }}（{{ user.adAccount }}）</option>
-          </select></label>
+          <label>申请人<b>*</b><input readonly required :value="applicantDisplay" aria-describedby="current-applicant-help" /><small id="current-applicant-help">申请人已锁定为当前飞书授权用户</small></label>
           <label>所属部门<b>*</b><select v-model="form.department" :disabled="directoryDisabled" required>
             <option value="" disabled>请选择所属部门</option>
             <option v-for="department in departmentOptions" :key="department.id" :value="department.name">{{ department.name }}</option>
@@ -404,6 +557,7 @@ async function submitApplication() {
               v-model="form.applicationCode"
               maxlength="100"
               placeholder="请输入应用编码，例如 RPA-SCM-VENDOR-001"
+              :required="form.type === 'T005'"
           /></label>
           <label
             >应用类型<b>*</b
@@ -570,43 +724,38 @@ async function submitApplication() {
         </div>
       </fieldset>
 
-      <div class="split-fields upload-section">
+      <div class="split-fields upload-section" :aria-busy="uploadBusy">
         <fieldset>
-          <legend><span>7</span>组件与资源材料上传</legend>
-          <div class="upload-grid">
-            <label class="upload-box"
-              ><strong>应用图标<b>*</b></strong
-              ><span>＋ 点击上传</span
-              ><small>PNG / JPG / SVG，单个不超过 10MB</small
-              ><input
-                type="file"
-                accept=".png,.jpg,.jpeg,.svg"
-                required
-                @change="rememberFile('icon', $event)"
-              /><em>{{ files.icon }}</em></label
-            >
-            <label class="upload-box"
-              ><strong>资源压缩包（选填）</strong><span>＋ 点击上传</span
-              ><small>ZIP / RAR，单个不超过 512MB</small
-              ><input
-                type="file"
-                accept=".zip,.rar"
-                @change="rememberFile('materials', $event)"
-              /><em>{{ files.materials }}</em></label
-            >
-          </div>
+          <legend><span>7</span>应用图标</legend>
+          <label class="upload-box">
+            <strong>应用图标<b>*</b></strong><span>＋ 选择图标</span>
+            <small>PNG / JPEG / WebP，最多 1 个，不超过 5MB</small>
+            <input type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" :required="form.type === 'T005' && !uploadedIconReady" @change="chooseFiles('APPLICATION_ICON', $event)" />
+          </label>
+          <ul v-if="iconUploads.length" class="upload-list" aria-label="应用图标上传状态">
+            <li v-for="item in iconUploads" :key="item.name" :class="item.state">
+              <span><strong>{{ item.name }}</strong><small>{{ item.state === 'uploading' ? '正在校验并上传' : item.state === 'removing' ? '正在移除' : item.state === 'ready' ? (item.error || `已上传 · ${item.result.sha256}`) : item.error }}</small></span>
+              <button v-if="item.state === 'failed'" type="button" @click="retryUpload(item, 'APPLICATION_ICON')">重试 {{ item.name }}</button>
+              <button v-else-if="item.state === 'ready'" type="button" @click="removeUpload(item, iconUploads)">移除 {{ item.name }}</button>
+              <button v-else-if="item.state === 'removing'" type="button" disabled>正在移除 {{ item.name }}</button>
+            </li>
+          </ul>
         </fieldset>
         <fieldset>
-          <legend><span>8</span>附件上传（选填）</legend>
-          <label class="upload-box"
-            ><strong>附件</strong><span>＋ 点击上传</span
-            ><small>支持常用文档及压缩格式，最多 5 个文件</small
-            ><input
-              type="file"
-              multiple
-              @change="rememberFile('attachment', $event)"
-            /><em>{{ files.attachment }}</em></label
-          >
+          <legend><span>8</span>申请附件（选填）</legend>
+          <label class="upload-box">
+            <strong>申请附件</strong><span>＋ 选择附件</span>
+            <small>PDF / DOCX / XLSX / PNG / JPEG，最多 3 个，每个不超过 20MB</small>
+            <input type="file" accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png,image/jpeg" multiple @change="chooseFiles('APPLICATION_ATTACHMENT', $event)" />
+          </label>
+          <ul v-if="attachmentUploads.length" class="upload-list" aria-label="申请附件上传状态">
+            <li v-for="item in attachmentUploads" :key="item.name" :class="item.state">
+              <span><strong>{{ item.name }}</strong><small>{{ item.state === 'uploading' ? '正在校验并上传' : item.state === 'removing' ? '正在移除' : item.state === 'ready' ? (item.error || `已上传 · ${item.result.sha256}`) : item.error }}</small></span>
+              <button v-if="item.state === 'failed'" type="button" @click="retryUpload(item, 'APPLICATION_ATTACHMENT')">重试 {{ item.name }}</button>
+              <button v-else-if="item.state === 'ready'" type="button" @click="removeUpload(item, attachmentUploads)">移除 {{ item.name }}</button>
+              <button v-else-if="item.state === 'removing'" type="button" disabled>正在移除 {{ item.name }}</button>
+            </li>
+          </ul>
         </fieldset>
       </div>
 
@@ -626,10 +775,11 @@ async function submitApplication() {
       <footer class="form-actions">
         <button type="button" @click="saveDraft">保存草稿</button
         ><a href="/apps">取消</a
-        ><button type="submit" :disabled="submitting || directoryDisabled">
+        ><button type="submit" :disabled="submitting || directoryDisabled || uploadBusy" :aria-describedby="(directoryDisabled || uploadBusy) ? 'submit-disabled-reason' : undefined">
           {{ submitting ? "提交中…" : "提交审核" }}</button
         ><span v-if="saved">草稿已保存</span>
       </footer>
+      <p v-if="directoryDisabled || uploadBusy" id="submit-disabled-reason" class="submit-disabled-reason">{{ uploadBusy ? "文件上传完成后才能提交" : "真实目录/字典可用后才能提交" }}</p>
     </form>
   </article>
 </template>
@@ -688,17 +838,10 @@ async function submitApplication() {
   align-items: center;
   gap: 10px;
 }
-.feishu-auth-link {
-  padding: 9px 14px;
-  color: #fff;
-  background: #0060a6;
-  border: 1px solid #0060a6;
-  border-radius: 4px;
-}
-.feishu-auth-link:hover,
-.feishu-auth-link:focus-visible {
-  background: #004e8a;
-  border-color: #004e8a;
+.heading-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .submit-success {
   display: grid;
@@ -745,6 +888,7 @@ async function submitApplication() {
   border: 1px solid #efb8b8;
   border-radius: 7px;
 }
+.submit-error p{margin:6px 0}.submit-error button{min-height:40px;padding:0 14px;color:#664c12;background:#fff;border:1px solid #b69237;border-radius:5px}.submit-error.uncertain{color:#664c12;background:#fffae8;border-color:#e6c86f}
 .submit-loading {
   display: flex;
   align-items: center;
@@ -780,6 +924,7 @@ async function submitApplication() {
   display: grid;
   gap: 12px;
 }
+.validation-summary{padding:14px 16px;color:#a52222;background:#fff5f5;border:1px solid #efb8b8;border-radius:7px}.validation-summary h2{margin:0 0 8px;font-size:16px}.validation-summary ul{display:grid;gap:5px;margin:0;padding-left:20px}.validation-summary button{padding:2px;color:inherit;background:transparent;border:0;text-decoration:underline;cursor:pointer}
 .directory-state {
   margin: 0;
   padding: 11px 14px;
@@ -968,6 +1113,7 @@ async function submitApplication() {
   font-style: normal;
   overflow-wrap: anywhere;
 }
+.upload-list{display:grid;gap:8px;margin:12px 0 0;padding:0;list-style:none}.upload-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;background:#f0faf6;border:1px solid #b9dfcf;border-radius:6px}.upload-list li.uploading{color:#174a7a;background:#eef6ff;border-color:#a9caeb}.upload-list li.failed{color:#a52222;background:#fff5f5;border-color:#efb8b8}.upload-list li>span{display:grid;min-width:0;gap:4px}.upload-list strong,.upload-list small{overflow-wrap:anywhere}.upload-list small{justify-self:start;color:inherit}.upload-list button{min-height:38px;padding:0 12px;color:#0060a6;background:#fff;border:1px solid #7891a8;border-radius:5px}.submit-disabled-reason{text-align:center;color:#3e5571}
 .form-actions {
   display: flex;
   align-items: center;
@@ -992,7 +1138,7 @@ async function submitApplication() {
   border-color: #0060a6;
 }
 .form-actions button:disabled {
-  cursor: wait;
+  cursor: not-allowed;
   opacity: 0.65;
 }
 .form-actions span {
@@ -1018,7 +1164,7 @@ async function submitApplication() {
     flex-wrap: wrap;
   }
 }
-@media (max-width: 780px) {
+@media (max-width: 760px) {
   .apply-page {
     padding: 10px;
   }
@@ -1039,6 +1185,9 @@ async function submitApplication() {
   }
   .form-actions {
     flex-wrap: wrap;
+  }
+  .heading-actions a {
+    min-height: 44px;
   }
 }
 .field-grid > label:not(.span-full) {
@@ -1062,9 +1211,10 @@ async function submitApplication() {
 .apply-form label {
   font-size: 14px;
 }
-@media (max-width: 780px) {
+@media (max-width: 760px) {
   .field-grid > label:not(.span-full) {
     grid-template-columns: max-content max-content 1fr;
   }
 }
+.apply-page :is(a,button,.upload-box):focus-visible{outline:3px solid #ffb648;outline-offset:3px;box-shadow:0 0 0 2px #0060a6}.apply-form :is(input,select,textarea):focus-visible{border-color:#0060a6;outline:3px solid #ffb648;outline-offset:2px;box-shadow:0 0 0 1px #0060a6}@media(forced-colors:active){.apply-page :is(a,button,input,select,textarea,.upload-box):focus-visible{outline-color:Highlight}}@media(prefers-reduced-motion:reduce){.submit-spinner{animation:none}}
 </style>

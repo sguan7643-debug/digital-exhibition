@@ -11,6 +11,7 @@ const shell = read('src/components/ExhibitionShell.vue');
 const typeLineIcon = read('src/components/TypeLineIcon.vue');
 const talent = read('src/pages/TalentPeoplePage.vue');
 const globalStyle = read('src/style.css');
+const remoteAppDetail = read('src/components/RemoteAppDetailPage.vue');
 const detailSources = [
   'ToolDetailPage.vue', 'HainengWorkDetailPage.vue', 'ReportDetailPage.vue',
   'DashboardDetailPage.vue', 'DatasetDetailPage.vue', 'MetricDetailPage.vue',
@@ -28,9 +29,11 @@ for (const composite of [
   assert.doesNotMatch(workbench + training + certification, new RegExp(composite.replace('.', '\\.')));
 }
 
-for (const label of ['上午好，张三丰', '活动总数', '报名中', '即将开始', '工具学习', '考试预约']) {
+for (const label of ['欢迎使用数智产品展厅', '活动总数', '报名中', '即将开始', '工具学习', '考试预约']) {
   assert.ok((workbench + training + certification).includes(label), `复合截图替换后缺少真实 HTML：${label}`);
 }
+assert.match(workbench, /remote\?\.greeting\.text/,
+  '工作台真实 HTML 必须保留远端用户问候语绑定');
 for (const atomic of [
   'hero-ocean.png', 'training-hero-illustration.png', 'certification-hero-illustration.png',
   'training-stat-total.png', 'training-stat-registered.png', 'training-stat-soon.png'
@@ -97,9 +100,11 @@ assert.match(globalStyle, /\.product-detail \.training-row article,\.product-det
 assert.doesNotMatch(globalStyle, /@media\(max-width:1000px\)\{\.product-detail/,
   '845–963px 原生详情参考不能触发产品详情堆叠，避免整页高度膨胀');
 for (const source of detailSources) {
-  assert.match(source, /TypeLineIcon/, '每个应用详情必须使用统一线稿类型图标');
+  assert.match(source, /RemoteAppDetailPage/, '每个应用详情必须复用统一远端详情组件');
+  assert.match(source, /icon="[^"]+"/, '每个应用详情必须向统一远端详情组件传递类型图标');
   assert.doesNotMatch(source, /class="detail-illustration"/, '应用详情 Hero 不得保留装饰插图');
 }
+assert.match(remoteAppDetail, /TypeLineIcon/, '统一远端详情组件必须渲染统一线稿类型图标');
 assert.match(globalStyle, /\.product-detail \.detail-logo\.detail-type-icon\s*\{[^}]*width:74px;[^}]*height:74px/,
   '应用详情图标必须使用统一的 74px 方形线稿容器');
 assert.match(globalStyle, /\.product-detail\s*>\s*\.detail-hero\s*\{\s*min-height:0/,

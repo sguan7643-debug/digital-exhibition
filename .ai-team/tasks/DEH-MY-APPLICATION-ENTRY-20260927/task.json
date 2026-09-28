@@ -1,0 +1,68 @@
+{
+  "task_id": "DEH-MY-APPLICATION-ENTRY-20260927",
+  "title": "我的申请入口与申请进度页交互修复",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "让个人中心的“我的申请”快捷入口与标题链接均可进入我的申请页，修复申请详情时间线文字与连线重叠，并从申请页移除不再需要展示的飞书授权按钮。",
+  "target_user": "在 Web 端提交并查看应用上线申请进度的已授权业务用户。",
+  "in_scope": [
+    "修复个人中心“我的申请”快捷卡片到我的申请页的路由与可用状态",
+    "保留并核验现有“我的申请”文字入口的正确跳转",
+    "修复申请详情审批时间线的连线与阶段标题视觉重叠",
+    "从应用上线申请页移除飞书授权按钮，并不改变已有授权会话、回调或审批提交逻辑",
+    "对上述 Web 页面执行路由、空态和已有申请详情的回归验证"
+  ],
+  "out_of_scope": [
+    "持久化飞书 OAuth 会话、修改 OAuth 流程或授权令牌处理",
+    "修改应用上架审批规则、飞书审批配置、Base 表结构或业务数据",
+    "素材中心、其他个人中心入口或移动端/uni-app 改造",
+    "生产发布、外部推送或合并主分支"
+  ],
+  "success_metric": "已授权用户点击个人中心中的“我的申请”快捷卡片或文字入口均能进入同一我的申请页；申请详情时间线标题不与连线重叠；应用上线申请页不再显示飞书授权按钮，且现有提交与查看进度链路仍可用。",
+  "deadline": "尽快完成当前 POC 页面可用性修复",
+  "risk_level": "medium",
+  "state": "release_review",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "user",
+      "approved_at": "2026-09-27T01:32:26.0806646Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "user",
+      "approved_at": "2026-09-27T02:18:12.9070310Z"
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": true,
+    "mobile_passed": false,
+    "web_evidence": ".ai-team/tasks/DEH-MY-APPLICATION-ENTRY-20260927/handoffs/web.md",
+    "web_checked_at": "2026-09-27T03:58:02.3718408Z",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": true,
+    "blocking_defects": 0,
+    "evidence": ".ai-team/tasks/DEH-MY-APPLICATION-ENTRY-20260927/qa-report.md",
+    "recorded_at": "2026-09-27T04:49:29.9170358Z"
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

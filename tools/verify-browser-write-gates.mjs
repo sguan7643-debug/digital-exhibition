@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { resolve } from 'node:path';
 import { chromium } from 'playwright';
 import { PAGE_INTEGRATION_MATRIX } from '../src/integration/page-integration-matrix.js';
 
@@ -6,13 +7,17 @@ const candidates=[process.env.BROWSER_EXECUTABLE_PATH,'C:\\Program Files (x86)\\
 const executablePath=candidates.find(candidate=>fs.existsSync(candidate));
 if(!executablePath)throw new Error('未找到 Edge/Chromium');
 const origin=process.env.EXHIBITION_TEST_ORIGIN||'http://127.0.0.1:4173';
-const browser=await chromium.launch({headless:true,executablePath});
-const page=await browser.newPage({viewport:{width:1440,height:1000}});
+const profile=process.env.FEISHU_VERIFY_BROWSER_PROFILE;
+const browser=profile?null:await chromium.launch({headless:true,executablePath});
+const context=profile
+  ?await chromium.launchPersistentContext(resolve(profile),{headless:true,executablePath,viewport:{width:1440,height:1000}})
+  :await browser.newContext({viewport:{width:1440,height:1000}});
+const page=await context.newPage();
 const results=[];
 const renderedOperationIds=new Set();
 try{
   for(const contract of PAGE_INTEGRATION_MATRIX.filter(item=>item.actions.length)){
-    await page.goto(`${origin}${contract.route}`,{waitUntil:'domcontentloaded',timeout:30000});
+    await page.goto(`${origin}${contract.route}?test-write-panel=1`,{waitUntil:'domcontentloaded',timeout:30000});
     const panel=page.locator('.controlled-write-panel');
     await panel.waitFor({state:'visible',timeout:10000});
     if(await panel.getAttribute('data-write-state')==='blocked'){
@@ -23,7 +28,7 @@ try{
     for(const value of await panel.locator('details summary code').allTextContents())renderedOperationIds.add(value.trim());
     results.push({route:contract.route,expected:contract.actions.length,rendered,visible:await panel.isVisible()});
   }
-  await page.goto(`${origin}/apps/report-001`,{waitUntil:'domcontentloaded',timeout:30000});
+  await page.goto(`${origin}/apps/report-001?test-write-panel=1`,{waitUntil:'domcontentloaded',timeout:30000});
   await page.locator('.controlled-write-panel').waitFor({state:'visible',timeout:10000});
   if(await page.locator('.controlled-write-panel').getAttribute('data-write-state')==='blocked'){
     const passed=results.every(item=>item.blocked);
@@ -46,4 +51,4 @@ try{
   const passed=renderedOperationIds.size===36&&results.every(item=>item.visible&&item.rendered===item.expected)&&unconfirmedCalls.length===0&&confirmedCalls.join(',')==='COM-001';
   console.log(JSON.stringify({passed,expectedUniqueActions:36,renderedUniqueActions:renderedOperationIds.size,renderedInstances,unconfirmedCalls,confirmedCalls,output,results},null,2));
   if(!passed)process.exitCode=2;
-}finally{await browser.close();}
+}finally{await context.close();if(browser)await browser.close();}

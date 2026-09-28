@@ -6,8 +6,8 @@ const shell = readFileSync(new URL('../src/components/ExhibitionShell.vue', impo
 assert.match(shell, /<img class="nav-glyph" :src="icon"/,
   '顶部七项导航必须使用最新版同源图标资源');
 for (const asset of ['workbench', 'apps', 'materials', 'certification', 'training', 'talent', 'operations']) {
-  assert.match(shell, new RegExp(`/assets/nav-${asset}\\.png`),
-    `顶部导航缺少最新版 ASCII 同源图标：${asset}`);
+  assert.match(shell, new RegExp(`publicAssetPath\\(['"]assets/nav-${asset}\\.png['"]\\)`),
+    `顶部导航缺少兼容子路径部署的最新版 ASCII 同源图标：${asset}`);
 }
 assert.doesNotMatch(shell, /\/assets\/nav-[^'"/]*[\u3400-\u9fff]/u,
   '顶部导航不得使用可能被静态服务器错误解码的 Unicode 资源名');

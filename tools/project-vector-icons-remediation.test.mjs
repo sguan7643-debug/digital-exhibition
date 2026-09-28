@@ -20,13 +20,21 @@ const offenders = [];
 for (const file of vueFiles(srcRoot)) {
   const source = readFileSync(file, 'utf8');
   const approvedNavigationAsset = (tag) => file.endsWith('ExhibitionShell.vue') && /:src="icon"/.test(tag);
+  const approvedRemoteAvatar = (tag) => file.endsWith('WorkbenchPage.vue')
+    && /class="hero-avatar"/.test(tag)
+    && /:src="heroAvatarUrl"/.test(tag)
+    && /:alt=/.test(tag);
+  const approvedTrainingIllustration = (tag) => file.endsWith('TrainingPage.vue')
+    && /class="hero-illustration"/.test(tag)
+    && /publicAssetPath\('assets\/training-hero-illustration\.png'\)/.test(tag)
+    && /alt="培训课堂蓝色书本与学士帽插图"/.test(tag);
   const unsupportedDynamicImages = (source.match(/<img\b[^>]*\s:src=[^>]*>/g) ?? [])
-    .filter((tag) => !approvedNavigationAsset(tag));
+    .filter((tag) => !approvedNavigationAsset(tag) && !approvedRemoteAvatar(tag) && !approvedTrainingIllustration(tag));
   assert.deepEqual(unsupportedDynamicImages, [],
     `${file} 不得用未声明用途的动态截图资产充当图标`);
   const tags = source.match(/<img\b[^>]*>/g) ?? [];
   for (const tag of tags) {
-    if (approvedNavigationAsset(tag)) continue;
+    if (approvedNavigationAsset(tag) || approvedTrainingIllustration(tag)) continue;
     if (iconAssetPattern.test(tag)) offenders.push(`${file}: ${tag}`);
   }
 }

@@ -66,7 +66,7 @@ export function createFeishuSchemaAdminClient(options = {}) {
     });
     const payload = await readJson(response);
     if (!response.ok || payload.code !== 0) {
-      const status = response.status === 403 || payload.code === 1254302 ? 403 : response.status === 429 || payload.code === 1254290 ? 429 : 502;
+      const status = response.status === 403 || payload.code === 1254302 ? 403 : response.status === 404 ? 404 : response.status === 429 || payload.code === 1254290 ? 429 : 502;
       throw new FeishuProxyError('FEISHU_SCHEMA_FAILED', '飞书表结构操作失败', status, {
         upstreamCode: payload.code, upstreamMessage: String(payload.msg || '').slice(0, 200)
       });
@@ -163,6 +163,24 @@ export function createFeishuSchemaAdminClient(options = {}) {
     return data.record || data;
   }
 
+  async function listRecords(tableId, { pageSize = 100 } = {}) {
+    const items = [];
+    let pageToken = '';
+    do {
+      const query = new URLSearchParams({ page_size: String(pageSize), automatic_fields: 'true' });
+      if (pageToken) query.set('page_token', pageToken);
+      const data = await call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables/${encodeURIComponent(tableId)}/records?${query}`);
+      items.push(...(data.items || []));
+      pageToken = data.has_more ? String(data.page_token || '') : '';
+    } while (pageToken);
+    return items;
+  }
+
+  async function getRecord(tableId, recordId) {
+    const data = await call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables/${encodeURIComponent(tableId)}/records/${encodeURIComponent(recordId)}`);
+    return data.record || data;
+  }
+
   async function updateRecord(tableId, recordId, fields) {
     const data = await call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables/${encodeURIComponent(tableId)}/records/${encodeURIComponent(recordId)}`, {
       method: 'PUT', writeGate: 'record', body: { fields }
@@ -196,6 +214,6 @@ export function createFeishuSchemaAdminClient(options = {}) {
 
   return Object.freeze({
     schemaWriteEnabled, recordWriteEnabled, listTables, listFields, listViews, createTable, createField,
-    searchRecords, createRecord, updateRecord, deleteRecord, uploadMedia
+    searchRecords, listRecords, createRecord, getRecord, updateRecord, deleteRecord, uploadMedia
   });
 }

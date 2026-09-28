@@ -18,9 +18,11 @@ export default defineConfig(({ command, mode }) => {
     appId: serverEnv.FEISHU_APP_ID,
     appSecret: serverEnv.FEISHU_APP_SECRET,
     baseToken: serverEnv.FEISHU_BASE_TOKEN,
+    pocBaseFingerprint: serverEnv.FEISHU_POC_BASE_FINGERPRINT,
     redirectUri: serverEnv.FEISHU_OAUTH_REDIRECT_URI || 'http://127.0.0.1:4173/api/v1/auth/feishu/callback',
     scopes: serverEnv.FEISHU_OAUTH_SCOPES,
     allowedAppLaunchHosts: serverEnv.FEISHU_APP_LAUNCH_ALLOWED_HOSTS || 'ai.smartwork.com,ead.smartwork.com,rpa.smartwork.com,tools.cnooc.com,oisamrtwork.com,bi.cnooc.com,data.cnooc.com,cnooc.com',
+    schemaWriteEnabled: serverEnv.FEISHU_SCHEMA_WRITE_ENABLED === '1',
     recordWriteEnabled: serverEnv.FEISHU_TEST_WRITE_ENABLED === '1'
   })],
   esbuild: false,

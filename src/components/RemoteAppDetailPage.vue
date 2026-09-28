@@ -39,7 +39,7 @@ defineProps({
 </template>
 
 <style scoped>
-.remote-app-detail { min-height: 100%; }
+.remote-app-detail { min-height: 100%; overflow: visible; }
 .remote-app-detail .detail-hero { min-height: 180px; }
 a:focus-visible { outline: 3px solid #ff9f1a; outline-offset: 2px; }
 </style>

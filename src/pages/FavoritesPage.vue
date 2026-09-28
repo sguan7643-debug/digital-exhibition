@@ -336,7 +336,7 @@ async function launch(card) {
     </section>
     <section v-else class="favorite-empty" role="status">
       <h2>暂无符合条件的收藏应用</h2>
-      <p>请调整筛选条件，或恢复演示收藏后重试。</p>
+      <p>请调整筛选条件，或稍后刷新飞书收藏数据后重试。</p>
       <button type="button" @click="clearFilters">清空筛选</button>
     </section>
     <PaginationControl

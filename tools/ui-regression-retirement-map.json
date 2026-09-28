@@ -1,0 +1,67 @@
+{
+  "version": "ui-regression-retirement-map.v1",
+  "retirements": [
+    {
+      "missing": "src/fixtures/mock-data.js",
+      "reason": "业务页面已切换到真实集成读模型，禁止恢复模拟业务 fixture。",
+      "replacements": ["src/integration/app-read-model.js", "tools/application-browse-flow.test.mjs", "tools/application-page-actions.test.mjs"]
+    },
+    {
+      "missing": "src/components/BusinessPreviewGallery.vue",
+      "reason": "报表与驾驶舱详情已统一为权威远端详情投影，不再维护本地图表预览 fixture。",
+      "replacements": ["src/components/RemoteAppDetailPage.vue", "tools/mounted-detail-pages.test.mjs", "tools/deh-req-gap-p1-detail-projection.test.mjs"]
+    },
+    {
+      "missing": "src/components/IndicatorBuildDialog.vue",
+      "reason": "已移除未接真实后端的本地指标构建弹框；详情操作由权威远端页面合同覆盖。",
+      "replacements": ["src/components/RemoteAppDetailPage.vue", "tools/application-page-actions.test.mjs"]
+    }
+  ],
+  "migrations": [
+    {
+      "source": "tools/latest-ui-remediation.test.mjs:CertificationPage",
+      "destination": "tools/ui-source-20260904-sync.test.mjs",
+      "assertions": ["学习入口与筛选合并", "认证服务模块", "预约交互"]
+    },
+    {
+      "source": "tools/latest-ui-remediation.test.mjs:TalentPeoplePage",
+      "destination": "tools/ui-source-20260904-sync.test.mjs",
+      "assertions": ["人才字段完整性", "新增抽屉语义", "抽屉可读宽度"]
+    },
+    {
+      "source": "tools/latest-ui-remediation.test.mjs:TalentProjectsPage",
+      "destination": "tools/ui-source-20260904-sync.test.mjs",
+      "assertions": ["项目抽屉语义", "筛选布局", "抽屉可读宽度"]
+    },
+    {
+      "source": "tools/latest-ui-remediation.test.mjs:OperationsPage",
+      "destination": "tools/ui-source-20260904-sync.test.mjs",
+      "assertions": ["排行字号与行距"]
+    },
+    {
+      "source": "tools/latest-ui-remediation.test.mjs:MaterialsPage",
+      "destination": "tools/ui-source-20260904-sync.test.mjs",
+      "assertions": ["说明文字可读性", "中宽筛选网格"]
+    },
+    {
+      "source": "tools/latest-ui-remediation.test.mjs:GlobalTypographyTokens",
+      "destination": "tools/ui-source-20260904-sync.test.mjs",
+      "assertions": ["src/style.css 的 --xlt-font-caption 保留 clamp(13px 可读下限"]
+    },
+    {
+      "source": "tools/latest-ui-remediation.test.mjs:NoticeFilterIcons",
+      "destination": "tools/ui-source-20260904-sync.test.mjs",
+      "assertions": ["通知筛选下拉箭头保持统一蓝色", "日期筛选日历图标保留颜色与可见度规则"]
+    },
+    {
+      "source": "tools/latest-ui-remediation.test.mjs:AppsPageFilterLabels",
+      "destination": "tools/ui-source-20260904-sync.test.mjs",
+      "assertions": ["AppsPage 筛选标签保持弹性网格、14px/22px 可读排版与不换行"]
+    },
+    {
+      "source": "tools/latest-ui-remediation.test.mjs:PointsPageDynamics",
+      "destination": "tools/ui-source-20260904-sync.test.mjs",
+      "assertions": ["积分动态数值、单位与时间不换行", "1100px 以下积分双栏收敛为单列"]
+    }
+  ]
+}

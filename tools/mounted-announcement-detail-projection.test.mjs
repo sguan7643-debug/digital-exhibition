@@ -29,5 +29,5 @@ assert.deepEqual(calls,[['COM-008',{fileId:'FILE-9',mode:'DOWNLOAD',disposition:
 const hrefs=flatten(root).filter(node=>node.type==='a').map(node=>node.props.href).filter(Boolean);assert.ok(hrefs.includes('/apps/report-001'));assert.ok(!hrefs.some(value=>String(value).includes('evil.example')));
 
 for(const integrationState of ['empty','error','permission-denied']){const stateRoot={type:'root',children:[]};renderer.createApp(component,{integrationState,integrationData:data,operationExecutor:executor}).mount(stateRoot);await nextTick();assert.doesNotMatch(textOf(stateRoot),/真实公告标题|供应商风险预警应用已发布上线/);}
-const mockRoot={type:'root',children:[]};renderer.createApp(component,{integrationState:'mock',integrationData:null}).mount(mockRoot);await nextTick();assert.match(textOf(mockRoot),/供应商风险预警应用已发布上线/);
+const unavailableRoot={type:'root',children:[]};renderer.createApp(component,{integrationState:'empty',integrationData:null}).mount(unavailableRoot);await nextTick();assert.match(textOf(unavailableRoot),/通知内容不可用/);assert.doesNotMatch(textOf(unavailableRoot),/供应商风险预警应用已发布上线/);
 console.log('真实 NoticeDetailPage mounted：ANN 投影、纯文本、COM-008、站内路由及状态隔离通过');

@@ -28,10 +28,10 @@ const favoriteFilters = favorites.match(/<form[\s\S]*?class="favorite-filters"[\
 const favoriteTools = favorites.match(/<div class="favorite-tools">[\s\S]*?<\/div>/)?.[0] ?? '';
 assert.match(favoriteFilters, /type="reset">重置/, '收藏筛选栏必须与应用中心一样保留重置操作');
 assert.match(favoriteFilters, /type="submit">查询/, '收藏筛选栏必须与应用中心一样保留查询操作');
-assert.match(favoriteTools, /@click="resetData"[\s\S]*?>恢复收藏</,
-  '演示收藏恢复必须放在结果工具栏，不能挤压筛选或分页');
-assert.doesNotMatch(favorites, /class="favorite-pagination"[\s\S]{0,220}@click="resetData"/,
-  '分页栏不得包含演示数据恢复按钮');
+assert.match(favoriteTools, /@click="clearFilters"[\s\S]*?>清空筛选</,
+  '清空筛选必须放在结果工具栏，不能挤压筛选或分页');
+assert.doesNotMatch(favorites, /@click="resetData"|恢复演示收藏/,
+  '真实飞书数据页面不得暴露演示收藏恢复入口');
 assert.match(favorites, /grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/,
   '收藏页必须与应用中心一致使用桌面三列独立卡片');
 assert.match(favorites, /min-height:\s*314px/, '收藏卡片必须为放大后的字段与操作保留可读高度');

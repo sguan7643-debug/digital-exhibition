@@ -1,16 +1,15 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { PEOPLE_FIXTURES } from '../src/fixtures/mock-data.js';
 import { createTalentController } from '../src/state/interaction-controllers.js';
-import { PROJECT_FIXTURES, createTalentProjectController } from '../src/state/talent-project-controller.js';
+import { createTalentProjectController } from '../src/state/talent-project-controller.js';
 
 const read = file => readFileSync(new URL(`../src/pages/${file}`, import.meta.url), 'utf8');
 const people = read('TalentPeoplePage.vue');
 const projects = read('TalentProjectsPage.vue');
 const progress = read('TalentProgressPage.vue');
 
-const peopleController = createTalentController(PEOPLE_FIXTURES);
-const projectController = createTalentProjectController(PROJECT_FIXTURES);
+const peopleController = createTalentController([]);
+const projectController = createTalentProjectController([]);
 assert.equal(peopleController.drawerOpen, false, '人才库默认不得打开详情抽屉');
 assert.equal(projectController.drawerOpen, false, '人才项目默认不得打开新增或编辑抽屉');
 assert.equal(peopleController.pageSize, 10, '人才库默认每页必须为 10 条');

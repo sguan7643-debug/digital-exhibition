@@ -40,7 +40,7 @@ for (const page of governedUiMatrix) {
   assert.ok(page.operationIds.length > 0, `${page.route} must declare operation IDs`);
   assert.ok(page.fieldDomains.length > 0, `${page.route} must declare field domains`);
   assert.ok(page.operationIds.every(id => OPERATION_REGISTRY.some(operation => operation.id === id)));
-  assert.ok(['mock', 'disabled'].includes(page.defaultMode));
+  assert.ok(['remote', 'disabled'].includes(page.defaultMode));
   assert.equal(page.remoteWhen, 'contract-evidence-complete');
 }
 assert.deepEqual(getPageIntegrationContract('/workbench').operationIds, ['COM-001', 'COM-002', 'COM-005', 'WB-001', 'WB-002', 'COM-011']);
@@ -48,8 +48,8 @@ assert.deepEqual(getPageIntegrationContract('/apps').operationIds, ['APP-001', '
 assert.deepEqual(getPageIntegrationContract('/apps/report-001').operationIds, ['APP-003', 'APP-009', 'APP-007', 'MAT-001', 'MAT-002', 'MAT-003', 'COM-008', 'FAV-003', 'FAV-004', 'APP-005', 'APP-006', 'APP-008']);
 
 assert.deepEqual(resolveIntegrationRuntime({}), {
-  mode: 'mock', proxyBase: '/api/v1', remoteEnabled: false,
-  contractEvidenceComplete: false, testWritesEnabled: false, timeoutMs: null, reason: 'remote-disabled-by-default'
+  mode: 'disabled', proxyBase: '/api/v1', remoteEnabled: false,
+  contractEvidenceComplete: false, testWritesEnabled: false, timeoutMs: null, reason: 'kill-switch-disabled'
 });
 assert.equal(resolveIntegrationRuntime({ requestedMode: 'remote', remoteEnabled: true, contractEvidenceComplete: false }).mode, 'disabled');
 assert.equal(resolveIntegrationRuntime({ requestedMode: 'remote', remoteEnabled: true, contractEvidenceComplete: true, timeoutMs: 8000 }).mode, 'remote');
@@ -130,13 +130,12 @@ for (const code of ['timeout', 'rate-limited', 'partial', 'data-stale', 'schema-
 let networkCalls = 0;
 const source = createPageDataSource({
   route: '/workbench', runtime: resolveIntegrationRuntime({}),
-  mockLoader: () => ({ greeting: '本地演示数据' }),
   client: { execute: async () => { networkCalls += 1; } }
 });
-const mockEnvelope = await source.load();
-assert.equal(networkCalls, 0, 'default mock mode must not make a network request');
-assert.equal(mockEnvelope.mode, 'mock');
-assert.equal(mockEnvelope.state, 'normal');
+const disabledEnvelope = await source.load();
+assert.equal(networkCalls, 0, 'disabled remote mode must not make a network request');
+assert.equal(disabledEnvelope.mode, 'disabled');
+assert.equal(disabledEnvelope.state, 'disabled');
 
 const appSource = readFileSync(new URL('../src/App.vue', import.meta.url), 'utf8');
 assert.match(appSource, /data-integration-mode/);

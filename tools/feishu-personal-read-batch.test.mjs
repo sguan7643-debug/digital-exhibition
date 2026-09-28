@@ -81,6 +81,9 @@ assert.equal(workbenchResponse.data.usage.appVisitCount, 20);
 const profileResponse = await service.execute('WB-003', { recentMessageLimit: 5, todoLimit: 5 }, context); responses.set('WB-003', profileResponse);
 assert.equal(profileResponse.data.stats.appUseCount, 12);
 assert.equal(profileResponse.data.todos[0].businessId, 'USE-1');
+const applicationsEntry = profileResponse.data.quickEntries.find(item => item.code === 'todos');
+assert.equal(applicationsEntry.path, '/apps/onboarding/status', '我的申请快捷卡片必须进入现有申请列表');
+assert.equal(applicationsEntry.enabled, true, '我的申请快捷卡片必须与现有文字入口保持相同可用行为');
 const todosResponse = await service.execute('WB-004', { page: 1, pageSize: 10 }, context); responses.set('WB-004', todosResponse);
 assert.equal(todosResponse.data.items[0].businessType, 'APP_USE');
 

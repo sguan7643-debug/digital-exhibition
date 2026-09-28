@@ -46,6 +46,7 @@ import { isRemoteRuntime, resolveIntegrationRuntime } from './integration/runtim
 import { createPageDataSource, describeDataSourceEnvelope, resolveActiveRetryScope } from './integration/page-data-source.js';
 import { resolveIntegrationLiveAnnouncement } from './integration/live-region.js';
 import { createSafeProxyClient } from './integration/safe-proxy-client.js';
+import { createHomepageAggregateClient } from './integration/homepage-aggregate-client.js';
 import { createVerifiedReadOperationContracts, createVerifiedWriteOperationContracts } from './integration/operation-contract-schemas.js';
 import { OPERATION_REGISTRY, getOperation } from './integration/operation-registry.js';
 import { resolveRemoteReadOperation } from './integration/remote-operation-capabilities.js';
@@ -77,6 +78,11 @@ const integrationClient = createSafeProxyClient({
   origin: window.location.origin,
   timeoutMs: integrationRuntime.timeoutMs,
   operationContracts: { ...verifiedReadContracts, ...verifiedWriteContracts }
+});
+const homepageClient = createHomepageAggregateClient({
+  baseUrl: integrationRuntime.proxyBase,
+  origin: window.location.origin,
+  timeoutMs: Math.min(integrationRuntime.timeoutMs || 29_500, 29_500)
 });
 const requestActivity = ref(getRequestActivity());
 const showControlledWritePanel = computed(() => import.meta.env.DEV && new URLSearchParams(window.location.search).get('test-write-panel') === '1');
@@ -183,7 +189,7 @@ function restoreRouteSession(){
   }
   main.scrollTop=snapshot?.scrollTop||0;
   const target=snapshot?.focusId&&(document.getElementById(snapshot.focusId)||document.querySelector(`[data-session-focus="${snapshot.focusId}"]`));
-  (target||main).focus();
+  (target||document.getElementById('onboarding-title')||main).focus();
 }
 function syncLocation(event) {
   if(event?.type==='popstate')captureRouteSession(activeEntryKey.value);
@@ -260,28 +266,36 @@ const LOCAL_UI_ONLY_CONTRACT = Object.freeze({
 const integrationContract = computed(() => getPageIntegrationContract(page.value.route) || LOCAL_UI_ONLY_CONTRACT);
 const integrationEnvelope = ref({ mode: 'disabled', state: 'disabled', operationIds: [] });
 const integrationRetrying = ref(false);
+const integrationPolling = ref(false);
 let integrationDataSource;
 let integrationLoadOptions = {};
 let integrationInitialSyncTimer;
 let integrationInitialSyncAttempts = 0;
-const MAX_INITIAL_SYNC_ATTEMPTS = 20;
+const MAX_INITIAL_SYNC_ATTEMPTS = 30;
 
 const integrationRecovery = computed(() => {
   const envelope = integrationEnvelope.value;
   const activeRetryScope = resolveActiveRetryScope(envelope);
-  if (activeRetryScope.length === 0) return null;
-  const sectionRecords = activeRetryScope.map(operationId => envelope.sectionRecords?.[operationId]).filter(Boolean);
+  const staleScope = Object.entries(envelope.sectionRecords || {})
+    .filter(([, record]) => record?.available === true && record?.dataStale === true)
+    .map(([operationId]) => operationId);
+  const retryScope = activeRetryScope.length ? activeRetryScope : staleScope;
+  if (retryScope.length === 0 && !envelope.syncError) return null;
+  const sectionRecords = retryScope.map(operationId => envelope.sectionRecords?.[operationId]).filter(Boolean);
   const timeout = sectionRecords.some(record => record?.errorState === 'timeout');
-  const initialSyncing = sectionRecords.some(record => record?.errorState === 'initial-syncing');
+  const initialSyncing = envelope.syncState === 'queued' || envelope.syncState === 'running'
+    || sectionRecords.some(record => record?.errorState === 'initial-syncing');
   const traceId = sectionRecords.map(record => record?.traceId).find(Boolean) || envelope.traceId || null;
   return {
-    message: initialSyncing
-      ? '正式飞书数据正在首次同步，页面其他区域仍可使用。'
+    message: initialSyncing && envelope.dataStale
+      ? '数据正在更新，当前内容仍可使用。'
+      : initialSyncing
+        ? '正式飞书数据正在首次同步，页面其他区域仍可使用。'
       : timeout
         ? '部分飞书数据请求超时，已保留可用内容。'
         : '部分飞书数据暂时不可用，已保留可用内容。',
     traceId,
-    retryScope: activeRetryScope
+    retryScope
   };
 });
 const dismissedIntegrationRecoveryKey = ref('');
@@ -323,6 +337,7 @@ async function syncIntegrationEnvelope() {
     route,
     runtime: integrationRuntime,
     client: integrationClient,
+    homepageClient,
     operationResolver: resolveRemoteOperation
   });
   let loadOptions = buildPageReadRequestPlan({
@@ -356,22 +371,62 @@ const feishuAuthUrl = computed(() => `/api/v1/auth/feishu/start?returnTo=${encod
 function scheduleInitialSyncRetry() {
   clearTimeout(integrationInitialSyncTimer);
   integrationInitialSyncTimer = null;
+  const aggregateSyncing = Boolean(integrationEnvelope.value.syncId && integrationEnvelope.value.refreshing);
   const records = Object.values(integrationEnvelope.value.sectionRecords || {})
     .filter(record => record?.errorState === 'initial-syncing' && record?.retryable === true);
-  if (!records.length) {
+  if (!aggregateSyncing && !records.length) {
     integrationInitialSyncAttempts = 0;
     return;
   }
-  if (integrationInitialSyncAttempts >= MAX_INITIAL_SYNC_ATTEMPTS) return;
+  if (integrationInitialSyncAttempts >= MAX_INITIAL_SYNC_ATTEMPTS) {
+    integrationEnvelope.value = Object.freeze({
+      ...integrationEnvelope.value,
+      refreshing: false,
+      syncState: 'expired',
+      syncError: 'HOMEPAGE_SYNC_POLL_TIMEOUT'
+    });
+    return;
+  }
   const retryAfterSeconds = Math.max(1, Math.min(10,
-    Math.min(...records.map(record => Number.isInteger(record.retryAfterSeconds) ? record.retryAfterSeconds : 2))
+    records.length
+      ? Math.min(...records.map(record => Number.isInteger(record.retryAfterSeconds) ? record.retryAfterSeconds : 2))
+      : 2
   ));
   const route = page.value.route;
   const source = integrationDataSource;
   integrationInitialSyncAttempts += 1;
   integrationInitialSyncTimer = setTimeout(() => {
-    if (page.value.route === route && integrationDataSource === source) retryIntegration();
+    if (page.value.route !== route || integrationDataSource !== source) return;
+    if (aggregateSyncing && typeof source.pollSync === 'function') pollIntegrationSync();
+    else retryIntegration();
   }, retryAfterSeconds * 1000);
+}
+
+async function pollIntegrationSync() {
+  if (integrationPolling.value || !integrationDataSource || typeof integrationDataSource.pollSync !== 'function') return;
+  const route = page.value.route;
+  const source = integrationDataSource;
+  integrationPolling.value = true;
+  try {
+    const result = await source.pollSync({ loadOptions: integrationLoadOptions });
+    if (page.value.route === route && integrationDataSource === source) {
+      integrationEnvelope.value = result;
+      scheduleInitialSyncRetry();
+    }
+  } catch (error) {
+    if (page.value.route === route && integrationDataSource === source && error?.state !== 'cancelled') {
+      integrationEnvelope.value = Object.freeze({
+        ...integrationEnvelope.value,
+        state: integrationEnvelope.value.dataStale ? 'data-stale' : 'error',
+        error: error?.message || '同步状态查询失败',
+        refreshing: false,
+        syncState: 'failed',
+        syncError: error?.code || error?.state || 'SYNC_STATUS_FAILED'
+      });
+    }
+  } finally {
+    integrationPolling.value = false;
+  }
 }
 
 async function retryIntegration() {
@@ -380,6 +435,7 @@ async function retryIntegration() {
   integrationInitialSyncTimer = null;
   const route = page.value.route;
   const source = integrationDataSource;
+  integrationInitialSyncAttempts = 0;
   integrationRetrying.value = true;
   try {
     const result = await source.retry({}, integrationLoadOptions);
@@ -474,7 +530,7 @@ async function retryEntryAuthorization() {
       <ai-detail-page v-else-if="page.id === '14'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <ead-detail-page v-else-if="page.id === '15'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <rpa-detail-page v-else-if="page.id === '16'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
-      <onboarding-page v-else-if="page.id === '17'" />
+      <onboarding-page v-else-if="page.id === '17'" :key="activeHref" />
       <onboarding-apply-page
         v-else-if="page.id === '32'"
         :integration-data="integrationEnvelope.data"
@@ -507,6 +563,7 @@ async function retryEntryAuthorization() {
       <materials-page v-else-if="page.id === '31'"
         :integration-data="integrationEnvelope.data"
         :integration-state="integrationEnvelope.state"
+        :operation-executor="executeReadOperation"
       />
       <section v-else class="state-surface" role="status">当前页面没有已登记的飞书数据源。</section>
       <app-detail-live-sections v-if="Number(page.id) >= 8 && Number(page.id) <= 16"

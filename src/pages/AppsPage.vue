@@ -177,7 +177,10 @@ onBeforeUnmount(() => {
         <h1 id="apps-title">应用中心</h1>
         <p>汇聚优质应用资源，助力业务高效协同与智能决策</p>
       </div>
-      <a class="onboarding-link" href="/apps/onboarding/apply">应用上线申请</a>
+      <nav class="onboarding-actions" aria-label="应用上线申请">
+        <a class="onboarding-link" href="/apps/onboarding/apply">应用上线申请</a>
+        <a class="onboarding-status-link" href="/apps/onboarding/status">我的申请</a>
+      </nav>
     </header>
     <section class="app-type-overview" aria-labelledby="app-type-overview-title">
       <h2 id="app-type-overview-title" class="sr-only">应用类型统计</h2>
@@ -347,6 +350,10 @@ onBeforeUnmount(() => {
 #main-content .apps-page h1::before{content:'';width:5px;height:26px;flex-shrink:0;border-radius:3px;background:#0060a6}
 #main-content .apps-page>header p{margin-top:6px;color:#61758c;font-size:14px;line-height:22px}
 #main-content .apps-page .onboarding-link{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 18px;background:#0060a6;color:#fff;border:1px solid #0060a6;border-radius:8px;font-size:14px;white-space:nowrap}
+#main-content .apps-page .onboarding-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#main-content .apps-page .onboarding-status-link{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 18px;color:#0060a6;background:#fff;border:1px solid #7891a8;border-radius:8px;font-size:14px;white-space:nowrap}
+#main-content .apps-page .onboarding-status-link:hover{background:#eff7fc}
+#main-content .apps-page .onboarding-actions a:focus-visible{outline:3px solid #ffb648;outline-offset:3px;box-shadow:0 0 0 2px #0060a6}
 #main-content .app-type-overview{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px;margin-bottom:16px;padding:8px;background:#fff;border:1px solid #e2e9f0;border-radius:14px;box-shadow:0 3px 16px #16375106}
 #main-content .app-type-overview>button{display:flex;align-items:center;gap:10px;min-width:0;min-height:68px;padding:10px 12px;color:#183150;background:#fff;border:1px solid transparent;border-radius:9px;text-align:left;cursor:pointer;transition:background-color .16s ease,border-color .16s ease}
 #main-content .app-type-overview>button:hover{border-color:#aac8df;background:#f7fbfe}

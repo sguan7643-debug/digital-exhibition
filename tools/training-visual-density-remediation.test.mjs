@@ -20,15 +20,19 @@ for (const staleAsset of [
 
 assert.match(source, /\.training-page\s*\{[^}]*min-height:\s*100%;[^}]*padding:\s*18px 20px 26px/,
   '培训页主体必须与全站内容边距对齐');
-assert.match(source, /\.course-grid\s*>\s*article\s*\{[^}]*min-height:\s*340px;[^}]*border-radius:\s*7px/,
-  '培训卡片必须提高纵向比例并保持操作区底部对齐');
+assert.match(source, /\.course-grid\s*>\s*article\s*\{[^}]*min-height:\s*276px;[^}]*border-radius:\s*6px/,
+  '培训卡片必须保留可读纵向比例并保持操作区底部对齐');
 assert.match(source, /@media\s*\(max-width:\s*1280px\)\s*\{[\s\S]*?\.course-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2/,
   '培训卡片必须在中等分辨率切换为双列');
 assert.match(source, /<dl class="course-status">[\s\S]*?<dt>报名人数<\/dt>[\s\S]*?<dt>活动形式<\/dt>/,
   '培训卡片状态信息必须按应用卡片方式分段展示');
-assert.match(source, /\.course-grid\s*>\s*article\s*>\s*header\s*\{[^}]*display:\s*grid/,
-  '培训卡片头部必须使用稳定的纵向网格排版');
-assert.match(source, /09-04（周五）14:00/,
-  '培训演示数据必须使用当前档期而不是过期月份');
+assert.match(source, /props\.integrationData\?\.\['TRN-002'\]/,
+  '培训课程必须来自飞书 TRN-002 数据而非固定演示档期');
+assert.match(source, /<PaginationControl[\s\S]*@update:page="changePage"[\s\S]*@update:page-size="changePageSize"/,
+  '培训分页必须使用可交互共享分页组件');
+assert.match(source, /活动总数<strong>\{\{ courseSource\.length \}\}/,
+  '培训统计必须跟随真实课程总数');
+assert.doesNotMatch(source, /<strong>(?:186|78|28)<\/strong>/,
+  '培训统计不得保留固定演示数字');
 
 console.log('培训页 fresh 低对比边框视觉合同通过');

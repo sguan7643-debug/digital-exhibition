@@ -1,0 +1,71 @@
+{
+  "task_id": "DEH-SYSTEM-POC-CLOSURE-20260927",
+  "title": "数智产品展厅系统整体 POC 收口",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "在不部署、不写入非 TEST_ 数据的前提下，修复当前仓库和预发布联调环境中的系统级阻断，使数智产品展厅 Web 的全量自动化、生产构建、已授权浏览器路由和关键真实业务闭环形成一致且可复验的 POC 通过证据。",
+  "target_user": "需要在预发布环境完成系统整体验收的产品负责人、业务验收人员和 Web 研发测试人员。",
+  "in_scope": [
+    "修复全量 npm test 与 test:integration 中由当前实现和过期断言不一致造成的真实阻断",
+    "修复回归中发现的 Web 运行时缺陷，保持已有页面、真实读取、TEST_ 写入和权限边界兼容",
+    "执行 Web 生产构建、无模拟数据检查、UI 源同步检查和已批准专项测试",
+    "使用已授权飞书浏览器会话执行 30 路由桌面、360 像素和 200% 缩放浏览器回归",
+    "复验应用上线申请的真实 TEST_ 上传、提交、审批、状态同步和批准后多表投影闭环",
+    "形成系统整体 POC 的功能 QA、兼容性 QA、代码审查和发布就绪证据"
+  ],
+  "out_of_scope": [
+    "生产部署、发布、主分支合并或远程仓库推送",
+    "写入、修改或删除任何非 TEST_ 业务数据",
+    "绕过飞书授权、服务端权限、安全门禁或验收失败",
+    "建设本仓库之外的 RPA、EAD、飞书、机器人或监控平台能力",
+    "把缺少正式外部系统输入的生产级能力表述为完成",
+    "移动端或 uni-app 实现"
+  ],
+  "success_metric": "npm test、npm run test:integration、npm run build、npm run test:no-mock-data、npm run test:ui-source-sync 和已授权浏览器路由回归全部 exit code 0；应用上线真实 TEST_ 闭环与四类投影记录核验通过；功能 QA 与兼容性 QA 的阻断缺陷为 0。",
+  "deadline": "尽快完成当前预发布 POC 验证。",
+  "risk_level": "high",
+  "state": "complete",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "user",
+      "approved_at": "2026-09-27T13:55:46.1878709Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "user",
+      "approved_at": "2026-09-27T14:07:14.9005112Z"
+    },
+    "release": {
+      "approved": true,
+      "approved_by": "user",
+      "approved_at": "2026-09-28T01:07:26.8860041Z"
+    }
+  },
+  "checks": {
+    "web_passed": true,
+    "mobile_passed": false,
+    "web_evidence": ".ai-team/tasks/DEH-SYSTEM-POC-CLOSURE-20260927/handoffs/web.md",
+    "web_checked_at": "2026-09-27T20:32:25.3459449Z",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": true,
+    "blocking_defects": 0,
+    "evidence": ".ai-team/tasks/DEH-SYSTEM-POC-CLOSURE-20260927/qa-report.md",
+    "recorded_at": "2026-09-27T20:36:23.8569572Z"
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

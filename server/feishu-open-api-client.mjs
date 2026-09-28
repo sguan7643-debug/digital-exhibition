@@ -4,8 +4,8 @@ const API_ROOT = 'https://open.feishu.cn/open-apis';
 const PAGE_SIZES = new Set([10, 20, 50, 100]);
 
 export function resolveFeishuUpstreamTimeoutMs(value) {
-  const configured = Number(value ?? 12_000);
-  return Number.isFinite(configured) && configured > 0 ? Math.min(configured, 12_000) : 12_000;
+  const configured = Number(value ?? 20_000);
+  return Number.isFinite(configured) && configured > 0 ? configured : 20_000;
 }
 
 export class FeishuProxyError extends Error {
@@ -405,9 +405,47 @@ export function createFeishuOpenApiClient(options = {}) {
     return { items: body.data?.items || [], hasMore: Boolean(body.data?.has_more), nextPageToken: body.data?.page_token || '' };
   };
 
+  async function preflightOnboardingPocActor({ session } = {}) {
+    const accessToken = String(session?.accessToken || '');
+    const expectedUserId = String(session?.identity?.userId || '');
+    const expectedOpenId = String(session?.identity?.openId || '');
+    if (!accessToken || (!expectedUserId && !expectedOpenId)) throw new FeishuProxyError('POC_REAL_APPROVER_REQUIRED', '真实申请人和审批人会话不可用', 401);
+    const identityResponse = await fetchUpstream(`${API_ROOT}/authen/v1/user_info`, {
+      method: 'GET', headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' }
+    }, '/authen/v1/user_info');
+    const identityBody = await safeJson(identityResponse);
+    if (!identityResponse.ok || identityBody.code !== 0 || !identityBody.data) {
+      throw new FeishuProxyError('POC_IDENTITY_PREFLIGHT_FAILED', '飞书用户身份只读预检失败', identityResponse.status === 401 ? 401 : identityResponse.status === 403 ? 403 : 502);
+    }
+    const userId = String(identityBody.data.user_id || '');
+    const openId = String(identityBody.data.open_id || '');
+    if ((expectedUserId && expectedUserId !== userId) || (expectedOpenId && expectedOpenId !== openId)) {
+      throw new FeishuProxyError('POC_IDENTITY_MISMATCH', '飞书会话身份与申请人不一致', 403);
+    }
+    if (!userId) throw new FeishuProxyError('POC_APPROVER_UNAVAILABLE', '飞书审批人不存在或不可用', 409);
+    const token = await getTenantToken();
+    const contactUrl = new URL(`${API_ROOT}/contact/v3/users/${encodeURIComponent(userId)}`);
+    contactUrl.searchParams.set('user_id_type', 'user_id');
+    contactUrl.searchParams.set('department_id_type', 'open_department_id');
+    const contactResponse = await fetchUpstream(contactUrl, {
+      method: 'GET', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+    }, '/contact/v3/users/{userId}');
+    const contactBody = await safeJson(contactResponse);
+    if (contactResponse.status === 403) throw new FeishuProxyError('POC_APPROVER_CAPABILITY_FORBIDDEN', '应用缺少审批人身份只读校验权限', 403);
+    if (!contactResponse.ok || contactBody.code !== 0 || !contactBody.data?.user) {
+      throw new FeishuProxyError('POC_APPROVER_UNAVAILABLE', '飞书审批人不存在或不可用', contactResponse.status === 404 ? 404 : 502);
+    }
+    const contactUser = contactBody.data.user;
+    const status = contactUser.status || {};
+    const active = status.is_activated !== false && status.is_frozen !== true && status.is_resigned !== true;
+    if (String(contactUser.user_id || '') !== userId || !active) throw new FeishuProxyError('POC_APPROVER_UNAVAILABLE', '飞书审批人未激活、已冻结或已离职', 409);
+    return Object.freeze({ userId, openId, active: true, identityVerified: true, approverCapabilityVerified: true });
+  }
+
   return Object.freeze({
     credentialsReady, listRecords, downloadMedia, listDepartmentChildren,
     listUsersByDepartment: listUsersByDepartmentWithId,
+    preflightOnboardingPocActor,
     createApprovalDefinition, createApprovalInstance, getApprovalInstance, approveApprovalTask
   });
 }

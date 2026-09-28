@@ -1,11 +1,26 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  FAVORITE_FIXTURES,
-  MESSAGE_FIXTURES,
   createFavoritesController,
   createMessagesController
 } from '../src/state/content-controllers.js';
+
+const MESSAGE_FIXTURES = Array.from({ length: 128 }, (_, index) => ({
+  id: `message-${String(index + 1).padStart(3, '0')}`,
+  type: index % 2 ? '系统通知' : '业务通知',
+  title: index === 1 ? '采购合同提醒' : `测试消息 ${index + 1}`,
+  copy: index === 1 ? '采购合同待处理' : '测试消息正文',
+  read: index >= 18,
+  today: index < 5,
+  route: index === 0 ? '/announcements/notice-001' : '',
+}));
+const FAVORITE_FIXTURES = Array.from({ length: 28 }, (_, index) => ({
+  id: `favorite-${String(index + 1).padStart(3, '0')}`,
+  name: index === 6 ? '智能采购测试应用' : `测试收藏 ${index + 1}`,
+  description: '测试收藏说明', owner: '测试负责人', developer: '测试开发者',
+  type: index % 2 ? 'RPA机器人' : '数据集', domain: '测试业务域', tag: '测试标签',
+  usage: index === 0 ? '2,891' : String(100 - index), favorites: String(index),
+}));
 
 const messages = createMessagesController(MESSAGE_FIXTURES);
 assert.equal(MESSAGE_FIXTURES.length, 128);
@@ -22,7 +37,8 @@ assert.deepEqual(messages.results.map(item => item.id), ['message-002']);
 messages.markAllRead();
 assert.equal(messages.fixtures.every(item => item.read), true);
 messages.refresh();
-assert.ok(messages.fixtures.some(item => !item.read));
+assert.equal(messages.fixtures.every(item => item.read), true, '清空筛选不得伪造恢复未读状态');
+assert.equal(messages.announcement, '已清空筛选条件');
 messages.toggleSort();
 assert.equal(messages.sort, 'oldest');
 messages.setPage(13);
@@ -55,9 +71,9 @@ assert.equal(favorites.pagedResults.length, 8);
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const messageSource = read('src/pages/MessagesPage.vue');
 const favoriteSource = read('src/pages/FavoritesPage.vue');
-for (const contract of ['createMessagesController', 'role="tablist"', 'aria-selected', 'markAllRead', 'refresh', 'pagedMessages', 'controller.setPage'])
+for (const contract of ['createMessagesController', 'role="tablist"', 'aria-selected', '真实消息写操作尚未开放', 'refresh', 'pagedMessages', 'controller.setPage'])
   assert.ok(messageSource.includes(contract), `PP02 未接线：${contract}`);
-for (const contract of ['createFavoritesController', 'pagedCards', 'cancelFavorite', 'resetData', 'controller.setPage', 'controller.setSort', 'controller.setView'])
+for (const contract of ['createFavoritesController', 'pagedCards', 'cancelFavorite', 'clearFilters', 'controller.setPage', 'controller.setSort', 'controller.setView'])
   assert.ok(favoriteSource.includes(contract), `PP03 未接线：${contract}`);
 
 console.log('第二批 interaction：消息中心与收藏筛选、状态、复位行为通过');

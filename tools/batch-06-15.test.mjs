@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { PAGE_MATRIX } from '../src/fixtures/pages.js';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const app = read('src/App.vue');
+const remoteDetail = read('src/components/RemoteAppDetailPage.vue');
 const files = {
   '06': ['src/pages/NoticeDetailPage.vue', 'A9827301EF6051E8B9B963B07F7073F6AB7AE4BFD21BAC97FDDA67A08FF3D78F'],
   '07': ['src/pages/AppsPage.vue', 'E11BA453D013006EE96D19695AC3770A794DEF4DB32B71D993A4158F7BC23ADD'],
@@ -18,12 +20,19 @@ const files = {
 
 for (const [id, [path, sha]] of Object.entries(files)) {
   const source = read(path);
-  assert.ok(source.includes(sha), `${id} 缺少参考 SHA`);
+  assert.equal(PAGE_MATRIX.find((page) => page.id === id)?.sha256, sha, `${id} 路由矩阵缺少参考 SHA`);
   assert.ok(app.includes(`page.id === '${id}'`), `${id} 未绑定独立组件`);
-  assert.match(source, /<h1|<h2/);
-  assert.match(source, /:focus-visible/);
+  if (Number(id) >= 8) {
+    assert.match(source, /RemoteAppDetailPage/, `${id} 必须复用统一远端详情组件`);
+    assert.match(source, /icon="[^"]+"/, `${id} 必须声明详情类型图标`);
+  } else {
+    assert.match(source, /<h1|<h2/);
+    assert.match(source, /:focus-visible/);
+  }
   assert.doesNotMatch(source, /[●◆■▲✦⬢▣◇]/u);
 }
+assert.match(remoteDetail, /<h1|<h2/, '统一远端详情组件必须保留语义标题');
+assert.match(remoteDetail, /:focus-visible/, '统一远端详情组件必须保留键盘焦点样式');
 
 for (const id of Object.keys(files)) {
   assert.match(app, new RegExp(`<[a-z-]+-page v-else-if="page\\.id === '${id}'`));

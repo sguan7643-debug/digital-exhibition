@@ -29,7 +29,7 @@
   "success_metric": "首页热态聚合读取在2秒内返回；所有聚合HTTP请求在30秒内以完整数据、标记陈旧的数据或202同步状态结束；同一冷同步范围只有一个后台飞书读取任务；刷新失败时页面不因已有合规快照而变空。",
   "deadline": "尽快完成",
   "risk_level": "high",
-  "state": "development",
+  "state": "qa",
   "stop": {
     "reason": null,
     "stopped_by": null,
@@ -53,10 +53,10 @@
     }
   },
   "checks": {
-    "web_passed": false,
+    "web_passed": true,
     "mobile_passed": false,
-    "web_evidence": "",
-    "web_checked_at": "",
+    "web_evidence": "C:\\Users\\20266\\Documents\\Codex\\2026-08-15\\we\\work\\digital-exhibition-ui-0817-dev-r3-20260821\\web-task-merged\\.ai-team\\tasks\\DEH-WORKBENCH-AGGREGATE-20260924\\handoffs\\web.md",
+    "web_checked_at": "2026-09-24T08:12:49.4302251Z",
     "mobile_evidence": "",
     "mobile_checked_at": ""
   },

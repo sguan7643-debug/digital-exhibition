@@ -6,7 +6,7 @@ const calls = [];
 const session = { identity: { userId: 'u_test' }, accessToken: 'server-only' };
 const service = {
   async ensureTestDefinition(value) { calls.push(['definition', value]); return { approvalCode: 'TEST_CODE' }; },
-  async createInstance(body, value) { calls.push(['create', body, value]); return { instanceId: 'TEST_INSTANCE', status: 'PENDING' }; },
+  async createInstance(body, value) { calls.push(['create', body, value]); return { applicationId: 'TEST_APPLICATION', instanceId: 'TEST_INSTANCE', status: 'PENDING' }; },
   async getInstance(id, value) { calls.push(['get', id, value]); return { instanceId: id, status: 'APPROVED' }; },
   async approveTestTask(id, value) { calls.push(['approve', id, value]); return { instanceId: id, status: 'APPROVED' }; },
 };
@@ -31,7 +31,7 @@ const created = await dispatch({
   body: { applicationType: 'T005', title: 'TEST_海能Work', businessKey: 'TEST_BUSINESS_001', idempotencyKey: 'TEST_IDEM_001' }, bodyBytes: 72
 });
 assert.equal(created.status, 201);
-assert.deepEqual(created.body, { instanceId: 'TEST_INSTANCE', status: 'PENDING' });
+assert.deepEqual(created.body, { applicationId: 'TEST_APPLICATION', instanceId: 'TEST_INSTANCE', status: 'PENDING' });
 assert.deepEqual(calls[0], ['create', { applicationType: 'T005', title: 'TEST_海能Work', businessKey: 'TEST_BUSINESS_001', idempotencyKey: 'TEST_IDEM_001' }, session]);
 
 const status = await dispatch({ method: 'GET', url: '/api/v1/approvals/instances/TEST_INSTANCE', headers });

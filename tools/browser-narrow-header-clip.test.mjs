@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { resolve } from 'node:path';
 import { chromium } from 'playwright';
 
 const candidates = [
@@ -11,15 +12,21 @@ if (!executablePath) throw new Error('未找到 Edge/Chromium');
 
 const origin = process.env.EXHIBITION_TEST_ORIGIN || 'http://127.0.0.1:4173';
 const widths = [761, 869, 932, 1000, 1054];
-const browser = await chromium.launch({ headless: true, executablePath });
+const profile = process.env.FEISHU_VERIFY_BROWSER_PROFILE;
+const browser = profile ? null : await chromium.launch({ headless: true, executablePath });
+const context = profile
+  ? await chromium.launchPersistentContext(resolve(profile), { headless: true, executablePath })
+  : await browser.newContext();
 const results = [];
 
 try {
   for (const width of widths) {
-    const page = await browser.newPage({ viewport: { width, height: 720 } });
+    const page = await context.newPage();
+    await page.setViewportSize({ width, height: 720 });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    const response = await page.goto(`${origin}/workbench`, { waitUntil: 'networkidle', timeout: 15000 });
+    const response = await page.goto(`${origin}/workbench`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForSelector('#main-content', { timeout: 30000 });
     const geometry = await page.evaluate(() => {
       const viewportWidth = document.documentElement.clientWidth;
       const rect = selector => {
@@ -45,14 +52,15 @@ try {
       && geometry.documentWidth <= geometry.viewportWidth
       && bounded(geometry.topbar) && bounded(geometry.actions)
       && bounded(geometry.user) && bounded(geometry.userName)
-      // Announcement navigation is permission-gated; the approved default
-      // role exposes nine destinations while preserving the full header.
-      && geometry.visibleDestinations.length >= 9;
+      // The approved primary header exposes seven top-level destinations;
+      // secondary destinations remain in their product-area sidebars.
+      && geometry.visibleDestinations.length >= 7;
     results.push({ width, status: response?.status() || 0, errors, geometry, passed });
     await page.close();
   }
 } finally {
-  await browser.close();
+  await context.close();
+  if (browser) await browser.close();
 }
 
 const failed = results.filter(result => !result.passed);

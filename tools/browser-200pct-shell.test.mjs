@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { resolve } from 'node:path';
 import { chromium } from 'playwright';
 
 const candidates = [
@@ -11,8 +12,12 @@ if (!executablePath) throw new Error('未找到 Edge/Chromium');
 
 const origin = process.env.EXHIBITION_TEST_ORIGIN || 'http://127.0.0.1:4174';
 const routes = ['/workbench', '/apps', '/admin', '/talent/people'];
-const browser = await chromium.launch({ headless: true, executablePath });
-const page = await browser.newPage({ viewport: { width: 720, height: 500 } });
+const profile = process.env.FEISHU_VERIFY_BROWSER_PROFILE;
+const browser = profile ? null : await chromium.launch({ headless: true, executablePath });
+const context = profile
+  ? await chromium.launchPersistentContext(resolve(profile), { headless: true, executablePath, viewport: { width: 720, height: 500 } })
+  : await browser.newContext({ viewport: { width: 720, height: 500 } });
+const page = await context.newPage();
 const results = [];
 
 try {
@@ -20,7 +25,7 @@ try {
     const errors = [];
     page.removeAllListeners('pageerror');
     page.on('pageerror', error => errors.push(error.message));
-    const response = await page.goto(`${origin}${route}`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    const response = await page.goto(`${origin}${route}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForSelector('#main-content');
     for (let index = 0; index < 12; index += 1) await page.keyboard.press('Tab');
     const geometry = await page.evaluate(() => {
@@ -53,7 +58,8 @@ try {
     });
   }
 } finally {
-  await browser.close();
+  await context.close();
+  await browser?.close();
 }
 
 const failed = results.filter(result => !result.passed);

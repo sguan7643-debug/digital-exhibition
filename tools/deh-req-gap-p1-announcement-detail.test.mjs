@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 const app=readFileSync(new URL('../src/App.vue',import.meta.url),'utf8');
 const source=readFileSync(new URL('../src/pages/NoticeDetailPage.vue',import.meta.url),'utf8');
 assert.match(app,/<notice-detail-page[^>]*:integration-data="integrationEnvelope\.data"[^>]*:integration-state="integrationEnvelope\.state"[^>]*:operation-executor="executeReadOperation"/s);
-assert.match(source,/integrationState:\s*\{\s*type:\s*String,\s*default:\s*['"]mock['"]/);
+assert.match(source,/integrationState:\s*\{\s*type:\s*String,\s*default:\s*['"]loading['"]/);
 assert.match(source,/\['ANN-003'\]/);assert.match(source,/\['ANN-005'\]/);
 assert.match(source,/operationExecutor\('COM-008'/);
 assert.match(source,/mode:'DOWNLOAD'/);assert.match(source,/disposition:'ATTACHMENT'/);assert.match(source,/fileNameOverride/);

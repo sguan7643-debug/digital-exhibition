@@ -4,6 +4,10 @@ import { readFileSync } from "node:fs";
 const root = new URL("../", import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), "utf8");
 const style = read("src/style.css");
+const app = read("src/App.vue");
+const remoteDetail = read("src/components/RemoteAppDetailPage.vue");
+const authoritativeBody = read("src/components/AppDetailAuthoritativeBody.vue");
+const liveSections = read("src/components/AppDetailLiveSections.vue");
 const details = Object.entries({
   RpaDetailPage: "rpa",
   ReportDetailPage: "report",
@@ -33,61 +37,31 @@ assert.match(
 );
 
 for (const { page, icon, source } of details) {
-  assert.match(source, /import TypeLineIcon from/, `${page} 必须复用统一线稿图标组件`);
-  assert.match(source, /class="detail-logo detail-type-icon"/, `${page} 必须使用统一详情图标容器`);
+  assert.match(source, /import RemoteAppDetailPage from/, `${page} 必须复用统一远端详情组件`);
+  assert.match(source, /useAppDetailProjection/, `${page} 必须使用飞书远端应用投影`);
   assert.match(
     source,
-    new RegExp(`TypeLineIcon\\s+name="${icon}"`),
+    new RegExp(`RemoteAppDetailPage[^>]+icon="${icon}"`),
     `${page} 必须关联正确的应用类型图标`,
   );
   assert.doesNotMatch(source, /class="detail-illustration"/, `${page} 不得保留 Hero 装饰插图`);
 }
 
-const rpa = details.find(({ page }) => page === "RpaDetailPage").source;
-assert.match(rpa, /\.detail-title > p,\s*#main-content \.rpa-detail \.detail-title mark\s*\{\s*font-size: var\(--xlt-font-meta\);\s*line-height: 1\.75;/, "RPA 分类、标签与应用简介复用相同字号和行高");
-assert.match(
-  rpa,
-  /\.rpa-recording\s*\{[^}]*width: 100%;[^}]*max-width: 960px;[^}]*aspect-ratio: 16 \/ 9;/,
-  "RPA 录屏展示区使用响应式 16:9 比例及合理最大宽度",
-);
-assert.match(
-  rpa,
-  /class="rpa-recording"[\s\S]*暂无录屏文件/,
-  "缺少实际录屏时显示真实空状态，不再以扁长播放器截图冒充视频",
-);
-assert.doesNotMatch(rpa, /rpaDisplayUrl|rpa-url|本地受控演示|已上线/, "RPA 顶部不再显示上线标签和本地演示说明");
-assert.match(
-  rpa,
-  /class="file-list rpa-training-list"[\s\S]*rpa-video\.png/,
-  "RPA 培训行必须使用同源视频素材作为缩略图",
-);
-for (const heading of ["文件名称", "文件大小", "上传时间", "上传人", "操作"]) {
-  assert.ok(rpa.includes(heading), `RPA 附件资料缺少表头：${heading}`);
+assert.match(remoteDetail, /import TypeLineIcon from/, "统一详情组件必须复用线稿图标组件");
+assert.match(remoteDetail, /class="detail-logo detail-type-icon"/, "统一详情组件必须使用标准图标容器");
+assert.match(remoteDetail, /<TypeLineIcon :name="icon"/, "统一详情组件必须渲染页面声明的图标");
+assert.match(remoteDetail, /AppDetailRemoteFacts/, "统一详情组件必须展示真实应用基础信息");
+assert.match(remoteDetail, /AppDetailAuthoritativeBody/, "统一详情组件必须展示权威业务详情");
+assert.match(authoritativeBody, /projection\.remoteMode/, "权威详情仅可由远端模式驱动");
+for (const section of ["核心功能", "字段定义", "流程步骤", "预览", "视频", "附件", "使用指南", "相关培训"]) {
+  assert.ok(authoritativeBody.includes(section), `权威详情缺少内容区：${section}`);
 }
+assert.match(app, /<app-detail-live-sections[\s\S]*Number\(page\.id\) >= 8[\s\S]*Number\(page\.id\) <= 16/,
+  "九类应用详情必须挂载真实关联素材、附件和评论区");
+assert.match(liveSections, /startSameOriginDownload/, "详情下载必须使用同源安全下载通道");
+assert.match(liveSections, /测试申请使用/, "详情必须保留 TEST_ 隔离的申请使用验证入口");
+assert.match(liveSections, /测试申请复用/, "详情必须保留 TEST_ 隔离的申请复用验证入口");
+assert.match(liveSections, /测试收藏/, "详情必须保留 TEST_ 隔离的收藏验证入口");
+assert.match(liveSections, /测试评论/, "详情必须保留 TEST_ 隔离的评论验证入口");
 
-const report = details.find(({ page }) => page === "ReportDetailPage").source;
-const dashboard = details.find(({ page }) => page === "DashboardDetailPage").source;
-for (const [label, source, variant] of [
-  ["报表", report, "report"],
-  ["驾驶舱", dashboard, "dashboard"],
-]) {
-  assert.match(
-    source,
-    new RegExp(`BusinessPreviewGallery\\s+variant="${variant}"`),
-    `${label}演示区必须使用清晰业务图表组件`,
-  );
-  assert.doesNotMatch(
-    source,
-    new RegExp(`${variant}-previews\\.png`),
-    `${label}演示区不得拉伸低分辨率拼接图`,
-  );
-  assert.match(source, /IndicatorBuildDialog/, `${label}详情必须提供个性化指标构建申请弹框`);
-  assert.match(source, /个性化指标构建/, `${label}详情必须展示个性化指标构建操作`);
-  assert.doesNotMatch(source, /申请复用/, `${label}详情不得保留旧的申请复用文案`);
-}
-assert.match(report, /id="usage"/, "报表使用说明必须提供直接进入锚点");
-
-const dataset = details.find(({ page }) => page === "DatasetDetailPage").source;
-assert.doesNotMatch(dataset, /申请复用/, "数据集详情必须删除申请复用按钮");
-
-console.log("应用详情统一图标、清晰预览与访问操作合同通过");
+console.log("应用详情统一远端投影、线稿图标与真实业务区合同通过");

@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { FAVORITE_FIXTURES, createFavoritesController } from '../src/state/content-controllers.js';
+import { createFavoritesController } from '../src/state/content-controllers.js';
 import { createSessionStore } from '../src/state/session-store.js';
+
+const FAVORITE_FIXTURES=Array.from({length:28},(_,index)=>({
+  id:`favorite-${index+1}`,name:`测试收藏 ${index+1}`,description:'测试说明',owner:'测试负责人',developer:'测试开发者',
+  type:'RPA',domain:'测试域',tag:'测试',usage:String(index),favorites:String(index),
+  route:index<2?'/apps/report-001':`/apps/test-${index}`
+}));
 
 const mappings=FAVORITE_FIXTURES.map(item=>[item.id,item.route]);
 const store=createSessionStore(FAVORITE_FIXTURES.map(item=>item.id),mappings);
@@ -34,9 +40,11 @@ assert.equal(store.snapshot(entryB).viewState.apps.queryDraft,'助手');
 const read=path=>readFileSync(new URL(`../${path}`,import.meta.url),'utf8');
 const app=read('src/App.vue');
 for(const contract of ['xltEntryKey','nextEntryKey','captureRouteSession(activeEntryKey.value)','xltSource','data-detail-return','history.back()'])assert.ok(app.includes(contract),`F04/F05 App 未接线：${contract}`);
+const remoteDetail=read('src/components/RemoteAppDetailPage.vue');
+assert.ok(remoteDetail.includes('data-detail-return'),'统一远端详情组件必须提供真实来源返回标记');
 for(const file of ['ToolDetailPage.vue','HainengWorkDetailPage.vue','ReportDetailPage.vue','DashboardDetailPage.vue']){
   const source=read(`src/pages/${file}`);
-  assert.ok(source.includes('data-detail-return'),`${file} 必须优先返回真实来源`);
+  assert.ok(source.includes('RemoteAppDetailPage'),`${file} 必须复用具备来源返回能力的统一详情组件`);
 }
 for(const file of ['AppsPage.vue','FavoritesPage.vue','MessagesPage.vue']){
   const source=read(`src/pages/${file}`);

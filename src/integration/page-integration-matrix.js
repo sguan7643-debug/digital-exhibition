@@ -78,7 +78,7 @@ export const PAGE_INTEGRATION_MATRIX = Object.freeze([
   define('28','/talent/people',['TAL-001','TAL-005'],['talent-person','field-capability']),
   define('29','/talent/projects',['TAL-002','TAL-004'],['talent-project','talent-write'],'disabled'),
   define('30','/talent/progress',['TAL-003','TAL-004'],['talent-progress','talent-write'],'disabled'),
-  define('31','/materials',['MAT-001'],['material-facet','material-category']),
+  define('31','/materials',['MAT-001','MAT-002','MAT-003'],['material-facet','material-category','material-list','material-download']),
   define('32','/apps/onboarding/apply',['COM-003','COM-004','COM-005'],['organization-directory','contact-directory','dictionary','onboarding-form'])
 ]);
 
