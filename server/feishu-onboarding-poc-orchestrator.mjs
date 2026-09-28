@@ -159,9 +159,14 @@ export function createFeishuOnboardingPocOrchestrator({
       const existing = JSON.parse(readFileSync(ledgerFile, 'utf8'));
       if (existing?.status === 'ACTIVE' && existing?.baseFingerprint === baseFingerprint) {
         if (existing.manifestSha256 !== ONBOARDING_POC_MANIFEST_SHA256 || existing.manifestVersion !== ONBOARDING_POC_MANIFEST.version) {
-          fail('POC_LEDGER_MANIFEST_MISMATCH', '活动清理台账与当前 POC manifest 不一致');
+          const archiveSuffix = createHash('sha256')
+            .update(`${existing.runId || ''}\0${existing.manifestSha256 || ''}`)
+            .digest('hex')
+            .slice(0, 12);
+          renameSync(ledgerFile, `${ledgerFile}.manifest-archive-${archiveSuffix}.json`);
+        } else {
+          return existing;
         }
-        return existing;
       }
     }
     const ledger = {

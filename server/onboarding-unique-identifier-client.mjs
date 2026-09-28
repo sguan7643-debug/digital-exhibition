@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { FeishuProxyError } from './feishu-open-api-client.mjs';
 
 const IDENTIFIER_PATTERN = /^ONB[A-Za-z0-9_-]{1,125}$/;
@@ -19,30 +20,37 @@ function failure(code, message, status = 503) {
   return new FeishuProxyError(code, message, status);
 }
 
+function stableFallbackIdentifier(fallbackKey) {
+  const key = String(fallbackKey || '').trim();
+  if (!key) throw failure('ONBOARDING_UNIQUE_IDENTIFIER_UNAVAILABLE', '唯一标识服务不可用且申请缺少稳定标识键');
+  return `ONB${createHash('sha256').update(key).digest('hex').slice(0, 32).toUpperCase()}`;
+}
+
 export function createOnboardingUniqueIdentifierClient({
   baseUrl = process.env.FEISHU_APPROVAL_BACKEND_URL || 'http://10.151.23.119:28080',
   fetchImpl = globalThis.fetch,
-  timeoutMs = 10_000
+  timeoutMs = 3_000
 } = {}) {
   if (typeof fetchImpl !== 'function') throw new Error('上线申请唯一标识客户端缺少 fetch');
   const base = normalizedBaseUrl(baseUrl);
   const endpoint = new URL('/api/onboarding/unique-identifier', base).toString();
 
-  async function getUniqueIdentifier() {
+  async function getUniqueIdentifier({ fallbackKey = '' } = {}) {
     let response;
     try {
       response = await fetchImpl(endpoint, {
         method: 'GET',
         headers: { Accept: 'application/json' },
-        signal: AbortSignal.timeout(Math.max(1_000, Number(timeoutMs) || 10_000))
+        signal: AbortSignal.timeout(Math.max(1_000, Number(timeoutMs) || 3_000))
       });
     } catch (error) {
-      throw failure('ONBOARDING_UNIQUE_IDENTIFIER_UNAVAILABLE', `获取唯一标识失败：${String(error?.message || '网络不可用')}`);
+      return stableFallbackIdentifier(fallbackKey);
     }
     let payload;
     try { payload = await response.json(); }
     catch { throw failure('ONBOARDING_UNIQUE_IDENTIFIER_INVALID', '唯一标识接口返回格式异常'); }
     if (!response.ok || (payload?.code && String(payload.code) !== '00000')) {
+      if (response.status >= 500) return stableFallbackIdentifier(fallbackKey);
       throw failure('ONBOARDING_UNIQUE_IDENTIFIER_UNAVAILABLE', String(payload?.message || `唯一标识接口请求失败（HTTP ${response.status}）`), response.status >= 400 && response.status < 600 ? response.status : 503);
     }
     const identifier = String(payload?.data?.uniqueIdentifier || payload?.uniqueIdentifier || '').trim();

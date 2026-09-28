@@ -24,4 +24,16 @@ const invalid = createOnboardingUniqueIdentifierClient({
 });
 await assert.rejects(() => invalid.getUniqueIdentifier(), error => error?.code === 'ONBOARDING_UNIQUE_IDENTIFIER_INVALID');
 
+const unavailable = createOnboardingUniqueIdentifierClient({
+  baseUrl: 'http://approval.example.test',
+  timeoutMs: 1_000,
+  fetchImpl: async () => { throw new TypeError('fetch failed'); }
+});
+const firstFallback = await unavailable.getUniqueIdentifier({ fallbackKey: 'user-1\0attempt-1' });
+const replayedFallback = await unavailable.getUniqueIdentifier({ fallbackKey: 'user-1\0attempt-1' });
+const otherFallback = await unavailable.getUniqueIdentifier({ fallbackKey: 'user-1\0attempt-2' });
+assert.match(firstFallback, /^ONB[A-F0-9]{32}$/);
+assert.equal(replayedFallback, firstFallback, '同一申请在后端不可用时必须复用稳定唯一标识');
+assert.notEqual(otherFallback, firstFallback, '不同申请的降级唯一标识不得重复');
+
 console.log('onboarding unique identifier client uses the backend endpoint and rejects empty identifiers');

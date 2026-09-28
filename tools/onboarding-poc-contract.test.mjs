@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -83,6 +83,16 @@ try {
   assert.equal(remoteReads, 0, 'fingerprint failure must happen before remote schema discovery');
 
   const identityClient = { async preflightOnboardingPocActor() { return { userId: 'u_test', openId: 'ou_test', active: true, identityVerified: true, approverCapabilityVerified: true }; } };
+  writeFileSync(ledgerFile, `${JSON.stringify({
+    version: 'onboarding-poc-ledger.v1',
+    runId: 'TEST_ONBOARDING_POC_OLD_MANIFEST',
+    baseFingerprint: expectedFingerprint,
+    manifestVersion: 'obsolete-manifest',
+    manifestSha256: '0'.repeat(64),
+    createdAt: '2026-09-25T10:00:00.000Z',
+    status: 'ACTIVE',
+    objects: []
+  }, null, 2)}\n`, 'utf8');
   const orchestrator = createFeishuOnboardingPocOrchestrator({ adminClient, identityClient, baseToken, expectedFingerprint, ledgerFile, now: () => Date.parse('2026-09-26T10:00:00Z'), randomBytes: () => Buffer.from('12345678') });
   const prepared = await orchestrator.prepare({ session });
   const schemaReadsAfterPrepare = remoteReads;
@@ -96,6 +106,7 @@ try {
   assert.equal(prepared.gates.ledgerCreated, true);
   assert.match(prepared.runId, /^TEST_ONBOARDING_POC_/);
   assert.equal(JSON.parse(readFileSync(ledgerFile, 'utf8')).runId, prepared.runId);
+  assert.equal(readdirSync(dir).filter(name => name.startsWith('ledger.json.manifest-archive-')).length, 1, '旧 manifest 台账必须自动归档，不能阻断上传');
   await orchestrator.execute({ session });
   await orchestrator.execute({ session });
   assert.equal(remoteReads, schemaReadsAfterPrepare, '已通过检查的同一进程不得在每次上传前重复读取整套 schema');

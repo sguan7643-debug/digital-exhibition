@@ -218,7 +218,7 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
     }
     if (!existing?.uniqueIdentifier && !uniqueIdentifierPromises.has(submitKey)) {
       uniqueIdentifierPromises.set(submitKey, Promise.resolve()
-        .then(() => uniqueIdentifierProvider.getUniqueIdentifier())
+        .then(() => uniqueIdentifierProvider.getUniqueIdentifier({ fallbackKey: `${ownerSubject}\0${attemptId}` }))
         .finally(() => uniqueIdentifierPromises.delete(submitKey)));
     }
     const uniqueIdentifier = existing?.uniqueIdentifier || await uniqueIdentifierPromises.get(submitKey);

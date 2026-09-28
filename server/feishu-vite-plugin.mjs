@@ -87,8 +87,8 @@ export function createFeishuMiddlewareStack(options = {}) {
   const fileMiddleware = createFeishuFileNodeMiddleware({ fileAccessService, resolveIdentity: cookie => authService.resolveIdentity(cookie) });
   const onboardingFileService = createFeishuOnboardingFileService({ adminClient: approvalAdminClient, safeRecordService: approvalRecordService, orchestrator: onboardingOrchestrator });
   const onboardingUniqueIdentifierClient = createOnboardingUniqueIdentifierClient({
-    baseUrl: options.approvalBackendUrl ?? process.env.FEISHU_APPROVAL_BACKEND_URL ?? 'http://10.151.23.119:28080',
-    fetchImpl: options.approvalBackendFetch ?? globalThis.fetch
+    baseUrl: options.uniqueIdentifierBackendUrl ?? process.env.FEISHU_UNIQUE_IDENTIFIER_BACKEND_URL ?? 'http://10.151.23.119:28080',
+    fetchImpl: options.uniqueIdentifierFetch ?? globalThis.fetch
   });
   const onboardingService = createFeishuOnboardingService({
     approvalService,

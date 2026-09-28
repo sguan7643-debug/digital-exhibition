@@ -23,6 +23,17 @@ function failure(error) {
   return { status: controlled ? error.status : 500, headers: JSON_HEADERS, body: { code: controlled ? error.code : 'INTERNAL_ONBOARDING_ERROR', message: controlled ? error.message : '上线申请服务暂不可用' } };
 }
 
+function reportUnexpectedError(error) {
+  if (error instanceof FeishuProxyError) return;
+  console.error('[onboarding] unexpected failure', {
+    name: String(error?.name || 'Error'),
+    code: String(error?.code || ''),
+    message: String(error?.message || 'unknown error'),
+    causeCode: String(error?.cause?.code || ''),
+    causeMessage: String(error?.cause?.message || '')
+  });
+}
+
 function methodError() {
   return { status: 405, headers: JSON_HEADERS, body: { code: 'METHOD_NOT_ALLOWED', message: '上线申请接口请求方法不允许' } };
 }
@@ -86,7 +97,10 @@ export function createFeishuOnboardingDispatcher({ service, resolveUserSession }
         return { status: 200, headers: JSON_HEADERS, body: await service.get(application[1], session) };
       }
       return { status: 404, headers: JSON_HEADERS, body: { code: 'ONBOARDING_ROUTE_NOT_FOUND', message: '上线申请接口不存在' } };
-    } catch (error) { return failure(error); }
+    } catch (error) {
+      reportUnexpectedError(error);
+      return failure(error);
+    }
   };
 }
 
@@ -121,6 +135,7 @@ export function createFeishuOnboardingNodeMiddleware(options = {}) {
       for (const [name, value] of Object.entries(result.headers || {})) response.setHeader(name, value);
       response.end(JSON.stringify(result.body));
     } catch (error) {
+      reportUnexpectedError(error);
       const result = failure(error);
       response.statusCode = result.status;
       for (const [name, value] of Object.entries(result.headers)) response.setHeader(name, value);
