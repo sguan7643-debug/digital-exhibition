@@ -12,8 +12,9 @@ assert.ok(FEISHU_WRITE_OPERATION_MANIFEST.every(item => item.requiresTestPrefix 
 
 let record = null;
 const updateCalls = [];
+let listTablesCalls = 0;
 const client = {
-  async listTables() { return [{ name: '完整性差异记录', table_id: 'tbl-test' }]; },
+  async listTables() { listTablesCalls += 1; return [{ name: '完整性差异记录', table_id: 'tbl-test' }]; },
   async searchRecords(tableId, fieldName, value) {
     if (!record || record.fields[fieldName] !== value) return { items: [] };
     const fields = { ...record.fields };
@@ -76,4 +77,5 @@ const alreadyConsistent = await service.createOnce({
 });
 assert.equal(alreadyConsistent.reconciled, false);
 assert.equal(updateCalls.length, updatesBeforeReconciliation + 1, '字段一致时不得发送无意义更新');
+assert.equal(listTablesCalls, 1, '同一记录服务进程应缓存已解析的表标识');
 console.log('TEST_ prefix, idempotency replay, allowlisted reconciliation, optimistic conflict, rollback and cleanup contracts passed');

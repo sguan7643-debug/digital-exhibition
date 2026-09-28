@@ -67,6 +67,8 @@ export function createFeishuOnboardingPocOrchestrator({
 } = {}) {
   if (!adminClient?.listTables || !adminClient?.listFields) throw new Error('POC 编排器缺少结构管理客户端');
   let prepared = null;
+  let schemaDiscovery = null;
+  let schemaDiscoveryPromise = null;
 
   function assertFingerprint() {
     const expected = String(expectedFingerprint || '').trim().toLowerCase();
@@ -126,6 +128,26 @@ export function createFeishuOnboardingPocOrchestrator({
     return { plan, before, conflicts };
   }
 
+  async function readSchemaOnce() {
+    assertFingerprint();
+    if (schemaDiscovery) return schemaDiscovery;
+    if (!schemaDiscoveryPromise) {
+      schemaDiscoveryPromise = inspect()
+        .then(result => {
+          schemaDiscovery = result;
+          return result;
+        })
+        .finally(() => {
+          schemaDiscoveryPromise = null;
+        });
+    }
+    return schemaDiscoveryPromise;
+  }
+
+  async function prewarm() {
+    return readSchemaOnce();
+  }
+
   function buildRunId() {
     const stamp = new Date(Number(now())).toISOString().replace(/[-:.TZ]/g, '');
     return `TEST_ONBOARDING_POC_${stamp}_${randomBytes(4).toString('hex').slice(0, 8)}`;
@@ -167,7 +189,7 @@ export function createFeishuOnboardingPocOrchestrator({
     if (!identityClient?.preflightOnboardingPocActor) fail('POC_IDENTITY_PREFLIGHT_UNAVAILABLE', '飞书身份与审批人只读预检不可用', 503);
     const actor = await identityClient.preflightOnboardingPocActor({ session });
     if (!actor?.identityVerified || !actor?.approverCapabilityVerified || !actor?.active) fail('POC_APPROVER_UNAVAILABLE', '飞书审批人只读预检未通过', 409);
-    const discovery = await inspect();
+    const discovery = await readSchemaOnce();
     const ledger = createLedger(baseFingerprint);
     const actorBinding = Object.freeze({ runId: ledger.runId, subject, userId: String(actor.userId || ''), openId: String(actor.openId || ''), applicantUserId: String(actor.userId || subject), approverUserId: String(actor.userId || subject) });
     prepared = Object.freeze({
@@ -186,12 +208,20 @@ export function createFeishuOnboardingPocOrchestrator({
 
   async function execute({ session } = {}) {
     const context = await prepare({ session });
+    if (!context.plan.length) {
+      if (context.after) return context;
+      const result = Object.freeze({ ...context, plan: Object.freeze([]), plannedActions: Object.freeze([]), after: context.before, applied: 0 });
+      prepared = result;
+      return result;
+    }
     if (context.plan.length && !adminClient.schemaWriteEnabled) fail('POC_SCHEMA_WRITE_DISABLED', 'POC schema 写入门禁未开启', 403);
     for (const action of context.plan) {
       if (action.action === 'CREATE_TABLE') await adminClient.createTable(action.schema);
       else await adminClient.createField(action.tableId, action.field);
     }
+    schemaDiscovery = null;
     const after = await inspect();
+    schemaDiscovery = after;
     if (after.plan.length) fail('POC_SCHEMA_VERIFY_FAILED', 'POC schema 执行后仍存在缺失项');
     const result = Object.freeze({ ...context, plan: Object.freeze([]), plannedActions: context.plan, after: after.before, applied: context.plan.length });
     prepared = result;
@@ -298,5 +328,5 @@ export function createFeishuOnboardingPocOrchestrator({
     return Object.freeze({ runId: ledger.runId, deleted, verifiedAbsent, retained, retainedObjects: Object.freeze(retainedObjects), status: ledger.status });
   }
 
-  return Object.freeze({ prepare, execute, cleanup, inspect, assertFingerprint, assertSchemaPlan, assertRecordWrite, appendLedger, get prepared() { return prepared; } });
+  return Object.freeze({ prepare, execute, prewarm, cleanup, inspect, assertFingerprint, assertSchemaPlan, assertRecordWrite, appendLedger, get prepared() { return prepared; } });
 }

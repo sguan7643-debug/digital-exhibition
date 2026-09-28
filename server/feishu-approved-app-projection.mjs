@@ -97,8 +97,9 @@ export function createFeishuApprovedAppProjection({ safeRecordService, orchestra
       businessKey: text(record.applicationId, 128) || stableTestKey('ONBOARDING', record.idempotencyKey || instanceId),
       idempotencyKey: stableTestKey('ONBOARDING_TRACE', record.idempotencyKey || instanceId),
       governance: { versionField: '', sourceField: '', traceField: '', deletedField: '' },
-      reconcileFields: ['审批实例ID', '授权用户', '授权部门', '状态', '当前审批节点', '最近同步时间', '完成时间', '退回原因', '应用图标', '申请附件'],
+      reconcileFields: ['唯一标识', '审批实例ID', '授权用户', '授权部门', '状态', '当前审批节点', '最近同步时间', '完成时间', '退回原因'],
       fields: {
+        '唯一标识': text(application.uniqueIdentifier || record.uniqueIdentifier, 128),
         '关联应用ID': resourceId,
         '应用类型ID': 'T005',
         '申请人ID': application.applicant || text(record.creatorUserId, 256),
@@ -117,8 +118,6 @@ export function createFeishuApprovedAppProjection({ safeRecordService, orchestra
         '授权部门': authorizationDepartment,
         '表单AttemptID': text(application.attemptId || record.idempotencyKey, 256),
         '最近同步时间': now().getTime(),
-        '应用图标': (application.uploads || []).filter(file => file.purpose === 'APPLICATION_ICON').map(file => ({ file_token: file.fileToken })),
-        '申请附件': (application.uploads || []).filter(file => file.purpose === 'APPLICATION_ATTACHMENT').map(file => ({ file_token: file.fileToken })),
         '追踪ID': runId,
         '运行标识': runId
       }

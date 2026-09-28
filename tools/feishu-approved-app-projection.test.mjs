@@ -42,6 +42,7 @@ const result = await projection.publish({
   creatorUserId: 'user-001',
   application: {
     name: 'TEST_海能Work应用', applicationCode: 'HW-001', summary: '审批上架测试',
+    uniqueIdentifier: 'ONB_TEST_UNIQUE_IDENTIFIER_001',
     webAddress: 'https://example.com/app', applicant: 'owner-001', department: 'dept-001',
     contact: 'developer-001', contactDepartment: 'dev-dept-001',
     users: 'authorized-user-001', accessDepartment: 'authorized-dept-001'
@@ -56,13 +57,16 @@ assert.equal(writes[0].fields['审批实例ID'], 'TEST_INSTANCE_001');
 assert.equal(writes[0].fields['授权用户'], 'authorized-user-001');
 assert.equal(writes[0].fields['授权部门'], 'authorized-dept-001');
 assert.equal(writes[0].fields['应用类型ID'], 'T005');
+assert.equal(writes[0].fields['唯一标识'], 'ONB_TEST_UNIQUE_IDENTIFIER_001');
 assert.equal(writes[0].fields['提交时间'], '2026-09-10 09:30:00');
 assert.deepEqual(writes[0].governance, { versionField: '', sourceField: '', traceField: '', deletedField: '' });
 assert.deepEqual(
   writes[0].reconcileFields,
-  ['审批实例ID', '授权用户', '授权部门', '状态', '当前审批节点', '最近同步时间', '完成时间', '退回原因', '应用图标', '申请附件'],
+  ['唯一标识', '审批实例ID', '授权用户', '授权部门', '状态', '当前审批节点', '最近同步时间', '完成时间', '退回原因'],
   '上架申请重放只能补写批准的字段白名单'
 );
+assert.equal(Object.hasOwn(writes[0].fields, '应用图标'), false, '上架申请不得重复保存应用图标');
+assert.equal(Object.hasOwn(writes[0].fields, '申请附件'), false, '上架申请不得重复保存申请附件');
 assert.equal(result.published, false);
 assert.equal(result.indexRecordId, '');
 

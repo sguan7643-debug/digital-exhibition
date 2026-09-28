@@ -145,22 +145,24 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
     });
   }
 
-  async function syncProjection(record, session) {
+  async function syncProjection(record, session, { throwOnFailure = true } = {}) {
     if (!['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].includes(record.status) || !projectionService?.publish) return;
     const projectedContractVersion = String(projectionService.version || 'unversioned');
     if (record.projectionStatus === 'SYNCED' && record.projectedApprovalStatus === record.status && record.projectedContractVersion === projectedContractVersion) return;
-    if (typeof preWriteGate === 'function') await preWriteGate({ session });
     const key = record.instanceId || record.registryKey;
     if (!projectionPromises.has(key)) projectionPromises.set(key, (async () => {
       try {
+        if (typeof preWriteGate === 'function') await preWriteGate({ session });
         const projection = await projectionService.publish(record);
         record.projectionStatus = 'SYNCED';
         record.projectedApprovalStatus = record.status;
         record.projectedContractVersion = projectedContractVersion;
         record.projection = projection;
+        record.projectionError = '';
         record.projectedAt = now();
         persistRegistry();
         if (typeof onProjected === 'function') await onProjected(record, projection);
+        return projection;
       } catch (error) {
         record.projectionStatus = 'FAILED';
         record.projectionError = String(error?.code || error?.message || 'APPROVAL_PROJECTION_FAILED').slice(0, 240);
@@ -168,7 +170,12 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
         throw error;
       }
     })().finally(() => projectionPromises.delete(key)));
-    return projectionPromises.get(key);
+    try {
+      return await projectionPromises.get(key);
+    } catch (error) {
+      if (throwOnFailure) throw error;
+      return null;
+    }
   }
 
   function recordFor(instanceId, context, { resourceId = '' } = {}) {
@@ -279,8 +286,13 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
     record.status = normalizeStatus(result.status);
     hydrateApplication(record, result);
     persistRegistry();
-    await syncProjection(record, session);
-    return Object.freeze({ instanceId: normalized, status: record.status });
+    await syncProjection(record, session, { throwOnFailure: false });
+    return Object.freeze({
+      instanceId: normalized,
+      status: record.status,
+      projectionStatus: String(record.projectionStatus || ''),
+      projectionError: record.projectionStatus === 'FAILED' ? String(record.projectionError || 'APPROVAL_PROJECTION_FAILED') : ''
+    });
   }
 
   async function approveTestTask(instanceId, session, options = {}) {
@@ -301,8 +313,13 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
     });
     record.status = 'APPROVED';
     persistRegistry();
-    await syncProjection(record, session);
-    return Object.freeze({ instanceId: normalized, status: 'APPROVED' });
+    await syncProjection(record, session, { throwOnFailure: false });
+    return Object.freeze({
+      instanceId: normalized,
+      status: 'APPROVED',
+      projectionStatus: String(record.projectionStatus || ''),
+      projectionError: record.projectionStatus === 'FAILED' ? String(record.projectionError || 'APPROVAL_PROJECTION_FAILED') : ''
+    });
   }
 
   async function reconcile(session) {

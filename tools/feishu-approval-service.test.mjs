@@ -270,6 +270,10 @@ await assert.rejects(
   /projection write failed/,
   '投影补写失败时不得向提交方返回成功'
 );
+const statusDespiteProjectionFailure = await failingProjectionService.getInstance(failingRecord.instanceId, session);
+assert.equal(statusDespiteProjectionFailure.status, 'APPROVED', '审批状态已取回时不得因后续投影失败而继续显示审批中');
+assert.equal(statusDespiteProjectionFailure.projectionStatus, 'FAILED');
+assert.equal(statusDespiteProjectionFailure.projectionError, 'projection write failed');
 
 const preservedApplications = [];
 const fileContextService = createFeishuApprovalService({

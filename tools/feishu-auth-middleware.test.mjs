@@ -53,4 +53,24 @@ assert.equal(failure.status, 503);
 assert.deepEqual(failure.body, { code: 'USER_AUTH_NOT_CONFIGURED', message: '飞书用户授权暂不可用' });
 assert.doesNotMatch(JSON.stringify(failure), /sensitive upstream detail/);
 
-console.log('Feishu OAuth start and callback routes use redirects, HttpOnly cookies, and sanitized failures');
+const callbackFailure = createFeishuAuthDispatcher({
+  defaultReturnTo: '/test2/apps?from=oauth',
+  authService: {
+    beginAuthorization() { throw new Error('not used'); },
+    async completeAuthorization() { throw new FeishuProxyError('OAUTH_STATE_MISMATCH', 'sensitive state detail', 401); },
+    resolveIdentity() { return null; },
+    clearStateCookie() { return 'clear-state-cookie'; }
+  }
+});
+const recoveredCallback = await callbackFailure({
+  method: 'GET',
+  url: '/api/v1/auth/feishu/callback?code=stale-code&state=stale-state',
+  headers: { cookie: '' }
+});
+assert.equal(recoveredCallback.status, 302);
+assert.equal(recoveredCallback.headers.Location, '/test2/apps?from=oauth&authError=OAUTH_STATE_MISMATCH');
+assert.deepEqual(recoveredCallback.headers['Set-Cookie'], ['clear-state-cookie']);
+assert.equal(recoveredCallback.body, null);
+assert.doesNotMatch(JSON.stringify(recoveredCallback), /sensitive state detail/);
+
+console.log('Feishu OAuth start and callback routes use redirects, HttpOnly cookies, internal recovery pages, and sanitized failures');

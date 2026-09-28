@@ -58,10 +58,10 @@
     }
   },
   "checks": {
-    "web_passed": true,
+    "web_passed": false,
     "mobile_passed": false,
-    "web_evidence": ".ai-team/tasks/DEH-ONBOARDING-POC-20260926/handoffs/web.md",
-    "web_checked_at": "2026-09-26T13:43:27.5826026Z",
+    "web_evidence": "2026-09-28 唯一标识写入修复：自动化、静态检查、构建及本地页面均通过；审批实例ID回归通过；T001-T009 动态详情字段合同通过。真实唯一标识后端固定为 http://10.151.23.119:28080，但当前连接超时，尚未完成真实 ONB 获取及飞书写表复验。详见 handoffs/web.md。",
+    "web_checked_at": "2026-09-28T06:34:25.9646920Z",
     "mobile_evidence": "",
     "mobile_checked_at": ""
   },

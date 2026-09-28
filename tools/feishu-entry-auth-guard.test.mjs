@@ -43,6 +43,29 @@ const validSessionGuard = createFeishuEntryAuthGuard({
 });
 assert.deepEqual(await validSessionGuard.ensureAuthorized(), { authorized: true, render: true });
 
+const recoveryRedirects = [];
+let recoverySessionProbes = 0;
+const recoveryGuard = createFeishuEntryAuthGuard({
+  appBasePath: '/test2',
+  location: new URL('https://test-pre-demo-seaoil.xdata.work/test2/apps?from=callback&authError=OAUTH_STATE_MISMATCH#apply'),
+  fetchImpl: async () => {
+    recoverySessionProbes += 1;
+    throw new Error('recovery must be decided before a protected session probe');
+  },
+  redirect: href => recoveryRedirects.push(href)
+});
+const recoveryState = await recoveryGuard.ensureAuthorized();
+assert.equal(recoveryState.authorized, false);
+assert.equal(recoveryState.render, true);
+assert.equal(recoveryState.reason, 'authorization-recovery');
+assert.equal(recoveryState.errorCode, 'OAUTH_STATE_MISMATCH');
+assert.equal(recoverySessionProbes, 0);
+await recoveryState.retry();
+const recoveryStart = new URL(recoveryRedirects[0], 'https://test-pre-demo-seaoil.xdata.work');
+assert.equal(recoveryStart.pathname, '/api/v1/auth/feishu/start');
+assert.equal(recoveryStart.searchParams.get('returnTo'), '/test2/apps?from=callback#apply');
+assert.equal(recoveryStart.searchParams.get('returnTo').includes('authError'), false);
+
 const localRouteGuard = createFeishuEntryAuthGuard({
   appBasePath: '/',
   location: new URL('http://127.0.0.1:4173/workbench'),
@@ -129,6 +152,31 @@ assert.match(entryRoot.innerHTML, /重试登录检查/, 'a probe failure must re
 await retryButton.retry();
 assert.equal(bootstrapProbeAttempts, 2, 'entry retry must repeat only the session decision');
 assert.equal(bootstrapMounts, 1, 'only a confirmed session may mount the application');
+
+let authorizationRecoveryCalls = 0;
+const authorizationRetryButton = { addEventListener(_event, handler) { this.retry = handler; } };
+const authorizationRoot = {
+  innerHTML: '',
+  querySelector() { return authorizationRetryButton; }
+};
+await bootstrapEntryAuthorization({
+  root: authorizationRoot,
+  entryAuthGuard: {
+    async ensureAuthorized() {
+      return {
+        authorized: false,
+        render: true,
+        reason: 'authorization-recovery',
+        retry: () => { authorizationRecoveryCalls += 1; }
+      };
+    }
+  },
+  mount() { assert.fail('authorization recovery must not mount protected application data'); }
+});
+assert.match(authorizationRoot.innerHTML, /飞书授权需要重新确认/);
+assert.match(authorizationRoot.innerHTML, /系统不会展示接口错误页面/);
+await authorizationRetryButton.retry();
+assert.equal(authorizationRecoveryCalls, 1);
 
 const failedProbeGuard = createFeishuEntryAuthGuard({
   appBasePath: '/test2',

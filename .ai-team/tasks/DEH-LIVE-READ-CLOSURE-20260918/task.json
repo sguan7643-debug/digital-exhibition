@@ -49,10 +49,10 @@
     }
   },
   "checks": {
-    "web_passed": false,
+    "web_passed": true,
     "mobile_passed": false,
-    "web_evidence": ".ai-team\\tasks\\DEH-LIVE-READ-CLOSURE-20260918\\handoffs\\web.md",
-    "web_checked_at": "2026-09-20T13:06:36.0632264Z",
+    "web_evidence": "2026-09-28 系统级读取性能修复：65 项策略矩阵（56 SWR/9 强一致同键去重）、页面批量读取、过滤下推、旧缓存降级与指标已实现；npm run test:feishu-latency、npm run test:integration、npm run check、npm test、npm run build 均通过；本地页面与批量接口 HTTP 200；真实飞书 5 个首页高频操作各 32 次并发采样全部通过，P95 0.05–0.63ms，冷预热 40.865s。详情见 handoffs/web.md。",
+    "web_checked_at": "2026-09-28T04:34:53.1679636Z",
     "mobile_evidence": "",
     "mobile_checked_at": ""
   },

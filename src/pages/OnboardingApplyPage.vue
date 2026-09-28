@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 import { confirmOnboardingAttempt, createOnboardingAttempt, normalizeApplicationType, removeOnboardingFile, submitOnboarding, uploadOnboardingFile } from "../integration/onboarding-approval.js";
 import { normalizeAppBasePath, prependAppBasePath } from "../integration/app-base-path.js";
+import { runWithConcurrency } from "../integration/concurrency-pool.js";
 
 const props = defineProps({
   integrationData: { type: Object, default: null },
@@ -309,7 +310,7 @@ async function chooseFiles(purpose, event) {
     selected.forEach(file => target.push(reactive({ file, name: file.name, state: "ready", result: { uploadId: "" }, error: "" })));
     return;
   }
-  for (const file of selected) await uploadOne(file, purpose, target);
+  await runWithConcurrency(selected, 2, file => uploadOne(file, purpose, target));
 }
 async function retryUpload(item, purpose) {
   const target = purpose === "APPLICATION_ICON" ? iconUploads : attachmentUploads;
@@ -730,12 +731,12 @@ onMounted(() => {
           <label class="upload-box">
             <strong>应用图标<b>*</b></strong><span>＋ 选择图标</span>
             <small>PNG / JPEG / WebP，最多 1 个，不超过 5MB</small>
-            <input type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" :required="form.type === 'T005' && !uploadedIconReady" @change="chooseFiles('APPLICATION_ICON', $event)" />
+            <input type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" :disabled="uploadBusy" :required="form.type === 'T005' && !uploadedIconReady" @change="chooseFiles('APPLICATION_ICON', $event)" />
           </label>
           <ul v-if="iconUploads.length" class="upload-list" aria-label="应用图标上传状态">
             <li v-for="item in iconUploads" :key="item.name" :class="item.state">
               <span><strong>{{ item.name }}</strong><small>{{ item.state === 'uploading' ? '正在校验并上传' : item.state === 'removing' ? '正在移除' : item.state === 'ready' ? (item.error || `已上传 · ${item.result.sha256}`) : item.error }}</small></span>
-              <button v-if="item.state === 'failed'" type="button" @click="retryUpload(item, 'APPLICATION_ICON')">重试 {{ item.name }}</button>
+              <button v-if="item.state === 'failed'" type="button" :disabled="uploadBusy" @click="retryUpload(item, 'APPLICATION_ICON')">重试 {{ item.name }}</button>
               <button v-else-if="item.state === 'ready'" type="button" @click="removeUpload(item, iconUploads)">移除 {{ item.name }}</button>
               <button v-else-if="item.state === 'removing'" type="button" disabled>正在移除 {{ item.name }}</button>
             </li>
@@ -746,12 +747,12 @@ onMounted(() => {
           <label class="upload-box">
             <strong>申请附件</strong><span>＋ 选择附件</span>
             <small>PDF / DOCX / XLSX / PNG / JPEG，最多 3 个，每个不超过 20MB</small>
-            <input type="file" accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png,image/jpeg" multiple @change="chooseFiles('APPLICATION_ATTACHMENT', $event)" />
+            <input type="file" accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,image/png,image/jpeg" :disabled="uploadBusy" multiple @change="chooseFiles('APPLICATION_ATTACHMENT', $event)" />
           </label>
           <ul v-if="attachmentUploads.length" class="upload-list" aria-label="申请附件上传状态">
             <li v-for="item in attachmentUploads" :key="item.name" :class="item.state">
               <span><strong>{{ item.name }}</strong><small>{{ item.state === 'uploading' ? '正在校验并上传' : item.state === 'removing' ? '正在移除' : item.state === 'ready' ? (item.error || `已上传 · ${item.result.sha256}`) : item.error }}</small></span>
-              <button v-if="item.state === 'failed'" type="button" @click="retryUpload(item, 'APPLICATION_ATTACHMENT')">重试 {{ item.name }}</button>
+              <button v-if="item.state === 'failed'" type="button" :disabled="uploadBusy" @click="retryUpload(item, 'APPLICATION_ATTACHMENT')">重试 {{ item.name }}</button>
               <button v-else-if="item.state === 'ready'" type="button" @click="removeUpload(item, attachmentUploads)">移除 {{ item.name }}</button>
               <button v-else-if="item.state === 'removing'" type="button" disabled>正在移除 {{ item.name }}</button>
             </li>

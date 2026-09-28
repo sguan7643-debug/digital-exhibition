@@ -95,13 +95,13 @@ await extendedBudgetService.execute('COM-001', {}, { identity: { userId: 'u-test
 let defaultBudgetClockReads = 0;
 const defaultBudgetService = createFeishuReadOnlyService({
   identifierContract,
-  readNow: () => ++defaultBudgetClockReads === 1 ? 0 : 10_001,
+  readNow: () => ++defaultBudgetClockReads === 1 ? 0 : 35_001,
   client: { listRecords: async tableId => responseFor(tableId) }
 });
 await assert.rejects(
   () => defaultBudgetService.execute('WB-002', { page: 1, pageSize: 20 }),
   error => error?.code === 'FEISHU_READ_BUDGET_EXCEEDED',
-  'the default aggregate table-read budget must stop after the approved 10 seconds'
+  'the default aggregate table-read budget must stop after the approved 35 seconds'
 );
 
 const profileReadQueries = new Map();

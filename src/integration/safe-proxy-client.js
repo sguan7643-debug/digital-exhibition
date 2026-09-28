@@ -214,5 +214,102 @@ export function createSafeProxyClient(options = {}) {
     })();
   }
 
-  return Object.freeze({ execute });
+  function executeBatch(requests = [], requestOptions = {}) {
+    return (async () => {
+      if (!Array.isArray(requests) || requests.length < 1 || requests.length > 16) {
+        throw new Error('批量请求数量必须为 1 至 16');
+      }
+      const prepared = requests.map(request => {
+        if (!request || typeof request !== 'object' || Array.isArray(request)) throw new Error('批量请求项必须为对象');
+        const operationId = request.operationId;
+        if (!isKnownOperationId(operationId)) throw new Error(`未知或无效的 operationId：${operationId}`);
+        const contract = getOperationContract(operationContracts, operationId);
+        const input = request.input || {};
+        enforceSchema(input, contract.requestSchema, 'request');
+        return { operationId, input, contract };
+      });
+      const batchUrl = new URL(`${baseUrl}/operations/batch`, originUrl);
+      if (
+        batchUrl.origin !== originUrl.origin
+        || batchUrl.username
+        || batchUrl.password
+        || batchUrl.search
+        || batchUrl.hash
+        || batchUrl.pathname !== `${baseUrl}/operations/batch`
+      ) throw new Error('最终 batch URL 未通过同源安全校验');
+
+      const traceId = traceIdFactory();
+      if (requestOptions.signal?.aborted) {
+        throw new IntegrationRequestError('请求已由调用方取消', { state: 'cancelled', retryable: false, traceId, cause: requestOptions.signal.reason });
+      }
+      const controller = new AbortController();
+      let callerCancelled = false;
+      let timedOut = false;
+      const abortFromCaller = () => {
+        callerCancelled = true;
+        controller.abort(requestOptions.signal?.reason || new DOMException('请求已取消', 'AbortError'));
+      };
+      requestOptions.signal?.addEventListener?.('abort', abortFromCaller, { once: true });
+      let timer;
+      if (timeoutMs) timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort(new DOMException('请求超时', 'TimeoutError'));
+      }, timeoutMs);
+      const requestToken = beginRequest(`正在批量请求 ${prepared.length} 个数据区域`);
+      try {
+        const response = await fetchImpl(batchUrl.pathname, {
+          method: 'POST', credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
+          headers: { 'Content-Type': 'application/json', 'X-Trace-Id': traceId },
+          body: JSON.stringify({ requests: prepared.map(({ operationId, input }) => ({ operationId, input })) })
+        });
+        let body;
+        try {
+          body = await response.json();
+        } catch {
+          throw createSchemaError('安全代理批量响应不是有效 JSON', { status: response.status, traceId });
+        }
+        if (!response.ok || body?.code !== 'OK' || !Array.isArray(body.results) || body.results.length !== prepared.length) {
+          throw createSchemaError('安全代理批量响应不符合合同', { status: response.status, traceId });
+        }
+        return body.results.map((result, index) => {
+          const expected = prepared[index];
+          if (result?.operationId !== expected.operationId || !Number.isInteger(result?.status)) {
+            throw createSchemaError('安全代理批量响应顺序或状态不符合合同', { status: response.status, traceId });
+          }
+          if (result.status === 200 && result.body?.code === 'OK') {
+            enforceSchema(result.body, expected.contract.successSchema, 'success response');
+            return { status: 'fulfilled', value: { ...result.body, traceId: result.body.traceId || traceId } };
+          }
+          const normalized = validateErrorEnvelope(result.body, expected.contract, { status: result.status }, traceId);
+          return {
+            status: 'rejected',
+            reason: new IntegrationRequestError('安全代理请求失败', {
+              ...normalized,
+              status: result.status,
+              traceId: result.body?.traceId || traceId
+            })
+          };
+        });
+      } catch (error) {
+        if (error instanceof IntegrationRequestError) throw error;
+        const normalized = callerCancelled
+          ? { state: 'cancelled', retryable: false }
+          : timedOut
+            ? { state: 'timeout', retryable: true }
+            : normalizeIntegrationError(error);
+        throw new IntegrationRequestError(error?.message || '安全代理批量请求失败', {
+          ...normalized,
+          status: error?.status,
+          traceId: error?.traceId || traceId,
+          contractError: error?.contractError
+        });
+      } finally {
+        endRequest(requestToken);
+        if (timer) clearTimeout(timer);
+        requestOptions.signal?.removeEventListener?.('abort', abortFromCaller);
+      }
+    })();
+  }
+
+  return Object.freeze({ execute, executeBatch });
 }

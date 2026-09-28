@@ -16,6 +16,11 @@ function renderOutsideBase(root) {
   setEntrySurface(root, '<h1>无法打开此地址</h1><p>请从当前应用入口重新进入。</p>');
 }
 
+function renderAuthorizationRecovery(root, retry) {
+  setEntrySurface(root, '<h1>飞书授权需要重新确认</h1><p>本次授权状态已失效，请重新授权后继续；系统不会展示接口错误页面。</p><button type="button" data-entry-auth-retry>重新授权</button>');
+  root?.querySelector?.('[data-entry-auth-retry]')?.addEventListener('click', retry);
+}
+
 export async function bootstrapEntryAuthorization({ root, entryAuthGuard, mount }) {
   async function decide() {
     renderChecking(root);
@@ -26,6 +31,8 @@ export async function bootstrapEntryAuthorization({ root, entryAuthGuard, mount 
     }
     if (entryAuth.reason === 'session-unavailable') {
       renderUnavailable(root, decide);
+    } else if (entryAuth.reason === 'authorization-recovery') {
+      renderAuthorizationRecovery(root, entryAuth.retry);
     } else if (entryAuth.reason === 'outside-app-base') {
       renderOutsideBase(root);
     }

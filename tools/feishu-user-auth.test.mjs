@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createFeishuUserAuthService } from '../server/feishu-user-auth-service.mjs';
 
 const requests = [];
@@ -125,4 +128,34 @@ assert.throws(
   error => error.code === 'USER_AUTH_NOT_CONFIGURED' && error.status === 503
 );
 
-console.log('Feishu OAuth v3 keeps credentials and user token server-side, validates state, and exposes only sanitized identity');
+const persistenceDirectory = mkdtempSync(join(tmpdir(), 'xlt-feishu-auth-'));
+const persistenceFile = join(persistenceDirectory, 'sessions.json');
+let persistenceSequence = 0;
+const persistentOptions = {
+  appId: 'cli_test',
+  appSecret: 'server-secret',
+  redirectUri: 'http://127.0.0.1:4173/api/v1/auth/feishu/callback',
+  fetchImpl,
+  now: () => 2_000_000,
+  randomId: () => `persisted-${++persistenceSequence}`,
+  storeFile: persistenceFile
+};
+const beforeRestart = createFeishuUserAuthService(persistentOptions);
+const persistedStart = beforeRestart.beginAuthorization({ returnTo: '/test2/apps/onboarding/apply' });
+assert.match(persistedStart.stateCookie, /^exhibition_feishu_oauth_state=persisted-1;/);
+
+const afterAuthorizationRestart = createFeishuUserAuthService(persistentOptions);
+const persistedCompletion = await afterAuthorizationRestart.completeAuthorization({
+  code: 'code-after-restart',
+  state: 'persisted-1',
+  cookieHeader: 'exhibition_feishu_oauth_state=persisted-1'
+});
+assert.equal(persistedCompletion.redirectTo, '/test2/apps/onboarding/apply');
+assert.match(persistedCompletion.sessionCookie, /^exhibition_feishu_session=persisted-2;/);
+
+const afterSessionRestart = createFeishuUserAuthService(persistentOptions);
+assert.equal(afterSessionRestart.resolveSession('exhibition_feishu_session=persisted-2')?.identity?.userId, 'u_test');
+assert.equal(afterSessionRestart.resolveSession('exhibition_feishu_session=persisted-2')?.accessToken, 'user-token-must-stay-server-side');
+rmSync(persistenceDirectory, { recursive: true, force: true });
+
+console.log('Feishu OAuth v3 keeps credentials and user token server-side, persists state/session across restart, validates state, and exposes only sanitized identity');

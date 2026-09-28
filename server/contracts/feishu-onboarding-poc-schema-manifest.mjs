@@ -18,7 +18,7 @@ export const ONBOARDING_POC_MANIFEST = Object.freeze({
   version: ONBOARDING_POC_MANIFEST_VERSION,
   tables: Object.freeze([
     table('上架申请', [
-      text('申请单号', true), text('关联应用ID'), text('应用类型ID'), text('申请人ID'), text('应用名称'), text('应用编码'), text('所属业务域ID'), text('摘要'), text('状态'), text('当前审批节点'), text('提交时间'), dateTime('完成时间'), text('退回原因'), select('审批来源', ['飞书审批', 'EAD审批']), text('审批实例ID'), text('授权用户'), text('授权部门'), text('表单AttemptID'), dateTime('最近同步时间'), attachment('应用图标'), attachment('申请附件'), text('追踪ID'), text('运行标识')
+      text('申请单号', true), text('唯一标识'), text('关联应用ID'), text('应用类型ID'), text('申请人ID'), text('应用名称'), text('应用编码'), text('所属业务域ID'), text('摘要'), text('状态'), text('当前审批节点'), text('提交时间'), dateTime('完成时间'), text('退回原因'), select('审批来源', ['飞书审批', 'EAD审批']), text('审批实例ID'), text('授权用户'), text('授权部门'), text('表单AttemptID'), dateTime('最近同步时间'), text('追踪ID'), text('运行标识')
     ]),
     table('文件上传会话', [
       text('上传ID', true), text('文件ID'), text('文件名'), number('大小字节'), text('MIME类型'), text('SHA256'), text('业务类型'), text('业务ID'), text('用途'), checkbox('分片上传'), number('分片数'), select('状态', ['INITIALIZED', 'UPLOADING', 'UPLOADED', 'SCANNING', 'READY', 'FAILED', 'EXPIRED', 'COMPLETED']), dateTime('过期时间'), text('飞书文件令牌'), text('租户编码'), text('追踪ID'), text('运行标识')

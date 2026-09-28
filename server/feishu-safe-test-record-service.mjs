@@ -49,9 +49,32 @@ function comparableFieldValue(value) {
 
 export function createFeishuSafeTestRecordService({ client, wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)) }) {
   if (!client) throw new Error('缺少飞书记录客户端');
+  const tableByName = new Map();
+  let tablesLoaded = false;
+  let tablesPromise = null;
+
+  async function loadTables({ refresh = false } = {}) {
+    if (tablesLoaded && !refresh) return tableByName;
+    if (!tablesPromise) {
+      tablesPromise = client.listTables().then(tables => {
+        tableByName.clear();
+        for (const table of tables) tableByName.set(String(table.name || ''), table);
+        tablesLoaded = true;
+        return tableByName;
+      }).finally(() => {
+        tablesPromise = null;
+      });
+    }
+    return tablesPromise;
+  }
 
   async function resolveTable(tableName) {
-    const table = (await client.listTables()).find(item => item.name === tableName);
+    await loadTables();
+    let table = tableByName.get(tableName);
+    if (!table && tablesLoaded) {
+      await loadTables({ refresh: true });
+      table = tableByName.get(tableName);
+    }
     if (!table) throw new FeishuProxyError('TABLE_NOT_FOUND', '测试目标表不存在', 404);
     return table;
   }

@@ -109,6 +109,82 @@
 
 最新唯一 P2 未完成项：无。真实 POC 外部前置条件与此前交接一致，本轮未运行 live verifier，也未将静态 UI 断言冒充真实 POC 证据。
 
+## QA repair — 海能Work“唯一标识”写入恢复（2026-09-28）
+
+### 结论与实现
+
+- 根因已确认：历史实现会调用审批后端 `GET /api/onboarding/unique-identifier` 获取 `ONB...`，但迁移到新的 `/api/v1/onboarding/applications` POC 提交流程后，该值没有进入服务端申请记录和“上架申请”投影。
+- 新增服务端唯一标识客户端；T005 提交前从 `FEISHU_APPROVAL_BACKEND_URL` 获取唯一标识。同一用户、同一 attempt 并发提交共享一次调用；值持久化到申请注册表，失败重试和服务重启继续使用同一个值。
+- 唯一标识同时进入审批创建上下文和申请快照；“上架申请”首次写入及幂等重放均允许写入/补写“唯一标识”。接口失败或返回非法值时阻止提交，不再产生唯一标识为空的新记录。
+- “审批实例ID”原逻辑保持不变，继续使用飞书创建审批实例后返回的真实 `instanceId` 写入，并在状态刷新时校准。
+- 应用类型动态详情机制核验保留：页面仍为 T001–T009 配置九张对应详情表及不同字段集合，并由 `activeDetailSchema.fields` 动态渲染、由 `buildDetailFields()` 提交；本轮未改成统一表单。
+
+### 测试先行与验证证据
+
+- 红测：新增 `tools/onboarding-unique-identifier-client.test.mjs` 后首次运行退出码 `1`，明确报缺少 `server/onboarding-unique-identifier-client.mjs`。
+- 绿测：唯一标识客户端、上线申请服务、上架投影和动态详情合同四项专项测试全部通过。
+- `npm run test:onboarding-poc`：退出码 `0`，13 个阶段全部通过。
+- `npm run check`：退出码 `0`。
+- `npm run build`：退出码 `0`，1932 modules transformed，CSS `282.73 kB`（gzip `46.57 kB`），JS `910.71 kB`（gzip `215.02 kB`）。
+- 本地申请页 `http://127.0.0.1:4173/test2/apps/onboarding/apply`：HTTP 200；本地 Vite 服务已重启并加载新服务端模块。
+- 真实后端连通检查未通过：`127.0.0.1:28080` / `localhost:28080` 主动拒绝连接，`10.151.23.119:28080` 超时。因此尚不能声明真实 `ONB...` 获取和飞书写表闭环已验证；后端服务或网络恢复后需提交一笔新 T005 申请复验“唯一标识”和“审批实例ID”同时非空。
+
+### 改动文件
+
+- `server/onboarding-unique-identifier-client.mjs`
+- `server/feishu-onboarding-service.mjs`
+- `server/feishu-approved-app-projection.mjs`
+- `server/contracts/feishu-onboarding-poc-schema-manifest.mjs`
+- `server/feishu-vite-plugin.mjs`
+- `vite.config.js`
+- `.env.test.example`
+- `tools/onboarding-unique-identifier-client.test.mjs`
+- `tools/feishu-onboarding-service.test.mjs`
+- `tools/feishu-approved-app-projection.test.mjs`
+- `package.json`
+
+### 响应式、键盘与可访问性
+
+- 本轮没有改动页面 DOM、样式、焦点顺序或键盘交互；动态详情字段区域和既有无障碍合同保持不变。
+- 当前平台结果记录为 failed 仅因为真实唯一标识后端不可达，非自动化、构建或页面回归失败。
+
+## QA repair — 上线申请文件上传延迟优化（2026-09-28）
+
+### 结论与实现
+
+- 分支保持 `task/digital-exhibition-ui-0817-dev-r3-web`，属于已批准 onboarding POC 在 `qa` 阶段的 Web 修复；未部署、未推送、未合并。
+- POC schema 发现增加进程内 single-flight 缓存，启动时只读预热；首次请求若与预热并发会等待同一任务，同一进程后续上传不再重复扫描 5 张表及全部字段。
+- schema 管理客户端为表清单和逐表字段清单增加 5 分钟共享缓存；创建表、创建字段或删除字段后精确失效，避免写后读取旧结构。
+- TEST_ 安全记录服务缓存已解析表标识，上传元数据写入不再每次重新拉取全部表。
+- T005 多附件从严格串行调整为最多 2 个并发；上传期间禁用新的文件选择和失败重试入口，防止跨批次突破并发上限。文件扩展名、大小、MIME、内容特征、SHA-256、TEST_ 幂等及写入门禁均保持不变。
+
+### 测试先行证据
+
+- `node tools/onboarding-poc-contract.test.mjs` 修复前退出码 `1`：两次 `execute` 后 schema 表读取由期望 `1` 增至实际 `3`；修复后退出码 `0`。
+- `node tools/feishu-safe-test-record.test.mjs` 修复前退出码 `1`：10 次操作触发实际 `10` 次表清单读取；修复后固定为 `1` 次并退出码 `0`。
+- `node tools/onboarding-upload-concurrency.test.mjs` 修复前退出码 `1`：并发池模块不存在；实现后确认 5 个任务最大并发为 `2`、返回顺序稳定，退出码 `0`。
+- `node tools/feishu-schema-admin.test.mjs` 缓存断言修复前退出码 `1`：两次表查询实际远程调用 `2` 次；实现后表清单和字段清单各只请求 `1` 次，退出码 `0`。
+
+### 最终命令结果
+
+| 命令 | 精确结果 |
+| --- | --- |
+| `npm run test:onboarding-poc` | 退出码 `0`；12 个阶段全部通过，包含新增并发上限测试。 |
+| `node tools/feishu-schema-admin.test.mjs && node tools/feishu-safe-test-record.test.mjs` | 退出码 `0`；共享 schema 缓存和表标识缓存通过。 |
+| `npm run check` | 退出码 `0`；源码静态、确定性、零外网、语义与原子资产检查通过。 |
+| `npm run build` | 退出码 `0`；Vite `6.4.1`，`1932 modules transformed`，`built in 3.52s`；CSS `282.73 kB`（gzip `46.57 kB`），JS `905.63 kB`（gzip `214.29 kB`）。 |
+| `npm run test:test-deployment` | 退出码 `0`；`/test2`、根 API、重定向、路径穿越和构建资源检查通过。 |
+| `$env:EXHIBITION_TEST_ORIGIN='http://127.0.0.1:4173/test2'; npm run test:browser:onboarding-apply` | 退出码 `0`；RPA 提交、T005 实例提交和真实状态查询浏览器链路通过。 |
+| `git diff --check` | 退出码 `0`；仅现有 LF/CRLF 提示，无 whitespace error。 |
+| `Invoke-WebRequest http://127.0.0.1:4173/test2/apps/onboarding/apply` | HTTP `200`，构建页面可访问；本地服务已用新构建重启。 |
+
+### 改动文件与检查边界
+
+- 运行时：`server/feishu-onboarding-poc-orchestrator.mjs`、`server/feishu-safe-test-record-service.mjs`、`server/feishu-schema-admin-client.mjs`、`server/feishu-vite-plugin.mjs`、`src/integration/concurrency-pool.js`、`src/pages/OnboardingApplyPage.vue`。
+- 测试与入口：`tools/onboarding-poc-contract.test.mjs`、`tools/onboarding-upload-concurrency.test.mjs`、`tools/feishu-safe-test-record.test.mjs`、`tools/feishu-schema-admin.test.mjs`、`package.json`。
+- 浏览器专项第一次按默认根路径执行时因部署实际位于 `/test2` 而超时；使用正确部署基路径重跑通过。该次失败不是产品回归。
+- 本轮没有改变页面布局和 DOM 顺序；上传控件保留键盘可达、可见状态和 `aria-busy`，忙碌期使用原生 `disabled` 语义。未执行真实飞书文件上传测速，因此不承诺固定秒数；实际时延仍受飞书和公网影响。
+
 ## QA repair attempt 1 — QA-DEF-01（2026-09-26）
 
 ### 修复结论与边界

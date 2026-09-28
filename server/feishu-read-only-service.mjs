@@ -1,6 +1,7 @@
 import { FeishuProxyError } from './feishu-open-api-client.mjs';
 import { getOperation } from '../src/integration/operation-registry.js';
 import { createHash } from 'node:crypto';
+import { READ_OPERATION_CACHE_POLICIES } from './feishu-read-cache-policies.mjs';
 
 const READ_PLANS = Object.freeze({
   'COM-001': Object.freeze({ kind: 'current-user' }),
@@ -82,14 +83,6 @@ const PROFILE_FIELDS = Object.freeze({
   onboardingApplications: Object.freeze(['申请单号', '关联应用ID', '申请人ID', '状态', '当前审批节点', '提交时间', '退回原因']),
   reuseApplications: Object.freeze(['申请编号', '应用ID', '申请人ID', '本地状态', '提交时间', '完成时间']),
   apps: Object.freeze(['应用ID', '应用名称'])
-});
-
-const DEFAULT_P0_CACHE_POLICIES = Object.freeze({
-  'COM-001': Object.freeze({ freshMs: 30_000, staleMs: 300_000, scope: 'user' }),
-  'COM-002': Object.freeze({ freshMs: 30_000, staleMs: 300_000, scope: 'user' }),
-  'COM-005': Object.freeze({ freshMs: 60_000, staleMs: 900_000, scope: 'tenant' }),
-  'WB-001': Object.freeze({ freshMs: 30_000, staleMs: 300_000, scope: 'user' }),
-  'WB-002': Object.freeze({ freshMs: 60_000, staleMs: 900_000, scope: 'tenant' })
 });
 
 function stableCacheValue(value) {
@@ -266,7 +259,21 @@ export function createFeishuReadOnlyService(options) {
   const tableReadPending = new Map();
   const operationCache = new Map();
   const operationPending = new Map();
-  const operationCachePolicies = Object.freeze({ ...DEFAULT_P0_CACHE_POLICIES, ...(options.operationCachePolicies || {}) });
+  const uncachedOperationPending = new Map();
+  const operationCachePolicies = Object.freeze({ ...READ_OPERATION_CACHE_POLICIES, ...(options.operationCachePolicies || {}) });
+  const operationCacheMaxEntries = Math.max(1, Number(options.operationCacheMaxEntries ?? 1_000));
+  const operationCacheMaxBytes = Math.max(1_024, Number(options.operationCacheMaxBytes ?? 128 * 1024 * 1024));
+  let operationCacheBytes = 0;
+  const performanceMetrics = {
+    requests: 0,
+    freshHits: 0,
+    staleHits: 0,
+    misses: 0,
+    refreshes: 0,
+    refreshFailures: 0,
+    staleFallbacks: 0,
+    inflightDedupeHits: 0
+  };
 
   function resolveTable(tableName) {
     const table = identifierContract.byName.get(tableName);
@@ -2010,7 +2017,11 @@ export function createFeishuReadOnlyService(options) {
     if (operationId.startsWith('MSG-')) {
       const allowed = operationId === 'MSG-001' ? ['timezone'] : ['keyword', 'typeCode', 'readStatus', 'startAt', 'endAt', 'page', 'pageSize', 'sort'];
       assertAllowedInput(input, allowed);
-      const [messageRows, userRows] = await Promise.all([readAll('消息通知'), readAll('用户字典')]);
+      const messageFilter = equalityFilter('消息通知', '接收人ID', userId);
+      const [messageRows, userRows] = await Promise.all([
+        readAll('消息通知', PROFILE_FIELDS.messages, { filter: messageFilter }),
+        readAll('用户字典', PROFILE_FIELDS.user)
+      ]);
       const users = new Map(userRows.map(record => [userDictionaryAccount(record?.fields), record?.fields || {}]).filter(([account]) => account));
       let items = messageRows.filter(record => valueToText(record?.fields?.['接收人ID']) === userId).map(record => messageFromRecord(record, users)).filter(item => item.messageId);
       if (operationId === 'MSG-001') {
@@ -2040,7 +2051,11 @@ export function createFeishuReadOnlyService(options) {
       assertAllowedInput(input, allowed);
       const resourceType = input.resourceType || 'APP';
       if (resourceType !== 'APP') throw new FeishuProxyError('INVALID_OPERATION_INPUT', '当前收藏读接口仅支持 APP', 400);
-      const [favoriteRows, projection] = await Promise.all([readAll('应用收藏'), getAppProjection()]);
+      const favoriteFilter = equalityFilter('应用收藏', '用户ID', userId);
+      const [favoriteRows, projection] = await Promise.all([
+        readAll('应用收藏', [], { filter: favoriteFilter }),
+        getAppProjection()
+      ]);
       let items = favoriteRows.filter(record => valueToText(record?.fields?.['用户ID']) === userId && dictionaryEnabled(record?.fields || {}, '有效')).map(record => {
         const fields = record?.fields || {};
         const resourceId = valueToText(fields['资源ID'] || fields['应用ID']);
@@ -2072,7 +2087,15 @@ export function createFeishuReadOnlyService(options) {
       ? ['pointTypeCode', 'sourceCode', 'direction', 'statusCode', 'keyword', 'startAt', 'endAt', 'page', 'pageSize', 'sort']
       : ['startAt', 'endAt', 'groupBy'];
     assertAllowedInput(input, allowed);
-    const [balanceRows, ledgerRows, monthRows, ruleRows] = await Promise.all([readAll('积分余额'), readAll('积分流水'), readAll('积分月度汇总'), readAll('积分规则')]);
+    const balanceFilter = equalityFilter('积分余额', '用户ID', userId);
+    const ledgerFilter = equalityFilter('积分流水', '用户ID', userId);
+    const monthFilter = equalityFilter('积分月度汇总', '用户ID', userId);
+    const [balanceRows, ledgerRows, monthRows, ruleRows] = await Promise.all([
+      readAll('积分余额', [], { filter: balanceFilter }),
+      readAll('积分流水', [], { filter: ledgerFilter }),
+      readAll('积分月度汇总', [], { filter: monthFilter }),
+      readAll('积分规则')
+    ]);
     const balanceFields = balanceRows.find(record => valueToText(record?.fields?.['用户ID']) === userId)?.fields || {};
     let ledgers = ledgerRows.filter(record => valueToText(record?.fields?.['用户ID']) === userId).map(ledgerFromRecord).filter(item => item.ledgerId);
     if (operationId === 'PTS-001') {
@@ -2429,8 +2452,51 @@ export function createFeishuReadOnlyService(options) {
     const tenant = valueToText(identity.tenantKey || identity.tenantId || 'default-tenant');
     const user = valueToText(identity.adAccount || identity.userId || identity.openId || 'anonymous');
     const permissions = Array.isArray(identity.permissions) ? [...identity.permissions].map(String).sort().join(',') : '';
-    const scopeValue = policy.scope === 'user' ? `${tenant}\u0000${user}\u0000${permissions}` : tenant;
-    return `${operationId}\u0000${fingerprint(scopeValue)}\u0000${JSON.stringify(stableCacheValue(input || {}))}`;
+    const dataScope = valueToText(identity.dataScope || identity.departmentId || '');
+    const scopeValue = policy.scope === 'tenant'
+      ? `${tenant}\u0000public`
+      : `${tenant}\u0000${user}\u0000${permissions}\u0000${dataScope}`;
+    return `${operationId}\u0000${policy.code || policy.scope}\u0000${fingerprint(scopeValue)}\u0000${JSON.stringify(stableCacheValue(input || {}))}`;
+  }
+
+  function cacheEntrySize(entry) {
+    try {
+      return Buffer.byteLength(JSON.stringify(entry?.value || null), 'utf8');
+    } catch {
+      return 1_024;
+    }
+  }
+
+  function deleteOperationCacheEntry(key) {
+    const entry = operationCache.get(key);
+    if (!entry) return false;
+    operationCacheBytes = Math.max(0, operationCacheBytes - Number(entry.byteSize || 0));
+    return operationCache.delete(key);
+  }
+
+  function clearOperationCache() {
+    operationCache.clear();
+    operationCacheBytes = 0;
+  }
+
+  function getOperationCacheEntry(key) {
+    const entry = operationCache.get(key);
+    if (!entry) return null;
+    operationCache.delete(key);
+    operationCache.set(key, entry);
+    return entry;
+  }
+
+  function setOperationCacheEntry(key, entry) {
+    deleteOperationCacheEntry(key);
+    const sizedEntry = { ...entry, byteSize: cacheEntrySize(entry) };
+    operationCache.set(key, sizedEntry);
+    operationCacheBytes += sizedEntry.byteSize;
+    while (operationCache.size > operationCacheMaxEntries || operationCacheBytes > operationCacheMaxBytes) {
+      const oldestKey = operationCache.keys().next().value;
+      if (oldestKey == null) break;
+      deleteOperationCacheEntry(oldestKey);
+    }
   }
 
   function cachedEnvelope(entry, state, refreshing = false) {
@@ -2446,17 +2512,24 @@ export function createFeishuReadOnlyService(options) {
 
   function startOperationRefresh(key, operationId, input, requestContext, policy) {
     const current = operationPending.get(key);
-    if (current) return current;
+    if (current) {
+      performanceMetrics.inflightDedupeHits += 1;
+      return current;
+    }
+    performanceMetrics.refreshes += 1;
     const request = executeUncached(operationId, input, requestContext).then(value => {
       const timestamp = cacheNow();
       const cachedValue = { ...value, dataStale: false, refreshing: false, cacheStatus: 'fresh' };
-      operationCache.set(key, {
+      setOperationCacheEntry(key, {
         value: cachedValue,
         createdAt: timestamp,
         freshUntil: timestamp + policy.freshMs,
         staleUntil: timestamp + policy.staleMs
       });
       return cachedValue;
+    }).catch(error => {
+      performanceMetrics.refreshFailures += 1;
+      throw error;
     }).finally(() => {
       if (operationPending.get(key) === request) operationPending.delete(key);
     });
@@ -2468,41 +2541,80 @@ export function createFeishuReadOnlyService(options) {
     const policy = operationCachePolicies[operationId];
     if (!policy || policy.freshMs <= 0 || policy.staleMs <= 0) return null;
     const key = operationCacheKey(operationId, input, requestContext, policy);
-    const entry = operationCache.get(key);
+    const entry = getOperationCacheEntry(key);
     if (!entry) return null;
     const timestamp = cacheNow();
     if (timestamp < entry.freshUntil) return cachedEnvelope(entry, 'fresh');
     if (timestamp < entry.staleUntil) return cachedEnvelope(entry, 'stale', operationPending.has(key));
-    operationCache.delete(key);
+    deleteOperationCacheEntry(key);
     return null;
   }
 
+  function executeUncachedDeduped(operationId, input = {}, requestContext = {}) {
+    const plan = READ_PLANS[operationId];
+    const scope = plan?.kind === 'admin-read' ? 'admin' : 'user';
+    const key = operationCacheKey(operationId, input, requestContext, { code: `S-${scope === 'admin' ? 'A' : 'U'}0`, scope });
+    const current = uncachedOperationPending.get(key);
+    if (current) {
+      performanceMetrics.inflightDedupeHits += 1;
+      return current;
+    }
+    const request = executeUncached(operationId, input, requestContext).finally(() => {
+      if (uncachedOperationPending.get(key) === request) uncachedOperationPending.delete(key);
+    });
+    uncachedOperationPending.set(key, request);
+    return request;
+  }
+
   async function executeFresh(operationId, input = {}, requestContext = {}) {
+    performanceMetrics.requests += 1;
     const policy = operationCachePolicies[operationId];
     if (!policy || policy.freshMs <= 0 || policy.staleMs <= 0) {
-      return executeUncached(operationId, input, requestContext);
+      performanceMetrics.misses += 1;
+      return executeUncachedDeduped(operationId, input, requestContext);
     }
     const key = operationCacheKey(operationId, input, requestContext, policy);
-    const entry = operationCache.get(key);
+    const entry = getOperationCacheEntry(key);
     const timestamp = cacheNow();
-    if (entry && timestamp < entry.freshUntil) return cachedEnvelope(entry, 'fresh');
-    if (entry && timestamp >= entry.staleUntil) operationCache.delete(key);
-    const value = await startOperationRefresh(key, operationId, input, requestContext, policy);
-    return { ...value, traceId: value.traceId || traceIdFactory() };
+    if (entry && timestamp < entry.freshUntil) {
+      performanceMetrics.freshHits += 1;
+      return cachedEnvelope(entry, 'fresh');
+    }
+    if (entry && timestamp >= entry.staleUntil) deleteOperationCacheEntry(key);
+    performanceMetrics.misses += 1;
+    try {
+      const value = await startOperationRefresh(key, operationId, input, requestContext, policy);
+      return { ...value, traceId: value.traceId || traceIdFactory() };
+    } catch (error) {
+      if (entry && timestamp < entry.staleUntil) {
+        performanceMetrics.staleFallbacks += 1;
+        return cachedEnvelope(entry, 'stale', false);
+      }
+      throw error;
+    }
   }
 
   async function execute(operationId, input = {}, requestContext = {}) {
+    performanceMetrics.requests += 1;
     const policy = operationCachePolicies[operationId];
-    if (!policy || policy.freshMs <= 0 || policy.staleMs <= 0) return executeUncached(operationId, input, requestContext);
+    if (!policy || policy.freshMs <= 0 || policy.staleMs <= 0) {
+      performanceMetrics.misses += 1;
+      return executeUncachedDeduped(operationId, input, requestContext);
+    }
     const key = operationCacheKey(operationId, input, requestContext, policy);
-    const entry = operationCache.get(key);
+    const entry = getOperationCacheEntry(key);
     const timestamp = cacheNow();
-    if (entry && timestamp < entry.freshUntil) return cachedEnvelope(entry, 'fresh');
+    if (entry && timestamp < entry.freshUntil) {
+      performanceMetrics.freshHits += 1;
+      return cachedEnvelope(entry, 'fresh');
+    }
     if (entry && timestamp < entry.staleUntil) {
+      performanceMetrics.staleHits += 1;
       startOperationRefresh(key, operationId, input, requestContext, policy).catch(() => {});
       return cachedEnvelope(entry, 'stale', true);
     }
-    if (entry) operationCache.delete(key);
+    if (entry) deleteOperationCacheEntry(key);
+    performanceMetrics.misses += 1;
     const refresh = startOperationRefresh(key, operationId, input, requestContext, policy);
     if (coldMissBudgetMs > 0) {
       let timer;
@@ -2536,7 +2648,7 @@ export function createFeishuReadOnlyService(options) {
     for (const tableName of ['应用索引', '应用类型配置', '用户字典', '部门字典', '业务域字典', '场景字典']) {
       invalidateTableSnapshots(tableName);
     }
-    operationCache.clear();
+    clearOperationCache();
   }
 
   function invalidateTables(tableNames = []) {
@@ -2551,7 +2663,7 @@ export function createFeishuReadOnlyService(options) {
     talentProjectionCache.clear();
     contactProjectionCache = null;
     contactProjectionExpiresAt = 0;
-    operationCache.clear();
+    clearOperationCache();
   }
 
   function invalidateTableSnapshots(tableName) {
@@ -2596,13 +2708,31 @@ export function createFeishuReadOnlyService(options) {
   }
 
   async function waitForIdle() {
-    while (operationPending.size || tableReadPending.size) {
+    while (operationPending.size || uncachedOperationPending.size || tableReadPending.size) {
       const pending = [
         ...operationPending.values(),
+        ...uncachedOperationPending.values(),
         ...[...tableReadPending.values()].map(batch => batch.promise)
       ];
       await Promise.allSettled(pending);
     }
+  }
+
+  function getPerformanceSnapshot() {
+    return Object.freeze({
+      cache: Object.freeze({
+        ...performanceMetrics,
+        entries: operationCache.size,
+        bytes: operationCacheBytes,
+        maxEntries: operationCacheMaxEntries,
+        maxBytes: operationCacheMaxBytes
+      }),
+      inflight: Object.freeze({
+        cacheableOperations: operationPending.size,
+        strongOperations: uncachedOperationPending.size,
+        tableReads: tableReadPending.size
+      })
+    });
   }
 
   return Object.freeze({
@@ -2611,6 +2741,7 @@ export function createFeishuReadOnlyService(options) {
     peekOperation,
     prewarm,
     waitForIdle,
+    getPerformanceSnapshot,
     invalidateAppProjection,
     invalidateTables
   });

@@ -23,7 +23,8 @@ export default defineConfig(({ command, mode }) => {
     scopes: serverEnv.FEISHU_OAUTH_SCOPES,
     allowedAppLaunchHosts: serverEnv.FEISHU_APP_LAUNCH_ALLOWED_HOSTS || 'ai.smartwork.com,ead.smartwork.com,rpa.smartwork.com,tools.cnooc.com,oisamrtwork.com,bi.cnooc.com,data.cnooc.com,cnooc.com',
     schemaWriteEnabled: serverEnv.FEISHU_SCHEMA_WRITE_ENABLED === '1',
-    recordWriteEnabled: serverEnv.FEISHU_TEST_WRITE_ENABLED === '1'
+    recordWriteEnabled: serverEnv.FEISHU_TEST_WRITE_ENABLED === '1',
+    approvalBackendUrl
   })],
   esbuild: false,
   resolve: {

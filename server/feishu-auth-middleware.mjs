@@ -3,6 +3,30 @@ import { FEISHU_AUTH_PATHS } from './feishu-user-auth-service.mjs';
 
 const jsonHeaders = Object.freeze({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
 
+function normalizeRecoveryPath(value = '/test2/') {
+  const text = String(value || '/test2/');
+  if (!text.startsWith('/') || text.startsWith('//') || text.includes('\\')) return '/test2/';
+  const url = new URL(text, 'http://local.invalid');
+  return url.origin === 'http://local.invalid' ? `${url.pathname}${url.search}${url.hash}` : '/test2/';
+}
+
+function callbackRecoveryResult(error, authService, defaultReturnTo) {
+  const controlled = error instanceof FeishuProxyError;
+  const code = controlled ? error.code : 'INTERNAL_AUTH_ERROR';
+  const target = new URL(normalizeRecoveryPath(defaultReturnTo), 'http://local.invalid');
+  target.searchParams.set('authError', code);
+  const clearCookie = authService.clearStateCookie?.();
+  return {
+    status: 302,
+    headers: {
+      Location: `${target.pathname}${target.search}${target.hash}`,
+      ...(clearCookie ? { 'Set-Cookie': [clearCookie] } : {}),
+      'Cache-Control': 'no-store'
+    },
+    body: null
+  };
+}
+
 function errorResult(error) {
   const controlled = error instanceof FeishuProxyError;
   return {
@@ -29,7 +53,7 @@ function publicIdentity(identity = {}) {
   });
 }
 
-export function createFeishuAuthDispatcher({ authService } = {}) {
+export function createFeishuAuthDispatcher({ authService, defaultReturnTo = '/test2/' } = {}) {
   if (!authService?.beginAuthorization || !authService?.completeAuthorization || !authService?.resolveIdentity) {
     throw new Error('飞书授权分发器缺少授权服务');
   }
@@ -66,6 +90,9 @@ export function createFeishuAuthDispatcher({ authService } = {}) {
         body: null
       };
     } catch (error) {
+      if (url.pathname === FEISHU_AUTH_PATHS.callback) {
+        return callbackRecoveryResult(error, authService, defaultReturnTo);
+      }
       return errorResult(error);
     }
   };

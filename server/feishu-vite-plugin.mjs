@@ -19,6 +19,7 @@ import { createFeishuOnboardingPocOrchestrator } from './feishu-onboarding-poc-o
 import { createFeishuOnboardingFileService } from './feishu-onboarding-file-service.mjs';
 import { createFeishuOnboardingService } from './feishu-onboarding-service.mjs';
 import { createFeishuOnboardingNodeMiddleware } from './feishu-onboarding-middleware.mjs';
+import { createOnboardingUniqueIdentifierClient } from './onboarding-unique-identifier-client.mjs';
 import { createHomepageAggregateService } from './homepage-aggregate-service.mjs';
 import { createHomepageAggregateNodeMiddleware } from './homepage-aggregate-middleware.mjs';
 
@@ -47,6 +48,7 @@ export function createFeishuMiddlewareStack(options = {}) {
   const oauthWriteAcceptance = createFeishuOAuthWriteAcceptance({ safeRecordService, compositeService: service });
   const authService = createFeishuUserAuthService({
     ...options,
+    storeFile: options.userAuthStoreFile ?? process.env.FEISHU_USER_AUTH_STORE_PATH ?? join(process.cwd(), '.local', 'feishu-user-auth-sessions.json'),
     onAuthorized: createFeishuOAuthAuthorizedHandler({
       evidencePath: oauthEvidencePath,
       writeAcceptanceEnabled: oauthWriteAcceptanceEnabled,
@@ -54,7 +56,10 @@ export function createFeishuMiddlewareStack(options = {}) {
       writeAcceptance: oauthWriteAcceptance
     })
   });
-  const authMiddleware = createFeishuAuthNodeMiddleware({ authService });
+  const authMiddleware = createFeishuAuthNodeMiddleware({
+    authService,
+    defaultReturnTo: options.defaultAuthReturnTo ?? process.env.FEISHU_AUTH_DEFAULT_RETURN_TO ?? '/test2/'
+  });
   const approvalRegistryFile = options.approvalRegistryFile ?? process.env.FEISHU_APPROVAL_REGISTRY_PATH ?? join(process.cwd(), '.local', 'feishu-approval-registry.json');
   const approvalAdminClient = createFeishuSchemaAdminClient({ ...options, recordWriteEnabled: true });
   const approvalRecordService = createFeishuSafeTestRecordService({ client: approvalAdminClient });
@@ -81,10 +86,15 @@ export function createFeishuMiddlewareStack(options = {}) {
   });
   const fileMiddleware = createFeishuFileNodeMiddleware({ fileAccessService, resolveIdentity: cookie => authService.resolveIdentity(cookie) });
   const onboardingFileService = createFeishuOnboardingFileService({ adminClient: approvalAdminClient, safeRecordService: approvalRecordService, orchestrator: onboardingOrchestrator });
+  const onboardingUniqueIdentifierClient = createOnboardingUniqueIdentifierClient({
+    baseUrl: options.approvalBackendUrl ?? process.env.FEISHU_APPROVAL_BACKEND_URL ?? 'http://10.151.23.119:28080',
+    fetchImpl: options.approvalBackendFetch ?? globalThis.fetch
+  });
   const onboardingService = createFeishuOnboardingService({
     approvalService,
     fileAccessService,
     onboardingFileService,
+    uniqueIdentifierProvider: onboardingUniqueIdentifierClient,
     orchestrator: onboardingOrchestrator,
     registryFile: options.onboardingRegistryFile ?? process.env.FEISHU_ONBOARDING_REGISTRY_PATH ?? join(process.cwd(), '.local', 'feishu-onboarding-applications.json')
   });
@@ -115,6 +125,7 @@ export function createFeishuMiddlewareStack(options = {}) {
   });
   if (options.prewarm !== false) queueMicrotask(() => {
     homepageService.startPrewarm();
+    onboardingOrchestrator.prewarm().catch(() => null);
   });
   const middleware = createFeishuNodeMiddleware({
     service,

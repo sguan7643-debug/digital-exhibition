@@ -10,6 +10,8 @@ const session = { identity: { userId: 'u_owner', openId: 'ou_owner', displayName
 const otherSession = { identity: { userId: 'u_other', openId: 'ou_other' }, accessToken: 'other-server-only' };
 const approvalCalls = [];
 let currentStatus = 'PENDING';
+let currentProjectionStatus = 'SYNCED';
+let currentProjectionError = '';
 const approvalService = {
   async createInstance(input) {
     approvalCalls.push(['create', input]);
@@ -17,7 +19,7 @@ const approvalService = {
   },
   async getInstance(instanceId) {
     approvalCalls.push(['get', instanceId]);
-    return { instanceId, status: currentStatus };
+    return { instanceId, status: currentStatus, projectionStatus: currentProjectionStatus, projectionError: currentProjectionError };
   }
 };
 const grants = [];
@@ -29,8 +31,15 @@ const fileAccessService = {
 };
 const orchestrator = { prepared: { ready: true, runId: 'TEST_ONBOARDING_POC_RUN', baseFingerprint: 'a'.repeat(64) }, async prepare() { return this.prepared; } };
 let nowValue = Date.parse('2026-09-26T10:00:00Z');
+let uniqueIdentifierCalls = 0;
+const uniqueIdentifierProvider = {
+  async getUniqueIdentifier() {
+    uniqueIdentifierCalls += 1;
+    return 'ONB_TEST_UNIQUE_IDENTIFIER_001';
+  }
+};
 
-const service = createFeishuOnboardingService({ approvalService, fileAccessService, orchestrator, registryFile, now: () => nowValue });
+const service = createFeishuOnboardingService({ approvalService, fileAccessService, orchestrator, uniqueIdentifierProvider, registryFile, now: () => nowValue });
 service.registerUploadedFile({ attemptId: 'TEST_ATTEMPT_SPOOF', uploadId: 'TEST_UPLOAD_SPOOF_ICON', purpose: 'APPLICATION_ICON', originalName: 'spoof.png', sizeBytes: 100, mimeType: 'image/png', detectedType: 'PNG', sha256: '0'.repeat(64), uploadedAt: '2026-09-26T09:54:00.000Z', fileToken: 'server-file-token-spoof' }, session);
 await assert.rejects(
   () => service.submit({
@@ -59,9 +68,13 @@ assert.equal(created.applicationId.startsWith('TEST_APPLICATION_'), true);
 assert.equal(created.instanceId, 'INSTANCE_1');
 assert.equal(created.status, 'PENDING');
 assert.equal(approvalCalls.filter(call => call[0] === 'create').length, 1);
+assert.equal(uniqueIdentifierCalls, 1, '同一笔申请只能从后端获取一次唯一标识');
+assert.equal(approvalCalls.find(call => call[0] === 'create')[1].uniqueIdentifier, 'ONB_TEST_UNIQUE_IDENTIFIER_001');
+assert.equal(approvalCalls.find(call => call[0] === 'create')[1].application.uniqueIdentifier, 'ONB_TEST_UNIQUE_IDENTIFIER_001');
 const replayed = await service.submit(input, session);
 assert.deepEqual(replayed, created);
 assert.equal(approvalCalls.filter(call => call[0] === 'create').length, 1, 'same attempt must not create another approval instance');
+assert.equal(uniqueIdentifierCalls, 1, '重放同一 attempt 不得重新获取唯一标识');
 
 const list = await service.list(session);
 assert.equal(list.items.length, 1);
@@ -75,6 +88,7 @@ assert.equal(detail.attachments[0].sha256, '2'.repeat(64));
 assert.equal(JSON.stringify(detail).includes('server-file-token'), false);
 assert.equal(detail.businessId.startsWith('TEST_ONBOARDING_'), true);
 assert.equal(detail.resourceId.startsWith('TEST_APP_'), true);
+assert.equal(detail.uniqueIdentifier, 'ONB_TEST_UNIQUE_IDENTIFIER_001');
 assert.equal(detail.applicationName, '采购协同助手');
 assert.equal(detail.applicationCode, 'HW-PROC-001');
 assert.equal(detail.applicationType, 'T005');
@@ -86,7 +100,14 @@ assert.deepEqual(detail.authorizedDepartments, ['dept-owner']);
 currentStatus = 'APPROVED';
 const synced = await service.sync(created.applicationId, session);
 assert.equal(synced.status, 'APPROVED');
+assert.equal(synced.publicationStatus, 'SYNCED');
 assert.equal(approvalCalls.filter(call => call[0] === 'get').length, 1);
+currentProjectionStatus = 'FAILED';
+currentProjectionError = 'POC_GATES_NOT_READY';
+const statusWithDeferredPublication = await service.sync(created.applicationId, session);
+assert.equal(statusWithDeferredPublication.status, 'APPROVED', '发布失败不得覆盖已同步的审批通过状态');
+assert.equal(statusWithDeferredPublication.publicationStatus, 'FAILED');
+assert.equal(statusWithDeferredPublication.publicationErrorCode, 'POC_GATES_NOT_READY');
 const grant = await service.grantFileAccess(created.applicationId, 'TEST_UPLOAD_DOC', 'DOWNLOAD', session);
 assert.equal(grant.url, '/api/v1/files/content/opaque-grant');
 assert.equal(grants[0].fileToken, 'server-file-token-doc');
@@ -108,11 +129,12 @@ assert.notEqual(ownerShared.instanceId, otherShared.instanceId, '不同用户使
 assert.equal(approvalCalls.filter(call => call[0] === 'create').length, 3);
 
 nowValue += 8 * 24 * 60 * 60 * 1000;
-const restarted = createFeishuOnboardingService({ approvalService, fileAccessService, orchestrator, registryFile, now: () => nowValue });
+const restarted = createFeishuOnboardingService({ approvalService, fileAccessService, orchestrator, uniqueIdentifierProvider, registryFile, now: () => nowValue });
 const restored = await restarted.get(created.applicationId, session);
 assert.equal(restored.instanceId, 'INSTANCE_1');
 assert.equal(restored.status, 'APPROVED');
 assert.equal(restored.attachments.length, 1);
+assert.equal(restored.uniqueIdentifier, 'ONB_TEST_UNIQUE_IDENTIFIER_001', '服务重启后必须恢复同一个唯一标识');
 const resyncedAfterEightDays = await restarted.sync(created.applicationId, session);
 assert.equal(resyncedAfterEightDays.instanceId, 'INSTANCE_1');
 

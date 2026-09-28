@@ -1,6 +1,8 @@
 import { FeishuProxyError } from './feishu-open-api-client.mjs';
+import { getOperation } from '../src/integration/operation-registry.js';
 
 const ROUTE_PATTERN = /^\/api\/v1\/operations\/([A-Z]+-[0-9]{3})$/;
+const BATCH_ROUTE = '/api/v1/operations/batch';
 
 function errorResult(error, traceId) {
   const controlled = error instanceof FeishuProxyError;
@@ -27,7 +29,8 @@ export function createFeishuOperationDispatcher(options = {}) {
   return async function dispatch(request = {}) {
     const pathname = new URL(request.url || '/', 'http://localhost').pathname;
     const match = ROUTE_PATTERN.exec(pathname);
-    if (!match) return null;
+    const isBatch = pathname === BATCH_ROUTE;
+    if (!match && !isBatch) return null;
     const traceId = traceIdFactory();
     if (request.method !== 'POST') {
       return { status: 405, body: { code: 'METHOD_NOT_ALLOWED', message: '该接口仅接受 POST', traceId } };
@@ -36,11 +39,40 @@ export function createFeishuOperationDispatcher(options = {}) {
     if (!contentType.startsWith('application/json')) {
       return { status: 415, body: { code: 'UNSUPPORTED_MEDIA_TYPE', message: '请求必须使用 application/json', traceId } };
     }
-    const operationId = match[1];
     const body = request.body;
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
       return { status: 400, body: { code: 'INVALID_REQUEST_BODY', message: '请求体必须是 JSON 对象', traceId } };
     }
+    if (isBatch) {
+      if (Object.keys(body).some(key => key !== 'requests') || !Array.isArray(body.requests)) {
+        return { status: 400, body: { code: 'INVALID_BATCH_REQUEST', message: '批量请求必须包含 requests 数组', traceId } };
+      }
+      if (body.requests.length < 1 || body.requests.length > 16) {
+        return { status: 400, body: { code: 'INVALID_BATCH_SIZE', message: '批量请求数量必须为 1 至 16', traceId } };
+      }
+      const invalid = body.requests.find(item => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return true;
+        if (Object.keys(item).some(key => !['operationId', 'input'].includes(key))) return true;
+        if (typeof item.operationId !== 'string' || !getOperation(item.operationId)?.readOnly) return true;
+        return item.input != null && (typeof item.input !== 'object' || Array.isArray(item.input));
+      });
+      if (invalid) {
+        return { status: 400, body: { code: 'INVALID_BATCH_ITEM', message: '批量请求仅允许已登记的只读 operation', traceId } };
+      }
+      const requestContext = await resolveRequestContext(request);
+      const results = await Promise.all(body.requests.map(async item => {
+        const itemTraceId = traceIdFactory();
+        try {
+          const value = await service.execute(item.operationId, item.input || {}, requestContext || {});
+          return { operationId: item.operationId, status: 200, body: value };
+        } catch (error) {
+          const failure = errorResult(error, itemTraceId);
+          return { operationId: item.operationId, status: failure.status, body: failure.body };
+        }
+      }));
+      return { status: 200, body: { code: 'OK', results, traceId } };
+    }
+    const operationId = match[1];
     if (body.operationId !== operationId) {
       return { status: 400, body: { code: 'OPERATION_MISMATCH', message: '路径与请求体 operationId 不一致', traceId } };
     }
@@ -89,7 +121,7 @@ export function createFeishuNodeMiddleware(options = {}) {
   const traceIdFactory = options.traceIdFactory || (() => `trace-${globalThis.crypto?.randomUUID?.() || Date.now()}`);
   return async function feishuProxyMiddleware(request, response, next) {
     const pathname = new URL(request.url || '/', 'http://localhost').pathname;
-    if (!ROUTE_PATTERN.test(pathname)) return next();
+    if (!ROUTE_PATTERN.test(pathname) && pathname !== BATCH_ROUTE) return next();
     let body;
     try {
       body = request.method === 'POST' ? await readJsonBody(request) : {};

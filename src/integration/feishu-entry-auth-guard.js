@@ -42,6 +42,15 @@ export function createFeishuEntryAuthGuard({
 } = {}) {
   const activeBasePath = normalizeAppBasePath(appBasePath);
 
+  function beginAuthorization(current) {
+    const clean = new URL(current.toString());
+    clean.searchParams.delete('authError');
+    const start = new URL(OAUTH_START_ENDPOINT, current.origin);
+    start.searchParams.set('returnTo', sanitizeFeishuEntryReturnTo(clean, activeBasePath));
+    redirect(`${start.pathname}${start.search}`);
+    return { authorized: false, render: false };
+  }
+
   function unavailable() {
     return { authorized: false, render: true, reason: 'session-unavailable', retry: ensureAuthorized };
   }
@@ -50,6 +59,16 @@ export function createFeishuEntryAuthGuard({
     const current = location instanceof URL ? location : new URL(location.href);
     if (!shouldGuardFeishuEntry(current, activeBasePath)) {
       return { authorized: false, render: false, reason: 'outside-app-base' };
+    }
+    const authorizationError = current.searchParams.get('authError');
+    if (authorizationError) {
+      return {
+        authorized: false,
+        render: true,
+        reason: 'authorization-recovery',
+        errorCode: authorizationError,
+        retry: () => beginAuthorization(current)
+      };
     }
     let response;
     try {
@@ -63,10 +82,7 @@ export function createFeishuEntryAuthGuard({
     }
     if (response.ok) return { authorized: true, render: true };
     if (response.status === 401) {
-      const start = new URL(OAUTH_START_ENDPOINT, current.origin);
-      start.searchParams.set('returnTo', sanitizeFeishuEntryReturnTo(current, activeBasePath));
-      redirect(`${start.pathname}${start.search}`);
-      return { authorized: false, render: false };
+      return beginAuthorization(current);
     }
     return unavailable();
   }

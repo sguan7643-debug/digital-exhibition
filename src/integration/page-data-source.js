@@ -222,11 +222,17 @@ export function createPageDataSource({ route, runtime, client, homepageClient, o
         envelope = reduceDataState({ ...envelope, mode: 'remote' }, homepageAggregateEvent(contract, result));
         return withContract(envelope);
       }
-      const settled = await Promise.allSettled(requestedOperationIds.map(operationId => client.execute(
+      const requests = requestedOperationIds.map(operationId => ({
         operationId,
-        options.inputByOperation?.[operationId] || input,
-        { signal: controller.signal }
-      )));
+        input: options.inputByOperation?.[operationId] || input
+      }));
+      const settled = typeof client.executeBatch === 'function' && requests.length > 1
+        ? await client.executeBatch(requests, { signal: controller.signal })
+        : await Promise.allSettled(requests.map(request => client.execute(
+          request.operationId,
+          request.input,
+          { signal: controller.signal }
+        )));
       if (currentGeneration !== generation) return withContract(envelope);
       const aggregate = aggregateReadResults(contract, requestedOperationIds, settled, options.operationIds ? stableEnvelope : null);
       envelope = aggregate.kind === 'success'

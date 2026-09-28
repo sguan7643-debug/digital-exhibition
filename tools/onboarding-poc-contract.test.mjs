@@ -85,6 +85,7 @@ try {
   const identityClient = { async preflightOnboardingPocActor() { return { userId: 'u_test', openId: 'ou_test', active: true, identityVerified: true, approverCapabilityVerified: true }; } };
   const orchestrator = createFeishuOnboardingPocOrchestrator({ adminClient, identityClient, baseToken, expectedFingerprint, ledgerFile, now: () => Date.parse('2026-09-26T10:00:00Z'), randomBytes: () => Buffer.from('12345678') });
   const prepared = await orchestrator.prepare({ session });
+  const schemaReadsAfterPrepare = remoteReads;
   assert.equal(prepared.ready, true);
   assert.equal(prepared.plan.length, 0);
   assert.equal(prepared.gates.baseFingerprint, true);
@@ -95,6 +96,9 @@ try {
   assert.equal(prepared.gates.ledgerCreated, true);
   assert.match(prepared.runId, /^TEST_ONBOARDING_POC_/);
   assert.equal(JSON.parse(readFileSync(ledgerFile, 'utf8')).runId, prepared.runId);
+  await orchestrator.execute({ session });
+  await orchestrator.execute({ session });
+  assert.equal(remoteReads, schemaReadsAfterPrepare, '已通过检查的同一进程不得在每次上传前重复读取整套 schema');
   assert.throws(() => orchestrator.assertRecordWrite('其他表', { 主键: 'TEST_BAD' }), error => error.code === 'POC_RECORD_TABLE_FORBIDDEN');
   assert.throws(() => orchestrator.assertSchemaPlan([{ action: 'DELETE_TABLE', tableName: '上架申请' }]), error => error.code === 'POC_SCHEMA_ACTION_FORBIDDEN');
   assert.throws(() => orchestrator.appendLedger({ objectType: 'RECORD', tableName: '上架申请', tableId: 'tbl-0', recordId: 'rec-bad-key', keyField: '备注', businessKey: 'TEST_BAD_KEY' }), error => error.code === 'POC_LEDGER_KEY_FIELD_INVALID');

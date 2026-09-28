@@ -76,7 +76,7 @@ function publicFile(file) {
   });
 }
 
-export function createFeishuOnboardingService({ approvalService, fileAccessService, onboardingFileService = null, orchestrator, registryFile = '', now = Date.now } = {}) {
+export function createFeishuOnboardingService({ approvalService, fileAccessService, onboardingFileService = null, uniqueIdentifierProvider = null, orchestrator, registryFile = '', now = Date.now } = {}) {
   if (!approvalService?.createInstance || !approvalService?.getInstance) throw new Error('上线申请服务缺少审批服务');
   if (!fileAccessService?.createGrant) throw new Error('上线申请服务缺少文件访问服务');
   const stored = readRegistry(registryFile);
@@ -84,6 +84,7 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
   const uploads = new Map(stored.uploads.map(record => [record.uploadId, record]));
   const submitPromises = new Map();
   const syncPromises = new Map();
+  const uniqueIdentifierPromises = new Map();
 
   function persist() {
     atomicWrite(registryFile, { version: 'onboarding-application-registry.v1', applications: [...applications.values()], uploads: [...uploads.values()] });
@@ -122,6 +123,7 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
       businessId: record.businessId,
       applicationId: record.applicationId,
       resourceId: record.resourceId,
+      uniqueIdentifier: record.uniqueIdentifier || '',
       instanceId: record.instanceId || '',
       attemptId: record.attemptId,
       runId: record.runId || '',
@@ -139,6 +141,8 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
       completedAt: record.completedAt || '',
       rejectionReason: record.rejectionReason || '',
       lastSyncedAt: record.lastSyncedAt || '',
+      publicationStatus: record.publicationStatus || '',
+      publicationErrorCode: record.publicationStatus === 'FAILED' ? (record.publicationErrorCode || 'APPROVAL_PROJECTION_FAILED') : '',
       icon: publicFile(linked.find(file => file.purpose === 'APPLICATION_ICON')),
       attachments: linked.filter(file => file.purpose === 'APPLICATION_ATTACHMENT').map(publicFile),
       detailFields: application.detailFields || {}
@@ -208,6 +212,16 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
     const selected = uploadIds.map(uploadId => uploads.get(uploadId)).filter(file => file && file.ownerSubject === ownerSubject && file.attemptId === attemptId && file.state === 'READY' && !file.applicationId);
     if (!existing && selected.length !== uploadIds.length) fail('ONBOARDING_UPLOAD_NOT_AVAILABLE', '存在不属于当前 attempt 的文件', 404);
     validateSubmission(application, existing ? filesFor(existing) : selected);
+    const submitKey = `${ownerSubject}\0${attemptId}`;
+    if (!existing?.uniqueIdentifier && !uniqueIdentifierProvider?.getUniqueIdentifier) {
+      fail('ONBOARDING_UNIQUE_IDENTIFIER_UNAVAILABLE', '唯一标识服务暂不可用', 503);
+    }
+    if (!existing?.uniqueIdentifier && !uniqueIdentifierPromises.has(submitKey)) {
+      uniqueIdentifierPromises.set(submitKey, Promise.resolve()
+        .then(() => uniqueIdentifierProvider.getUniqueIdentifier())
+        .finally(() => uniqueIdentifierPromises.delete(submitKey)));
+    }
+    const uniqueIdentifier = existing?.uniqueIdentifier || await uniqueIdentifierPromises.get(submitKey);
     const applicationId = existing?.applicationId || stableId('APPLICATION', `${ownerSubject}\0${attemptId}`);
     const record = existing || {
       type: 'APP_ONBOARDING',
@@ -215,6 +229,7 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
       ownerDisplayName: cleanText(session.identity?.displayName || session.identity?.name, 256),
       attemptId,
       applicationId,
+      uniqueIdentifier,
       businessId: stableId('ONBOARDING', `${ownerSubject}\0${attemptId}`),
       resourceId: stableId('APP', `${ownerSubject}\0${attemptId}`),
       businessKey: stableId('BUSINESS_ONBOARDING', `${ownerSubject}\0${attemptId}`),
@@ -234,7 +249,6 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
     applications.set(applicationId, record);
     for (const file of selected) file.applicationId = applicationId;
     persist();
-    const submitKey = `${ownerSubject}\0${attemptId}`;
     if (!submitPromises.has(submitKey)) submitPromises.set(submitKey, (async () => {
       try {
         const result = await approvalService.createInstance({
@@ -246,10 +260,11 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
           idempotencyKey: record.idempotencyKey,
           applicationId: record.applicationId,
           businessId: record.businessId,
+          uniqueIdentifier: record.uniqueIdentifier,
           runId: record.runId,
           description: application.summary || application.description,
           detailFields: application.detailFields,
-          application: { ...application, applicationId: record.applicationId, businessId: record.businessId, attemptId, runId: record.runId, uploads: filesFor(record) }
+          application: { ...application, uniqueIdentifier: record.uniqueIdentifier, applicationId: record.applicationId, businessId: record.businessId, attemptId, runId: record.runId, uploads: filesFor(record) }
         }, session);
         record.instanceId = result.instanceId || '';
         record.status = STATUSES.has(result.status) ? result.status : 'PENDING';
@@ -295,6 +310,8 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
       record.lastSyncedAt = new Date(Number(now())).toISOString();
       if (['APPROVED', 'REJECTED', 'CANCELLED'].includes(record.status) && !record.completedAt) record.completedAt = record.lastSyncedAt;
       record.rejectionReason = cleanText(result.rejectionReason || record.rejectionReason);
+      record.publicationStatus = cleanText(result.projectionStatus || record.publicationStatus, 32);
+      record.publicationErrorCode = record.publicationStatus === 'FAILED' ? cleanText(result.projectionError || 'APPROVAL_PROJECTION_FAILED', 240) : '';
       persist();
       return toPublic(record);
     })().finally(() => syncPromises.delete(record.applicationId)));
