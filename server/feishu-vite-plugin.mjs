@@ -103,6 +103,7 @@ export function createFeishuMiddlewareStack(options = {}) {
     onboardingFileService,
     uniqueIdentifierProvider: onboardingUniqueIdentifierClient,
     referenceResolver: onboardingReferenceResolver,
+    readService,
     orchestrator: onboardingOrchestrator,
     registryFile: options.onboardingRegistryFile ?? process.env.FEISHU_ONBOARDING_REGISTRY_PATH ?? join(process.cwd(), '.local', 'feishu-onboarding-applications.json')
   });

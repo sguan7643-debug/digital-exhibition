@@ -4,7 +4,7 @@ import { isSameOriginRequest } from './same-origin-request.mjs';
 const ROOT = '/api/v1/onboarding/';
 const MAX_BODY_BYTES = 30 * 1024 * 1024;
 const JSON_HEADERS = Object.freeze({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
-const APPLICATION_ROUTE = /^\/api\/v1\/onboarding\/applications\/(TEST_[A-Za-z0-9_-]{1,256})(\/sync)?$/;
+const APPLICATION_ROUTE = /^\/api\/v1\/onboarding\/applications\/([A-Za-z0-9_-]{1,256})(\/sync)?$/;
 const ATTEMPT_ROUTE = /^\/api\/v1\/onboarding\/attempts\/(TEST_ATTEMPT_[A-Za-z0-9_-]{1,180})\/confirm$/;
 const UPLOAD_ROUTE = /^\/api\/v1\/onboarding\/uploads\/(TEST_[A-Za-z0-9_-]{1,256})$/;
 const GRANT_ROUTE = /^\/api\/v1\/onboarding\/applications\/(TEST_[A-Za-z0-9_-]{1,256})\/files\/(TEST_[A-Za-z0-9_-]{1,256})\/grant$/;

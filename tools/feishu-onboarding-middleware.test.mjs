@@ -25,6 +25,7 @@ assert.equal(spoofed.body.code, 'ONBOARDING_APPLICANT_MISMATCH');
 assert.equal(calls.length, callsBeforeSpoof, 'middleware must reject applicant spoofing before invoking the service');
 assert.equal((await dispatch({ method: 'POST', url: '/api/v1/onboarding/applications', headers, body: { attemptId: 'TEST_ATTEMPT_A' } })).status, 201);
 assert.equal((await dispatch({ method: 'GET', url: '/api/v1/onboarding/applications/TEST_APPLICATION', headers })).status, 200);
+assert.equal((await dispatch({ method: 'GET', url: '/api/v1/onboarding/applications/PA025', headers })).status, 200, '历史及 RPA 申请单号不得被 TEST_ 前缀限制');
 assert.equal((await dispatch({ method: 'POST', url: '/api/v1/onboarding/applications/TEST_APPLICATION/sync', headers, body: {} })).body.status, 'APPROVED');
 assert.equal((await dispatch({ method: 'POST', url: '/api/v1/onboarding/attempts/TEST_ATTEMPT_A/confirm', headers, body: {} })).status, 200);
 assert.equal((await dispatch({ method: 'POST', url: '/api/v1/onboarding/applications/TEST_APPLICATION/files/TEST_UPLOAD/grant', headers, body: { mode: 'DOWNLOAD' } })).body.url, '/api/v1/files/content/grant');
