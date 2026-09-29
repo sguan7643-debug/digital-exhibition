@@ -80,7 +80,7 @@ function publicFile(file) {
   });
 }
 
-export function createFeishuOnboardingService({ approvalService, fileAccessService, onboardingFileService = null, uniqueIdentifierProvider = null, referenceResolver = null, orchestrator, registryFile = '', now = Date.now } = {}) {
+export function createFeishuOnboardingService({ approvalService, fileAccessService, onboardingFileService = null, uniqueIdentifierProvider = null, referenceResolver = null, readService = null, orchestrator, registryFile = '', now = Date.now } = {}) {
   if (!approvalService?.createInstance || !approvalService?.getInstance) throw new Error('上线申请服务缺少审批服务');
   if (!fileAccessService?.createGrant) throw new Error('上线申请服务缺少文件访问服务');
   const stored = readRegistry(registryFile);
@@ -172,6 +172,20 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
       icon: publicFile(linked.find(file => file.purpose === 'APPLICATION_ICON')),
       attachments: linked.filter(file => file.purpose === 'APPLICATION_ATTACHMENT').map(publicFile),
       detailFields: application.detailFields || {}
+    });
+  }
+
+  function mergeAuthoritativeWithLocal(authoritative, local) {
+    if (!local) return authoritative;
+    const localValue = toPublic(local);
+    return Object.freeze({
+      ...localValue,
+      ...authoritative,
+      icon: localValue.icon,
+      attachments: localValue.attachments,
+      detailFields: Object.keys(authoritative.detailFields || {}).length ? authoritative.detailFields : localValue.detailFields,
+      publicationStatus: localValue.publicationStatus,
+      publicationErrorCode: localValue.publicationErrorCode
     });
   }
 
@@ -321,18 +335,33 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
 
   async function list(session) {
     const ownerSubject = subjectOf(session);
+    if (readService?.listCurrentOnboardingApplications) {
+      const items = (await readService.listCurrentOnboardingApplications({ identity: session.identity }))
+        .map(item => mergeAuthoritativeWithLocal(item, applications.get(item.applicationId)))
+        .sort((a, b) => String(b.submittedAt).localeCompare(String(a.submittedAt)));
+      return Object.freeze({ items, total: items.length });
+    }
     const items = [...applications.values()].filter(record => record.ownerSubject === ownerSubject && record.type === 'APP_ONBOARDING').sort((a, b) => String(b.submittedAt).localeCompare(String(a.submittedAt))).map(toPublic);
     return Object.freeze({ items, total: items.length });
   }
 
   async function get(applicationId, session) {
+    subjectOf(session);
+    if (readService?.getCurrentOnboardingApplication) {
+      const authoritative = await readService.getCurrentOnboardingApplication(applicationId, { identity: session.identity });
+      return mergeAuthoritativeWithLocal(authoritative, applications.get(String(applicationId || '')));
+    }
     const record = ownedApplication(applicationId, session);
     await enrichReferenceNames(record, session);
     return toPublic(record);
   }
 
   async function sync(applicationId, session) {
-    const record = ownedApplication(applicationId, session);
+    const record = applications.get(String(applicationId || ''));
+    if (!record || record.ownerSubject !== subjectOf(session) || record.type !== 'APP_ONBOARDING') {
+      if (readService?.getCurrentOnboardingApplication) return get(applicationId, session);
+      fail('ONBOARDING_APPLICATION_NOT_AVAILABLE', '无法查看该申请', 404);
+    }
     if (!record.instanceId) return toPublic(record);
     if (!syncPromises.has(record.applicationId)) syncPromises.set(record.applicationId, (async () => {
       const result = await approvalService.getInstance(record.instanceId, session, { resourceId: record.resourceId });
@@ -345,6 +374,9 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
       record.publicationErrorCode = record.publicationStatus === 'FAILED' ? cleanText(result.projectionError || 'APPROVAL_PROJECTION_FAILED', 240) : '';
       await enrichReferenceNames(record, session);
       persist();
+      if (readService?.getCurrentOnboardingApplication) {
+        try { return await get(applicationId, session); } catch { /* 表同步延迟时保留审批接口刚返回的状态。 */ }
+      }
       return toPublic(record);
     })().finally(() => syncPromises.delete(record.applicationId)));
     return syncPromises.get(record.applicationId);

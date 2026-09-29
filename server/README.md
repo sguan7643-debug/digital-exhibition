@@ -67,5 +67,5 @@ Base token、tableId、viewId 或 fieldId。
 
 本地服务启动后可运行 `pnpm feishu:oauth:preflight` 自动检查授权入口、官方授权地址和回调白名单。该命令不会输出一次性 state 或访问令牌；`passed=false` 且 `error20029=true` 表示仍需在飞书开发者后台登记上述回调地址。
 
-运行 `pnpm test:integration:server` 可验证 64 表/1311 字段标识契约、服务端令牌缓存、
+运行 `pnpm test:integration:server` 可验证 64 表/1229 字段标识契约、服务端令牌缓存、
 默认分页、同源路由、错误脱敏和只读门禁。

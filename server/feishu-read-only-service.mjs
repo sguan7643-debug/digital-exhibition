@@ -73,14 +73,14 @@ const READ_PLANS = Object.freeze({
 
 const PROFILE_FIELDS = Object.freeze({
   user: Object.freeze(['AD账号', '工号', '姓名', '手机号脱敏值', '邮箱脱敏值', '组织ID', '组织名称', '所属部门ID', '所属部门名称']),
-  permissions: Object.freeze(['AD账号', '主体ID', '状态', '权限编码', '数据范围', '生效时间', '失效时间', '启用']),
+  permissions: Object.freeze(['AD账号', '状态', '权限编码', '启用']),
   messages: Object.freeze(['消息ID', '接收人ID', '消息标题', '消息内容', '分类', '已读状态', '消息时间', '消息类型编码', '消息摘要', '优先级', '发送人ID', '目标类型', '目标ID', '目标路径', '过期时间', '阅读时间']),
   favorites: Object.freeze(['用户ID', '有效']),
   balance: Object.freeze(['用户ID', '当前总积分']),
   cumulativeStats: Object.freeze(['用户ID', '累计访问应用次数', '累计使用应用次数']),
   monthlyStats: Object.freeze(['用户ID', '年月', '当月使用次数']),
   useApplications: Object.freeze(['主键', '应用ID', '申请人ID', '状态', '申请时间', '申请编号', '提交时间', '完成时间']),
-  onboardingApplications: Object.freeze(['申请单号', '关联应用ID', '申请人ID', '状态', '当前审批节点', '提交时间', '退回原因']),
+  onboardingApplications: Object.freeze(['申请单号', '关联应用ID', '应用类型ID', '申请人ID', '表单数据', '应用名称', '应用编码', '所属业务域ID', '摘要', '状态', '当前审批节点', '提交时间', '完成时间', '退回原因', '审批来源', '审批实例ID', '授权用户', '授权部门', '唯一标识', '最近同步时间']),
   reuseApplications: Object.freeze(['申请编号', '应用ID', '申请人ID', '本地状态', '提交时间', '完成时间']),
   apps: Object.freeze(['应用ID', '应用名称'])
 });
@@ -331,7 +331,9 @@ export function createFeishuReadOnlyService(options) {
   }
 
   function identityFilter(tableName, fieldNames, value) {
-    const clauses = fieldNames.map(fieldName => equalityFilter(tableName, fieldName, value));
+    const available = new Set(resolveTable(tableName).fields.map(field => field.name));
+    const clauses = fieldNames.filter(fieldName => available.has(fieldName)).map(fieldName => equalityFilter(tableName, fieldName, value));
+    if (!clauses.length) throw new FeishuProxyError('IDENTIFIER_CONTRACT_MISSING', `飞书身份筛选字段契约缺失：${tableName}`, 503);
     return clauses.length === 1 ? clauses[0] : `OR(${clauses.join(', ')})`;
   }
 
@@ -2506,6 +2508,103 @@ export function createFeishuReadOnlyService(options) {
     return `${operationId}\u0000${policy.code || policy.scope}\u0000${fingerprint(scopeValue)}\u0000${JSON.stringify(stableCacheValue(input || {}))}`;
   }
 
+  function splitReferenceValues(value) {
+    return valueToText(value).split(/[、,，;；|\n]+/).map(item => item.trim()).filter(Boolean);
+  }
+
+  function dateText(value) {
+    if (typeof value === 'number' && Number.isFinite(value)) return new Date(value).toISOString();
+    const text = valueToText(value);
+    if (/^\d{13}$/.test(text)) return new Date(Number(text)).toISOString();
+    return text;
+  }
+
+  function onboardingStatus(value) {
+    const status = valueToText(value).trim().toLocaleUpperCase('zh-CN');
+    if (['PENDING', 'RUNNING', 'PROCESSING', 'SUBMITTED'].includes(status) || /审批中|审核中|待审批|处理中/.test(status)) return 'PENDING';
+    if (['APPROVED', 'COMPLETED', 'PASSED'].includes(status) || /通过|已上架|已发布/.test(status)) return 'APPROVED';
+    if (['REJECTED', 'REFUSED', 'FAILED'].includes(status) || /拒绝|驳回|退回/.test(status)) return 'REJECTED';
+    if (['CANCELLED', 'CANCELED', 'WITHDRAWN'].includes(status) || /取消|撤回/.test(status)) return 'CANCELLED';
+    return status || 'UNKNOWN';
+  }
+
+  function parseOnboardingFormData(value) {
+    const text = valueToText(value).trim();
+    if (!text || (!text.startsWith('{') && !text.startsWith('['))) return {};
+    try {
+      const parsed = JSON.parse(text);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  async function listCurrentOnboardingApplications(requestContext) {
+    const { userId } = requireIdentity(requestContext);
+    const filter = equalityFilter('上架申请', '申请人ID', userId);
+    const [rows, userRows, departmentRows, typeRows, domainRows] = await Promise.all([
+      readAll('上架申请', PROFILE_FIELDS.onboardingApplications, { filter }),
+      readAll('用户字典', PROFILE_FIELDS.user),
+      readAll('部门字典'),
+      readAll('应用类型配置'),
+      readAll('业务域字典')
+    ]);
+    const users = createUserDictionaryLookup(userRows, '姓名');
+    const departments = new Map(departmentRows.map(record => [valueToText(record?.fields?.['部门ID']), valueToText(record?.fields?.['部门名称'])]).filter(([id]) => id));
+    const types = new Map(typeRows.map(record => {
+      const fields = record?.fields || {};
+      return [valueToText(fields['类型ID'] || fields['类型编码']), valueToText(fields['类型名称'])];
+    }).filter(([id]) => id));
+    const domains = new Map(domainRows.map(record => [valueToText(record?.fields?.['业务域ID']), valueToText(record?.fields?.['业务域名称'])]).filter(([id]) => id));
+    return rows.filter(record => valueToText(record?.fields?.['申请人ID']) === userId).map(record => {
+      const fields = record?.fields || {};
+      const form = parseOnboardingFormData(fields['表单数据']);
+      const applicationId = valueToText(fields['申请单号']) || String(record?.record_id || '');
+      const applicationType = valueToText(fields['应用类型ID'] || form.applicationType || form.type);
+      const businessDomain = valueToText(fields['所属业务域ID'] || form.businessDomain || form.domain);
+      const authorizedUserIds = splitReferenceValues(fields['授权用户'] || form.authorizedUsers || form.users);
+      const authorizedDepartmentIds = splitReferenceValues(fields['授权部门'] || form.authorizedDepartments || form.accessDepartment);
+      const status = onboardingStatus(fields['状态']);
+      return Object.freeze({
+        type: 'APP_ONBOARDING',
+        businessId: applicationId,
+        applicationId,
+        resourceId: valueToText(fields['关联应用ID']),
+        uniqueIdentifier: valueToText(fields['唯一标识']),
+        instanceId: valueToText(fields['审批实例ID']),
+        applicationName: valueToText(fields['应用名称'] || form.applicationName || form.name),
+        applicationCode: valueToText(fields['应用编码'] || form.applicationCode || form.code),
+        applicationType,
+        applicationTypeName: types.get(applicationType) || valueToText(form.applicationTypeName) || applicationType,
+        businessDomain,
+        businessDomainName: domains.get(businessDomain) || valueToText(form.businessDomainName) || businessDomain,
+        applicant: userId,
+        applicantName: users.get(userId) || userId,
+        authorizedUsers: authorizedUserIds,
+        authorizedUserNames: authorizedUserIds.map(id => users.get(id) || id),
+        authorizedDepartments: authorizedDepartmentIds.map(id => departments.get(id) || id),
+        submittedAt: dateText(fields['提交时间']),
+        status,
+        currentNode: valueToText(fields['当前审批节点']) || status,
+        completedAt: dateText(fields['完成时间']),
+        rejectionReason: valueToText(fields['退回原因']),
+        lastSyncedAt: dateText(fields['最近同步时间'] || fields['完成时间'] || fields['提交时间']),
+        approvalSource: valueToText(fields['审批来源']),
+        icon: null,
+        attachments: [],
+        detailFields: form
+      });
+    }).filter(item => item.applicationId).sort((left, right) => right.submittedAt.localeCompare(left.submittedAt));
+  }
+
+  async function getCurrentOnboardingApplication(applicationId, requestContext) {
+    const normalizedId = valueToText(applicationId);
+    if (!normalizedId) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '申请详情必须提供 applicationId', 400);
+    const record = (await listCurrentOnboardingApplications(requestContext)).find(item => item.applicationId === normalizedId);
+    if (!record) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '申请不存在或不属于当前用户', 404);
+    return record;
+  }
+
   function cacheEntrySize(entry) {
     try {
       return Buffer.byteLength(JSON.stringify(entry?.value || null), 'utf8');
@@ -2791,6 +2890,8 @@ export function createFeishuReadOnlyService(options) {
     getPerformanceSnapshot,
     invalidateAppProjection,
     invalidateTables,
-    resolveCurrentUserProfile: readCurrentContactProjection
+    resolveCurrentUserProfile: readCurrentContactProjection,
+    listCurrentOnboardingApplications,
+    getCurrentOnboardingApplication
   });
 }

@@ -110,6 +110,11 @@ export function createFeishuOnboardingPocOrchestrator({
         continue;
       }
       const fields = await adminClient.listFields(table.table_id);
+      const countsByName = new Map();
+      for (const field of fields) countsByName.set(String(field.field_name || ''), (countsByName.get(String(field.field_name || '')) || 0) + 1);
+      for (const [fieldName, count] of countsByName) {
+        if (fieldName && count > 1) conflicts.push({ tableName: schema.table_name, fieldName, reason: 'DUPLICATE_FIELD', count });
+      }
       const fieldsByName = new Map(fields.map(field => [String(field.field_name || ''), field]));
       const missing = [];
       for (const expected of schema.fields) {
