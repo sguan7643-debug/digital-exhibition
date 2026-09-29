@@ -6,17 +6,26 @@ const client = createOnboardingUniqueIdentifierClient({
   baseUrl: 'http://approval.example.test/',
   fetchImpl: async (url, options) => {
     calls.push({ url, options });
-    return new Response(JSON.stringify({ code: '00000', data: { uniqueIdentifier: 'ONB_TEST_BACKEND_001' } }), {
+    return new Response(JSON.stringify({
+      code: '00000',
+      data: { uniqueIdentifier: '8f6e7c8d9a234c3b9f1a2e5d6c7b8a90' }
+    }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
   }
 });
 
-assert.equal(await client.getUniqueIdentifier(), 'ONB_TEST_BACKEND_001');
+assert.equal(await client.getUniqueIdentifier(), '8f6e7c8d9a234c3b9f1a2e5d6c7b8a90');
 assert.equal(calls.length, 1);
 assert.equal(calls[0].url, 'http://approval.example.test/api/onboarding/unique-identifier');
 assert.equal(calls[0].options.method, 'GET');
+
+const legacyOnb = createOnboardingUniqueIdentifierClient({
+  baseUrl: 'http://approval.example.test',
+  fetchImpl: async () => Response.json({ code: '00000', data: { uniqueIdentifier: 'ONB_TEST_BACKEND_001' } })
+});
+assert.equal(await legacyOnb.getUniqueIdentifier(), 'ONB_TEST_BACKEND_001');
 
 const invalid = createOnboardingUniqueIdentifierClient({
   baseUrl: 'http://approval.example.test',
@@ -32,8 +41,8 @@ const unavailable = createOnboardingUniqueIdentifierClient({
 const firstFallback = await unavailable.getUniqueIdentifier({ fallbackKey: 'user-1\0attempt-1' });
 const replayedFallback = await unavailable.getUniqueIdentifier({ fallbackKey: 'user-1\0attempt-1' });
 const otherFallback = await unavailable.getUniqueIdentifier({ fallbackKey: 'user-1\0attempt-2' });
-assert.match(firstFallback, /^ONB[A-F0-9]{32}$/);
+assert.match(firstFallback, /^[a-f0-9]{32}$/);
 assert.equal(replayedFallback, firstFallback, '同一申请在后端不可用时必须复用稳定唯一标识');
 assert.notEqual(otherFallback, firstFallback, '不同申请的降级唯一标识不得重复');
 
-console.log('onboarding unique identifier client uses the backend endpoint and rejects empty identifiers');
+console.log('onboarding unique identifier client accepts backend UUID and rejects empty identifiers');
