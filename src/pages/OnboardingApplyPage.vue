@@ -360,14 +360,30 @@ function departmentId(value) {
   return departmentOptions.value.find((item) => item.name === value || item.id === value)?.id
     || value;
 }
+function departmentName(value) {
+  return departmentOptions.value.find((item) => item.name === value || item.id === value)?.name
+    || value;
+}
+function userDisplayName(adAccount) {
+  const account = String(adAccount || "").trim();
+  if (!account) return "";
+  if (account === form.applicant) {
+    return String(sessionApplicant.value?.displayName || "").trim()
+      || userOptions.value.find((item) => item.adAccount === account)?.displayName
+      || account;
+  }
+  return userOptions.value.find((item) => item.adAccount === account)?.displayName || account;
+}
 function buildRpaApprovalRequest() {
+  const applicantDepartmentId = departmentId(form.department);
   return {
     tableId: "tbl1Tvwl7t5RxcMs",
     title: form.name,
     fields: {
       应用名称: form.name,
       应用类型: "T003",
-      所属部门ID: departmentId(form.department),
+      所属部门ID: applicantDepartmentId,
+      申请人所属部门ID: applicantDepartmentId,
       所属业务域ID: form.domain,
       摘要: form.summary,
       应用简介: form.scenario,
@@ -392,6 +408,15 @@ function buildRpaApprovalRequest() {
       应用编码: form.applicationCode,
       备注说明: form.remarks,
       ...buildDetailFields(),
+    },
+    // EAD 表单展示名称；飞书多维表仍用上面的 ID / AD 账号。
+    eadInputs: {
+      applicant: userDisplayName(form.applicant),
+      department: departmentName(form.department),
+      contactDepartment: departmentName(form.contactDepartment),
+      contact: userDisplayName(form.contact),
+      accessDepartment: departmentName(form.accessDepartment),
+      users: userDisplayName(form.users),
     },
   };
 }
