@@ -22,12 +22,12 @@ const publicAssetPath = (fileName) => `${import.meta.env.BASE_URL}${String(fileN
 const remoteCourses = computed(() =>
   remoteState.value === "error" || remoteState.value === "authentication-required" || remoteState.value === "empty" ? [] : props.integrationData?.['TRN-002']?.items?.map((course) => ({
     id: course.courseId,
-    category: course.categoryName || course.categoryCode || "其他",
-    date: course.startAt || "时间待定",
-    title: course.title,
-    speaker: course.lecturerName || "讲师待定",
-    description: course.summary || "暂无课程简介",
-    count: String(course.registeredCount ?? 0),
+    category: course.categoryName || course.categoryCode || "—",
+    date: course.startAt || "—",
+    title: course.title || "—",
+    speaker: course.lecturerName || "—",
+    description: course.summary || "—",
+    count: course.registeredCount === null || course.registeredCount === undefined ? "—" : String(course.registeredCount),
     action: String(course.statusCode).toUpperCase() === "LIVE" ? "进入直播" : "立即报名",
     statusCode: String(course.statusCode || "").toUpperCase(),
     deliveryMode: course.deliveryMode,
@@ -167,7 +167,7 @@ async function enterCourse(course) {
         <dl class="course-status">
           <div>
             <dt>报名人数</dt>
-            <dd>{{ course.count }} 人</dd>
+            <dd>{{ course.count }}<template v-if="course.count !== '—'"> 人</template></dd>
           </div>
           <div>
             <dt>活动形式</dt>

@@ -41,7 +41,7 @@ const validSessionGuard = createFeishuEntryAuthGuard({
   fetchImpl: async () => new Response(JSON.stringify({ authenticated: true, identity: { userId: 'u_test' } }), { status: 200 }),
   redirect: href => redirected.push(href)
 });
-assert.deepEqual(await validSessionGuard.ensureAuthorized(), { authorized: true, render: true });
+assert.deepEqual(await validSessionGuard.ensureAuthorized(), { authorized: true, render: true, identity: { userId: 'u_test' } });
 
 const recoveryRedirects = [];
 let recoverySessionProbes = 0;

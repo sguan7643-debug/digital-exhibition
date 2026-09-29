@@ -41,6 +41,22 @@ assert.equal(callback.headers.Location, '/workbench');
 assert.deepEqual(callback.headers['Set-Cookie'], ['session-cookie', 'clear-cookie']);
 assert.deepEqual(calls[1], ['complete', { code: 'code-test', state: 'state-test', cookieHeader: 'exhibition_feishu_oauth_state=state-test' }]);
 
+const sessionDispatch = createFeishuAuthDispatcher({
+  authService: {
+    ...authService,
+    resolveIdentity() { return { userId: 'u_test', displayName: '测试用户' }; },
+    async resolveSessionProfile() { return { contact: { phone: '13800000000', email: 'user@example.com' } }; }
+  },
+  async resolveIdentityProfile() {
+    return { tenantName: '测试组织', orgId: 'od-org', orgName: '测试组织', departmentId: 'od-dept', departmentName: '测试部门' };
+  }
+});
+const sessionResult = await sessionDispatch({ method: 'GET', url: '/api/v1/auth/feishu/session', headers: { cookie: 'session-cookie' } });
+assert.equal(sessionResult.body.identity.phone, '13800000000');
+assert.equal(sessionResult.body.identity.email, 'user@example.com');
+assert.equal(sessionResult.body.identity.orgName, '测试组织');
+assert.equal(sessionResult.body.identity.departmentName, '测试部门');
+
 const failing = createFeishuAuthDispatcher({
   authService: {
     beginAuthorization() { throw new FeishuProxyError('USER_AUTH_NOT_CONFIGURED', 'sensitive upstream detail', 503); },

@@ -23,7 +23,7 @@ await page.route('**/api/v1/auth/feishu/session', route => route.fulfill({
   body: JSON.stringify({
     code: 'OK',
     authenticated: true,
-    identity: { userId: 'linmm', displayName: '林敏敏' }
+    identity: { userId: 'linmm', displayName: '林敏敏', phone: '13900000000', email: 'linmm@example.com' }
   })
 }));
 await page.route('**/api/v1/operations/COM-003', async route => {
@@ -56,6 +56,42 @@ await page.route('**/api/v1/operations/COM-005', async route => {
     },
     dataStale: false, isComplete: true
   }) });
+});
+await page.route('**/api/v1/operations/batch', async route => {
+  const requestBody = JSON.parse(route.request().postData() || '{}');
+  const dataByOperation = {
+    'APP-001': {
+      total: 0, types: [], categories: [], tags: [], domains: [], scenes: [], typeDetailCounts: [], facetsVersion: 'TEST_APP_FACETS_V1'
+    },
+    'APP-002': {
+      items: [], total: 0, page: 1, pageSize: 20, totalPages: 0, hasPrevious: false, hasNext: false, hasMore: false,
+      sort: 'default', filtersApplied: {}, facetsVersion: 'TEST_APP_FACETS_V1'
+    },
+    'COM-003': {
+      items: [{ orgId: 'D004', orgCode: 'D004', orgName: '物资采购中心', orgType: 'DEPARTMENT', parentId: '', pathIds: ['D004'], pathNames: ['物资采购中心'], level: 1, sortOrder: 1, enabled: true, hasChildren: false, userCount: 1, children: [] }],
+      includeUsers: false, userCount: 1, total: 1, source: 'feishu'
+    },
+    'COM-004': {
+      items: [{ userId: 'linmm', employeeNo: '10001', displayName: '林敏敏', avatarUrl: '', orgId: 'D004', orgName: '物资采购中心', departmentId: 'D004', departmentName: '物资采购中心', officeId: '', officeName: '', title: '测试人员', mobileMasked: '139****0000', emailMasked: 'l***@example.com', enabled: true }],
+      total: 1, page: 1, pageSize: 100, totalPages: 1, hasPrevious: false, hasNext: false, hasMore: false, sort: 'name,asc', filtersApplied: {}, source: 'feishu'
+    },
+    'COM-005': {
+      itemsByType: {
+        APPLICATION_TYPE: [
+          { dictType: 'APPLICATION_TYPE', value: 'T003', label: 'RPA应用', description: null, colorToken: null, iconFileId: null, sortOrder: 3, enabled: true, parentValue: null, extra: null },
+          { dictType: 'APPLICATION_TYPE', value: 'T005', label: '海能work应用', description: null, colorToken: null, iconFileId: null, sortOrder: 5, enabled: true, parentValue: null, extra: null }
+        ],
+        BUSINESS_DOMAIN: [{ dictType: 'BUSINESS_DOMAIN', value: 'BD004', label: '物资采购', description: null, colorToken: null, iconFileId: null, sortOrder: 1, enabled: true, parentValue: null, extra: null }]
+      },
+      version: 'TEST_DICTIONARIES_V1', updatedAt: '2026-09-28T00:00:00.000Z'
+    }
+  };
+  const results = (requestBody.requests || []).map(({ operationId }) => ({
+    operationId,
+    status: 200,
+    body: { code: 'OK', traceId: `trace-${operationId}`, data: dataByOperation[operationId], dataStale: false, isComplete: true }
+  }));
+  await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ code: 'OK', traceId: 'trace-batch', results }) });
 });
 await page.route('**/api/processInstanceStart', async route => {
   if (route.request().method() === 'OPTIONS') {
@@ -113,9 +149,11 @@ await page.route('**/api/v1/onboarding/applications/TEST_APPLICATION*', async ro
 
 async function fillRequiredFields({ type, name, code }) {
   await page.getByLabel('应用类型*').selectOption(type);
-  await page.getByLabel('所属部门*').first().selectOption({ label: '物资采购中心' });
-  await page.getByLabel('联系电话*').first().fill('13900000000');
-  await page.getByLabel('联系邮箱*').first().fill('linmm@example.com');
+  await page.waitForFunction(() => document.querySelector('form.apply-form select[required]')?.value === '物资采购中心');
+  assert.equal(await page.getByLabel('所属部门*').first().inputValue(), '物资采购中心');
+  await page.waitForFunction(() => document.querySelector('input[type="email"]')?.value === 'linmm@example.com');
+  assert.equal(await page.getByLabel('联系电话*').first().inputValue(), '13900000000');
+  assert.equal(await page.getByLabel('联系邮箱*').first().inputValue(), 'linmm@example.com');
   await page.getByLabel('应用名称*').fill(name);
   if (code) await page.getByLabel('应用编码').fill(code);
   await page.getByLabel('所属应用域*').selectOption('BD004');
@@ -158,6 +196,12 @@ try {
     mimeType: 'image/png',
     buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4])
   });
+  await page.getByLabel('联系电话*').first().fill('12345');
+  await page.getByRole('button', { name: '提交审核' }).click();
+  await page.getByRole('heading', { name: '请检查以下 1 项' }).waitFor();
+  await page.getByRole('button', { name: /联系电话：请输入正确的中国大陆手机号/ }).waitFor();
+  assert.equal(approvalRequest, null, '手机号格式错误时不得发起审批请求');
+  await page.getByLabel('联系电话*').first().fill('13900000000');
   await page.getByRole('button', { name: '提交审核' }).click();
   await page.waitForURL('**/apps/onboarding/status');
   assert.equal(approvalRequest?.method, 'POST');

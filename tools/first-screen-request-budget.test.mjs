@@ -73,9 +73,8 @@ assert.equal(syncingResult.state, 'initial-syncing');
 assert.ok(Object.values(syncingResult.sectionRecords).every(record => record.retryAfterSeconds === 2));
 
 const renderedSource = await readFile(new URL('../src/App.vue', import.meta.url), 'utf8');
-assert.match(renderedSource, /integration-recovery/, 'affected first-screen data must render a local recovery region');
-assert.match(renderedSource, /retryIntegration/, 'local recovery region must expose a retry action');
-assert.match(renderedSource, /重试受影响数据/, 'local recovery action must have visible retry text');
+assert.doesNotMatch(renderedSource, /class="integration-recovery"/, 'background recovery must not render a blocking or distracting retry bubble');
+assert.match(renderedSource, /retryIntegration/, 'background recovery must retain its internal retry action');
 assert.match(renderedSource, /request-activity-banner/, 'authenticated first-screen progress must remain visibly announced');
 assert.match(renderedSource, /scheduleInitialSyncRetry/, '首次同步必须按服务端重试提示自动恢复，不得要求用户连续手动点击');
 assert.doesNotMatch(renderedSource, /global-request-loading/, 'authenticated first-screen progress must not cover and disable unaffected regions');

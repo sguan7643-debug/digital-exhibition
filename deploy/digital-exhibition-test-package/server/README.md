@@ -1,7 +1,8 @@
 # 数智展厅飞书只读代理
 
 该目录是浏览器与飞书开放平台之间的服务端安全边界。浏览器只调用同源
-`POST /api/v1/operations/{operationId}`，不得直接持有飞书应用密钥、租户令牌、
+`POST /api/v1/operations/{operationId}`；首页使用 `POST /api/v1/homepage` 聚合读取并通过
+`GET /api/v1/sync-jobs/{syncId}` 查询后台同步状态。浏览器不得直接持有飞书应用密钥、租户令牌、
 Base token、tableId、viewId 或 fieldId。
 
 ## 服务端环境变量
@@ -9,7 +10,11 @@ Base token、tableId、viewId 或 fieldId。
 - `FEISHU_APP_ID`：飞书企业自建应用的 App ID。
 - `FEISHU_APP_SECRET`：对应 App Secret，仅允许存在于服务端环境变量或密钥管理系统。
 - `FEISHU_BASE_TOKEN`：目标多维表格的 app token，仅允许存在于服务端。
+- `FEISHU_UPSTREAM_TIMEOUT_MS`：单次飞书上游请求超时，默认 20000 毫秒。
+- `FEISHU_READ_BUDGET_MS`：整表读取预算，默认 35000 毫秒。
+- `HOMEPAGE_RESPONSE_BUDGET_MS`：首页聚合请求主动收口时间，默认 25000 毫秒且最高 29000 毫秒。
 - `FEISHU_APP_LAUNCH_ALLOWED_HOSTS`：允许应用启动的 HTTPS 主机名，多个值用逗号分隔。未配置时默认拒绝外部启动，禁止自动信任多维表格中的任意 URL。
+- `EXHIBITION_PUBLIC_ORIGIN`：展厅对外访问来源，例如 `https://test-pre-demo-seaoil.xdata.work`。用于多层反向代理未传递原始 Host 时的写请求同源校验；未配置时会使用 `FEISHU_OAUTH_REDIRECT_URI` 的来源作为兜底。
 - `FEISHU_BROWSER_TEST_WRITE_ENABLED=1`：仅在本地联调时允许浏览器进入 TEST_ 写代理；默认关闭。
 - `FEISHU_OAUTH_EVIDENCE_PATH`：可选的本地验收文件路径。真实 OAuth 回调成功时只记录身份存在性、权限数量和写权限布尔值，不记录姓名、用户 ID、Cookie、授权码或令牌。
 - `FEISHU_OAUTH_TEST_WRITE_ACCEPTANCE=1`：仅限本地联调。真实 OAuth 回调后临时创建 `TEST_` 权限，通过正常复合接口执行 `FAV-003`，随后清理收藏记录和临时权限；结果仅以脱敏布尔值写入上述证据文件。
@@ -33,6 +38,8 @@ Base token、tableId、viewId 或 fieldId。
 
 分页默认每页 10 条，可选 10、20、50、100。飞书 `page_token` 只在服务端使用；
 页面按页码请求，代理不会把上游令牌下发给浏览器。
+
+首页聚合覆盖 `COM-001`、`COM-002`、`COM-005`、`WB-001`、`WB-002`。同一租户、身份、权限和输入范围只创建一个后台任务；状态查询不访问飞书。服务启动时先预热公共首页表，`GET /api/v1/health/ready` 在预热完成或存在合规旧快照后返回就绪，`GET /api/v1/health/live` 始终用于进程存活检查。
 
 公告通知表当前没有用户已读状态字段，因此只返回公告总数、分类、发布状态、置顶、
 发布时间和正文摘要；浏览器中的“全部标为已读”保持禁用，不用发布状态伪造已读状态。

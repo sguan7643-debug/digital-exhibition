@@ -13,7 +13,8 @@ assert.match(source, /\['MSG-002'\]/, 'messages page must consume MSG-002 messag
 assert.match(source, /\}\)\)\|\|\[\]\);/, 'missing MSG-002 data must normalize to an empty remote result, never a fixture fallback');
 assert.doesNotMatch(source, /MESSAGE_FIXTURES/, 'business message fixtures must not enter the page');
 assert.match(source, /const rows=remoteRows\.value\.filter/, 'message filters must operate only on real MSG-002 rows');
-assert.match(source, /Number\(value\?\.totalCount\?\?0\)/, 'message statistics must come from MSG-001');
+assert.match(source, /count\(value\?\.totalCount\)/, 'message statistics must come from MSG-001');
+assert.doesNotMatch(source, /(?:totalCount|unreadCount|readCount|todayCount)\s*\?\?\s*0/, 'missing MSG-001 statistics must not be presented as zero');
 assert.match(source, /remoteState\.value\s*===\s*["']error["']/, 'remote errors must render a truthful state');
 assert.match(source, /remoteState\.value\s*===\s*["']authentication-required["']/, 'remote authentication must render a truthful state');
 assert.match(source, /remoteState\.value\s*===\s*["']permission-denied["']/, 'remote permission denial must not be downgraded to an empty message list');

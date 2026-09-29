@@ -143,6 +143,17 @@ function valueToBoolean(value) {
   return ['是', 'true', '1', 'yes', '置顶'].includes(text);
 }
 
+function valueToTimestamp(value) {
+  const text = valueToText(value).trim();
+  if (!text) return Number.NEGATIVE_INFINITY;
+  if (/^\d{10,13}$/.test(text)) {
+    const numeric = Number(text);
+    return text.length === 10 ? numeric * 1_000 : numeric;
+  }
+  const parsed = Date.parse(text.replace(' ', 'T'));
+  return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+}
+
 function valueToJsonObject(value) {
   const text = valueToText(value).trim();
   if (!text) return {};
@@ -731,6 +742,18 @@ export function createFeishuReadOnlyService(options) {
       }
     }
     const departmentNameById = new Map(departments.map(item => [item.id, item.name]));
+    const departmentById = new Map(departments.map(item => [item.id, item]));
+    const departmentPath = departmentId => {
+      const path = [];
+      const seen = new Set();
+      let current = departmentById.get(departmentId);
+      while (current && !seen.has(current.id)) {
+        seen.add(current.id);
+        path.unshift(current);
+        current = departmentById.get(current.parentId);
+      }
+      return path;
+    };
     const usersById = new Map();
     for (const departmentId of ['0', ...departments.map(item => item.id)]) {
       const users = await readContactPage(pageToken => client.listUsersByDepartment(departmentId, {
@@ -741,10 +764,12 @@ export function createFeishuReadOnlyService(options) {
         if (!userId) continue;
         const departmentIds = Array.isArray(item.department_ids) ? item.department_ids.map(valueToText).filter(Boolean) : [];
         const primaryDepartmentId = departmentIds[0] || departmentId;
+        const path = departmentPath(primaryDepartmentId);
+        const organization = path[0] || departmentById.get(primaryDepartmentId);
         usersById.set(userId, {
           userId, employeeNo: valueToText(item.employee_no), displayName: valueToText(item.name),
-          avatarUrl: valueToText(item.avatar?.avatar_72 || item.avatar?.avatar_240), orgId: primaryDepartmentId,
-          orgName: departmentNameById.get(primaryDepartmentId) || '', departmentId: primaryDepartmentId,
+          avatarUrl: valueToText(item.avatar?.avatar_72 || item.avatar?.avatar_240), orgId: organization?.id || primaryDepartmentId,
+          orgName: organization?.name || departmentNameById.get(primaryDepartmentId) || '', departmentId: primaryDepartmentId,
           departmentName: departmentNameById.get(primaryDepartmentId) || '', officeId: '', officeName: '',
           title: valueToText(item.job_title), mobileMasked: '', emailMasked: '',
           enabled: item.status?.is_resigned !== true && item.status?.is_exited !== true && item.status?.is_frozen !== true
@@ -905,6 +930,9 @@ export function createFeishuReadOnlyService(options) {
     const sort = input.sort || 'default';
     if (!['default', 'usage-desc', 'favorites-desc', 'name'].includes(sort)) {
       throw new FeishuProxyError('INVALID_OPERATION_INPUT', '排序方式不受支持', 400);
+    }
+    if (sort === 'default') {
+      rows = [...rows].sort((a, b) => valueToTimestamp(b.updatedAt) - valueToTimestamp(a.updatedAt));
     }
     if (sort === 'usage-desc') rows = [...rows].sort((a, b) => b.usageCount - a.usageCount || a.appId.localeCompare(b.appId));
     if (sort === 'favorites-desc') rows = [...rows].sort((a, b) => b.favoriteCount - a.favoriteCount || a.appId.localeCompare(b.appId));
@@ -1393,18 +1421,37 @@ export function createFeishuReadOnlyService(options) {
     return (!starts || starts <= timestamp) && (!ends || ends >= timestamp);
   }
 
+  async function readCurrentContactProjection(requestContext) {
+    const { identity, userId } = requireIdentity(requestContext);
+    const projection = await getContactProjection();
+    const contact = projection.users.find(item => item.userId === userId) || {};
+    return {
+      userId,
+      employeeNo: valueToText(contact.employeeNo) || valueToText(identity.employeeNo),
+      displayName: valueToText(identity.displayName) || valueToText(contact.displayName),
+      avatarUrl: valueToText(identity.avatarUrl) || valueToText(contact.avatarUrl) || null,
+      tenantId: valueToText(identity.tenantKey),
+      tenantName: valueToText(contact.orgName),
+      orgId: valueToText(contact.orgId),
+      orgName: valueToText(contact.orgName),
+      departmentId: valueToText(contact.departmentId),
+      departmentName: valueToText(contact.departmentName)
+    };
+  }
+
   async function readCurrentUserProjection(requestContext) {
     const { identity, userId } = requireIdentity(requestContext);
     const permissionFilter = identityFilter('用户权限', ['AD账号', '主体ID'], userId);
     const messageFilter = equalityFilter('消息通知', '接收人ID', userId);
     const favoriteFilter = equalityFilter('应用收藏', '用户ID', userId);
     const balanceFilter = equalityFilter('积分余额', '用户ID', userId);
-    const [userRows, permissionRows, messageRows, favoriteRows, balanceRows] = await Promise.all([
+    const [userRows, permissionRows, messageRows, favoriteRows, balanceRows, currentContact] = await Promise.all([
       getDictionaryProjection('用户字典', PROFILE_FIELDS.user),
       readAll('用户权限', PROFILE_FIELDS.permissions, { filter: permissionFilter }),
       readAll('消息通知', PROFILE_FIELDS.messages, { filter: messageFilter }),
       readAll('应用收藏', PROFILE_FIELDS.favorites, { filter: favoriteFilter }),
-      readAll('积分余额', PROFILE_FIELDS.balance, { filter: balanceFilter })
+      readAll('积分余额', PROFILE_FIELDS.balance, { filter: balanceFilter }),
+      readCurrentContactProjection(requestContext).catch(() => null)
     ]);
     const user = userRows.find(record => {
       const fields = record?.fields || {};
@@ -1423,11 +1470,11 @@ export function createFeishuReadOnlyService(options) {
     const favorites = favoriteRows.filter(record => valueToText(record?.fields?.['用户ID']) === userId && dictionaryEnabled(record?.fields || {}, '有效'));
     const balance = balanceRows.find(record => valueToText(record?.fields?.['用户ID']) === userId)?.fields || {};
     return {
-      userId, employeeNo: valueToText(user['工号']) || valueToText(identity.employeeNo), displayName: valueToText(user['姓名']) || valueToText(identity.displayName),
-      avatarFileId: null, avatarUrl: valueToText(identity.avatarUrl) || null,
+      userId, employeeNo: valueToText(currentContact?.employeeNo) || valueToText(user['工号']) || valueToText(identity.employeeNo), displayName: valueToText(currentContact?.displayName) || valueToText(identity.displayName) || valueToText(user['姓名']),
+      avatarFileId: null, avatarUrl: valueToText(currentContact?.avatarUrl) || valueToText(identity.avatarUrl) || null,
       mobileMasked: valueToText(user['手机号脱敏值']) || null, emailMasked: valueToText(user['邮箱脱敏值']) || null,
-      tenantId: valueToText(identity.tenantKey), tenantName: valueToText(user['组织名称']), orgId: valueToText(user['组织ID']), orgName: valueToText(user['组织名称']),
-      departmentId: valueToText(user['所属部门ID']), departmentName: valueToText(user['所属部门名称']), roles: [], permissions: permissionCodes,
+      tenantId: valueToText(identity.tenantKey), tenantName: valueToText(currentContact?.tenantName) || valueToText(user['组织名称']), orgId: valueToText(currentContact?.orgId) || valueToText(user['组织ID']), orgName: valueToText(currentContact?.orgName) || valueToText(user['组织名称']),
+      departmentId: valueToText(currentContact?.departmentId) || valueToText(user['所属部门ID']), departmentName: valueToText(currentContact?.departmentName) || valueToText(user['所属部门名称']), roles: [], permissions: permissionCodes,
       availableOrgIds, unreadMessageCount: messageItems.filter(record => !messageRead(record?.fields || {})).length,
       favoriteCount: favorites.length, pointBalance: valueToNumber(balance['当前总积分']), lastLoginAt: '', locale: 'zh-CN', timezone: 'Asia/Shanghai'
     };
@@ -2743,6 +2790,7 @@ export function createFeishuReadOnlyService(options) {
     waitForIdle,
     getPerformanceSnapshot,
     invalidateAppProjection,
-    invalidateTables
+    invalidateTables,
+    resolveCurrentUserProfile: readCurrentContactProjection
   });
 }

@@ -39,7 +39,10 @@ function errorResult(error) {
   };
 }
 
-function publicIdentity(identity = {}) {
+function publicIdentity(identity = {}, contact = {}, directory = {}) {
+  identity = identity || {};
+  contact = contact || {};
+  directory = directory || {};
   return Object.freeze({
     userId: String(identity.userId || ''),
     adAccount: String(identity.adAccount || ''),
@@ -49,11 +52,18 @@ function publicIdentity(identity = {}) {
     avatarUrl: String(identity.avatarUrl || ''),
     employeeNo: String(identity.employeeNo || ''),
     tenantKey: String(identity.tenantKey || ''),
-    identityType: String(identity.identityType || '')
+    identityType: String(identity.identityType || ''),
+    phone: String(contact.phone || ''),
+    email: String(contact.email || ''),
+    tenantName: String(directory.tenantName || ''),
+    orgId: String(directory.orgId || ''),
+    orgName: String(directory.orgName || ''),
+    departmentId: String(directory.departmentId || ''),
+    departmentName: String(directory.departmentName || '')
   });
 }
 
-export function createFeishuAuthDispatcher({ authService, defaultReturnTo = '/test2/' } = {}) {
+export function createFeishuAuthDispatcher({ authService, resolveIdentityProfile, defaultReturnTo = '/test2/' } = {}) {
   if (!authService?.beginAuthorization || !authService?.completeAuthorization || !authService?.resolveIdentity) {
     throw new Error('飞书授权分发器缺少授权服务');
   }
@@ -65,11 +75,18 @@ export function createFeishuAuthDispatcher({ authService, defaultReturnTo = '/te
     }
     try {
       if (url.pathname === FEISHU_AUTH_PATHS.session) {
-        const identity = authService.resolveIdentity(String(request.headers?.cookie || request.headers?.Cookie || ''));
+        const cookieHeader = String(request.headers?.cookie || request.headers?.Cookie || '');
+        const identity = authService.resolveIdentity(cookieHeader);
         if (!identity) {
           return { status: 401, headers: jsonHeaders, body: { code: 'USER_AUTH_REQUIRED', message: '需要先完成飞书用户授权' } };
         }
-        return { status: 200, headers: jsonHeaders, body: { authenticated: true, identity: publicIdentity(identity) } };
+        const profile = typeof authService.resolveSessionProfile === 'function'
+          ? await authService.resolveSessionProfile(cookieHeader).catch(() => null)
+          : null;
+        const directory = typeof resolveIdentityProfile === 'function'
+          ? await resolveIdentityProfile(identity).catch(() => null)
+          : null;
+        return { status: 200, headers: jsonHeaders, body: { authenticated: true, identity: publicIdentity(identity, profile?.contact, directory) } };
       }
       if (url.pathname === FEISHU_AUTH_PATHS.start) {
         const result = authService.beginAuthorization({ returnTo: url.searchParams.get('returnTo') || '/workbench' });

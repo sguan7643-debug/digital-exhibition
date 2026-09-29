@@ -156,4 +156,22 @@ await assert.rejects(
   }
 );
 
+const messageRequests = [];
+const messageClient = createFeishuOpenApiClient({
+  appId: 'id', appSecret: 'secret', baseToken: 'base',
+  fetchImpl: async (url, options = {}) => {
+    messageRequests.push({ url: String(url), options });
+    if (String(url).endsWith('/auth/v3/tenant_access_token/internal')) {
+      return Response.json({ code: 0, tenant_access_token: 'tenant-token', expire: 7200 });
+    }
+    return Response.json({ code: 0, data: { message_id: 'om_message_001' } });
+  }
+});
+const sentMessage = await messageClient.sendTextMessage({ receiveId: 'user-001', receiveIdType: 'user_id', text: '海能Work应用“测试”已上架。' });
+assert.equal(sentMessage.messageId, 'om_message_001');
+assert.match(messageRequests[1].url, /\/im\/v1\/messages\?receive_id_type=user_id$/);
+assert.deepEqual(JSON.parse(messageRequests[1].options.body), {
+  receive_id: 'user-001', msg_type: 'text', content: JSON.stringify({ text: '海能Work应用“测试”已上架。' })
+});
+
 console.log('Feishu upstream deadline and tenant-token single-flight passed');

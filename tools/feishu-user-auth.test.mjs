@@ -108,6 +108,9 @@ const serverSession = service.resolveSession('exhibition_feishu_session=random-2
 assert.deepEqual(serverSession.identity, completed.identity);
 assert.equal(serverSession.accessToken, 'user-token-must-stay-server-side');
 assert.doesNotMatch(JSON.stringify(completed), /accessToken|user-token/);
+const currentProfile = await service.resolveSessionProfile('exhibition_feishu_session=random-2');
+assert.deepEqual(currentProfile.contact, { phone: '+8613800000000', email: 'must-not-leak@example.invalid' });
+assert.equal(requests.length, 2, 'current-user contact must reuse the freshly authorized profile cache');
 assert.equal(service.resolveSession('exhibition_feishu_session=unknown'), null);
 
 await assert.rejects(

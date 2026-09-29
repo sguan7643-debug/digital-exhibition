@@ -1,0 +1,69 @@
+{
+  "task_id": "DEH-REAL-DATA-AUDIT-20260929",
+  "title": "系统真实数据展示与静态假数据清理审计",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "审计并修复系统中已有真实数据却仍展示静态测试数据、示例编码或错误回退值的问题。",
+  "target_user": "登录数智产品展厅并查看个人、应用、申请、消息、培训、运营及人才信息的飞书授权用户。",
+  "in_scope": [
+    "扫描全部 Vue 页面、共享组件和前端映射中的用户可见静态测试数据",
+    "核对已有真实接口字段是否被正常映射和展示",
+    "将正常态中的静态身份、组织、部门及业务记录替换为当前授权用户或真实接口数据",
+    "真实字段缺失时使用明确空值或空态而不是伪造数据",
+    "补充自动化回归并重新构建测试环境部署包"
+  ],
+  "out_of_scope": [
+    "修改飞书多维表结构或现有业务数据",
+    "修改生产环境配置或直接部署发布",
+    "新增后端数据库或新的外部服务",
+    "重新设计页面视觉风格或导航信息架构",
+    "把测试文件中的受控夹具误判为线上静态数据"
+  ],
+  "success_metric": "所有正常态页面均由当前授权会话或既有真实接口提供用户可见业务数据；扫描与回归测试确认不存在会进入正式构建的静态测试身份、部门或伪造业务记录。",
+  "deadline": "2026-09-30 用户下次检查前",
+  "risk_level": "medium",
+  "state": "development",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "User / Product Owner",
+      "approved_at": "2026-09-28T18:50:52.2483188Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "User / Product Owner",
+      "approved_at": "2026-09-29T00:18:56.1550657Z"
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": false,
+    "mobile_passed": false,
+    "web_evidence": "",
+    "web_checked_at": "",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": false,
+    "blocking_defects": 0,
+    "evidence": "",
+    "recorded_at": ""
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

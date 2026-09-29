@@ -13,15 +13,23 @@ const pageState=computed(()=>{
   if(props.integrationState==='disabled')return 'disabled';
   return summary.value?.user?'normal':'empty';
 });
-const identity=computed(()=>summary.value?.user||null);
+function mergeIdentity(summaryIdentity, sessionValue){
+  const result={...(summaryIdentity||{})};
+  for(const [key,value] of Object.entries(sessionValue||{}))if(value!==''&&value!=null)result[key]=value;
+  return result;
+}
+const identity=computed(()=>mergeIdentity(summary.value?.user,sessionIdentity.value));
 const verificationCopyMessage=ref('');
 const sessionIdentity=ref(null);
 const sessionChecked=ref(false);
 const sessionIdentityError=ref('');
 const verificationUserId=computed(()=>String(sessionIdentity.value?.userId||identity.value?.userId||''));
+function optionalNumber(value){const number=Number(value);return value!==null&&value!==undefined&&Number.isFinite(number)?number:null;}
+function numberText(value){const number=optionalNumber(value);return number===null?'—':number.toLocaleString('zh-CN');}
+function monthChangeText(value){const number=optionalNumber(value);return number===null?'—':`本月　${number>=0?'+':''}${number}`;}
 const stats=computed(()=>{
   const value=summary.value?.stats;if(!value)return [];
-  return [['我的积分',String(value.pointBalance),'积分',`本月　${value.pointMonthIncrease>=0?'+':''}${value.pointMonthIncrease}`,'/assets/profile-stat-points.png'],['收藏应用',String(value.favoriteCount),'个','应用收藏','/assets/profile-stat-favorite.png'],['应用访问次数',String(value.appVisitCount),'次','累计访问','/assets/profile-stat-visits.png'],['应用使用次数',String(value.appUseCount),'次','累计使用','/assets/profile-stat-use.png']];
+  return [['我的积分',numberText(value.pointBalance),'积分',monthChangeText(value.pointMonthIncrease),'/assets/profile-stat-points.png'],['收藏应用',numberText(value.favoriteCount),'个','应用收藏','/assets/profile-stat-favorite.png'],['应用访问次数',numberText(value.appVisitCount),'次','累计访问','/assets/profile-stat-visits.png'],['应用使用次数',numberText(value.appUseCount),'次','累计使用','/assets/profile-stat-use.png']];
 });
 const quick=computed(()=>(summary.value?.quickEntries||[]).map(item=>[item.name,item.description,safeLocalPath(item.path),item.enabled]));
 const notices=computed(()=>(summary.value?.recentMessages||[]).map(item=>[item.typeName,item.title,item.occurredAt,safeLocalPath(item.targetPath)]));
@@ -43,7 +51,7 @@ async function loadSessionIdentity(){
     const body=await response.json();
     const userId=String(body?.identity?.userId||'').trim();
     if(!userId)throw new Error('session-user-id-missing');
-    sessionIdentity.value={userId};
+    sessionIdentity.value=body.identity;
   }catch{
     sessionIdentityError.value='未读取到授权账号标识；请重新完成飞书授权后再试。';
   }finally{sessionChecked.value=true;}
@@ -74,7 +82,6 @@ async function copyVerificationUserId(){
     <div class="profile-bottom"><section><header><h2>最近消息 / 公告</h2><a href="/messages">全部消息　›</a></header><ul><li v-for="(notice,index) in notices" :key="`${notice[1]}-${index}`"><mark>{{ notice[0] }}</mark><a v-if="notice[3]" :href="notice[3]">{{ notice[1] }}</a><button v-else type="button" :disabled="remoteMode" @click="profile.markRead(`profile-message-${String(index+1).padStart(3,'0')}`)">{{ notice[1] }}</button><time>{{ notice[2] }}</time></li></ul><footer><a href="/messages">查看更多　›</a></footer></section><section><header><h2>我的待办 / 申请进度</h2><a href="/profile">全部待办　›</a></header><ul class="tasks"><li v-for="(task,index) in tasks" :key="`${task[0]}-${index}`"><i aria-hidden="true"></i><span><a v-if="task[3]" :href="task[3]"><strong>{{ task[0] }}</strong></a><strong v-else>{{ task[0] }}</strong><small>{{ task[1] }}</small></span><mark :class="task[2]">{{ task[2] }}</mark></li></ul><footer><a href="/profile">查看更多　›</a></footer></section></div>
     </template>
     <section v-if="remoteMode&&sessionChecked" class="session-verification" aria-live="polite"><template v-if="verificationUserId"><strong>授权验证账号标识</strong><code>{{ verificationUserId }}</code><button type="button" @click="copyVerificationUserId">复制</button><small v-if="verificationCopyMessage" role="status">{{ verificationCopyMessage }}</small></template><span v-else>{{ sessionIdentityError }}</span></section>
-    <footer class="copyright"><span>物资供应领域数智化转型平台　© 2025 版权所有</span><span>建议使用 1920*1080 及以上分辨率浏览</span></footer>
   </div>
 </template>
 

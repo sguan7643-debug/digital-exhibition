@@ -15,12 +15,13 @@ assert.equal(projectController.drawerOpen, false, '人才项目默认不得打�
 assert.equal(peopleController.pageSize, 10, '人才库默认每页必须为 10 条');
 assert.equal(projectController.pageSize, 10, '人才项目默认每页必须为 10 条');
 
-for (const column of ['年龄','本期是否在库','领域/专业','责任科室','能力标签-新','培养方向','轮岗计划-开始时间','轮岗计划-结束时间']) {
+for (const column of ['年龄','本期是否在库','领域/专业','责任科室','能力标签-新','培养方向']) {
   assert.ok(people.includes(`<th scope="col">${column}</th>`), `人才库必须恢复冻结参考列：${column}`);
 }
-for (const binding of ['person.age','person.inPool','person.office','person.tags','person.direction','person.start','person.end']) {
+for (const binding of ['person.age','person.inPool','person.office','person.tags','person.direction']) {
   assert.ok(people.includes(`{{ ${binding} }}`), `人才库必须呈现确定性字段：${binding}`);
 }
+assert.doesNotMatch(people, /<th scope="col">轮岗计划-(?:开始|结束)时间<\/th>|\{\{ person\.(?:start|end) \}\}/, 'TAL-001 未提供轮岗字段时不得保留伪造列表值');
 assert.doesNotMatch(people, /onMounted\([^)]*controller\.open/s, '人才库 mounted 不得隐式打开详情');
 assert.doesNotMatch(projects, /onMounted\([^)]*controller\.open(?:Create|Edit)/s, '人才项目 mounted 不得隐式打开新增或编辑抽屉');
 assert.doesNotMatch(progress, /role="dialog"|drawer-open/, '项目进度默认页不得伪造抽屉');
@@ -46,4 +47,4 @@ for (const [source, marker, label] of [
   [progress, /grid-template-columns:1\.4fr repeat\(4,1fr\) auto auto;gap:20px/, '项目进度筛选']
 ]) assert.match(source, marker, `${label}必须采用新版 UI 的响应式列宽`);
 
-console.log('人才三页冻结列、默认关闭抽屉、10条分页与紧凑表格密度合同通过');
+console.log('人才三页权威字段、默认关闭抽屉、10条分页与紧凑表格密度合同通过');

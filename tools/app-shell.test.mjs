@@ -40,6 +40,10 @@ assert.match(shell, /canViewAnnouncements\(viewerRole\.value\)/,
   '顶栏公告通知必须依据稳定的浏览者身份判断');
 assert.match(shell, /retainViewerRole\(viewerRole\.value, nextRole\)/,
   '管理员进入普通角色标记的公告页后不得丢失身份');
+assert.doesNotMatch(shell, /张三丰|物资采购中心/,
+  '顶栏不得展示静态测试用户和静态部门');
+assert.match(shell, /accountIdentity/,
+  '顶栏必须展示首入授权会话返回的用户身份');
 assert.doesNotMatch(shell, /includes\(props\.page\.role\)/,
   '公告权限不得继续直接依赖目标页面角色');
 const primaryNavSource = shell.split('const primaryNav = [')[1].split('];')[0];

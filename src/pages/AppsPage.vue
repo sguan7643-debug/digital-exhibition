@@ -51,7 +51,10 @@ const remoteDetailCountByCategory = computed(() => new Map(
   (Array.isArray(props.integrationData?.['APP-001']?.typeDetailCounts)
     ? props.integrationData['APP-001'].typeDetailCounts
     : [])
-    .map((item) => [item.category, Number(item.count) || 0]),
+    .map((item) => {
+      const count = Number(item.count);
+      return [item.category, item.count !== null && item.count !== undefined && Number.isFinite(count) ? count : null];
+    }),
 ));
 const appCategories = computed(() => [...new Set([
   ...remoteDetailCountByCategory.value.keys(),
@@ -61,8 +64,7 @@ const appTypeStats = computed(() =>
   appCategories.value.map((category) => ({
     category,
     labelParts: category === "海能work应用" ? ["海能work", "应用"] : [category],
-    count: remoteDetailCountByCategory.value.get(category)
-      || displayedApps.value.filter(app => normalizeAppCategory(app.category) === category).length,
+    count: remoteDetailCountByCategory.value.get(category) ?? "—",
     icon: categoryIconName(category),
   })),
 );
@@ -258,7 +260,7 @@ onBeforeUnmount(() => {
         aria-label="排序"
         @change="controller.setSort($event.target.value)"
       >
-        <option value="default">综合排序</option>
+        <option value="default">最近更新</option>
         <option value="usage-desc">使用量从高到低</option>
         <option value="favorites-desc">收藏量从高到低</option>
         <option value="name">名称排序</option></select>

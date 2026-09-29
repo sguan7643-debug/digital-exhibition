@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { FeishuProxyError } from './feishu-open-api-client.mjs';
 import { createFeishuProxyFetch } from './feishu-proxy-dispatcher.mjs';
 
@@ -95,10 +97,46 @@ export function createFeishuUserAuthService(options = {}) {
   const onAuthorized = options.onAuthorized;
   const stateTtlSeconds = Number(options.stateTtlSeconds || 300);
   const sessionTtlSeconds = Number(options.sessionTtlSeconds || 8 * 60 * 60);
+  const storeFile = String(options.storeFile ?? process.env.FEISHU_USER_AUTH_STORE_PATH ?? '').trim();
   const credentialsReady = Boolean(appId && appSecret && redirectUri);
   const secureCookies = redirectUri.startsWith('https://');
   const pendingStates = new Map();
   const sessions = new Map();
+  const contactCache = new Map();
+
+  function persistStore() {
+    if (!storeFile) return;
+    const temporaryFile = `${storeFile}.${process.pid}.tmp`;
+    try {
+      mkdirSync(dirname(storeFile), { recursive: true });
+      writeFileSync(temporaryFile, JSON.stringify({
+        version: 1,
+        pendingStates: [...pendingStates.entries()],
+        sessions: [...sessions.entries()]
+      }), { encoding: 'utf8', mode: 0o600 });
+      renameSync(temporaryFile, storeFile);
+    } catch {
+      try { unlinkSync(temporaryFile); } catch {}
+    }
+  }
+
+  function loadStore() {
+    if (!storeFile) return;
+    try {
+      const parsed = JSON.parse(readFileSync(storeFile, 'utf8'));
+      if (parsed?.version !== 1) return;
+      for (const [state, item] of Array.isArray(parsed.pendingStates) ? parsed.pendingStates : []) {
+        if (typeof state === 'string' && item && typeof item.returnTo === 'string' && Number.isFinite(item.expiresAt)) {
+          pendingStates.set(state, { returnTo: item.returnTo, expiresAt: item.expiresAt });
+        }
+      }
+      for (const [sessionId, item] of Array.isArray(parsed.sessions) ? parsed.sessions : []) {
+        if (typeof sessionId === 'string' && item?.identity && typeof item.accessToken === 'string' && Number.isFinite(item.expiresAt)) {
+          sessions.set(sessionId, { identity: Object.freeze({ ...item.identity }), accessToken: item.accessToken, expiresAt: item.expiresAt });
+        }
+      }
+    } catch {}
+  }
 
   function requireConfiguration() {
     if (!credentialsReady) {
@@ -112,9 +150,21 @@ export function createFeishuUserAuthService(options = {}) {
 
   function removeExpired() {
     const timestamp = now();
-    for (const [state, item] of pendingStates) if (item.expiresAt <= timestamp) pendingStates.delete(state);
-    for (const [sessionId, item] of sessions) if (item.expiresAt <= timestamp) sessions.delete(sessionId);
+    let changed = false;
+    for (const [state, item] of pendingStates) if (item.expiresAt <= timestamp) {
+      pendingStates.delete(state);
+      changed = true;
+    }
+    for (const [sessionId, item] of sessions) if (item.expiresAt <= timestamp) {
+      sessions.delete(sessionId);
+      contactCache.delete(sessionId);
+      changed = true;
+    }
+    if (changed) persistStore();
   }
+
+  loadStore();
+  removeExpired();
 
   function beginAuthorization({ returnTo = '/workbench' } = {}) {
     requireConfiguration();
@@ -122,6 +172,7 @@ export function createFeishuUserAuthService(options = {}) {
     const normalizedReturnTo = normalizeReturnTo(returnTo);
     const state = randomId();
     pendingStates.set(state, { returnTo: normalizedReturnTo, expiresAt: now() + stateTtlSeconds * 1000 });
+    persistStore();
     const url = new URL(AUTHORIZE_URL);
     url.searchParams.set('client_id', appId);
     url.searchParams.set('response_type', 'code');
@@ -162,7 +213,13 @@ export function createFeishuUserAuthService(options = {}) {
         upstreamCode: Number.isInteger(result.code) ? result.code : undefined
       });
     }
-    return sanitizedIdentity(result.data);
+    return Object.freeze({
+      identity: sanitizedIdentity(result.data),
+      contact: Object.freeze({
+        phone: String(result.data.mobile || ''),
+        email: String(result.data.enterprise_email || result.data.email || '')
+      })
+    });
   }
 
   async function completeAuthorization({ code, state, cookieHeader = '' } = {}) {
@@ -176,10 +233,14 @@ export function createFeishuUserAuthService(options = {}) {
     const pending = pendingStates.get(normalizedState);
     if (!pending) throw new FeishuProxyError('OAUTH_STATE_INVALID', '飞书授权状态已失效或已使用', 401);
     pendingStates.delete(normalizedState);
+    persistStore();
     const accessToken = await exchangeCode(validateCode(code));
-    const identity = await fetchUserInfo(accessToken);
+    const profile = await fetchUserInfo(accessToken);
+    const identity = profile.identity;
     const sessionId = randomId();
     sessions.set(sessionId, { identity, accessToken, expiresAt: now() + sessionTtlSeconds * 1000 });
+    contactCache.set(sessionId, { ...profile.contact, expiresAt: now() + 10 * 60 * 1000 });
+    persistStore();
     if (typeof onAuthorized === 'function') {
       await Promise.resolve(onAuthorized(identity)).catch(() => {});
     }
@@ -201,7 +262,32 @@ export function createFeishuUserAuthService(options = {}) {
     return sessionId ? sessions.get(sessionId) || null : null;
   }
 
-  return Object.freeze({ credentialsReady, beginAuthorization, completeAuthorization, resolveIdentity, resolveSession });
+  async function resolveSessionProfile(cookieHeader = '') {
+    removeExpired();
+    const sessionId = parseCookies(cookieHeader)[SESSION_COOKIE];
+    const session = sessionId ? sessions.get(sessionId) || null : null;
+    if (!session) return null;
+    let contact = contactCache.get(sessionId);
+    if (!contact || contact.expiresAt <= now()) {
+      const profile = await fetchUserInfo(session.accessToken);
+      if ((session.identity.userId && profile.identity.userId !== session.identity.userId)
+        || (session.identity.openId && profile.identity.openId !== session.identity.openId)) {
+        throw new FeishuProxyError('FEISHU_SESSION_IDENTITY_MISMATCH', '飞书会话用户信息不一致', 403);
+      }
+      contact = { ...profile.contact, expiresAt: now() + 10 * 60 * 1000 };
+      contactCache.set(sessionId, contact);
+    }
+    return Object.freeze({
+      identity: session.identity,
+      contact: Object.freeze({ phone: String(contact.phone || ''), email: String(contact.email || '') })
+    });
+  }
+
+  function clearStateCookie() {
+    return createCookie(STATE_COOKIE, '', { maxAge: 0, secure: secureCookies });
+  }
+
+  return Object.freeze({ credentialsReady, beginAuthorization, completeAuthorization, resolveIdentity, resolveSession, resolveSessionProfile, clearStateCookie });
 }
 
 export const FEISHU_AUTH_PATHS = Object.freeze({

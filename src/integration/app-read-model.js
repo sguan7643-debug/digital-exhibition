@@ -41,6 +41,11 @@ export function resolveApplicationCategoryKey(record = {}) {
   return CATEGORY_BY_TYPE[String(record.typeCode || '').trim().toUpperCase()] || '';
 }
 
+function optionalCount(value) {
+  const number = Number(value);
+  return value !== null && value !== undefined && Number.isFinite(number) && number >= 0 ? number : '—';
+}
+
 function resolveApplicationDetailRoute(record = {}) {
   const route = resolveApplicationRoute(record);
   const appId = String(record.appId || record.id || '').trim();
@@ -59,8 +64,8 @@ export function mapRemoteApp(record = {}) {
     type: String(record.typeName || record.categoryName || ''),
     scene: String(record.businessScope || record.domainName || ''), domain: String(record.domainName || ''),
     tag: String(record.tags?.[0] || record.categoryName || record.typeName || ''),
-    description: String(record.summary || record.description || ''), usage: Number(record.usageCount || 0),
-    favorites: Number(record.favoriteCount || 0), department: String(record.ownerDepartmentName || record.departmentName || ''),
+    description: String(record.summary || record.description || ''), usage: optionalCount(record.usageCount),
+    favorites: optionalCount(record.favoriteCount), department: String(record.ownerDepartmentName || record.departmentName || ''),
     owner: String(record.ownerName || ''), developerDepartment: String(record.developerDepartmentName || ''),
     developer: String(record.developerName || ''), accessMode: String(record.accessMode || '').toLowerCase() === 'direct' ? 'direct' : 'apply',
     route: resolveApplicationDetailRoute(record)

@@ -66,14 +66,9 @@ try {
   });
   const response = await recoveryPage.goto(`${origin}/workbench`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
   assert.equal(response?.status(), 200);
-  await recoveryPage.waitForSelector('.integration-recovery', { timeout: 10_000 });
-  const recoverySemantics = await recoveryPage.locator('.integration-recovery').evaluate(node => ({
-    role: node.getAttribute('role'),
-    live: node.getAttribute('aria-live'),
-    animation: getComputedStyle(node).animationName
-  }));
-  assert.deepEqual(recoverySemantics, { role: 'status', live: 'polite', animation: 'none' });
-  await recoveryPage.waitForSelector('.integration-recovery', { state: 'detached', timeout: 10_000 });
+  await recoveryPage.waitForFunction(() => !document.querySelector('.integration-recovery'));
+  await recoveryPage.waitForFunction(() => window.performance.getEntriesByType('resource').length >= 0 && document.readyState !== 'loading');
+  await recoveryPage.waitForTimeout(1_300);
   assert.equal(aggregateCalls, 2, '完成后只允许一次聚合重取');
   assert.equal(statusCalls, 1, '恢复路径只需一次完成状态查询');
   await recoveryPage.close();
@@ -95,20 +90,9 @@ try {
       });
     });
     await page.goto(`${origin}/workbench`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
-    const bubble = page.locator('.integration-recovery');
-    await bubble.waitFor({ timeout: 10_000 });
-    const geometry = await bubble.evaluate(node => {
-      const rect = node.getBoundingClientRect();
-      return { left: rect.left, right: rect.right, width: rect.width, viewport: document.documentElement.clientWidth };
-    });
-    assert.ok(geometry.left >= 0 && geometry.right <= geometry.viewport && geometry.width <= geometry.viewport, `气泡必须适配 ${width}px`);
-    const retry = page.getByRole('button', { name: '重试受影响数据' });
-    const close = page.getByRole('button', { name: '关闭数据请求提示' });
-    assert.equal(await retry.isEnabled(), true);
-    assert.equal(await close.isEnabled(), true);
-    await close.click();
-    await page.waitForTimeout(2_200);
-    assert.equal(await bubble.count(), 0, '同一失败任务轮询后不得重新弹出已关闭气泡');
+    assert.equal(await page.locator('.integration-recovery').count(), 0, `后台同步气泡在 ${width}px 下均不得展示`);
+    await page.waitForTimeout(1_200);
+    assert.equal(await page.locator('.integration-recovery').count(), 0, '后台轮询期间不得重新弹出同步气泡');
     assert.ok(polls >= 1, '关闭气泡不得停止后台轻量状态轮询');
     await page.close();
   }
@@ -116,4 +100,4 @@ try {
   await browser.close();
 }
 
-console.log('homepage aggregate browser recovery, dismissal, accessibility, reduced-motion, and 320/760/1366/1920 layouts passed');
+console.log('homepage aggregate background recovery stays silent across 320/760/1366/1920 layouts');

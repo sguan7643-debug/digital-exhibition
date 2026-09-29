@@ -80,7 +80,10 @@ export function createFeishuEntryAuthGuard({
     } catch {
       return unavailable();
     }
-    if (response.ok) return { authorized: true, render: true };
+    if (response.ok) {
+      const body = await response.json().catch(() => ({}));
+      return { authorized: true, render: true, identity: body?.identity || null };
+    }
     if (response.status === 401) {
       return beginAuthorization(current);
     }

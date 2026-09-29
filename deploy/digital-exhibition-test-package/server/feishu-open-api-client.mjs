@@ -4,8 +4,8 @@ const API_ROOT = 'https://open.feishu.cn/open-apis';
 const PAGE_SIZES = new Set([10, 20, 50, 100]);
 
 export function resolveFeishuUpstreamTimeoutMs(value) {
-  const configured = Number(value ?? 12_000);
-  return Number.isFinite(configured) && configured > 0 ? Math.min(configured, 12_000) : 12_000;
+  const configured = Number(value ?? 20_000);
+  return Number.isFinite(configured) && configured > 0 ? configured : 20_000;
 }
 
 export class FeishuProxyError extends Error {
@@ -283,6 +283,75 @@ export function createFeishuOpenApiClient(options = {}) {
     return { ok: true };
   }
 
+  async function sendTextMessage({ receiveId, receiveIdType = 'user_id', text } = {}) {
+    const normalizedReceiveId = String(receiveId || '').trim();
+    const normalizedText = String(text || '').trim();
+    const allowedReceiveIdTypes = new Set(['user_id', 'open_id', 'union_id', 'email', 'chat_id']);
+    if (!normalizedReceiveId || normalizedReceiveId.length > 256) {
+      throw new FeishuProxyError('INVALID_MESSAGE_RECIPIENT', '飞书消息接收人标识非法', 400);
+    }
+    if (!allowedReceiveIdTypes.has(receiveIdType)) {
+      throw new FeishuProxyError('INVALID_MESSAGE_RECIPIENT_TYPE', '飞书消息接收人类型非法', 400);
+    }
+    if (!normalizedText || normalizedText.length > 4000) {
+      throw new FeishuProxyError('INVALID_MESSAGE_TEXT', '飞书消息内容不能为空且不能超过 4000 个字符', 400);
+    }
+    const token = await getTenantToken();
+    const url = new URL(`${API_ROOT}/im/v1/messages`);
+    url.searchParams.set('receive_id_type', receiveIdType);
+    const response = await fetchUpstream(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+        'Content-Type': 'application/json; charset=utf-8'
+      },
+      body: JSON.stringify({
+        receive_id: normalizedReceiveId,
+        msg_type: 'text',
+        content: JSON.stringify({ text: normalizedText })
+      })
+    }, '/im/v1/messages');
+    const body = await safeJson(response);
+    if (!response.ok || body.code !== 0 || !body.data?.message_id) {
+      const status = response.status === 401 ? 401 : response.status === 403 ? 403 : response.status === 429 ? 429 : 502;
+      throw new FeishuProxyError('FEISHU_MESSAGE_SEND_FAILED', '飞书上架通知发送失败', status, {
+        upstreamCode: Number.isInteger(body.code) ? body.code : undefined,
+        upstreamMessage: String(body.msg || body.error_msg || '').slice(0, 240),
+        upstreamRequestId: String(body.request_id || body.RequestId || '').slice(0, 120),
+        upstreamPath: '/im/v1/messages',
+        upstreamDetails: safeUpstreamDetails(body.data)
+      });
+    }
+    return Object.freeze({ messageId: String(body.data.message_id) });
+  }
+
+  async function getContactUser(userId) {
+    const normalized = String(userId || '').trim();
+    if (!normalized || normalized.length > 256) throw new FeishuProxyError('INVALID_CONTACT_USER_ID', '飞书用户标识非法', 400);
+    const token = await getTenantToken();
+    const url = new URL(`${API_ROOT}/contact/v3/users/${encodeURIComponent(normalized)}`);
+    url.searchParams.set('user_id_type', 'user_id');
+    url.searchParams.set('department_id_type', 'open_department_id');
+    const response = await fetchUpstream(url, {
+      method: 'GET', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+    }, '/contact/v3/users/{userId}');
+    const body = await safeJson(response);
+    if (!response.ok || body.code !== 0 || !body.data?.user) {
+      const status = response.status === 401 ? 401 : response.status === 403 ? 403 : response.status === 404 ? 404 : response.status === 429 ? 429 : 502;
+      throw new FeishuProxyError('FEISHU_CONTACT_USER_FAILED', '飞书用户名称读取失败', status, {
+        upstreamCode: Number.isInteger(body.code) ? body.code : undefined,
+        upstreamMessage: String(body.msg || body.error_msg || '').slice(0, 240),
+        upstreamPath: '/contact/v3/users/{userId}'
+      });
+    }
+    const user = body.data.user;
+    return Object.freeze({
+      userId: String(user.user_id || normalized),
+      displayName: String(user.name || user.en_name || user.nickname || user.user_id || normalized)
+    });
+  }
+
   async function listRecords(tableId, query = {}) {
     requireCredentials();
     if (!/^tbl[A-Za-z0-9]+$/.test(tableId || '')) throw new FeishuProxyError('INVALID_TABLE_ID', '飞书表标识非法', 400);
@@ -405,9 +474,48 @@ export function createFeishuOpenApiClient(options = {}) {
     return { items: body.data?.items || [], hasMore: Boolean(body.data?.has_more), nextPageToken: body.data?.page_token || '' };
   };
 
+  async function preflightOnboardingPocActor({ session } = {}) {
+    const accessToken = String(session?.accessToken || '');
+    const expectedUserId = String(session?.identity?.userId || '');
+    const expectedOpenId = String(session?.identity?.openId || '');
+    if (!accessToken || (!expectedUserId && !expectedOpenId)) throw new FeishuProxyError('POC_REAL_APPROVER_REQUIRED', '真实申请人和审批人会话不可用', 401);
+    const identityResponse = await fetchUpstream(`${API_ROOT}/authen/v1/user_info`, {
+      method: 'GET', headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' }
+    }, '/authen/v1/user_info');
+    const identityBody = await safeJson(identityResponse);
+    if (!identityResponse.ok || identityBody.code !== 0 || !identityBody.data) {
+      throw new FeishuProxyError('POC_IDENTITY_PREFLIGHT_FAILED', '飞书用户身份只读预检失败', identityResponse.status === 401 ? 401 : identityResponse.status === 403 ? 403 : 502);
+    }
+    const userId = String(identityBody.data.user_id || '');
+    const openId = String(identityBody.data.open_id || '');
+    if ((expectedUserId && expectedUserId !== userId) || (expectedOpenId && expectedOpenId !== openId)) {
+      throw new FeishuProxyError('POC_IDENTITY_MISMATCH', '飞书会话身份与申请人不一致', 403);
+    }
+    if (!userId) throw new FeishuProxyError('POC_APPROVER_UNAVAILABLE', '飞书审批人不存在或不可用', 409);
+    const token = await getTenantToken();
+    const contactUrl = new URL(`${API_ROOT}/contact/v3/users/${encodeURIComponent(userId)}`);
+    contactUrl.searchParams.set('user_id_type', 'user_id');
+    contactUrl.searchParams.set('department_id_type', 'open_department_id');
+    const contactResponse = await fetchUpstream(contactUrl, {
+      method: 'GET', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+    }, '/contact/v3/users/{userId}');
+    const contactBody = await safeJson(contactResponse);
+    if (contactResponse.status === 403) throw new FeishuProxyError('POC_APPROVER_CAPABILITY_FORBIDDEN', '应用缺少审批人身份只读校验权限', 403);
+    if (!contactResponse.ok || contactBody.code !== 0 || !contactBody.data?.user) {
+      throw new FeishuProxyError('POC_APPROVER_UNAVAILABLE', '飞书审批人不存在或不可用', contactResponse.status === 404 ? 404 : 502);
+    }
+    const contactUser = contactBody.data.user;
+    const status = contactUser.status || {};
+    const active = status.is_activated !== false && status.is_frozen !== true && status.is_resigned !== true;
+    if (String(contactUser.user_id || '') !== userId || !active) throw new FeishuProxyError('POC_APPROVER_UNAVAILABLE', '飞书审批人未激活、已冻结或已离职', 409);
+    return Object.freeze({ userId, openId, active: true, identityVerified: true, approverCapabilityVerified: true });
+  }
+
   return Object.freeze({
     credentialsReady, listRecords, downloadMedia, listDepartmentChildren,
     listUsersByDepartment: listUsersByDepartmentWithId,
-    createApprovalDefinition, createApprovalInstance, getApprovalInstance, approveApprovalTask
+    preflightOnboardingPocActor,
+    createApprovalDefinition, createApprovalInstance, getApprovalInstance, approveApprovalTask,
+    sendTextMessage, getContactUser
   });
 }

@@ -102,6 +102,7 @@ export function createFeishuUserAuthService(options = {}) {
   const secureCookies = redirectUri.startsWith('https://');
   const pendingStates = new Map();
   const sessions = new Map();
+  const contactCache = new Map();
 
   function persistStore() {
     if (!storeFile) return;
@@ -156,6 +157,7 @@ export function createFeishuUserAuthService(options = {}) {
     }
     for (const [sessionId, item] of sessions) if (item.expiresAt <= timestamp) {
       sessions.delete(sessionId);
+      contactCache.delete(sessionId);
       changed = true;
     }
     if (changed) persistStore();
@@ -211,7 +213,13 @@ export function createFeishuUserAuthService(options = {}) {
         upstreamCode: Number.isInteger(result.code) ? result.code : undefined
       });
     }
-    return sanitizedIdentity(result.data);
+    return Object.freeze({
+      identity: sanitizedIdentity(result.data),
+      contact: Object.freeze({
+        phone: String(result.data.mobile || ''),
+        email: String(result.data.enterprise_email || result.data.email || '')
+      })
+    });
   }
 
   async function completeAuthorization({ code, state, cookieHeader = '' } = {}) {
@@ -227,9 +235,11 @@ export function createFeishuUserAuthService(options = {}) {
     pendingStates.delete(normalizedState);
     persistStore();
     const accessToken = await exchangeCode(validateCode(code));
-    const identity = await fetchUserInfo(accessToken);
+    const profile = await fetchUserInfo(accessToken);
+    const identity = profile.identity;
     const sessionId = randomId();
     sessions.set(sessionId, { identity, accessToken, expiresAt: now() + sessionTtlSeconds * 1000 });
+    contactCache.set(sessionId, { ...profile.contact, expiresAt: now() + 10 * 60 * 1000 });
     persistStore();
     if (typeof onAuthorized === 'function') {
       await Promise.resolve(onAuthorized(identity)).catch(() => {});
@@ -252,11 +262,32 @@ export function createFeishuUserAuthService(options = {}) {
     return sessionId ? sessions.get(sessionId) || null : null;
   }
 
+  async function resolveSessionProfile(cookieHeader = '') {
+    removeExpired();
+    const sessionId = parseCookies(cookieHeader)[SESSION_COOKIE];
+    const session = sessionId ? sessions.get(sessionId) || null : null;
+    if (!session) return null;
+    let contact = contactCache.get(sessionId);
+    if (!contact || contact.expiresAt <= now()) {
+      const profile = await fetchUserInfo(session.accessToken);
+      if ((session.identity.userId && profile.identity.userId !== session.identity.userId)
+        || (session.identity.openId && profile.identity.openId !== session.identity.openId)) {
+        throw new FeishuProxyError('FEISHU_SESSION_IDENTITY_MISMATCH', '飞书会话用户信息不一致', 403);
+      }
+      contact = { ...profile.contact, expiresAt: now() + 10 * 60 * 1000 };
+      contactCache.set(sessionId, contact);
+    }
+    return Object.freeze({
+      identity: session.identity,
+      contact: Object.freeze({ phone: String(contact.phone || ''), email: String(contact.email || '') })
+    });
+  }
+
   function clearStateCookie() {
     return createCookie(STATE_COOKIE, '', { maxAge: 0, secure: secureCookies });
   }
 
-  return Object.freeze({ credentialsReady, beginAuthorization, completeAuthorization, resolveIdentity, resolveSession, clearStateCookie });
+  return Object.freeze({ credentialsReady, beginAuthorization, completeAuthorization, resolveIdentity, resolveSession, resolveSessionProfile, clearStateCookie });
 }
 
 export const FEISHU_AUTH_PATHS = Object.freeze({

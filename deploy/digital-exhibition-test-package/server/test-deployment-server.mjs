@@ -129,7 +129,11 @@ function runMiddlewareChain(middlewares, request, response, fallback) {
 
 export function createTestDeploymentServer({ config, prewarm = true, feishuOptions = {} } = {}) {
   const normalized = normalizeServerConfig(config || {});
-  const stack = createFeishuMiddlewareStack({ ...feishuOptions, prewarm });
+  const stack = createFeishuMiddlewareStack({
+    ...feishuOptions,
+    prewarm,
+    defaultAuthReturnTo: feishuOptions.defaultAuthReturnTo || `${normalized.appBase}/`
+  });
   const staticHandler = createStaticHandler(normalized);
   return createServer((request, response) => {
     runMiddlewareChain(stack.middlewares, request, response, staticHandler).catch(() => {

@@ -182,6 +182,7 @@ const statusHref = computed(() => {
   return prependAppBasePath(`/apps/onboarding/status?${query}`, appBasePath);
 });
 const businessDomains = computed(() => (dictionaries.value.BUSINESS_DOMAIN || []).map(item => ({ label: item.label, value: item.value })));
+const activeBusinessDomain = computed(() => businessDomains.value.find(item => item.value === form.domain) || { label: '', value: form.domain });
 
 function flattenOrganizations(items, result = []) {
   for (const item of Array.isArray(items) ? items : []) {
@@ -210,6 +211,8 @@ const userOptions = computed(() => {
       displayName: String(item.displayName || item.userId || item.employeeNo || ""),
       departmentId: String(item.departmentId || item.orgId || ""),
       departmentName: String(item.departmentName || item.orgName || ""),
+      phone: String(item.mobile || ""),
+      email: String(item.email || item.enterpriseEmail || ""),
     }))
     .filter((item) => item.adAccount && item.displayName);
 });
@@ -227,9 +230,14 @@ async function loadCurrentApplicant() {
     const body = await response.json();
     const userId = String(body?.identity?.userId || "").trim();
     if (!userId) throw new Error("session-user-id-missing");
-    sessionApplicant.value = { userId, displayName: String(body?.identity?.displayName || body?.identity?.name || "") };
+    sessionApplicant.value = {
+      userId,
+      displayName: String(body?.identity?.displayName || body?.identity?.name || ""),
+      phone: String(body?.identity?.phone || ""),
+      email: String(body?.identity?.email || "")
+    };
     form.applicant = userId;
-    syncApplicantDepartment();
+    syncApplicantProfile();
   } catch {
     sessionApplicantError.value = "未读取到当前飞书授权用户，暂不能提交申请。";
   } finally {
@@ -253,9 +261,11 @@ function usersInDepartment(departmentName) {
 }
 const contactUserOptions = computed(() => usersInDepartment(form.contactDepartment));
 const applicableUserOptions = computed(() => usersInDepartment(form.accessDepartment));
-function syncApplicantDepartment() {
+function syncApplicantProfile() {
   const user = userOptions.value.find((item) => item.adAccount === form.applicant);
   if (user?.departmentName) form.department = user.departmentName;
+  if (!form.phone) form.phone = sessionApplicant.value?.phone || user?.phone || "";
+  if (!form.email) form.email = sessionApplicant.value?.email || user?.email || "";
 }
 function resetContactForDepartment() {
   if (!contactUserOptions.value.some((item) => item.adAccount === form.contact)) form.contact = "";
@@ -278,7 +288,7 @@ function validateSelectedFile(file, purpose, currentCount) {
 watch(userOptions, () => {
   if (sessionApplicant.value?.userId) {
     form.applicant = sessionApplicant.value.userId;
-    syncApplicantDepartment();
+    syncApplicantProfile();
   }
 });
 async function uploadOne(file, purpose, target) {
@@ -378,8 +388,10 @@ function buildRpaApprovalRequest() {
 function invalidControlLabel(control, index) {
   const label = control.closest?.("label");
   const first = label?.querySelector?.(":scope > span");
-  return String(first?.textContent || label?.firstChild?.textContent || control.getAttribute?.("aria-label") || `第 ${index + 1} 个字段`)
+  const fieldLabel = String(first?.textContent || label?.firstChild?.textContent || control.getAttribute?.("aria-label") || `第 ${index + 1} 个字段`)
     .replace(/\*/g, "").replace(/\s+/g, " ").trim();
+  const formatMessage = control.validity?.patternMismatch ? control.getAttribute?.("data-validation-message") : "";
+  return formatMessage ? `${fieldLabel}：${formatMessage}` : fieldLabel;
 }
 async function collectValidationErrors(formElement) {
   const controls = [...(formElement?.elements || [])].filter(control => typeof control.checkValidity === "function" && !control.checkValidity());
@@ -432,6 +444,10 @@ async function submitApplication(event) {
     approvalResult.value = await submitOnboarding(
       {
         ...form,
+        applicationTypeName: activeApplicationType.value.label,
+        businessDomainName: activeBusinessDomain.value.label,
+        contactName: userOptions.value.find(item => item.adAccount === form.contact)?.displayName || '',
+        authorizedUserName: userOptions.value.find(item => item.adAccount === form.users)?.displayName || '',
         attemptId: attemptId.value,
         uploadIds: readyUploads.value.map(item => item.result?.uploadId).filter(Boolean),
         detailFields: buildDetailFields(),
@@ -534,7 +550,7 @@ onMounted(() => {
             <option value="" disabled>请选择所属部门</option>
             <option v-for="department in departmentOptions" :key="department.id" :value="department.name">{{ department.name }}</option>
           </select></label>
-          <label>联系电话<b>*</b><input v-model="form.phone" required /></label>
+          <label>联系电话<b>*</b><input v-model="form.phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="15" pattern="(?:\x2B?86(?:\x20|\x2D)?)?1[3-9][0-9]{9}" data-validation-message="请输入正确的中国大陆手机号（11位，可带 +86）" required /></label>
           <label
             >联系邮箱<b>*</b><input v-model="form.email" type="email" required
           /></label>
@@ -681,7 +697,7 @@ onMounted(() => {
             <option v-for="user in contactUserOptions" :key="user.adAccount" :value="user.adAccount">{{ user.displayName }}（{{ user.adAccount }}）</option>
           </select></label>
           <label
-            >联系电话<b>*</b><input v-model="form.contactPhone" required
+            >联系电话<b>*</b><input v-model="form.contactPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="15" pattern="(?:\x2B?86(?:\x20|\x2D)?)?1[3-9][0-9]{9}" data-validation-message="请输入正确的中国大陆手机号（11位，可带 +86）" required
           /></label>
           <label
             >联系邮箱<b>*</b

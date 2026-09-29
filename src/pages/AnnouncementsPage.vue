@@ -28,12 +28,16 @@ const remoteFailed = computed(() => remoteState.value === "error" || remoteState
 const remoteFacets = computed(() => props.integrationData?.['ANN-001'] || {});
 const remoteList = computed(() => props.integrationData?.['ANN-002'] || {});
 const publishConfigured = computed(() => props.integrationData?.['ANN-004']?.configured === true);
+function optionalCount(value) {
+  const number = Number(value);
+  return value !== null && value !== undefined && Number.isFinite(number) && number >= 0 ? number : null;
+}
 const remoteStats = computed(() => ({
   unread: remoteFacets.value.readStateAvailable
-    ? Number(remoteFacets.value.unread ?? remoteFacets.value.unreadCount ?? 0)
-    : 0,
-  weekNew: Number(remoteFacets.value.weekNew ?? 0),
-  total: Number(remoteFacets.value.total ?? remoteList.value.total ?? 0),
+    ? optionalCount(remoteFacets.value.unread ?? remoteFacets.value.unreadCount)
+    : null,
+  weekNew: optionalCount(remoteFacets.value.weekNew),
+  total: optionalCount(remoteFacets.value.total ?? remoteList.value.total),
   readStateAvailable: remoteFacets.value.readStateAvailable === true,
   categories: Array.isArray(remoteFacets.value.categories)
     ? remoteFacets.value.categories
@@ -168,14 +172,13 @@ onBeforeUnmount(() => window.clearTimeout(loadingTimer));
         <article>
           <AppIcon name="notice-stat-unread" :size="67" />
           <div>
-            <strong>未读公告</strong><b>{{ unreadStat }}</b
-            ><small>较昨日　<em class="down">↓ 5</em></small>
+            <strong>未读公告</strong><b>{{ unreadStat ?? "—" }}</b>
           </div>
         </article>
         <article>
           <AppIcon name="notice-stat-new" :size="67" />
           <div>
-            <strong>本周新增</strong><b>{{ weekNewStat }}</b><small>较上周　<em>↑ 3</em></small>
+            <strong>本周新增</strong><b>{{ weekNewStat ?? "—" }}</b>
           </div>
         </article>
       </section>

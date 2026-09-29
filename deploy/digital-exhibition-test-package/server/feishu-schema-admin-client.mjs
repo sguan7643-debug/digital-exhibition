@@ -31,8 +31,14 @@ export function createFeishuSchemaAdminClient(options = {}) {
   const now = options.now ?? Date.now;
   const schemaWriteEnabled = options.schemaWriteEnabled ?? process.env.FEISHU_SCHEMA_WRITE_ENABLED === '1';
   const recordWriteEnabled = options.recordWriteEnabled ?? process.env.FEISHU_TEST_WRITE_ENABLED === '1';
+  const schemaCacheTtlMs = Math.max(0, Number(options.schemaCacheTtlMs ?? 5 * 60 * 1000));
   let cachedToken = '';
   let tokenExpiresAt = 0;
+  let tableCache = null;
+  let tableCacheExpiresAt = 0;
+  let tableListPromise = null;
+  const fieldCache = new Map();
+  const fieldListPromises = new Map();
 
   function requireCredentials() {
     if (!appId || !appSecret || !baseToken) throw new FeishuProxyError('SERVICE_CREDENTIALS_MISSING', '飞书服务端凭据尚未配置', 503);
@@ -66,7 +72,7 @@ export function createFeishuSchemaAdminClient(options = {}) {
     });
     const payload = await readJson(response);
     if (!response.ok || payload.code !== 0) {
-      const status = response.status === 403 || payload.code === 1254302 ? 403 : response.status === 429 || payload.code === 1254290 ? 429 : 502;
+      const status = response.status === 403 || payload.code === 1254302 ? 403 : response.status === 404 ? 404 : response.status === 429 || payload.code === 1254290 ? 429 : 502;
       throw new FeishuProxyError('FEISHU_SCHEMA_FAILED', '飞书表结构操作失败', status, {
         upstreamCode: payload.code, upstreamMessage: String(payload.msg || '').slice(0, 200)
       });
@@ -92,7 +98,7 @@ export function createFeishuSchemaAdminClient(options = {}) {
     return payload.data || {};
   }
 
-  async function listTables() {
+  async function fetchTables() {
     const items = [];
     let pageToken = '';
     do {
@@ -105,7 +111,22 @@ export function createFeishuSchemaAdminClient(options = {}) {
     return items;
   }
 
-  async function listFields(tableId) {
+  async function listTables({ force = false } = {}) {
+    const timestamp = Number(now());
+    if (!force && tableCache && timestamp < tableCacheExpiresAt) return tableCache;
+    if (!tableListPromise) {
+      tableListPromise = fetchTables().then(items => {
+        tableCache = Object.freeze(items.slice());
+        tableCacheExpiresAt = Number(now()) + schemaCacheTtlMs;
+        return tableCache;
+      }).finally(() => {
+        tableListPromise = null;
+      });
+    }
+    return tableListPromise;
+  }
+
+  async function fetchFields(tableId) {
     const items = [];
     let pageToken = '';
     do {
@@ -136,6 +157,7 @@ export function createFeishuSchemaAdminClient(options = {}) {
       method: 'POST', writeGate: 'schema',
       body: { table: { name: schema.table_name, default_view_name: schema.default_view_name, fields: schema.fields.map(toFeishuFieldDefinition) } }
     });
+    invalidateSchemaCache();
     return { tableId: data.table_id, viewId: data.default_view_id || '', fieldIds: data.field_id_list || [] };
   }
 
@@ -143,7 +165,19 @@ export function createFeishuSchemaAdminClient(options = {}) {
     const data = await call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables/${encodeURIComponent(tableId)}/fields`, {
       method: 'POST', writeGate: 'schema', body: toFeishuFieldDefinition(field)
     });
+    invalidateSchemaCache(tableId);
     return data.field || data;
+  }
+
+  async function deleteField(tableId, fieldId) {
+    if (!String(tableId || '').trim() || !String(fieldId || '').trim()) {
+      throw new FeishuProxyError('FIELD_DELETE_TARGET_REQUIRED', '删除字段必须提供表标识和字段标识', 400);
+    }
+    const result = await call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables/${encodeURIComponent(tableId)}/fields/${encodeURIComponent(fieldId)}`, {
+      method: 'DELETE', writeGate: 'schema'
+    });
+    invalidateSchemaCache(tableId);
+    return result;
   }
 
   async function searchRecords(tableId, fieldName, value, { pageSize = 100 } = {}) {
@@ -160,6 +194,51 @@ export function createFeishuSchemaAdminClient(options = {}) {
     const data = await call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables/${encodeURIComponent(tableId)}/records`, {
       method: 'POST', writeGate: 'record', body: { fields }
     });
+    return data.record || data;
+  }
+
+  async function listRecords(tableId, { pageSize = 100 } = {}) {
+    const items = [];
+    let pageToken = '';
+    do {
+      const query = new URLSearchParams({ page_size: String(pageSize), automatic_fields: 'true' });
+      if (pageToken) query.set('page_token', pageToken);
+      const data = await call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables/${encodeURIComponent(tableId)}/records?${query}`);
+      items.push(...(data.items || []));
+      pageToken = data.has_more ? String(data.page_token || '') : '';
+    } while (pageToken);
+    return items;
+  }
+
+  async function listFields(tableId, { force = false } = {}) {
+    const key = String(tableId || '');
+    const timestamp = Number(now());
+    const cached = fieldCache.get(key);
+    if (!force && cached && timestamp < cached.expiresAt) return cached.items;
+    if (!fieldListPromises.has(key)) {
+      const promise = fetchFields(key).then(items => {
+        const frozen = Object.freeze(items.slice());
+        fieldCache.set(key, { items: frozen, expiresAt: Number(now()) + schemaCacheTtlMs });
+        return frozen;
+      }).finally(() => {
+        fieldListPromises.delete(key);
+      });
+      fieldListPromises.set(key, promise);
+    }
+    return fieldListPromises.get(key);
+  }
+
+  function invalidateSchemaCache(tableId = '') {
+    if (tableId) fieldCache.delete(String(tableId));
+    else {
+      tableCache = null;
+      tableCacheExpiresAt = 0;
+      fieldCache.clear();
+    }
+  }
+
+  async function getRecord(tableId, recordId) {
+    const data = await call(`/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables/${encodeURIComponent(tableId)}/records/${encodeURIComponent(recordId)}`);
     return data.record || data;
   }
 
@@ -195,7 +274,7 @@ export function createFeishuSchemaAdminClient(options = {}) {
   }
 
   return Object.freeze({
-    schemaWriteEnabled, recordWriteEnabled, listTables, listFields, listViews, createTable, createField,
-    searchRecords, createRecord, updateRecord, deleteRecord, uploadMedia
+    schemaWriteEnabled, recordWriteEnabled, listTables, listFields, listViews, createTable, createField, deleteField, invalidateSchemaCache,
+    searchRecords, listRecords, createRecord, getRecord, updateRecord, deleteRecord, uploadMedia
   });
 }

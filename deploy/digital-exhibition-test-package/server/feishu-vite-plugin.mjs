@@ -13,8 +13,18 @@ import { createFeishuAuthNodeMiddleware } from './feishu-auth-middleware.mjs';
 import { createFeishuFileAccessService, createFeishuFileNodeMiddleware } from './feishu-file-access-service.mjs';
 import { createFeishuOAuthAuthorizedHandler, createFeishuOAuthWriteAcceptance } from './feishu-oauth-write-acceptance.mjs';
 import { createFeishuApprovalService } from './feishu-approval-service.mjs';
+import { createFeishuOnboardingApprovalNotifier } from './feishu-onboarding-approval-notifier.mjs';
 import { createFeishuApprovalNodeMiddleware } from './feishu-approval-middleware.mjs';
 import { createFeishuApprovedAppProjection } from './feishu-approved-app-projection.mjs';
+import { createFeishuOnboardingPocOrchestrator } from './feishu-onboarding-poc-orchestrator.mjs';
+import { createFeishuOnboardingFileService } from './feishu-onboarding-file-service.mjs';
+import { createFeishuOnboardingService } from './feishu-onboarding-service.mjs';
+import { createFeishuOnboardingReferenceResolver } from './feishu-onboarding-reference-resolver.mjs';
+import { createFeishuOnboardingNodeMiddleware } from './feishu-onboarding-middleware.mjs';
+import { createOnboardingUniqueIdentifierClient } from './onboarding-unique-identifier-client.mjs';
+import { createHomepageAggregateService } from './homepage-aggregate-service.mjs';
+import { createHomepageAggregateNodeMiddleware } from './homepage-aggregate-middleware.mjs';
+import { isSameOriginRequest } from './same-origin-request.mjs';
 
 export function createFeishuMiddlewareStack(options = {}) {
   const contractPath = fileURLToPath(new URL('./contracts/feishu-base-identifiers.json', import.meta.url));
@@ -27,9 +37,6 @@ export function createFeishuMiddlewareStack(options = {}) {
     fileAccessService,
     allowedAppLaunchHosts: options.allowedAppLaunchHosts,
     coldMissBudgetMs: options.coldMissBudgetMs ?? 1_500
-  });
-  if (options.prewarm !== false) queueMicrotask(() => {
-    readService.prewarm().catch(() => {});
   });
   const adminClient = createFeishuSchemaAdminClient(options);
   const safeRecordService = createFeishuSafeTestRecordService({ client: adminClient });
@@ -44,6 +51,7 @@ export function createFeishuMiddlewareStack(options = {}) {
   const oauthWriteAcceptance = createFeishuOAuthWriteAcceptance({ safeRecordService, compositeService: service });
   const authService = createFeishuUserAuthService({
     ...options,
+    storeFile: options.userAuthStoreFile ?? process.env.FEISHU_USER_AUTH_STORE_PATH ?? join(process.cwd(), '.local', 'feishu-user-auth-sessions.json'),
     onAuthorized: createFeishuOAuthAuthorizedHandler({
       evidencePath: oauthEvidencePath,
       writeAcceptanceEnabled: oauthWriteAcceptanceEnabled,
@@ -51,15 +59,31 @@ export function createFeishuMiddlewareStack(options = {}) {
       writeAcceptance: oauthWriteAcceptance
     })
   });
-  const authMiddleware = createFeishuAuthNodeMiddleware({ authService });
+  const authMiddleware = createFeishuAuthNodeMiddleware({
+    authService,
+    resolveIdentityProfile: identity => readService.resolveCurrentUserProfile({ identity }),
+    defaultReturnTo: options.defaultAuthReturnTo ?? process.env.FEISHU_AUTH_DEFAULT_RETURN_TO ?? '/test2/'
+  });
   const approvalRegistryFile = options.approvalRegistryFile ?? process.env.FEISHU_APPROVAL_REGISTRY_PATH ?? join(process.cwd(), '.local', 'feishu-approval-registry.json');
   const approvalAdminClient = createFeishuSchemaAdminClient({ ...options, recordWriteEnabled: true });
   const approvalRecordService = createFeishuSafeTestRecordService({ client: approvalAdminClient });
-  const approvalProjection = createFeishuApprovedAppProjection({ safeRecordService: approvalRecordService });
+  const onboardingLedgerFile = options.onboardingLedgerFile ?? process.env.FEISHU_ONBOARDING_POC_LEDGER_PATH ?? join(process.cwd(), '.local', 'feishu-onboarding-poc-ledger.json');
+  const onboardingOrchestrator = createFeishuOnboardingPocOrchestrator({
+    adminClient: approvalAdminClient,
+    identityClient: client,
+    baseToken: options.baseToken ?? process.env.FEISHU_BASE_TOKEN ?? '',
+    expectedFingerprint: options.pocBaseFingerprint ?? process.env.FEISHU_POC_BASE_FINGERPRINT ?? '',
+    ledgerFile: onboardingLedgerFile
+  });
+  const approvalProjection = createFeishuApprovedAppProjection({ safeRecordService: approvalRecordService, orchestrator: onboardingOrchestrator });
+  const approvalNotifier = createFeishuOnboardingApprovalNotifier({ client });
   const approvalService = createFeishuApprovalService({
     client,
     registryFile: approvalRegistryFile,
     projectionService: approvalProjection,
+    approvalNotifier,
+    preWriteGate: input => onboardingOrchestrator.execute(input),
+    onInstanceCreated: record => onboardingOrchestrator.appendLedger({ objectType: 'APPROVAL_INSTANCE', instanceId: record.instanceId, businessKey: record.businessKey, applicationId: record.applicationId, cleanupStrategy: 'RETAIN_APPROVAL_INSTANCE' }),
     onProjected: () => readService.invalidateAppProjection()
   });
   const approvalMiddleware = createFeishuApprovalNodeMiddleware({
@@ -67,33 +91,65 @@ export function createFeishuMiddlewareStack(options = {}) {
     resolveUserSession: request => authService.resolveSession(request.headers?.cookie || '')
   });
   const fileMiddleware = createFeishuFileNodeMiddleware({ fileAccessService, resolveIdentity: cookie => authService.resolveIdentity(cookie) });
+  const onboardingFileService = createFeishuOnboardingFileService({ adminClient: approvalAdminClient, safeRecordService: approvalRecordService, orchestrator: onboardingOrchestrator });
+  const onboardingUniqueIdentifierClient = createOnboardingUniqueIdentifierClient({
+    baseUrl: options.uniqueIdentifierBackendUrl ?? process.env.FEISHU_UNIQUE_IDENTIFIER_BACKEND_URL ?? 'http://10.151.23.119:28080',
+    fetchImpl: options.uniqueIdentifierFetch ?? globalThis.fetch
+  });
+  const onboardingReferenceResolver = createFeishuOnboardingReferenceResolver({ readService, client });
+  const onboardingService = createFeishuOnboardingService({
+    approvalService,
+    fileAccessService,
+    onboardingFileService,
+    uniqueIdentifierProvider: onboardingUniqueIdentifierClient,
+    referenceResolver: onboardingReferenceResolver,
+    orchestrator: onboardingOrchestrator,
+    registryFile: options.onboardingRegistryFile ?? process.env.FEISHU_ONBOARDING_REGISTRY_PATH ?? join(process.cwd(), '.local', 'feishu-onboarding-applications.json')
+  });
+  const onboardingMiddleware = createFeishuOnboardingNodeMiddleware({
+    service: onboardingService,
+    resolveUserSession: request => authService.resolveSession(request.headers?.cookie || '')
+  });
+  const resolveRequestContext = request => {
+      return {
+        identity: authService.resolveIdentity(request.headers?.cookie || ''),
+        sameOriginRequest: isSameOriginRequest(request.headers, request.method)
+      };
+  };
+  const homepageService = createHomepageAggregateService({
+    readService,
+    prewarm: options.prewarm,
+    responseBudgetMs: options.homepageResponseBudgetMs
+  });
+  const homepageMiddleware = createHomepageAggregateNodeMiddleware({
+    service: homepageService,
+    resolveRequestContext
+  });
+  if (options.prewarm !== false) queueMicrotask(() => {
+    homepageService.startPrewarm();
+    onboardingOrchestrator.prewarm().catch(() => null);
+  });
   const middleware = createFeishuNodeMiddleware({
     service,
-    resolveRequestContext: request => {
-      const origin = String(request.headers?.origin || '');
-      const host = String(request.headers?.host || '');
-      let sameOriginRequest = false;
-      try {
-        const parsed = new URL(origin);
-        sameOriginRequest = ['http:', 'https:'].includes(parsed.protocol) && parsed.host === host;
-      } catch {
-        sameOriginRequest = false;
-      }
-      return { identity: authService.resolveIdentity(request.headers?.cookie || ''), sameOriginRequest };
-    }
+    resolveRequestContext
   });
   const install = server => {
     server.middlewares.use(authMiddleware);
+    server.middlewares.use(onboardingMiddleware);
     server.middlewares.use(approvalMiddleware);
     server.middlewares.use(fileMiddleware);
+    server.middlewares.use(homepageMiddleware);
     server.middlewares.use(middleware);
   };
   return Object.freeze({
-    middlewares: Object.freeze([authMiddleware, approvalMiddleware, fileMiddleware, middleware]),
+    middlewares: Object.freeze([authMiddleware, onboardingMiddleware, approvalMiddleware, fileMiddleware, homepageMiddleware, middleware]),
     install,
     authService,
     approvalService,
-    readService
+    onboardingService,
+    onboardingOrchestrator,
+    readService,
+    homepageService
   });
 }
 

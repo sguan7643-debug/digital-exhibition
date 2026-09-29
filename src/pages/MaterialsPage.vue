@@ -29,17 +29,17 @@ const remoteMaterials = computed(() => {
   return rows.map((item, index) => {
     const categoryId = String(item.categoryIds?.[0] || '');
     const domainId = String(item.domainIds?.[0] || '');
-    const type = String(item.materialType || categoryById.get(categoryId) || '其他');
-    const domain = String(item.domainName || domainById.get(domainId) || domainId || '未分类业务域');
+    const type = String(item.materialType || categoryById.get(categoryId) || '—');
+    const domain = String(item.domainName || domainById.get(domainId) || domainId || '—');
     return Object.freeze({
       id: String(item.materialId || item.materialCode || `remote-material-${index + 1}`),
-      name: String(item.name || item.materialCode || '未命名素材'),
+      name: String(item.name || item.materialCode || '—'),
       type,
       domain,
-      description: String(item.summary || item.descriptionHtml || '暂无素材说明'),
+      description: String(item.summary || item.descriptionHtml || '—'),
       creator: String(item.publisherName || item.publisherId || '—'),
       updatedAt: String(item.updatedAt || item.publishedAt || '—'),
-      downloads: Number(item.downloadCount || 0),
+      downloads: item.downloadCount === null || item.downloadCount === undefined ? null : Number(item.downloadCount),
       favorites: item.isFavorite ? 1 : 0,
       primaryFile: item.primaryFile || null,
       raw: item
@@ -56,7 +56,7 @@ const filteredMaterials = computed(() => {
     (!controller.filters.domain || item.domain === controller.filters.domain) &&
     (!query || `${item.name} ${item.description} ${item.creator}`.toLocaleLowerCase('zh-CN').includes(query))
   );
-  if (controller.sort === 'downloads-desc') return [...rows].sort((a,b) => b.downloads-a.downloads);
+  if (controller.sort === 'downloads-desc') return [...rows].sort((a,b) => (b.downloads ?? -1)-(a.downloads ?? -1));
   if (controller.sort === 'favorites-desc') return [...rows].sort((a,b) => b.favorites-a.favorites);
   if (controller.sort === 'updated-desc') return [...rows].sort((a,b) => b.updatedAt.localeCompare(a.updatedAt));
   return rows;
@@ -107,7 +107,7 @@ onBeforeUnmount(()=>{window.removeEventListener('xlt:materials-filter',receiveFi
       <article v-for="item in pagedMaterials" :key="item.id">
         <header><span class="material-icon"><TypeLineIcon :name="categoryIconName(item.type)" :size="27" /></span><div><div class="material-title-row"><h2>{{ item.name }}</h2><mark>{{ item.type }}</mark><mark>{{ item.domain }}</mark></div><p>{{ item.description }}</p></div></header>
         <dl><div><dt>创建人</dt><dd>{{ item.creator }}</dd></div><div><dt>所属业务域</dt><dd>{{ item.domain }}</dd></div><div><dt>更新时间</dt><dd>{{ item.updatedAt }}</dd></div></dl>
-        <footer><span>下载量　<b>{{ item.downloads.toLocaleString('zh-CN') }}</b></span><span>收藏　<b>{{ item.favorites.toLocaleString('zh-CN') }}</b></span><button type="button" :disabled="!resolveDownloadFileId(item.raw) || !operationExecutor" :title="resolveDownloadFileId(item.raw)?'下载素材':'暂无可下载文件'" @click="download(item)">下载</button><button type="button" :aria-pressed="controller.favoriteIds.includes(item.id)" :aria-label="`${controller.favoriteIds.includes(item.id)?'取消收藏':'收藏'}：${item.name}`" @click="toggleFavorite(item)">{{ controller.favoriteIds.includes(item.id)?'已收藏':'☆' }}</button></footer>
+        <footer><span>下载量　<b>{{ item.downloads === null || !Number.isFinite(item.downloads) ? '—' : item.downloads.toLocaleString('zh-CN') }}</b></span><span>收藏　<b>{{ item.favorites.toLocaleString('zh-CN') }}</b></span><button type="button" :disabled="!resolveDownloadFileId(item.raw) || !operationExecutor" :title="resolveDownloadFileId(item.raw)?'下载素材':'暂无可下载文件'" @click="download(item)">下载</button><button type="button" :aria-pressed="controller.favoriteIds.includes(item.id)" :aria-label="`${controller.favoriteIds.includes(item.id)?'取消收藏':'收藏'}：${item.name}`" @click="toggleFavorite(item)">{{ controller.favoriteIds.includes(item.id)?'已收藏':'☆' }}</button></footer>
       </article>
     </section>
     <section v-else class="materials-empty" role="status"><h2>{{ remoteState === 'error' || remoteState === 'authentication-required' ? '素材中心加载失败' : '暂无符合条件的素材' }}</h2><p>当前未获得 MAT-002 飞书素材记录。</p><button type="button" @click="resetFilters">清空筛选</button></section>

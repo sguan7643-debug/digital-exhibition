@@ -20,12 +20,21 @@ const remoteBlocked = computed(
     remoteState.value === "empty",
 );
 const remoteOverview = computed(() => props.integrationData?.['CER-001'] || {});
+const remoteContact = computed(() => {
+  const contact = remoteOverview.value.contact;
+  return contact && typeof contact === "object" ? contact : {};
+});
 const remoteList = computed(() => props.integrationData?.['CER-002'] || {});
 const remoteDetail = computed(() => props.integrationData?.['CER-003'] || null);
 const remoteBookingBlocked = computed(() => true);
 
 function valueText(value, fallback = "") {
   return String(value ?? fallback).trim();
+}
+
+function contactText(...keys) {
+  const value = keys.map((key) => valueText(remoteContact.value[key])).find(Boolean);
+  return value || "—";
 }
 
 function itemName(item, fallback = "") {
@@ -300,8 +309,8 @@ function openBooking() {
             /></span>
             <div>
               <h3>认证服务</h3>
-              <p>工作日 09:00—17:30</p>
-              <p>Cert@haiyou.com<br />010-8888-0000</p>
+              <p>服务时间：{{ contactText("serviceHours", "workingHours", "supportHours") }}</p>
+              <p>邮箱：{{ contactText("email", "contactEmail") }}<br />电话：{{ contactText("phone", "contactPhone") }}</p>
             </div>
           </div>
         </section>

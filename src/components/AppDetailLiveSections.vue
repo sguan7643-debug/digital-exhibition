@@ -15,8 +15,10 @@ const comments=computed(()=>props.integrationData?.['APP-007']?.items||[]);
 const materials=computed(()=>props.integrationData?.['MAT-002']?.items||[]);
 const attachments=computed(()=>props.integrationData?.['APP-003']?.attachments||[]);
 const materialFacets=computed(()=>props.integrationData?.['MAT-001']);
-const categoryLabel=material=>material.materialType||materialFacets.value?.materialTypes?.find(item=>item.value===material.materialType)?.label||'素材';
-const sizeLabel=material=>material.primaryFile?.sizeBytes?`${(material.primaryFile.sizeBytes/1024/1024).toFixed(2)} MB`:'—';
+const categoryLabel=material=>material.materialType||materialFacets.value?.materialTypes?.find(item=>item.value===material.materialType)?.label||'—';
+function optionalNumber(value){const number=Number(value);return value!==null&&value!==undefined&&Number.isFinite(number)&&number>=0?number:null;}
+const sizeLabel=value=>{const bytes=optionalNumber(value);return bytes===null?'—':`${(bytes/1024/1024).toFixed(2)} MB`;};
+const countLabel=value=>{const count=optionalNumber(value);return count===null?'—':count.toLocaleString('zh-CN');};
 async function download(material){
   if(!props.operationExecutor){announcement.value='飞书素材下载接口暂不可用';return;}
   announcement.value=`正在准备下载 ${material.name}`;
@@ -76,13 +78,13 @@ async function launch(){
       <header><h2 id="live-material-title">关联素材</h2><small>飞书多维表格实时数据</small></header>
       <div v-if="materials.length" class="material-grid">
         <article v-for="material in materials" :key="material.materialId">
-          <mark>{{ categoryLabel(material) }}</mark><h3>{{ material.name }}</h3><p>{{ material.summary||material.descriptionHtml||'暂无素材说明' }}</p>
-          <footer><span>{{ sizeLabel(material) }}　下载 {{ material.downloadCount||0 }} 次</span><button type="button" @click="download(material)">下载</button></footer>
+          <mark>{{ categoryLabel(material) }}</mark><h3>{{ material.name||'—' }}</h3><p>{{ material.summary||material.descriptionHtml||'—' }}</p>
+          <footer><span>{{ sizeLabel(material.primaryFile?.sizeBytes) }}　下载 {{ countLabel(material.downloadCount) }}<template v-if="optionalNumber(material.downloadCount)!==null"> 次</template></span><button type="button" @click="download(material)">下载</button></footer>
         </article>
       </div>
       <p v-else class="empty-copy">暂无关联素材</p>
       <ul v-if="attachments.length" class="attachment-list" aria-label="飞书附件">
-        <li v-for="file in attachments" :key="file.attachmentId"><span>{{ file.name }}</span><small>{{ file.sizeBytes?`${(file.sizeBytes/1024/1024).toFixed(2)} MB`:'—' }}</small><button type="button" @click="downloadAttachment(file)">下载附件</button></li>
+        <li v-for="file in attachments" :key="file.attachmentId"><span>{{ file.name||'—' }}</span><small>{{ sizeLabel(file.sizeBytes) }}</small><button type="button" @click="downloadAttachment(file)">下载附件</button></li>
       </ul>
     </section>
     <section class="live-panel" aria-labelledby="live-comments-title">

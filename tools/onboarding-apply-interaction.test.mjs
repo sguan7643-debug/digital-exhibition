@@ -116,6 +116,8 @@ assert.match(applySource, /v-if="submitted" class="submit-success" role="status"
 assert.match(applySource, /v-if="submitError" class="submit-error"[^>]*role="alert"/, '失败后必须显示失败提示');
 assert.match(applySource, /请检查以下\s*\{\{\s*validationErrors\.length\s*\}\}\s*项/, '阻塞校验必须提供错误摘要');
 assert.match(applySource, /validationErrors\.value\s*=\s*controls\.map/, '错误摘要必须来自真实无效控件');
+assert.equal((applySource.match(/type="tel"[^>]*pattern="\(\?:\\x2B\?86\(\?:\\x20\|\\x2D\)\?\)\?1\[3-9\]\[0-9\]\{9\}"/g) || []).length, 2, '申请人和接入人手机号必须使用同一格式校验');
+assert.match(applySource, /control\.validity\?\.patternMismatch/, '手机号格式错误必须进入可见错误摘要');
 assert.match(applySource, /await removeOnboardingFile\(item\.result\.uploadId\)/, '移除已上传文件必须等待服务端确认');
 assert.doesNotMatch(applySource, /removeOnboardingFile\([^)]*\)\.catch\(\(\) => null\)/, '移除失败不得静默冒充成功');
 assert.match(applySource, /href="\/apps"/);

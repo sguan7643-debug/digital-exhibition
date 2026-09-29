@@ -5,6 +5,7 @@ import { mapRemoteApp } from '../integration/app-read-model.js';
 const props=defineProps({integrationData:{type:Object,default:null},operationExecutor:{type:Function,default:null}});
 const controller=createWorkbenchController();
 const remote=computed(()=>props.integrationData?.['WB-001']);
+const formatOptional=(value)=>{const number=Number(value);return value!==null&&value!==undefined&&Number.isFinite(number)?number.toLocaleString('zh-CN'):'—';};
 const localAvatarFallback=`${import.meta.env.BASE_URL}${'assets/top-avatar.png'}`;
 const heroAvatarUrl=computed(()=>{
   const raw=remote.value?.profile?.avatarUrl;
@@ -19,9 +20,9 @@ const heroAvatarUrl=computed(()=>{
 const remoteSearch=ref(null);
 const searchState=ref('idle');
 let searchRevision=0;
-const remoteApps=computed(()=>(remote.value?.hotApps||[]).map(item=>{const app=mapRemoteApp(item);return{id:app.id,name:app.name,type:app.category,scene:app.scene,description:app.description,count:Number(app.usage||0).toLocaleString('zh-CN'),route:app.route};}));
+const remoteApps=computed(()=>(remote.value?.hotApps||[]).map(item=>{const app=mapRemoteApp(item);return{id:app.id,name:app.name,type:app.category,scene:app.scene,description:app.description,count:formatOptional(app.usage),route:app.route};}));
 const filteredHotApps=computed(()=>{
-  if(remoteSearch.value)return remoteSearch.value.map(item=>{const app=mapRemoteApp(item);return{id:app.id,name:app.name,type:app.category,scene:app.scene,description:app.description,count:Number(app.usage||0).toLocaleString('zh-CN'),route:app.route};});
+  if(remoteSearch.value)return remoteSearch.value.map(item=>{const app=mapRemoteApp(item);return{id:app.id,name:app.name,type:app.category,scene:app.scene,description:app.description,count:formatOptional(app.usage),route:app.route};});
   const query=String(controller.query||'').toLocaleLowerCase('zh-CN');
   return remoteApps.value.filter(item=>(!query||`${item.name} ${item.description}`.toLocaleLowerCase('zh-CN').includes(query))&&(!controller.scene||item.scene===controller.scene));
 });
@@ -43,10 +44,11 @@ function receiveWorkbenchFilter(event){const {key,value}=event.detail;if(key==='
 function overviewHref(label){const categories={'数据集':'数据集','帆软报表':'可视化报表','RPA机器人':'RPA','AI智能体':'AI'};return categories[label]?`/apps?category=${encodeURIComponent(categories[label])}`:'/apps';}
 onMounted(()=>window.addEventListener('xlt:workbench-filter',receiveWorkbenchFilter));
 onBeforeUnmount(()=>window.removeEventListener('xlt:workbench-filter',receiveWorkbenchFilter));
-const overview=computed(()=>(remote.value?.appTypeOverview||[]).map(item=>[item.typeName||item.typeCode,Number(item.count||0).toLocaleString('zh-CN')]));
+const overview=computed(()=>(remote.value?.appTypeOverview||[]).map(item=>[item.typeName||item.typeCode||'—',formatOptional(item.count)]));
 const courses=computed(()=>(remote.value?.courses||[]).map(item=>[item.title,item.summary||`${item.category||''} · ${item.instructorName||''}`,item.coverUrl||'','查看课程',`/training?courseId=${encodeURIComponent(item.courseId)}`]));
-const notices=computed(()=>(remote.value?.announcements||[]).map(item=>[item.typeName,item.title,item.publishedAt?.replace('T',' ').slice(5,16)||'','blue',item.detailPath]));
-const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value.usage.appVisitCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.visitChange||0),remote.value.usage.visitChange<0?'down':'up'],['应用使用次数',Number(remote.value.usage.appUseCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.useChange||0),remote.value.usage.useChange<0?'down':'up'],['收藏应用数',Number(remote.value.usage.favoriteAppCount||0).toLocaleString('zh-CN'),Math.abs(remote.value.usage.favoriteChange||0),remote.value.usage.favoriteChange<0?'down':'up']]:[]);
+const notices=computed(()=>(remote.value?.announcements||[]).map(item=>[item.typeName||'—',item.title||'—',item.publishedAt?.replace('T',' ').slice(0,16)||'—','blue',item.detailPath,item.publishedAt||'']));
+function usageItem(label,total,change){const number=Number(change);const hasChange=change!==null&&change!==undefined&&Number.isFinite(number);return[label,formatOptional(total),hasChange?Math.abs(number):null,hasChange?(number<0?'down':'up'):null];}
+const usage=computed(()=>remote.value?[usageItem('应用访问次数',remote.value.usage?.appVisitCount,remote.value.usage?.visitChange),usageItem('应用使用次数',remote.value.usage?.appUseCount,remote.value.usage?.useChange),usageItem('收藏应用数',remote.value.usage?.favoriteAppCount,remote.value.usage?.favoriteChange)]:[]);
 </script>
 
 <template>
@@ -95,9 +97,9 @@ const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value
       <section class="panel notice-panel" aria-labelledby="notice-title">
         <header><h2 id="notice-title">公告通知</h2><a href="/announcements">查看更多　›</a></header>
         <ul>
-          <li v-for="([type, title, time, tone, route]) in notices" :key="title">
+          <li v-for="([type, title, time, tone, route, dateTime]) in notices" :key="title">
             <a :href="route">
-              <mark :class="tone">{{ type }}</mark><span>{{ title }}</span><time :datetime="`2025-${time.replace(' ', 'T')}`">{{ time }}</time>
+              <mark :class="tone">{{ type }}</mark><span>{{ title }}</span><time :datetime="dateTime || undefined">{{ time }}</time>
             </a>
           </li>
         </ul>
@@ -107,7 +109,7 @@ const usage=computed(()=>remote.value?[['应用访问次数',Number(remote.value
         <header><h2 id="usage-title">我的使用统计</h2><a href="/profile">查看详情　›</a></header>
         <div class="usage-list">
           <article v-for="([label, total, increase, direction]) in usage" :key="label">
-            <span><small>{{ label }}</small><strong>{{ total }}</strong><em>较上周 <i :class="direction">{{ direction === 'down' ? '↓' : '↑' }}</i> {{ increase }}%</em></span>
+            <span><small>{{ label }}</small><strong>{{ total }}</strong><em v-if="increase !== null">较上周 <i :class="direction">{{ direction === 'down' ? '↓' : '↑' }}</i> {{ increase }}%</em></span>
           </article>
         </div>
       </section>

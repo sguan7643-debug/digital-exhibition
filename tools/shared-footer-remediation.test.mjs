@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const shell = readFileSync(new URL('../src/components/ExhibitionShell.vue', import.meta.url), 'utf8');
+const profile = readFileSync(new URL('../src/pages/ProfilePage.vue', import.meta.url), 'utf8');
+const noticeDetail = readFileSync(new URL('../src/pages/NoticeDetailPage.vue', import.meta.url), 'utf8');
 const main = shell.match(/<main id="main-content"[\s\S]*?<\/main>/)?.[0] ?? '';
 
 assert.match(
@@ -39,10 +41,7 @@ assert.match(
   /@media\(max-width:760px\)[\s\S]*?\.platform-footer\{[^}]*padding:14px 12px 16px[^}]*font-size:11px/,
   '窄屏页脚必须收敛间距和字号',
 );
-assert.match(
-  shell,
-  /main :deep\(\.profile-page>\.copyright\)\{display:none\}/,
-  '共享页脚启用后必须屏蔽个人中心旧版权条，避免重复和年份冲突',
-);
+assert.doesNotMatch(profile + noticeDetail, /©\s*2025|class="(?:copyright|notice-footer)"/,
+  '共享页脚启用后业务页面不得继续保留旧版权条');
 
 console.log('全站共享页脚：内容流位置、版权文案、页面结束标记、响应式与非覆盖合同通过');

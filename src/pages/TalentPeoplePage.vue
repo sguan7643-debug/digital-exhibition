@@ -8,7 +8,10 @@ const props = defineProps({ integrationData: { type: Object, default: null }, in
 const controller = createTalentController([]);
 const remoteMode = computed(() => true);
 const remoteState = computed(() => props.integrationState);
-const mapRemotePerson = (item) => ({ id: item.id, name: item.name || "—", age: "—", inPool: item.status || "—", type: item.type || "—", department: item.departmentName || "—", domain: item.specialties?.join(" / ") || "—", office: "—", tags: item.specialties?.join(" / ") || "—", direction: item.level || "—", start: "—", end: "—" });
+const mapRemotePerson = (item) => {
+  const tagList = Array.isArray(item.specialties) ? item.specialties.filter(Boolean) : [];
+  return { id: item.id, name: item.name || "—", age: "—", inPool: item.status || "—", type: item.type || "—", department: item.departmentName || "—", domain: tagList.join(" / ") || "—", office: "—", tags: tagList.join(" / ") || "—", tagList, direction: item.level || "—" };
+};
 const pageState = computed(() => { if (["error", "timeout", "rate-limited", "schema-drift", "security-error"].includes(remoteState.value)) return "error"; if (["authentication-required", "permission-denied"].includes(remoteState.value)) return "permission-denied"; if (remoteState.value === "disabled") return "disabled"; if (remoteState.value === "loading") return "loading"; return controller.fixtures.length ? "normal" : "empty"; });
 watch([() => props.integrationData, () => props.integrationState], () => { controller.fixtures = Array.isArray(props.integrationData?.['TAL-001']?.items) ? props.integrationData['TAL-001'].items.map(mapRemotePerson) : []; controller.page = 1; }, { immediate: true });
 const queryDraft = ref("");
@@ -251,7 +254,7 @@ onBeforeUnmount(() => {
           >
           <button class="search-submit" type="submit">查询</button
           ><button type="reset">重置</button
-          ><button type="button" disabled title="当前演示不生成导出文件">
+          ><button type="button" disabled title="正式人才导出合同尚未提供">
             导出
           </button>
         </form>
@@ -280,8 +283,6 @@ onBeforeUnmount(() => {
                   <th scope="col">责任科室</th>
                   <th scope="col">能力标签-新</th>
                   <th scope="col">培养方向</th>
-                  <th scope="col">轮岗计划-开始时间</th>
-                  <th scope="col">轮岗计划-结束时间</th>
                   <th scope="col">操作</th>
                 </tr>
               </thead>
@@ -303,8 +304,6 @@ onBeforeUnmount(() => {
                   <td>{{ person.office }}</td>
                   <td>{{ person.tags }}</td>
                   <td>{{ person.direction }}</td>
-                  <td>{{ person.start }}</td>
-                  <td>{{ person.end }}</td>
                   <td>
                     <button
                       type="button"
@@ -529,11 +528,11 @@ onBeforeUnmount(() => {
             <div>
               <dt>能力标签-新：</dt>
               <dd>
-                <mark
-                  v-for="tag in selectedPerson.tags.split(' ')"
+                <template v-if="selectedPerson.tagList.length"><mark
+                  v-for="tag in selectedPerson.tagList"
                   :key="tag"
                   >{{ tag }}</mark
-                >
+                ></template><span v-else>—</span>
               </dd>
             </div>
             <div>
@@ -541,18 +540,6 @@ onBeforeUnmount(() => {
               <dd>{{ selectedPerson.direction }}</dd>
             </div>
               </dl>
-            </section>
-            <section>
-              <h3>轮岗计划</h3>
-              <p>{{ selectedPerson.start }}　至　{{ selectedPerson.end }}</p>
-            </section>
-            <section>
-              <h3>2026年培训计划</h3>
-              <p>AI前沿技术培训计划　<mark>已参与</mark></p>
-            </section>
-            <section class="talent-detail-projects">
-              <h3>参与非柔性项目情况</h3>
-              <p>海上平台智能监测项目<br />数据中台建设项目<br />参与项目数量：3</p>
             </section>
           </div>
           <footer>

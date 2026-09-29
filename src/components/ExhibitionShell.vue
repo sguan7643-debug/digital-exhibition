@@ -9,7 +9,16 @@ import {
 import TypeLineIcon from './TypeLineIcon.vue';
 import { prependAppBasePath } from '../integration/app-base-path.js';
 
-const props = defineProps({ page: { type: Object, required: true }, appBasePath: { type: String, default: '/' } });
+const props = defineProps({
+  page: { type: Object, required: true },
+  appBasePath: { type: String, default: '/' },
+  accountIdentity: { type: Object, default: null },
+  unreadCount: { type: Number, default: null }
+});
+const accountName = computed(() => String(props.accountIdentity?.displayName || '当前用户'));
+const accountDepartment = computed(() => String(props.accountIdentity?.departmentName || props.accountIdentity?.orgName || '—'));
+const visibleUnreadCount = computed(() => Number.isInteger(props.unreadCount) && props.unreadCount > 0 ? props.unreadCount : null);
+const messageAriaLabel = computed(() => visibleUnreadCount.value === null ? '消息' : `${visibleUnreadCount.value} 条未读消息`);
 const shellState = createShellController();
 const viewerRole = ref(props.page.role);
 const sceneDraft = ref(new URLSearchParams(window.location.search).get('scene') || '');
@@ -228,12 +237,12 @@ watch(
         </a>
       </nav>
       <div class="top-actions" aria-label="快捷操作" :aria-hidden="mobileViewport && mobileMenuOpen ? 'true' : undefined" :inert="mobileViewport && mobileMenuOpen">
-        <a class="action-link" :href="appHref('/messages')" aria-label="8 条未读消息"><TypeLineIcon name="message" :size="24" /></a>
+        <a class="action-link" :href="appHref('/messages')" :aria-label="messageAriaLabel"><TypeLineIcon name="message" :size="24" /><span v-if="visibleUnreadCount !== null" class="unread-badge" aria-hidden="true">{{ visibleUnreadCount }}</span></a>
         <a class="action-link" :href="appHref('/favorites')" aria-label="收藏" :aria-current="props.page.id === '03' ? 'page' : undefined"><TypeLineIcon name="favorite" :size="23" /></a>
         <details ref="accountMenu" class="account-menu">
         <summary class="top-user" aria-label="个人菜单">
           <img src="/assets/top-avatar.png" width="38" height="38" alt="" />
-          <span><strong>张三丰</strong><small>物资采购中心</small></span>
+          <span><strong>{{ accountName }}</strong><small>{{ accountDepartment }}</small></span>
         </summary>
           <nav class="account-links" aria-label="个人功能">
             <a :href="appHref('/profile')">个人中心</a>
@@ -298,7 +307,7 @@ watch(
 .topbar{height:63px;display:flex;align-items:center;padding:0 18px;background:#0060a6;border-bottom:1px solid #143f6b;color:#fff}.brand{flex:0 0 190px;height:43px;display:flex;align-items:center;color:#fff;font-size:19px;font-weight:700;letter-spacing:.04em;white-space:nowrap}
 .primary-nav{height:100%;display:flex;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-padding-inline:8px}.primary-nav::-webkit-scrollbar{width:0;height:0;display:none}.primary-nav a{min-width:82px;height:100%;position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 9px;color:rgba(255,255,255,.82);font-size:14px;white-space:nowrap;transition:color .16s ease,background-color .16s ease}.primary-nav a:hover{color:#fff;background:rgba(255,255,255,.055)}.primary-nav a[aria-current='page']{color:#fff}.primary-nav a[aria-current='page']::after{content:'';position:absolute;left:15px;right:15px;bottom:0;height:3px;background:#fff}.nav-glyph{width:22px;height:24px;object-fit:contain;filter:invert(1) grayscale(1) contrast(2) brightness(2);mix-blend-mode:screen;opacity:.92}
 .top-actions{flex:0 0 218px;height:100%;display:flex;align-items:center;justify-content:flex-end;gap:15px;white-space:nowrap}.action-link{width:32px;height:44px;position:relative;display:grid;place-items:center;color:#fff}.action-link :deep(.type-line-icon){overflow:visible;stroke-width:1.7}.action-link[aria-current='page']{color:#b9dcff}.top-user{height:44px;display:flex;align-items:center;gap:8px;padding-left:12px;border-left:1px solid rgba(255,255,255,.2)}.top-user>img{width:38px;height:38px;border-radius:50%;filter:saturate(.7)}.top-user span{display:grid;gap:2px}.top-user strong{color:#fff;font-size:13px}.top-user small{color:rgba(255,255,255,.72);font-size:11px}
-.action-link:first-child::after{content:'8';position:absolute;right:-1px;top:7px;min-width:14px;height:14px;display:grid;place-items:center;padding:0 2px;color:#fff;background:#e7382f;border:2px solid #073866;border-radius:999px;font-size:8px;font-weight:700;line-height:1}
+.unread-badge{position:absolute;right:-1px;top:7px;min-width:14px;height:14px;display:grid;place-items:center;padding:0 2px;color:#fff;background:#e7382f;border:2px solid #073866;border-radius:999px;font-size:8px;font-weight:700;line-height:1}
 .page-frame{min-height:0;overflow:hidden;display:grid;background:#f5f7fa;grid-template-columns:220px minmax(0,1fr)}.sidebar{min-height:0;position:relative;background:#fff;border-right:1px solid #d9e2ec;overflow-y:auto}.catalogue-group{padding:11px 15px 10px;border-bottom:1px solid #e4eaf1}.group-heading{height:30px;display:flex;align-items:center;justify-content:space-between}.catalogue-group h2,.scene-search h2{height:30px;display:flex;align-items:center;gap:9px;margin:0;color:#102d50;font-size:13px;font-weight:700}.catalogue-group h2>img{width:20px;height:20px;object-fit:contain;filter:grayscale(1) contrast(1.9) sepia(.65) saturate(2.7) hue-rotate(166deg);mix-blend-mode:multiply}.group-toggle{width:28px;height:28px;display:grid;place-items:center;padding:0;color:#304d6e;background:transparent;border:0;border-radius:3px}.group-chevron{width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translate(-1px,-1px)}.group-toggle[aria-expanded=false] .group-chevron{transform:rotate(-45deg)}.catalogue-group nav{display:grid;gap:1px;padding-top:3px}.catalogue-group nav a,.catalogue-group nav button{height:30px;display:flex;align-items:center;gap:10px;padding:0 7px;color:#324a67;background:transparent;border:0;border-radius:4px;text-align:left;font-size:12px}.catalogue-group nav a:hover,.catalogue-group nav button:hover{background:#f1f5f9;color:#0060a6}.catalogue-group nav button[aria-pressed=true]{color:#0060a6;background:#eaf1f8;font-weight:600}.catalogue-group nav a>img,.catalogue-group nav button>img{width:17px;height:17px;object-fit:contain;filter:grayscale(1) contrast(1.9) sepia(.65) saturate(2.7) hue-rotate(166deg);mix-blend-mode:multiply}.app-group{padding-top:9px}
 .catalogue-line-icon{color:#173b63;stroke-width:1.8}.catalogue-line-icon.heading-icon{color:#102f54;stroke-width:1.9}
 .scene-search{padding:13px 19px 18px}.scene-search h2{font-size:14px}.scene-search label{height:34px;display:flex;align-items:center;padding:0 9px;border:1px solid #ccd8e5;border-radius:4px;background:#fff}.scene-search input{width:100%;min-width:0;border:0;outline:0;color:#3e5571;font-size:11px;background:transparent}.scene-search>div{display:grid;grid-template-columns:repeat(2,1fr);gap:7px 9px;padding-top:11px}.scene-search button{height:29px;border:1px solid #dce4ed;color:#314b6c;background:#fff;border-radius:4px;font-size:11px}.scene-search button:hover{border-color:#9db3ca;background:#f6f8fb}.scene-search button[aria-pressed=true]{color:#fff;background:#0060a6;border-color:#0060a6}.scene-search button:disabled{color:#8d99a7;background:#f1f3f6}

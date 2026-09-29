@@ -14,6 +14,7 @@ Base token、tableId、viewId 或 fieldId。
 - `FEISHU_READ_BUDGET_MS`：整表读取预算，默认 35000 毫秒。
 - `HOMEPAGE_RESPONSE_BUDGET_MS`：首页聚合请求主动收口时间，默认 25000 毫秒且最高 29000 毫秒。
 - `FEISHU_APP_LAUNCH_ALLOWED_HOSTS`：允许应用启动的 HTTPS 主机名，多个值用逗号分隔。未配置时默认拒绝外部启动，禁止自动信任多维表格中的任意 URL。
+- `EXHIBITION_PUBLIC_ORIGIN`：展厅对外访问来源，例如 `https://test-pre-demo-seaoil.xdata.work`。用于多层反向代理未传递原始 Host 时的写请求同源校验；未配置时会使用 `FEISHU_OAUTH_REDIRECT_URI` 的来源作为兜底。
 - `FEISHU_BROWSER_TEST_WRITE_ENABLED=1`：仅在本地联调时允许浏览器进入 TEST_ 写代理；默认关闭。
 - `FEISHU_OAUTH_EVIDENCE_PATH`：可选的本地验收文件路径。真实 OAuth 回调成功时只记录身份存在性、权限数量和写权限布尔值，不记录姓名、用户 ID、Cookie、授权码或令牌。
 - `FEISHU_OAUTH_TEST_WRITE_ACCEPTANCE=1`：仅限本地联调。真实 OAuth 回调后临时创建 `TEST_` 权限，通过正常复合接口执行 `FAV-003`，随后清理收藏记录和临时权限；结果仅以脱敏布尔值写入上述证据文件。

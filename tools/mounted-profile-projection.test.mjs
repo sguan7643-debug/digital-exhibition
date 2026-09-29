@@ -25,6 +25,15 @@ const links=flatten(root).filter(node=>node.type==='a').map(node=>node.props.hre
 assert.ok(links.includes('/messages'));assert.ok(!links.some(href=>String(href).includes('evil.example')),'external quick/avatar URL must not render as a link');
 const blocked=flatten(root).find(node=>node.type==='button'&&textOf(node).includes('外部入口'));assert.equal(blocked?.props.disabled,true);
 
+window.fetch=async()=>Response.json({authenticated:true,identity:{userId:'ou_authorized',displayName:'当前授权用户',employeeNo:'E-009',orgName:'授权组织',departmentName:'授权部门'}});
+const authorizedRoot={type:'root',children:[]};
+renderer.createApp(component,{integrationState:'normal',integrationData:remoteData}).mount(authorizedRoot);
+await nextTick();await new Promise(resolve=>setTimeout(resolve,0));await nextTick();
+assert.match(textOf(authorizedRoot),/当前授权用户/);
+assert.match(textOf(authorizedRoot),/组织：授权组织/);
+assert.match(textOf(authorizedRoot),/部门：授权部门/);
+delete window.fetch;
+
 const denied={type:'root',children:[]};
 renderer.createApp(component,{integrationState:'permission-denied',integrationData:remoteData}).mount(denied);await nextTick();
 assert.match(textOf(denied),/需要完成飞书授权/);assert.doesNotMatch(textOf(denied),/受控用户甲|张三丰|受控消息|受控待办/);

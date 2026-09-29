@@ -29,6 +29,41 @@ assert.equal((await dispatch({ method: 'POST', url: '/api/v1/onboarding/applicat
 assert.equal((await dispatch({ method: 'POST', url: '/api/v1/onboarding/attempts/TEST_ATTEMPT_A/confirm', headers, body: {} })).status, 200);
 assert.equal((await dispatch({ method: 'POST', url: '/api/v1/onboarding/applications/TEST_APPLICATION/files/TEST_UPLOAD/grant', headers, body: { mode: 'DOWNLOAD' } })).body.url, '/api/v1/files/content/grant');
 assert.equal((await dispatch({ method: 'POST', url: '/api/v1/onboarding/uploads', headers, body: { attemptId: 'TEST_ATTEMPT_A' }, bodyBytes: 10 })).status, 201);
+const reverseProxyHeaders = {
+  ...headers,
+  origin: 'https://test-pre-demo-seaoil.xdata.work',
+  host: '127.0.0.1:4173',
+  'x-forwarded-host': 'test-pre-demo-seaoil.xdata.work',
+  'x-forwarded-proto': 'https'
+};
+assert.equal(
+  (await dispatch({ method: 'POST', url: '/api/v1/onboarding/uploads', headers: reverseProxyHeaders, body: { attemptId: 'TEST_ATTEMPT_PROXY' }, bodyBytes: 10 })).status,
+  201,
+  'loopback Node 服务必须接受 Nginx 转发的同源 HTTPS 上传请求'
+);
+const previousPublicOrigin = process.env.EXHIBITION_PUBLIC_ORIGIN;
+process.env.EXHIBITION_PUBLIC_ORIGIN = 'https://test-pre-demo-seaoil.xdata.work';
+try {
+  assert.equal(
+    (await dispatch({
+      method: 'POST',
+      url: '/api/v1/onboarding/uploads',
+      headers: { ...headers, origin: 'https://test-pre-demo-seaoil.xdata.work' },
+      body: { attemptId: 'TEST_ATTEMPT_PUBLIC_ORIGIN' },
+      bodyBytes: 10
+    })).status,
+    201,
+    '显式配置的公网来源必须在多层代理未传递 X-Forwarded-Host 时仍可上传'
+  );
+  assert.equal(
+    (await dispatch({ method: 'POST', url: '/api/v1/onboarding/uploads', headers: { ...headers, origin: 'https://evil.example' }, body: {}, bodyBytes: 10 })).status,
+    403,
+    '公网来源白名单不得放开其他来源'
+  );
+} finally {
+  if (previousPublicOrigin === undefined) delete process.env.EXHIBITION_PUBLIC_ORIGIN;
+  else process.env.EXHIBITION_PUBLIC_ORIGIN = previousPublicOrigin;
+}
 assert.equal((await dispatch({ method: 'DELETE', url: '/api/v1/onboarding/uploads/TEST_UPLOAD', headers })).status, 200);
 assert.equal((await dispatch({ method: 'GET', url: '/api/v1/onboarding/applications', headers: { ...headers, cookie: '' } })).status, 401);
 assert.equal((await dispatch({ method: 'GET', url: '/api/v1/onboarding/applications', headers: { ...headers, origin: 'https://evil.example' } })).status, 403);

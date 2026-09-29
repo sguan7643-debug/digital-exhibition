@@ -38,8 +38,15 @@ const uniqueIdentifierProvider = {
     return 'ONB_TEST_UNIQUE_IDENTIFIER_001';
   }
 };
+let referenceResolveCalls = 0;
+const referenceResolver = {
+  async resolve() {
+    referenceResolveCalls += 1;
+    return { applicationTypeName: '海能Work应用', businessDomainName: '采购管理', authorizedUserName: '申请人' };
+  }
+};
 
-const service = createFeishuOnboardingService({ approvalService, fileAccessService, orchestrator, uniqueIdentifierProvider, registryFile, now: () => nowValue });
+const service = createFeishuOnboardingService({ approvalService, fileAccessService, orchestrator, uniqueIdentifierProvider, referenceResolver, registryFile, now: () => nowValue });
 service.registerUploadedFile({ attemptId: 'TEST_ATTEMPT_SPOOF', uploadId: 'TEST_UPLOAD_SPOOF_ICON', purpose: 'APPLICATION_ICON', originalName: 'spoof.png', sizeBytes: 100, mimeType: 'image/png', detectedType: 'PNG', sha256: '0'.repeat(64), uploadedAt: '2026-09-26T09:54:00.000Z', fileToken: 'server-file-token-spoof' }, session);
 await assert.rejects(
   () => service.submit({
@@ -92,14 +99,19 @@ assert.equal(detail.uniqueIdentifier, 'ONB_TEST_UNIQUE_IDENTIFIER_001');
 assert.equal(detail.applicationName, '采购协同助手');
 assert.equal(detail.applicationCode, 'HW-PROC-001');
 assert.equal(detail.applicationType, 'T005');
+assert.equal(detail.applicationTypeName, '海能Work应用');
 assert.equal(detail.runId, 'TEST_ONBOARDING_POC_RUN');
 assert.equal(detail.businessDomain, 'PROCUREMENT');
+assert.equal(detail.businessDomainName, '采购管理');
 assert.deepEqual(detail.authorizedUsers, ['u_owner']);
+assert.deepEqual(detail.authorizedUserNames, ['申请人']);
+assert.equal(referenceResolveCalls, 1, '历史申请详情首次打开时应解析并持久化编码对应名称');
 assert.deepEqual(detail.authorizedDepartments, ['dept-owner']);
 
 currentStatus = 'APPROVED';
 const synced = await service.sync(created.applicationId, session);
 assert.equal(synced.status, 'APPROVED');
+assert.equal(synced.currentNode, '审批通过');
 assert.equal(synced.publicationStatus, 'SYNCED');
 assert.equal(approvalCalls.filter(call => call[0] === 'get').length, 1);
 currentProjectionStatus = 'FAILED';

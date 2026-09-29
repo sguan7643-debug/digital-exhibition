@@ -9,7 +9,7 @@ const controller=routeSession.controller('messages',()=>createMessagesController
 const remoteStats=computed(()=>props.integrationData?.['MSG-001']);
 const remoteRows=computed(()=>props.integrationData?.['MSG-002']?.items?.map(item=>({
   id:item.messageId,type:item.typeName||item.typeCode,title:item.title,copy:item.summary,
-  time:item.occurredAt?.replace('T',' ').slice(5,16)||'',read:item.isRead,today:item.isToday,
+  dateTime:item.occurredAt||'',time:item.occurredAt?.replace('T',' ').slice(0,16)||'—',read:item.isRead,today:item.isToday,
   action:item.actionLabel||'查看',route:item.targetPath||''
 }))||[]);
 const remoteState=computed(()=>props.integrationState);
@@ -22,9 +22,10 @@ const pageState=computed(()=>{
 });
 const stats = computed(() => {
   const value=remoteStats.value;
+  const count=(item)=>{const number=Number(item);return item!==null&&item!==undefined&&Number.isFinite(number)?number:'—';};
   return [
-    ['全部消息', Number(value?.totalCount??0), '', '/assets/msg-stat-all.png'], ['未读消息', Number(value?.unreadCount??0), '', '/assets/msg-stat-unread.png'],
-    ['已读消息', Number(value?.readCount??0), '', '/assets/msg-stat-read.png'], ['今日新增', Number(value?.todayCount??0), '', '/assets/msg-stat-new.png']
+    ['全部消息', count(value?.totalCount), '', '/assets/msg-stat-all.png'], ['未读消息', count(value?.unreadCount), '', '/assets/msg-stat-unread.png'],
+    ['已读消息', count(value?.readCount), '', '/assets/msg-stat-read.png'], ['今日新增', count(value?.todayCount), '', '/assets/msg-stat-new.png']
   ];
 });
 const queryDraft=computed({get:()=>controller.queryDraft,set:value=>{controller.queryDraft=value;}});
@@ -64,7 +65,7 @@ function moveTab(event,index){if(!['ArrowLeft','ArrowRight'].includes(event.key)
       <ul v-else>
         <li v-for="(item,index) in pagedMessages" :key="item.id">
           <AppIcon :name="`msg-row-${index%6+1}`" :size="42" /><small class="message-type">{{ item.type }}</small><i :class="{ placeholder: item.read }" :aria-hidden="item.read ? 'true' : undefined" :aria-label="item.read ? undefined : '未读'"></i>
-          <div><strong>{{ item.title }}</strong><p>{{ item.copy }}</p></div><time :datetime="`2025-${item.time.replace(' ','T')}`">{{ item.time }}</time><em class="message-state" :class="{ unread: !item.read }">{{ item.read?'已读':'未读' }}</em><a v-if="actionFor(item).kind==='route'" :id="`message-${item.id}`" :data-session-focus="`message-${item.id}`" :href="actionFor(item).route" @click="openMessage(item)">{{ item.action }}　›</a><button v-else :id="`message-${item.id}`" type="button" @click="activateMessage(item)">{{ item.action }}　›</button>
+          <div><strong>{{ item.title || '—' }}</strong><p>{{ item.copy || '—' }}</p></div><time :datetime="item.dateTime || undefined">{{ item.time }}</time><em class="message-state" :class="{ unread: !item.read }">{{ item.read?'已读':'未读' }}</em><a v-if="actionFor(item).kind==='route'" :id="`message-${item.id}`" :data-session-focus="`message-${item.id}`" :href="actionFor(item).route" @click="openMessage(item)">{{ item.action }}　›</a><button v-else :id="`message-${item.id}`" type="button" @click="activateMessage(item)">{{ item.action }}　›</button>
         </li>
       </ul>
       <p v-if="pageState==='normal'&&!filteredMessages.length" class="message-empty" role="status">暂无符合条件的消息</p><PaginationControl v-if="pageState==='normal'" :total="filteredMessages.length" :page="controller.page" :page-size="controller.pageSize" label="消息分页" @update:page="changePage" @update:page-size="changePageSize" />

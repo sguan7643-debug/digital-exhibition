@@ -143,6 +143,41 @@ assert.equal(appDriftQueries.length, 2, '字段不存在时仅重读一次同一
 assert.ok(appDriftQueries[0].fieldNames.length > 0, '先按最小字段投影读取');
 assert.deepEqual(appDriftQueries[1].fieldNames, [], '仅在明确字段漂移时降级为整行读取');
 
+const latestFirstRows = new Map(sharedRows);
+latestFirstRows.set('应用索引', [
+  {
+    record_id: 'app-old',
+    fields: {
+      应用ID: 'APP-OLD', 应用名称: '较早审批应用', 应用类型: 'REPORT',
+      应用简介: '旧记录', 状态: '审核通过', 最近更新日期: '2026-09-27 18:00:00'
+    }
+  },
+  {
+    record_id: 'app-latest',
+    fields: {
+      应用ID: 'APP-LATEST', 应用名称: '最新审批应用', 应用类型: 'REPORT',
+      应用简介: '新记录', 状态: '审核通过', 最近更新日期: '2026-09-28 19:00:00'
+    }
+  }
+]);
+const latestFirstService = createFeishuReadOnlyService({
+  identifierContract,
+  client: {
+    async listRecords(tableId) {
+      const items = latestFirstRows.get(namesById.get(tableId)) || [];
+      return { items, total: items.length, hasMore: false, nextPageToken: '' };
+    }
+  }
+});
+const latestFirstResult = await latestFirstService.execute('APP-002', {
+  query: '', filters: {}, page: 1, pageSize: 10, sort: 'default'
+});
+assert.deepEqual(
+  latestFirstResult.data.items.map(item => item.appId),
+  ['APP-LATEST', 'APP-OLD'],
+  '应用中心默认排序必须让最近审批更新的应用优先出现在第一页'
+);
+
 let typeReads = 0;
 const sharedProjectionService = createFeishuReadOnlyService({
   identifierContract,

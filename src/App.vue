@@ -265,6 +265,8 @@ const LOCAL_UI_ONLY_CONTRACT = Object.freeze({
 });
 const integrationContract = computed(() => getPageIntegrationContract(page.value.route) || LOCAL_UI_ONLY_CONTRACT);
 const integrationEnvelope = ref({ mode: 'disabled', state: 'disabled', operationIds: [] });
+const shellUnreadCount = ref(null);
+const shellIdentityKey = computed(() => String(entryAuth.identity?.userId || entryAuth.identity?.openId || entryAuth.identity?.employeeNo || ''));
 const integrationRetrying = ref(false);
 const integrationPolling = ref(false);
 let integrationDataSource;
@@ -272,6 +274,22 @@ let integrationLoadOptions = {};
 let integrationInitialSyncTimer;
 let integrationInitialSyncAttempts = 0;
 const MAX_INITIAL_SYNC_ATTEMPTS = 30;
+
+function readAuthoritativeUnreadCount(data) {
+  const candidate = data?.['COM-001']?.unreadMessageCount ?? data?.['MSG-001']?.unreadCount;
+  const value = Number(candidate);
+  return Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+watch(shellIdentityKey, () => { shellUnreadCount.value = null; }, { flush: 'sync' });
+watch(
+  () => integrationEnvelope.value.data,
+  (data) => {
+    const value = readAuthoritativeUnreadCount(data);
+    if (value !== null) shellUnreadCount.value = value;
+  },
+  { deep: true },
+);
 
 const integrationRecovery = computed(() => {
   const envelope = integrationEnvelope.value;
@@ -298,25 +316,6 @@ const integrationRecovery = computed(() => {
     retryScope
   };
 });
-const dismissedIntegrationRecoveryKey = ref('');
-const integrationRecoveryKey = computed(() => {
-  if (!integrationRecovery.value) return '';
-  return [
-    page.value.route,
-    ...(integrationRecovery.value.retryScope || []),
-    integrationRecovery.value.traceId || '',
-    integrationRecovery.value.message
-  ].join('|');
-});
-const integrationRecoveryVisible = computed(() => Boolean(
-  integrationRecovery.value
-  && integrationRecoveryKey.value !== dismissedIntegrationRecoveryKey.value
-));
-
-function dismissIntegrationRecovery() {
-  dismissedIntegrationRecoveryKey.value = integrationRecoveryKey.value;
-}
-
 async function syncIntegrationEnvelope() {
   clearTimeout(integrationInitialSyncTimer);
   integrationInitialSyncTimer = null;
@@ -472,6 +471,8 @@ async function retryEntryAuthorization() {
     v-else
     :page="page"
     :app-base-path="appBasePath"
+    :account-identity="entryAuth.identity"
+    :unread-count="shellUnreadCount"
     :data-integration-mode="integrationEnvelope.mode"
     :data-integration-operations="integrationContract?.readOperationIds.join(',')"
   >
@@ -492,12 +493,6 @@ async function retryEntryAuthorization() {
         </span>
       </section>
       <integration-auth-banner v-if="integrationAuthRequired" :href="feishuAuthUrl" />
-      <section v-if="integrationRecoveryVisible" class="integration-recovery" role="status" aria-live="polite" data-integration-retry>
-        <span>{{ integrationRecovery.message }}</span>
-        <button type="button" class="integration-retry-action" :disabled="integrationRetrying" @click="retryIntegration">{{ integrationRetrying ? '正在重试…' : '重试受影响数据' }}</button>
-        <small v-if="integrationRecovery.traceId">请求标识：{{ integrationRecovery.traceId }}</small>
-        <button type="button" class="integration-toast-close" aria-label="关闭数据请求提示" title="关闭" @click="dismissIntegrationRecovery"><span aria-hidden="true">×</span></button>
-      </section>
     </div>
     <p class="sr-only integration-source-status" data-integration-status aria-live="polite">{{ integrationLiveAnnouncement }}</p>
     <page-state-boundary :page="page" :state="page.state" @restore="restoreNormal">
@@ -537,7 +532,7 @@ async function retryEntryAuthorization() {
         :integration-state="integrationEnvelope.state"
         :integration-mode="integrationEnvelope.mode"
       />
-      <points-page v-else-if="page.id === '18'" :integration-data="integrationEnvelope.data" />
+      <points-page v-else-if="page.id === '18'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <points-details-page v-else-if="page.id === '19'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <training-page v-else-if="page.id === '20'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :test-writes-enabled="integrationRuntime.testWritesEnabled" />
       <operations-page v-else-if="page.id === '21'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
