@@ -196,10 +196,18 @@ function flattenOrganizations(items, result = []) {
   return result;
 }
 
+const sessionApplicant = ref(null);
+const sessionApplicantChecked = ref(false);
+const sessionApplicantError = ref("");
 const departmentOptions = computed(() => {
   const unique = new Map();
   for (const item of flattenOrganizations(props.integrationData?.["COM-003"]?.items)) {
     if (item.id && item.name) unique.set(item.id, item);
+  }
+  const sessionDepartmentId = String(sessionApplicant.value?.departmentId || "").trim();
+  const sessionDepartmentName = String(sessionApplicant.value?.departmentName || "").trim();
+  if (sessionDepartmentId && sessionDepartmentName && !unique.has(sessionDepartmentId)) {
+    unique.set(sessionDepartmentId, { id: sessionDepartmentId, name: sessionDepartmentName });
   }
   return [...unique.values()];
 });
@@ -216,12 +224,11 @@ const userOptions = computed(() => {
     }))
     .filter((item) => item.adAccount && item.displayName);
 });
-const sessionApplicant = ref(null);
-const sessionApplicantChecked = ref(false);
-const sessionApplicantError = ref("");
 const applicantDisplay = computed(() => {
   const user = userOptions.value.find((item) => item.adAccount === form.applicant);
-  return user ? `${user.displayName}（${user.adAccount}）` : form.applicant;
+  const userId = String(sessionApplicant.value?.userId || user?.adAccount || form.applicant || "").trim();
+  const displayName = String(sessionApplicant.value?.displayName || user?.displayName || "").trim();
+  return displayName && userId ? `${displayName}（${userId}）` : displayName || userId;
 });
 async function loadCurrentApplicant() {
   try {
@@ -233,6 +240,8 @@ async function loadCurrentApplicant() {
     sessionApplicant.value = {
       userId,
       displayName: String(body?.identity?.displayName || body?.identity?.name || ""),
+      departmentId: String(body?.identity?.departmentId || body?.identity?.orgId || ""),
+      departmentName: String(body?.identity?.departmentName || body?.identity?.orgName || ""),
       phone: String(body?.identity?.phone || ""),
       email: String(body?.identity?.email || "")
     };
@@ -263,7 +272,8 @@ const contactUserOptions = computed(() => usersInDepartment(form.contactDepartme
 const applicableUserOptions = computed(() => usersInDepartment(form.accessDepartment));
 function syncApplicantProfile() {
   const user = userOptions.value.find((item) => item.adAccount === form.applicant);
-  if (user?.departmentName) form.department = user.departmentName;
+  const departmentName = String(sessionApplicant.value?.departmentName || user?.departmentName || "").trim();
+  if (departmentName) form.department = departmentName;
   if (!form.phone) form.phone = sessionApplicant.value?.phone || user?.phone || "";
   if (!form.email) form.email = sessionApplicant.value?.email || user?.email || "";
 }
@@ -538,7 +548,7 @@ onMounted(() => {
       <p v-if="directoryState === 'loading'" class="directory-state" role="status">正在从飞书读取部门和人员数据…</p>
       <p v-else-if="directoryState === 'permission-denied'" class="directory-state directory-state-error" role="alert">需要完成飞书授权或获得通讯录读取权限后才能选择部门和人员。</p>
       <p v-else-if="directoryState === 'error'" class="directory-state directory-state-error" role="alert">飞书部门或人员数据读取失败，请稍后重试。</p>
-      <p v-else-if="directoryState === 'disabled'" class="directory-state directory-state-error" role="alert">飞书部门和人员接口尚未启用。</p>
+      <p v-else-if="directoryState === 'disabled'" class="directory-state directory-state-error" role="alert">当前运行环境未启用真实飞书部门和人员数据，请使用已配置的测试环境或重新启动已配置的本地服务。</p>
       <p v-else-if="directoryState === 'empty'" class="directory-state directory-state-error" role="alert">当前飞书账号下没有可选择的部门或人员。</p>
       <p v-if="!sessionApplicantChecked" class="directory-state" role="status">正在确认当前飞书申请人…</p>
       <p v-else-if="sessionApplicantError" class="directory-state directory-state-error" role="alert">{{ sessionApplicantError }}</p>

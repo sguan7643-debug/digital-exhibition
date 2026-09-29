@@ -61,6 +61,18 @@ assert.match(applySource, /props\.integrationData\?\.\["COM-003"\]\?\.items/);
 assert.match(applySource, /props\.integrationData\?\.\["COM-004"\]\?\.items/);
 assert.match(applySource, /window\.fetch\(["']\/api\/v1\/auth\/feishu\/session["']/);
 assert.match(applySource, /form\.applicant\s*=\s*userId/);
+assert.match(applySource, /displayName:\s*String\(body\?\.identity\?\.displayName/,
+  '申请人姓名必须优先来自当前 OAuth 会话');
+assert.match(applySource, /departmentId:\s*String\(body\?\.identity\?\.departmentId/,
+  '申请人所属部门标识必须从当前 OAuth 会话读取');
+assert.match(applySource, /departmentName:\s*String\(body\?\.identity\?\.departmentName/,
+  '申请人所属部门名称必须从当前 OAuth 会话读取');
+assert.match(applySource, /sessionApplicant\.value\?\.displayName/,
+  '通讯录列表不可用时仍须展示当前 OAuth 会话中的真实姓名');
+assert.match(applySource, /sessionApplicant\.value\?\.departmentName/,
+  '通讯录列表不可用时仍须回填当前 OAuth 会话中的真实部门');
+assert.match(applySource, /当前运行环境未启用真实飞书部门和人员数据/,
+  '运行时关闭时必须明确提示是当前构建配置，而不是误报飞书应用未发布');
 assert.match(applySource, /<input[^>]*readonly[^>]*:value="applicantDisplay"/);
 assert.doesNotMatch(applySource, /<select\s+v-model="form\.applicant"/, '申请人不得由客户端下拉框切换');
 assert.match(applySource, /v-for="department in departmentOptions"/);
