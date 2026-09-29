@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { FeishuProxyError } from './feishu-open-api-client.mjs';
 
-const IDENTIFIER_PATTERN = /^ONB[A-Za-z0-9_-]{1,125}$/;
+/** 后台返回无前缀 UUID；也可兼容带 ONB 前缀的历史值。 */
+const IDENTIFIER_PATTERN = /^(?:ONB)?[A-Za-z0-9_-]{8,128}$/;
 
 function normalizedBaseUrl(value) {
   let parsed;
@@ -23,7 +24,8 @@ function failure(code, message, status = 503) {
 function stableFallbackIdentifier(fallbackKey) {
   const key = String(fallbackKey || '').trim();
   if (!key) throw failure('ONBOARDING_UNIQUE_IDENTIFIER_UNAVAILABLE', '唯一标识服务不可用且申请缺少稳定标识键');
-  return `ONB${createHash('sha256').update(key).digest('hex').slice(0, 32).toUpperCase()}`;
+  // 与后台一致：无 ONB 前缀的 32 位十六进制。
+  return createHash('sha256').update(key).digest('hex').slice(0, 32);
 }
 
 export function createOnboardingUniqueIdentifierClient({
@@ -55,7 +57,7 @@ export function createOnboardingUniqueIdentifierClient({
     }
     const identifier = String(payload?.data?.uniqueIdentifier || payload?.uniqueIdentifier || '').trim();
     if (!IDENTIFIER_PATTERN.test(identifier)) {
-      throw failure('ONBOARDING_UNIQUE_IDENTIFIER_INVALID', '唯一标识接口未返回有效的 ONB 标识', 502);
+      throw failure('ONBOARDING_UNIQUE_IDENTIFIER_INVALID', '唯一标识接口未返回有效标识', 502);
     }
     return identifier;
   }
