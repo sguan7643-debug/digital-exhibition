@@ -3,7 +3,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, ref, watch }
 import ExhibitionShell from './components/ExhibitionShell.vue';
 import PageStateBoundary from './components/PageStateBoundary.vue';
 import IntegrationAuthBanner from './components/IntegrationAuthBanner.vue';
-import AppDetailLiveSections from './components/AppDetailLiveSections.vue';
 import ProfileLiveSections from './components/ProfileLiveSections.vue';
 import OperationalDetailStatus from './components/OperationalDetailStatus.vue';
 import ControlledWritePanel from './components/ControlledWritePanel.vue';
@@ -47,11 +46,14 @@ import { createPageDataSource, describeDataSourceEnvelope, resolveActiveRetrySco
 import { resolveIntegrationLiveAnnouncement } from './integration/live-region.js';
 import { createSafeProxyClient } from './integration/safe-proxy-client.js';
 import { createHomepageAggregateClient } from './integration/homepage-aggregate-client.js';
+import { createBrowserDataCache } from './integration/browser-data-cache.js';
+import { createPersistentReadClient } from './integration/persistent-read-client.js';
+import { createPersistentHomepageClient } from './integration/persistent-homepage-client.js';
+import { getRequestActivity, subscribeRequestActivity } from './integration/request-status.js';
 import { createVerifiedReadOperationContracts, createVerifiedWriteOperationContracts } from './integration/operation-contract-schemas.js';
 import { OPERATION_REGISTRY, getOperation } from './integration/operation-registry.js';
 import { resolveRemoteReadOperation } from './integration/remote-operation-capabilities.js';
 import { buildPageReadRequestPlan } from './integration/page-read-request-plan.js';
-import { getRequestActivity, subscribeRequestActivity } from './integration/request-status.js';
 import { normalizeAppBasePath, prependAppBasePath, prefixAppBaseLinks, stripAppBasePath } from './integration/app-base-path.js';
 
 const props = defineProps({
@@ -73,27 +75,42 @@ const integrationRuntime = resolveIntegrationRuntime({
 });
 const verifiedReadContracts = createVerifiedReadOperationContracts();
 const verifiedWriteContracts = createVerifiedWriteOperationContracts(OPERATION_REGISTRY.filter(operation => operation.access === 'write').map(operation => operation.id));
-const integrationClient = createSafeProxyClient({
+const rawIntegrationClient = createSafeProxyClient({
   baseUrl: integrationRuntime.proxyBase,
   origin: window.location.origin,
   timeoutMs: integrationRuntime.timeoutMs,
   operationContracts: { ...verifiedReadContracts, ...verifiedWriteContracts }
 });
-const homepageClient = createHomepageAggregateClient({
+const rawHomepageClient = createHomepageAggregateClient({
   baseUrl: integrationRuntime.proxyBase,
   origin: window.location.origin,
   timeoutMs: Math.min(integrationRuntime.timeoutMs || 29_500, 29_500)
 });
+const browserCache = createBrowserDataCache({ namespace: JSON.stringify({ identity: entryAuth.identity || {}, base: appBasePath }) });
+const noCacheReads = new Set(['COM-001','COM-002','COM-004','COM-008','APP-004','APP-010','TRN-006','CER-003','ADM-007','MAT-003','COM-010','ARC-002']);
+const integrationClient = createPersistentReadClient({ client: rawIntegrationClient, cache: browserCache,
+  isCacheableOperation: id => getOperation(id)?.readOnly === true && !noCacheReads.has(id) });
+const homepageClient = createPersistentHomepageClient({ client: rawHomepageClient, cache: browserCache });
 const requestActivity = ref(getRequestActivity());
+const stopRequestActivity = subscribeRequestActivity(value => { requestActivity.value = value; });
+const refreshCachedView = () => {
+  if (!integrationDataSource || integrationRetrying.value || integrationPolling.value) return;
+  const source = integrationDataSource;
+  source.load({}, integrationLoadOptions).then(result => {
+    if (source === integrationDataSource) integrationEnvelope.value = result;
+  }).catch(() => {});
+};
+const stopReadCache = integrationClient.subscribe(refreshCachedView);
+const stopHomepageCache = homepageClient.subscribe(refreshCachedView);
+onBeforeUnmount(() => { stopRequestActivity(); stopReadCache(); stopHomepageCache(); browserCache.close(); });
 const showControlledWritePanel = computed(() => import.meta.env.DEV && new URLSearchParams(window.location.search).get('test-write-panel') === '1');
-let requestActivityUnsubscribe;
 let appBaseLinkObserver;
 
 function resolveRemoteOperation(operationId) {
   const read = resolveRemoteReadOperation(operationId);
   if (read) return read;
   const operation = getOperation(operationId);
-  return operation?.access === 'write' && integrationRuntime.testWritesEnabled
+  return operation?.access === 'write' && integrationRuntime.businessWritesEnabled
     ? Object.freeze({ ...operation, remoteEnabled: true })
     : operation;
 }
@@ -105,26 +122,30 @@ async function executeReadOperation(operationId, input) {
 }
 
 async function requestHash(value) {
-  const bytes = new TextEncoder().encode(JSON.stringify(value));
+  const stable = item => Array.isArray(item) ? item.map(stable) : item && typeof item === 'object'
+    ? Object.fromEntries(Object.keys(item).sort().map(key => [key, stable(item[key])])) : item;
+  const bytes = new TextEncoder().encode(JSON.stringify(stable(value)));
   const digest = await window.crypto.subtle.digest('SHA-256', bytes);
   return `sha256:${[...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
 async function executePageWriteOperation(operationId, input, options = {}) {
-  if (!integrationRuntime.testWritesEnabled || !integrationDataSource) throw new Error('测试写入通道未启用');
-  if (!String(input?.businessKey || '').startsWith('TEST_') || !String(input?.idempotencyKey || '').startsWith('TEST_')) {
-    throw new Error('页面联调写入只允许 TEST_ 业务键和幂等键');
-  }
+  if (!integrationRuntime.businessWritesEnabled || !integrationDataSource) throw new Error('正式写入通道未启用');
+  if (options.confirmed !== true) throw new Error('操作需要明确确认');
+  const digest = await requestHash({ operationId, input });
+  const governedInput = { ...input, governance: { confirmed: true, auditContractId: 'business-write.v1', requestHash: digest,
+    ...(options.approvalInstanceId ? { approvalInstanceId: options.approvalInstanceId } : {}) } };
   const currentUser = await integrationClient.execute('COM-001', {});
-  return integrationDataSource.executeAction(operationId, input, {
+  const result = await integrationDataSource.executeAction(operationId, governedInput, {
     permissions: currentUser.data.permissions,
     confirmed: options.confirmed === true,
     idempotencyKey: input.idempotencyKey,
     ifMatch: input.ifMatch,
-    isolatedTestRecordId: input.businessKey,
-    auditContractId: 'feishu-test-write.v1',
-    requestHash: await requestHash({ operationId, input })
+    auditContractId: 'business-write.v1',
+    requestHash: digest
   });
+  await browserCache.invalidate();
+  return result;
 }
 
 function normalizeInitialRoute() {
@@ -206,6 +227,27 @@ function restoreNormal() {
   syncLocation();
 }
 
+function navigateWithinApp(href) {
+  const next = new URL(href, window.location.href);
+  if (next.origin !== window.location.origin) return false;
+  const logicalPath = stripAppBasePath(next.pathname, appBasePath) || next.pathname;
+  if (!resolvePage(logicalPath)) return false;
+  next.pathname = prependAppBasePath(logicalPath, appBasePath);
+  captureRouteSession(activeEntryKey.value);
+  const sourceSnapshot = routeSession.snapshot(activeEntryKey.value);
+  const xltEntryKey = routeSession.nextEntryKey();
+  const xltSource = {
+    entryKey: activeEntryKey.value,
+    href: sourceSnapshot?.href,
+    focusId: sourceSnapshot?.focusId,
+    scrollTop: sourceSnapshot?.scrollTop
+  };
+  window.history.pushState({ xltEntryKey, xltSource }, '', `${next.pathname}${next.search}${next.hash}`);
+  activeEntryKey.value = xltEntryKey;
+  syncLocation();
+  return true;
+}
+
 function handleInternalNavigation(event) {
   if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   const anchor = event.target.closest?.('a[href]');
@@ -239,7 +281,6 @@ function syncAppBaseLinks() {
 }
 
 onMounted(() => {
-  requestActivityUnsubscribe = subscribeRequestActivity((value) => { requestActivity.value = value; });
   window.addEventListener('popstate', syncLocation);
   document.addEventListener('click', handleInternalNavigation);
   nextTick(syncAppBaseLinks);
@@ -252,7 +293,6 @@ onMounted(() => {
 onUpdated(syncAppBaseLinks);
 onBeforeUnmount(() => {
   clearTimeout(integrationInitialSyncTimer);
-  requestActivityUnsubscribe?.();
   window.removeEventListener('popstate', syncLocation);
   document.removeEventListener('click', handleInternalNavigation);
   appBaseLinkObserver?.disconnect();
@@ -264,6 +304,8 @@ const LOCAL_UI_ONLY_CONTRACT = Object.freeze({
   actions: Object.freeze([])
 });
 const integrationContract = computed(() => getPageIntegrationContract(page.value.route) || LOCAL_UI_ONLY_CONTRACT);
+const appDetailWritesEnabled = computed(() => integrationRuntime.businessWritesEnabled
+  && integrationContract.value.actions.some(action => ['FAV-003', 'FAV-004', 'APP-005', 'APP-006', 'APP-008'].includes(action.operationId)));
 const integrationEnvelope = ref({ mode: 'disabled', state: 'disabled', operationIds: [] });
 const shellUnreadCount = ref(null);
 const shellIdentityKey = computed(() => String(entryAuth.identity?.userId || entryAuth.identity?.openId || entryAuth.identity?.employeeNo || ''));
@@ -372,7 +414,7 @@ function scheduleInitialSyncRetry() {
   integrationInitialSyncTimer = null;
   const aggregateSyncing = Boolean(integrationEnvelope.value.syncId && integrationEnvelope.value.refreshing);
   const records = Object.values(integrationEnvelope.value.sectionRecords || {})
-    .filter(record => record?.errorState === 'initial-syncing' && record?.retryable === true);
+    .filter(record => record?.available !== true && record?.retryable === true);
   if (!aggregateSyncing && !records.length) {
     integrationInitialSyncAttempts = 0;
     return;
@@ -382,15 +424,16 @@ function scheduleInitialSyncRetry() {
       ...integrationEnvelope.value,
       refreshing: false,
       syncState: 'expired',
-      syncError: 'HOMEPAGE_SYNC_POLL_TIMEOUT'
+      syncError: 'HOMEPAGE_AUTO_RETRY_EXHAUSTED'
     });
     return;
   }
-  const retryAfterSeconds = Math.max(1, Math.min(10,
-    records.length
-      ? Math.min(...records.map(record => Number.isInteger(record.retryAfterSeconds) ? record.retryAfterSeconds : 2))
-      : 2
-  ));
+  const serverDelay = records.length
+    ? Math.min(...records.map(record => Number.isInteger(record.retryAfterSeconds) ? record.retryAfterSeconds : 2))
+    : 2;
+  const retryAfterSeconds = aggregateSyncing
+    ? Math.max(1, Math.min(10, serverDelay))
+    : Math.max(2, Math.min(10, 2 ** Math.min(integrationInitialSyncAttempts, 3)));
   const route = page.value.route;
   const source = integrationDataSource;
   integrationInitialSyncAttempts += 1;
@@ -434,7 +477,6 @@ async function retryIntegration() {
   integrationInitialSyncTimer = null;
   const route = page.value.route;
   const source = integrationDataSource;
-  integrationInitialSyncAttempts = 0;
   integrationRetrying.value = true;
   try {
     const result = await source.retry({}, integrationLoadOptions);
@@ -476,29 +518,16 @@ async function retryEntryAuthorization() {
     :data-integration-mode="integrationEnvelope.mode"
     :data-integration-operations="integrationContract?.readOperationIds.join(',')"
   >
-    <div class="integration-toast-stack" aria-label="数据请求状态">
-      <section
-        v-if="requestActivity.isLoading"
-        class="request-activity-banner"
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-        aria-busy="true"
-      >
-        <span class="request-activity-banner__bar" aria-hidden="true"></span>
-        <span class="request-activity-banner__copy">
-          <strong v-if="requestActivity.activeCount > 1">正在处理 {{ requestActivity.activeCount }} 项请求</strong>
-          <strong v-else>{{ requestActivity.labels[0] || '正在加载数据' }}…</strong>
-          <small>页面其他区域仍可继续使用</small>
-        </span>
-      </section>
-      <integration-auth-banner v-if="integrationAuthRequired" :href="feishuAuthUrl" />
-    </div>
+    <aside v-if="requestActivity.isLoading" class="request-loading-toast" role="status" aria-live="polite">
+      <span class="request-loading-spinner" aria-hidden="true"></span>
+      <div><strong>正在处理 {{ requestActivity.activeCount }} 项请求</strong><p>页面其他区域仍可继续使用</p></div>
+    </aside>
+    <integration-auth-banner v-if="integrationAuthRequired" :href="feishuAuthUrl" />
     <p class="sr-only integration-source-status" data-integration-status aria-live="polite">{{ integrationLiveAnnouncement }}</p>
     <page-state-boundary :page="page" :state="page.state" @restore="restoreNormal">
       <workbench-page v-if="page.id === '01'" :integration-data="integrationEnvelope.data" :operation-executor="executeReadOperation" />
       <messages-page v-else-if="page.id === '02'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
-      <favorites-page v-else-if="page.id === '03'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :test-writes-enabled="integrationRuntime.testWritesEnabled" />
+      <favorites-page v-else-if="page.id === '03'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :writes-enabled="integrationRuntime.businessWritesEnabled" />
       <profile-page v-else-if="page.id === '04'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <announcements-page v-else-if="page.id === '05'"
         :integration-data="integrationEnvelope.data"
@@ -510,31 +539,35 @@ async function retryEntryAuthorization() {
         :integration-state="integrationEnvelope.state"
         :operation-executor="executeReadOperation"
         :action-executor="executePageWriteOperation"
-        :test-writes-enabled="integrationRuntime.testWritesEnabled"
+        :request-action-enabled="integrationRuntime.businessWritesEnabled && integrationContract.actions.some(action => action.operationId === 'APP-005')"
       />
-      <tool-detail-page v-else-if="page.id === '08'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
-      <haineng-work-detail-page v-else-if="page.id === '09'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
+      <tool-detail-page v-else-if="page.id === '08'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :writes-enabled="appDetailWritesEnabled" />
+      <haineng-work-detail-page v-else-if="page.id === '09'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :writes-enabled="appDetailWritesEnabled" />
       <report-detail-page v-else-if="page.id === '10'"
         :integration-data="integrationEnvelope.data"
         :integration-state="integrationEnvelope.state"
         :operation-executor="executeReadOperation"
+        :action-executor="executePageWriteOperation"
+        :writes-enabled="appDetailWritesEnabled"
       />
-      <dashboard-detail-page v-else-if="page.id === '11'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
-      <dataset-detail-page v-else-if="page.id === '12'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
-      <metric-detail-page v-else-if="page.id === '13'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
-      <ai-detail-page v-else-if="page.id === '14'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
-      <ead-detail-page v-else-if="page.id === '15'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
-      <rpa-detail-page v-else-if="page.id === '16'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
+      <dashboard-detail-page v-else-if="page.id === '11'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :writes-enabled="appDetailWritesEnabled" />
+      <dataset-detail-page v-else-if="page.id === '12'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :writes-enabled="appDetailWritesEnabled" />
+      <metric-detail-page v-else-if="page.id === '13'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :writes-enabled="appDetailWritesEnabled" />
+      <ai-detail-page v-else-if="page.id === '14'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :writes-enabled="appDetailWritesEnabled" />
+      <ead-detail-page v-else-if="page.id === '15'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :writes-enabled="appDetailWritesEnabled" />
+      <rpa-detail-page v-else-if="page.id === '16'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :writes-enabled="appDetailWritesEnabled" />
       <onboarding-page v-else-if="page.id === '17'" :key="activeHref" />
       <onboarding-apply-page
         v-else-if="page.id === '32'"
         :integration-data="integrationEnvelope.data"
         :integration-state="integrationEnvelope.state"
         :integration-mode="integrationEnvelope.mode"
+        :operation-executor="executeReadOperation"
+        @navigate="navigateWithinApp"
       />
       <points-page v-else-if="page.id === '18'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <points-details-page v-else-if="page.id === '19'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
-      <training-page v-else-if="page.id === '20'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :test-writes-enabled="integrationRuntime.testWritesEnabled" />
+      <training-page v-else-if="page.id === '20'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :writes-enabled="integrationRuntime.businessWritesEnabled" />
       <operations-page v-else-if="page.id === '21'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <announcement-admin-page v-else-if="page.id === '22'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
       <announcement-editor-page v-else-if="page.id === '23'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" />
@@ -561,13 +594,6 @@ async function retryEntryAuthorization() {
         :operation-executor="executeReadOperation"
       />
       <section v-else class="state-surface" role="status">当前页面没有已登记的飞书数据源。</section>
-      <app-detail-live-sections v-if="Number(page.id) >= 8 && Number(page.id) <= 16"
-        :integration-data="integrationEnvelope.data"
-        :integration-state="integrationEnvelope.state"
-        :operation-executor="executeReadOperation"
-        :action-executor="executePageWriteOperation"
-        :test-writes-enabled="integrationRuntime.testWritesEnabled && integrationContract.actions.some(action => ['FAV-003','FAV-004','APP-005','APP-006','APP-008'].includes(action.operationId))"
-      />
       <profile-live-sections v-if="page.id === '04'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <operational-detail-status v-if="page.id === '26'" :operation-executor="executeReadOperation" />
       <controlled-write-panel

@@ -131,8 +131,9 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
   }
 
   function requireAuthorizationScope(application) {
-    if (!String(application?.users || '').trim() || !String(application?.accessDepartment || '').trim()) {
-      throw new FeishuProxyError('APPROVAL_AUTHORIZATION_REQUIRED', '海能Work审批必须填写适用用户和适用部门', 400);
+    if (application && application.scope === 'all') return;
+    if (!String(application?.users || '').trim() && !String(application?.accessDepartment || '').trim()) {
+      throw new FeishuProxyError('APPROVAL_AUTHORIZATION_REQUIRED', '部分开放时必须填写适用用户或适用部门', 400);
     }
   }
 
@@ -335,6 +336,33 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
     });
   }
 
+  async function resolveBusinessApproval(instanceId, requestContext = {}, expectation = {}) {
+    const normalized = validateInstanceId(instanceId);
+    const identity = requestContext.identity || requestContext || {};
+    const subject = String(identity.subject || identity.userId || identity.openId || '');
+    if (!subject) throw new FeishuProxyError('USER_AUTH_REQUIRED', '需要先完成飞书用户授权', 401);
+    const record = registry.get(normalized);
+    if (!record) throw new FeishuProxyError('APPROVAL_INSTANCE_NOT_REGISTERED', '审批实例未在本服务登记', 404);
+    const tenantKey = String(identity.tenantKey || identity.tenantId || '');
+    const orgId = String(identity.orgId || identity.organizationId || '');
+    if (record.tenantKey && tenantKey && record.tenantKey !== tenantKey) throw new FeishuProxyError('APPROVAL_INSTANCE_TENANT_MISMATCH', '审批实例不属于当前租户', 403);
+    if (record.orgId && orgId && record.orgId !== orgId) throw new FeishuProxyError('APPROVAL_INSTANCE_ORG_MISMATCH', '审批实例不属于当前组织', 403);
+    if (record.cleanupStatus !== 'ACTIVE' || record.expiresAt <= now()) throw new FeishuProxyError('APPROVAL_INSTANCE_EXPIRED', '审批实例已过期或已清理', 410);
+    const operationId = String(expectation.operationId || '');
+    const resourceId = String(expectation.resourceId || '');
+    const allowedOperations = record.businessOperationId
+      ? [String(record.businessOperationId)]
+      : record.applicationType === 'T005' ? ['OAP-009', 'OAP-010'] : [];
+    if (!allowedOperations.includes(operationId)) throw new FeishuProxyError('BUSINESS_APPROVAL_OPERATION_MISMATCH', '审批实例未授权该业务操作', 403);
+    const approvedResources = new Set([record.applicationId, record.resourceId, record.businessId].map(String).filter(Boolean));
+    if (!resourceId || !approvedResources.has(resourceId)) throw new FeishuProxyError('BUSINESS_APPROVAL_RESOURCE_MISMATCH', '审批实例未绑定该业务资源', 403);
+    const current = await client.getApprovalInstance(normalized);
+    if (current.approvalCode !== record.approvalCode) throw new FeishuProxyError('APPROVAL_DEFINITION_MISMATCH', '审批实例与登记的审批定义不一致', 403);
+    record.status = normalizeStatus(current.status);
+    persistRegistry();
+    return Object.freeze({ instanceId: normalized, status: record.status, operationId, resourceId });
+  }
+
   async function approveTestTask(instanceId, session, options = {}) {
     const context = sessionContext(session);
     const { userId } = context;
@@ -396,5 +424,5 @@ export function createFeishuApprovalService({ client, now = Date.now, registry =
     return count;
   }
 
-  return Object.freeze({ ensureTestDefinition, createInstance, getInstance, approveTestTask, reconcile, cleanupExpired });
+  return Object.freeze({ ensureTestDefinition, createInstance, getInstance, resolveBusinessApproval, approveTestTask, reconcile, cleanupExpired });
 }

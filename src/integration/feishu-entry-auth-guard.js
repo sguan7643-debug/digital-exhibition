@@ -1,5 +1,6 @@
 const SESSION_ENDPOINT = '/api/v1/auth/feishu/session';
 const OAUTH_START_ENDPOINT = '/api/v1/auth/feishu/start';
+const TRANSIENT_AUTH_ERRORS = new Set(['FEISHU_AUTH_UPSTREAM_UNAVAILABLE', 'INTERNAL_AUTH_ERROR']);
 import { isPathWithinAppBase, normalizeAppBasePath } from './app-base-path.js';
 
 function decodePathSegment(value) {
@@ -61,7 +62,7 @@ export function createFeishuEntryAuthGuard({
       return { authorized: false, render: false, reason: 'outside-app-base' };
     }
     const authorizationError = current.searchParams.get('authError');
-    if (authorizationError) {
+    if (authorizationError && !TRANSIENT_AUTH_ERRORS.has(authorizationError)) {
       return {
         authorized: false,
         render: true,

@@ -27,7 +27,7 @@ const define = (id, route, operationIds, fieldDomains, defaultMode = 'remote') =
     confirmationRequired: true,
     idempotencyRequired: true,
     versionConditionRequired: versionRequiredOperationIds.has(operationId),
-    isolatedTestRecordRequired: true,
+    isolatedTestRecordRequired: false,
     auditContractRequired: true,
     requestHashRequired: true,
     remoteEnabled: false
@@ -51,7 +51,7 @@ export const PAGE_INTEGRATION_MATRIX = Object.freeze([
   define('04','/profile',['COM-003','COM-004','WB-003','WB-004'],['identity','organization','contact','profile-summary','todo']),
   define('05','/announcements',['ANN-001','ANN-002'],['announcement','read-state']),
   define('06','/announcements/notice-001',['ANN-003','ANN-005','COM-008','ANN-004'],['announcement-detail','attachment','related-resource','file-download','read-state']),
-  define('07','/apps',['APP-001','APP-002','APP-004'],['application-summary','application-filter','topic-domain','app-launch']),
+  define('07','/apps',['APP-001','APP-002','APP-004','APP-005'],['application-summary','application-filter','topic-domain','app-launch','application-request']),
   define('08','/apps/tool-001',[...appDetailOperationIds],['application-detail','training-relation','material-relation','comment','material-download','file-download','favorite','application-request','reuse-request']),
   define('09','/apps/haineng-work-001',[...appDetailOperationIds],['application-detail','training-relation','material-relation','comment','material-download','file-download','favorite','application-request','reuse-request']),
   define('10','/apps/report-001',[...appDetailOperationIds],['application-detail','report-metadata','related-resource','comment','material-download','file-download','favorite','application-request','reuse-request']),

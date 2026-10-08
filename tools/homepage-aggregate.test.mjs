@@ -12,9 +12,9 @@ import { createHomepageAggregateNodeMiddleware } from '../server/homepage-aggreg
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 const context = { identity: { tenantKey: 'tenant-1', userId: 'user-1', permissions: ['homepage:read'] } };
 
-assert.equal(resolveHomepageResponseBudgetMs(), 25_000);
-assert.equal(resolveHomepageResponseBudgetMs(60_000), 29_000, '应用响应预算必须为代理传输预留小于30秒的边界');
-assert.equal(resolveHomepageResponseBudgetMs('invalid'), 25_000);
+assert.equal(resolveHomepageResponseBudgetMs(), 5_000);
+assert.equal(resolveHomepageResponseBudgetMs(60_000), 5_000, '首个响应等待不超过5秒，随后只查询同步任务');
+assert.equal(resolveHomepageResponseBudgetMs('invalid'), 5_000);
 
 const cache = new Map();
 const freshCalls = [];
@@ -121,6 +121,38 @@ assert.throws(
   error => error.code === 'SYNC_JOB_FORBIDDEN'
 );
 
+const nestedBudgetCache = new Map();
+let nestedFreshCalls = 0;
+let nestedBackgroundCalls = 0;
+const nestedBudgetService = createHomepageAggregateService({
+  readService: {
+    peekOperation(operationId) { return nestedBudgetCache.get(operationId) || null; },
+    async executeFresh() {
+      nestedFreshCalls += 1;
+      throw Object.assign(new Error('正式飞书数据仍在同步'), { code: 'FEISHU_INITIAL_SYNCING', status: 202 });
+    },
+    async executeBackground(operationId) {
+      nestedBackgroundCalls += 1;
+      await sleep(15);
+      const value = { code: 'OK', data: { operationId }, sourceUpdatedAt: '2026-09-24T00:00:00.000Z', dataStale: false, isComplete: true };
+      nestedBudgetCache.set(operationId, value);
+      return value;
+    }
+  },
+  responseBudgetMs: 5,
+  idFactory: () => 'sync-nested-budget-0001',
+  prewarm: false
+});
+const nestedResponse = await nestedBudgetService.readHomepage(context);
+assert.equal(nestedResponse.status, 202, '超过首页5秒预算必须返回同步任务，不能返回503');
+assert.equal(nestedResponse.body.syncId, 'sync-nested-budget-0001');
+await sleep(25);
+const nestedCompleted = nestedBudgetService.getSyncStatus(nestedResponse.body.syncId, context);
+assert.equal(nestedCompleted.state, 'completed');
+assert.equal(Object.keys(nestedCompleted.result.data).length, HOMEPAGE_OPERATION_IDS.length);
+assert.equal(nestedFreshCalls, 0, '首页后台任务不得调用带5秒响应预算的读取入口');
+assert.equal(nestedBackgroundCalls, HOMEPAGE_OPERATION_IDS.length);
+
 for (const value of cache.values()) {
   value.dataStale = true;
   value.cacheStatus = 'stale';
@@ -188,24 +220,19 @@ assert.equal(staleAfterFailure.body.aggregateState, 'stale');
 assert.equal(staleAfterFailure.body.refreshing, false);
 assert.equal(staleCalls.length, HOMEPAGE_OPERATION_IDS.length, '失败后的普通读取不得立即制造新的回源风暴');
 
-const aggregateResponses = [
-  {
-    status: 202,
-    body: { code: 'HOMEPAGE_SYNCING', state: 'running', syncId: 'sync-client-0001', pollAfterMs: 2000, traceId: 'trace-cold' }
-  },
-  {
-    status: 200,
-    body: {
-      code: 'OK', aggregateState: 'fresh', data: Object.fromEntries(HOMEPAGE_OPERATION_IDS.map(id => [id, { id }])),
-      sections: Object.fromEntries(HOMEPAGE_OPERATION_IDS.map(id => [id, {
-        state: 'fresh', available: true, data: { id }, traceId: `trace-${id}`,
-        sourceUpdatedAt: '2026-09-24T00:00:00.000Z', dataStale: false, isComplete: true, retryable: false
-      }])),
-      dataStale: false, refreshing: false, syncId: null,
-      sourceUpdatedAt: '2026-09-24T00:00:00.000Z', traceId: 'trace-fresh'
-    }
-  }
-];
+const finalAggregateBody = {
+  code: 'OK', aggregateState: 'fresh', data: Object.fromEntries(HOMEPAGE_OPERATION_IDS.map(id => [id, { id }])),
+  sections: Object.fromEntries(HOMEPAGE_OPERATION_IDS.map(id => [id, {
+    state: 'fresh', available: true, data: { id }, traceId: `trace-${id}`,
+    sourceUpdatedAt: '2026-09-24T00:00:00.000Z', dataStale: false, isComplete: true, retryable: false
+  }])),
+  dataStale: false, refreshing: false, syncId: null,
+  sourceUpdatedAt: '2026-09-24T00:00:00.000Z', traceId: 'trace-fresh'
+};
+const aggregateResponses = [{
+  status: 202,
+  body: { code: 'HOMEPAGE_SYNCING', state: 'running', syncId: 'sync-client-0001', pollAfterMs: 2000, traceId: 'trace-cold' }
+}];
 let aggregateLoads = 0;
 let aggregatePolls = 0;
 let individualCalls = 0;
@@ -215,7 +242,7 @@ const source = createPageDataSource({
   client: { async execute() { individualCalls += 1; throw new Error('must not execute'); } },
   homepageClient: {
     async load() { return aggregateResponses[aggregateLoads++]; },
-    async status() { aggregatePolls += 1; return { code: 'OK', syncId: 'sync-client-0001', state: 'completed', traceId: 'trace-complete' }; }
+    async status() { aggregatePolls += 1; return { code: 'OK', syncId: 'sync-client-0001', state: 'completed', traceId: 'trace-complete', result: finalAggregateBody }; }
   },
   operationResolver: operationId => ({ ...getOperation(operationId), remoteEnabled: true })
 });
@@ -224,7 +251,7 @@ assert.equal(first.state, 'initial-syncing');
 assert.equal(first.syncId, 'sync-client-0001');
 const completed = await source.pollSync();
 assert.equal(completed.state, 'normal');
-assert.equal(aggregateLoads, 2, '同步完成后只允许重新获取一次聚合结果');
+assert.equal(aggregateLoads, 1, '同步完成后必须直接使用状态接口结果，不得重发首页聚合接口');
 assert.equal(aggregatePolls, 1);
 assert.equal(individualCalls, 0, '首页聚合流程不得调用五个独立接口');
 

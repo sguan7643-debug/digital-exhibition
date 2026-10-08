@@ -8,6 +8,9 @@ const sensitiveKeySegments = Object.freeze([
   'tableid','viewid','tenantkey','authorization','cookie','secret','token'
 ]);
 const approvedDisplayTokenKeys = new Set(['colortoken']);
+const approvedMaskedCredentialKeys = new Set([
+  'apptokenmasked', 'tableidmasked', 'defaultviewidmasked', 'primaryfieldidmasked'
+]);
 
 const normalizeKey = key => String(key).replace(/[^a-z0-9]/gi, '').toLowerCase();
 const isSensitiveKey = key => {
@@ -19,7 +22,10 @@ const isSensitiveKey = key => {
 function assertSafePayload(value, path = 'payload') {
   if (!value || typeof value !== 'object') return;
   for (const [key, child] of Object.entries(value)) {
-    if (isSensitiveKey(key)) throw new Error(`浏览器数据包含敏感字段：${path}.${key}`);
+    const normalized = normalizeKey(key);
+    const isApprovedMaskedValue = approvedMaskedCredentialKeys.has(normalized)
+      && (child === null || child === '' || (typeof child === 'string' && child.includes('*')));
+    if (isSensitiveKey(key) && !isApprovedMaskedValue) throw new Error(`浏览器数据包含敏感字段：${path}.${key}`);
     assertSafePayload(child, `${path}.${key}`);
   }
 }
@@ -100,6 +106,32 @@ export function createSafeProxyClient(options = {}) {
   const traceIdFactory = options.traceIdFactory || (() => globalThis.crypto?.randomUUID?.() || `trace-sequence-${++fallbackTraceSequence}`);
   const operationContracts = options.operationContracts || {};
 
+  async function awaitSync(body, operationId, contract, signal) {
+    if (!/^[A-Za-z0-9-]{8,160}$/.test(body.syncId || '')) throw createSchemaError('同步任务编号缺失或无效');
+    for (;;) {
+      await new Promise((resolve, reject) => {
+        if (signal.aborted) return reject(signal.reason);
+        const abort = () => { clearTimeout(timer); signal.removeEventListener('abort', abort); reject(signal.reason); };
+        const timer = setTimeout(() => { signal.removeEventListener('abort', abort); resolve(); }, Math.max(100, Math.min(5000, body.pollAfterMs || 2000)));
+        signal.addEventListener('abort', abort, { once: true });
+      });
+      const response = await fetchImpl(`${baseUrl}/operations/sync-jobs/${encodeURIComponent(body.syncId)}`, {
+        method: 'GET', credentials: 'same-origin', cache: 'no-store', signal, headers: { Accept: 'application/json' }
+      });
+      const status = await response.json();
+      assertSafePayload(status);
+      if (!response.ok) throw new IntegrationRequestError(status.message || '同步任务查询失败', { ...normalizeIntegrationError({ status: response.status, code: status.code }), status: response.status });
+      if (status.code !== 'OK' || status.operationId !== operationId || status.syncId !== body.syncId) throw createSchemaError('同步任务响应不符合合同');
+      if (status.state === 'running') continue;
+      if (status.state === 'completed') {
+        enforceSchema(status.result, contract.successSchema, 'success response');
+        return status.result;
+      }
+      if (status.state === 'failed') throw new IntegrationRequestError(status.error?.message || '数据同步失败', { ...normalizeIntegrationError(status.error), status: status.error?.status });
+      throw createSchemaError('同步任务状态无效');
+    }
+  }
+
   function execute(operationId, payload = {}, requestOptions = {}) {
     return (async () => {
       if (!isKnownOperationId(operationId)) throw new Error(`未知或无效的 operationId：${operationId}`);
@@ -154,6 +186,7 @@ export function createSafeProxyClient(options = {}) {
           method: 'POST', credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
           headers: { 'Content-Type': 'application/json', 'X-Trace-Id': traceId },
           body: JSON.stringify({ operationId, input: payload })
+          ,...(requestOptions.fresh ? { headers: { 'Content-Type': 'application/json', 'X-Trace-Id': traceId, 'X-Read-Consistency': 'fresh' } } : {})
         });
         throwIfAborted(response.status);
         const httpNormalized = response.ok ? null : normalizeIntegrationError({ status: response.status });
@@ -172,6 +205,7 @@ export function createSafeProxyClient(options = {}) {
         await Promise.resolve();
         throwIfAborted(response.status);
         if (body?.code === 'FEISHU_INITIAL_SYNCING') {
+          if (body.syncId) return await awaitSync(body, operationId, contract, controller.signal);
           const normalized = validateErrorEnvelope(body, contract, response, traceId);
           throw new IntegrationRequestError('正式飞书数据正在首次同步', {
             ...normalized, status: response.status, traceId: body.traceId || traceId
@@ -255,12 +289,13 @@ export function createSafeProxyClient(options = {}) {
         timedOut = true;
         controller.abort(new DOMException('请求超时', 'TimeoutError'));
       }, timeoutMs);
-      const requestToken = beginRequest(`正在批量请求 ${prepared.length} 个数据区域`);
+      const requestToken = requestOptions.silent ? null : beginRequest(`正在批量请求 ${prepared.length} 个数据区域`);
       try {
         const response = await fetchImpl(batchUrl.pathname, {
           method: 'POST', credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
           headers: { 'Content-Type': 'application/json', 'X-Trace-Id': traceId },
           body: JSON.stringify({ requests: prepared.map(({ operationId, input }) => ({ operationId, input })) })
+          ,...(requestOptions.fresh ? { headers: { 'Content-Type': 'application/json', 'X-Trace-Id': traceId, 'X-Read-Consistency': 'fresh' } } : {})
         });
         let body;
         try {
@@ -271,7 +306,7 @@ export function createSafeProxyClient(options = {}) {
         if (!response.ok || body?.code !== 'OK' || !Array.isArray(body.results) || body.results.length !== prepared.length) {
           throw createSchemaError('安全代理批量响应不符合合同', { status: response.status, traceId });
         }
-        return body.results.map((result, index) => {
+        return await Promise.all(body.results.map(async (result, index) => {
           const expected = prepared[index];
           if (result?.operationId !== expected.operationId || !Number.isInteger(result?.status)) {
             throw createSchemaError('安全代理批量响应顺序或状态不符合合同', { status: response.status, traceId });
@@ -279,6 +314,10 @@ export function createSafeProxyClient(options = {}) {
           if (result.status === 200 && result.body?.code === 'OK') {
             enforceSchema(result.body, expected.contract.successSchema, 'success response');
             return { status: 'fulfilled', value: { ...result.body, traceId: result.body.traceId || traceId } };
+          }
+          if (result.status === 202 && result.body?.code === 'FEISHU_INITIAL_SYNCING' && result.body.syncId) {
+            try { return { status: 'fulfilled', value: await awaitSync(result.body, expected.operationId, expected.contract, controller.signal) }; }
+            catch (error) { return { status: 'rejected', reason: new IntegrationRequestError(error.message || '数据同步失败', timedOut ? { state: 'timeout', retryable: true } : callerCancelled ? { state: 'cancelled', retryable: false } : { state: error.state || 'error', retryable: error.retryable !== false, status: error.status }) }; }
           }
           const normalized = validateErrorEnvelope(result.body, expected.contract, { status: result.status }, traceId);
           return {
@@ -289,7 +328,7 @@ export function createSafeProxyClient(options = {}) {
               traceId: result.body?.traceId || traceId
             })
           };
-        });
+        }));
       } catch (error) {
         if (error instanceof IntegrationRequestError) throw error;
         const normalized = callerCancelled

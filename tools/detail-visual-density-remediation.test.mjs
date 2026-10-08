@@ -53,15 +53,19 @@ assert.match(remoteDetail, /<TypeLineIcon :name="icon"/, "统一详情组件必�
 assert.match(remoteDetail, /AppDetailRemoteFacts/, "统一详情组件必须展示真实应用基础信息");
 assert.match(remoteDetail, /AppDetailAuthoritativeBody/, "统一详情组件必须展示权威业务详情");
 assert.match(authoritativeBody, /projection\.remoteMode/, "权威详情仅可由远端模式驱动");
-for (const section of ["核心功能", "字段定义", "流程步骤", "预览", "视频", "附件", "使用指南", "相关培训"]) {
-  assert.ok(authoritativeBody.includes(section), `权威详情缺少内容区：${section}`);
+for (const section of ["information", "features", "preview", "fields", "metrics", "capabilities", "content", "flow", "recording", "guide", "attachments", "training", "related"]) {
+  assert.ok(authoritativeBody.includes(`data-detail-section="${section}"`), `权威详情缺少稳定内容区：${section}`);
 }
-assert.match(app, /<app-detail-live-sections[\s\S]*Number\(page\.id\) >= 8[\s\S]*Number\(page\.id\) <= 16/,
-  "九类应用详情必须挂载真实关联素材、附件和评论区");
+assert.match(remoteDetail, /import AppDetailLiveSections from/,
+  "九类应用详情必须在详情结构内挂载真实关联素材、附件和评论区");
+assert.match(remoteDetail, /<AppDetailLiveSections[\s\S]*:operation-executor="operationExecutor"[\s\S]*:action-executor="actionExecutor"[\s\S]*:writes-enabled="writesEnabled"/,
+  "详情内业务区必须继续接收真实读写执行器和权限门禁");
+assert.doesNotMatch(app, /<app-detail-live-sections/,
+  "全局根节点不得重复挂载详情业务区");
 assert.match(liveSections, /startSameOriginDownload/, "详情下载必须使用同源安全下载通道");
-assert.match(liveSections, /测试申请使用/, "详情必须保留 TEST_ 隔离的申请使用验证入口");
-assert.match(liveSections, /测试申请复用/, "详情必须保留 TEST_ 隔离的申请复用验证入口");
-assert.match(liveSections, /测试收藏/, "详情必须保留 TEST_ 隔离的收藏验证入口");
-assert.match(liveSections, /测试评论/, "详情必须保留 TEST_ 隔离的评论验证入口");
+assert.match(liveSections, />申请使用</, "详情必须提供正式申请使用入口");
+assert.match(liveSections, />申请复用</, "详情必须提供正式申请复用入口");
+assert.match(liveSections, /取消收藏':'收藏/, "详情必须提供正式收藏入口");
+assert.match(liveSections, />提交评论</, "详情必须提供正式评论入口");
 
 console.log("应用详情统一远端投影、线稿图标与真实业务区合同通过");

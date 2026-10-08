@@ -1,6 +1,6 @@
 import { FeishuProxyError } from './feishu-open-api-client.mjs';
 import { getOperation } from '../src/integration/operation-registry.js';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { READ_OPERATION_CACHE_POLICIES } from './feishu-read-cache-policies.mjs';
 
 const READ_PLANS = Object.freeze({
@@ -73,14 +73,14 @@ const READ_PLANS = Object.freeze({
 
 const PROFILE_FIELDS = Object.freeze({
   user: Object.freeze(['AD账号', '工号', '姓名', '手机号脱敏值', '邮箱脱敏值', '组织ID', '组织名称', '所属部门ID', '所属部门名称']),
-  permissions: Object.freeze(['AD账号', '主体ID', '状态', '权限编码', '数据范围', '生效时间', '失效时间', '启用']),
+  permissions: Object.freeze(['AD账号', '状态', '权限编码', '启用']),
   messages: Object.freeze(['消息ID', '接收人ID', '消息标题', '消息内容', '分类', '已读状态', '消息时间', '消息类型编码', '消息摘要', '优先级', '发送人ID', '目标类型', '目标ID', '目标路径', '过期时间', '阅读时间']),
   favorites: Object.freeze(['用户ID', '有效']),
   balance: Object.freeze(['用户ID', '当前总积分']),
   cumulativeStats: Object.freeze(['用户ID', '累计访问应用次数', '累计使用应用次数']),
   monthlyStats: Object.freeze(['用户ID', '年月', '当月使用次数']),
   useApplications: Object.freeze(['主键', '应用ID', '申请人ID', '状态', '申请时间', '申请编号', '提交时间', '完成时间']),
-  onboardingApplications: Object.freeze(['申请单号', '关联应用ID', '申请人ID', '状态', '当前审批节点', '提交时间', '退回原因']),
+  onboardingApplications: Object.freeze(['申请单号', '关联应用ID', '应用类型ID', '申请人ID', '表单数据', '应用名称', '应用编码', '所属业务域ID', '摘要', '状态', '当前审批节点', '提交时间', '完成时间', '退回原因', '审批来源', '审批实例ID', '授权用户', '授权部门', '唯一标识', '最近同步时间']),
   reuseApplications: Object.freeze(['申请编号', '应用ID', '申请人ID', '本地状态', '提交时间', '完成时间']),
   apps: Object.freeze(['应用ID', '应用名称'])
 });
@@ -92,7 +92,10 @@ function stableCacheValue(value) {
 }
 
 function fingerprint(value) {
-  return createHash('sha256').update(String(value)).digest('hex').slice(0, 32);
+  const source = value && typeof value === 'object'
+    ? JSON.stringify(stableCacheValue(value))
+    : String(value);
+  return createHash('sha256').update(source).digest('hex').slice(0, 32);
 }
 
 function valueToText(value) {
@@ -240,7 +243,7 @@ export function createFeishuReadOnlyService(options) {
   const readBudgetMs = resolveFeishuReadBudgetMs(options.readBudgetMs ?? process.env.FEISHU_READ_BUDGET_MS);
   const configuredColdMissBudgetMs = Number(options.coldMissBudgetMs ?? 0);
   const coldMissBudgetMs = Number.isFinite(configuredColdMissBudgetMs) && configuredColdMissBudgetMs > 0
-    ? Math.min(configuredColdMissBudgetMs, 2_000)
+    ? Math.min(configuredColdMissBudgetMs, 5_000)
     : 0;
   const readNow = options.readNow || Date.now;
   const cacheNow = options.cacheNow || Date.now;
@@ -270,6 +273,39 @@ export function createFeishuReadOnlyService(options) {
   const tableReadPending = new Map();
   const operationCache = new Map();
   const operationPending = new Map();
+  const syncJobs = new Map();
+  const syncByRequest = new Map();
+
+  function syncOwner(context) {
+    return fingerprint(stableCacheValue(context?.identity || {}));
+  }
+
+  function trackSync(key, operationId, context, promise) {
+    const scopedKey = `${syncOwner(context)}:${key}`;
+    const existing = syncByRequest.get(scopedKey);
+    if (existing?.state === 'running') return existing;
+    for (const [id, job] of syncJobs) {
+      if (job.finishedAt && cacheNow() - job.finishedAt > 300_000) {
+        syncJobs.delete(id);
+        if (syncByRequest.get(job.key) === job) syncByRequest.delete(job.key);
+      }
+    }
+    const job = { id: `read-${randomUUID()}`, key: scopedKey, owner: syncOwner(context), operationId, state: 'running' };
+    syncJobs.set(job.id, job);
+    syncByRequest.set(scopedKey, job);
+    promise.then(result => { job.result = result; job.state = 'completed'; }, error => {
+      job.error = { code: error.code || 'READ_SYNC_FAILED', message: error instanceof FeishuProxyError ? error.message : '数据同步失败', status: error.status || 500 };
+      job.state = 'failed';
+    }).finally(() => { job.finishedAt = cacheNow(); });
+    return job;
+  }
+
+  function getReadSyncStatus(id, context = {}) {
+    const job = syncJobs.get(id);
+    if (!job || (job.finishedAt && cacheNow() - job.finishedAt > 300_000)) throw new FeishuProxyError('SYNC_JOB_NOT_FOUND', '同步任务已过期', 404);
+    if (job.owner !== syncOwner(context)) throw new FeishuProxyError('SYNC_JOB_FORBIDDEN', '无权查看该同步任务', 403);
+    return { code: 'OK', syncId: job.id, operationId: job.operationId, state: job.state, ...(job.result ? { result: job.result } : {}), ...(job.error ? { error: job.error } : {}) };
+  }
   const uncachedOperationPending = new Map();
   const operationCachePolicies = Object.freeze({ ...READ_OPERATION_CACHE_POLICIES, ...(options.operationCachePolicies || {}) });
   const operationCacheMaxEntries = Math.max(1, Number(options.operationCacheMaxEntries ?? 1_000));
@@ -331,7 +367,9 @@ export function createFeishuReadOnlyService(options) {
   }
 
   function identityFilter(tableName, fieldNames, value) {
-    const clauses = fieldNames.map(fieldName => equalityFilter(tableName, fieldName, value));
+    const available = new Set(resolveTable(tableName).fields.map(field => field.name));
+    const clauses = fieldNames.filter(fieldName => available.has(fieldName)).map(fieldName => equalityFilter(tableName, fieldName, value));
+    if (!clauses.length) throw new FeishuProxyError('IDENTIFIER_CONTRACT_MISSING', `飞书身份筛选字段契约缺失：${tableName}`, 503);
     return clauses.length === 1 ? clauses[0] : `OR(${clauses.join(', ')})`;
   }
 
@@ -771,7 +809,9 @@ export function createFeishuReadOnlyService(options) {
           avatarUrl: valueToText(item.avatar?.avatar_72 || item.avatar?.avatar_240), orgId: organization?.id || primaryDepartmentId,
           orgName: organization?.name || departmentNameById.get(primaryDepartmentId) || '', departmentId: primaryDepartmentId,
           departmentName: departmentNameById.get(primaryDepartmentId) || '', officeId: '', officeName: '',
-          title: valueToText(item.job_title), mobileMasked: '', emailMasked: '',
+          title: valueToText(item.job_title),
+          mobile: valueToText(item.mobile), email: valueToText(item.enterprise_email || item.email),
+          mobileMasked: '', emailMasked: '',
           enabled: item.status?.is_resigned !== true && item.status?.is_exited !== true && item.status?.is_frozen !== true
         });
       }
@@ -824,7 +864,7 @@ export function createFeishuReadOnlyService(options) {
     return visit(rootId, 1);
   }
 
-  async function executeContact(operationId, input) {
+  async function executeContact(operationId, input, requestContext) {
     const projection = await getContactProjection();
     if (operationId === 'COM-003') {
       const allowedKeys = ['rootId', 'keyword', 'orgType', 'enabled', 'includeUsers', 'maxDepth'];
@@ -845,15 +885,20 @@ export function createFeishuReadOnlyService(options) {
         total: filtered.length, source: 'FEISHU_CONTACT_V3'
       };
     }
-    const allowedKeys = ['keyword', 'employeeNo', 'orgId', 'departmentId', 'enabled', 'page', 'pageSize', 'sort'];
+    const allowedKeys = ['keyword', 'userId', 'employeeNo', 'orgId', 'departmentId', 'enabled', 'includeContact', 'page', 'pageSize', 'sort'];
     if (Object.keys(input).some(key => !allowedKeys.includes(key))) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '请求包含未允许的输入字段', 400);
     const pageSize = input.pageSize == null ? 10 : Number(input.pageSize);
     const page = input.page == null ? 1 : Number(input.page);
     if (![10, 20, 50, 100].includes(pageSize)) throw new FeishuProxyError('INVALID_PAGE_SIZE', '页容量必须是 10、20、50 或 100', 400);
     if (!Number.isInteger(page) || page < 1 || page > 100) throw new FeishuProxyError('INVALID_PAGE', '页码必须是 1 至 100 的整数', 400);
+    const selectedUserId = valueToText(input.userId);
+    const includeContact = input.includeContact === true;
+    if (includeContact && !selectedUserId) throw new FeishuProxyError('CONTACT_USER_REQUIRED', '读取联系人方式需要明确用户标识', 400);
+    if (includeContact) requireIdentity(requestContext);
     const keyword = valueToText(input.keyword).toLocaleLowerCase('zh-CN');
     let rows = projection.users.filter(item =>
       (!keyword || [item.displayName, item.employeeNo, item.departmentName, item.title].join(' ').toLocaleLowerCase('zh-CN').includes(keyword)) &&
+      (!selectedUserId || item.userId === selectedUserId) &&
       (!input.employeeNo || item.employeeNo === input.employeeNo) &&
       (!input.orgId || item.orgId === input.orgId) && (!input.departmentId || item.departmentId === input.departmentId) &&
       (input.enabled == null || item.enabled === input.enabled)
@@ -862,12 +907,17 @@ export function createFeishuReadOnlyService(options) {
     const total = rows.length;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const safePage = Math.min(page, totalPages);
+    const pageRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize).map(item => {
+      if (includeContact) return item;
+      const { mobile: _mobile, email: _email, ...safeItem } = item;
+      return safeItem;
+    });
     return {
-      items: rows.slice((safePage - 1) * pageSize, safePage * pageSize), total, page: safePage, pageSize,
+      items: pageRows, total, page: safePage, pageSize,
       totalPages, hasPrevious: safePage > 1, hasNext: safePage < totalPages, hasMore: safePage < totalPages,
       sort: 'name,asc',
       filtersApplied: {
-        keyword: valueToText(input.keyword), employeeNo: valueToText(input.employeeNo), orgId: valueToText(input.orgId),
+        keyword: valueToText(input.keyword), userId: selectedUserId, employeeNo: valueToText(input.employeeNo), orgId: valueToText(input.orgId),
         departmentId: valueToText(input.departmentId), enabled: input.enabled == null ? true : input.enabled
       },
       source: 'FEISHU_CONTACT_V3'
@@ -2447,7 +2497,7 @@ export function createFeishuReadOnlyService(options) {
       const data = plan.kind.startsWith('announcement')
         ? await executeAnnouncement(operationId, input)
         : plan.kind.startsWith('talent') ? await executeTalent(operationId, input)
-        : plan.kind.startsWith('contact') ? await executeContact(operationId, input)
+        : plan.kind.startsWith('contact') ? await executeContact(operationId, input, requestContext)
         : plan.kind === 'public-read' ? await executePublicRead(operationId, input)
         : plan.kind === 'first-batch-detail' ? await executeFirstBatchDetail(operationId, input)
         : await executeApp(operationId, input);
@@ -2504,6 +2554,103 @@ export function createFeishuReadOnlyService(options) {
       ? `${tenant}\u0000public`
       : `${tenant}\u0000${user}\u0000${permissions}\u0000${dataScope}`;
     return `${operationId}\u0000${policy.code || policy.scope}\u0000${fingerprint(scopeValue)}\u0000${JSON.stringify(stableCacheValue(input || {}))}`;
+  }
+
+  function splitReferenceValues(value) {
+    return valueToText(value).split(/[、,，;；|\n]+/).map(item => item.trim()).filter(Boolean);
+  }
+
+  function dateText(value) {
+    if (typeof value === 'number' && Number.isFinite(value)) return new Date(value).toISOString();
+    const text = valueToText(value);
+    if (/^\d{13}$/.test(text)) return new Date(Number(text)).toISOString();
+    return text;
+  }
+
+  function onboardingStatus(value) {
+    const status = valueToText(value).trim().toLocaleUpperCase('zh-CN');
+    if (['PENDING', 'RUNNING', 'PROCESSING', 'SUBMITTED'].includes(status) || /审批中|审核中|待审批|处理中/.test(status)) return 'PENDING';
+    if (['APPROVED', 'COMPLETED', 'PASSED'].includes(status) || /通过|已上架|已发布/.test(status)) return 'APPROVED';
+    if (['REJECTED', 'REFUSED', 'FAILED'].includes(status) || /拒绝|驳回|退回/.test(status)) return 'REJECTED';
+    if (['CANCELLED', 'CANCELED', 'WITHDRAWN'].includes(status) || /取消|撤回/.test(status)) return 'CANCELLED';
+    return status || 'UNKNOWN';
+  }
+
+  function parseOnboardingFormData(value) {
+    const text = valueToText(value).trim();
+    if (!text || (!text.startsWith('{') && !text.startsWith('['))) return {};
+    try {
+      const parsed = JSON.parse(text);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  async function listCurrentOnboardingApplications(requestContext) {
+    const { userId } = requireIdentity(requestContext);
+    const filter = equalityFilter('上架申请', '申请人ID', userId);
+    const [rows, userRows, departmentRows, typeRows, domainRows] = await Promise.all([
+      readAll('上架申请', PROFILE_FIELDS.onboardingApplications, { filter }),
+      readAll('用户字典', PROFILE_FIELDS.user),
+      readAll('部门字典'),
+      readAll('应用类型配置'),
+      readAll('业务域字典')
+    ]);
+    const users = createUserDictionaryLookup(userRows, '姓名');
+    const departments = new Map(departmentRows.map(record => [valueToText(record?.fields?.['部门ID']), valueToText(record?.fields?.['部门名称'])]).filter(([id]) => id));
+    const types = new Map(typeRows.map(record => {
+      const fields = record?.fields || {};
+      return [valueToText(fields['类型ID'] || fields['类型编码']), valueToText(fields['类型名称'])];
+    }).filter(([id]) => id));
+    const domains = new Map(domainRows.map(record => [valueToText(record?.fields?.['业务域ID']), valueToText(record?.fields?.['业务域名称'])]).filter(([id]) => id));
+    return rows.filter(record => valueToText(record?.fields?.['申请人ID']) === userId).map(record => {
+      const fields = record?.fields || {};
+      const form = parseOnboardingFormData(fields['表单数据']);
+      const applicationId = valueToText(fields['申请单号']) || String(record?.record_id || '');
+      const applicationType = valueToText(fields['应用类型ID'] || form.applicationType || form.type);
+      const businessDomain = valueToText(fields['所属业务域ID'] || form.businessDomain || form.domain);
+      const authorizedUserIds = splitReferenceValues(fields['授权用户'] || form.authorizedUsers || form.users);
+      const authorizedDepartmentIds = splitReferenceValues(fields['授权部门'] || form.authorizedDepartments || form.accessDepartment);
+      const status = onboardingStatus(fields['状态']);
+      return Object.freeze({
+        type: 'APP_ONBOARDING',
+        businessId: applicationId,
+        applicationId,
+        resourceId: valueToText(fields['关联应用ID']),
+        uniqueIdentifier: valueToText(fields['唯一标识']),
+        instanceId: valueToText(fields['审批实例ID']),
+        applicationName: valueToText(fields['应用名称'] || form.applicationName || form.name),
+        applicationCode: valueToText(fields['应用编码'] || form.applicationCode || form.code),
+        applicationType,
+        applicationTypeName: types.get(applicationType) || valueToText(form.applicationTypeName) || applicationType,
+        businessDomain,
+        businessDomainName: domains.get(businessDomain) || valueToText(form.businessDomainName) || businessDomain,
+        applicant: userId,
+        applicantName: users.get(userId) || userId,
+        authorizedUsers: authorizedUserIds,
+        authorizedUserNames: authorizedUserIds.map(id => users.get(id) || id),
+        authorizedDepartments: authorizedDepartmentIds.map(id => departments.get(id) || id),
+        submittedAt: dateText(fields['提交时间']),
+        status,
+        currentNode: valueToText(fields['当前审批节点']) || status,
+        completedAt: dateText(fields['完成时间']),
+        rejectionReason: valueToText(fields['退回原因']),
+        lastSyncedAt: dateText(fields['最近同步时间'] || fields['完成时间'] || fields['提交时间']),
+        approvalSource: valueToText(fields['审批来源']),
+        icon: null,
+        attachments: [],
+        detailFields: form
+      });
+    }).filter(item => item.applicationId).sort((left, right) => right.submittedAt.localeCompare(left.submittedAt));
+  }
+
+  async function getCurrentOnboardingApplication(applicationId, requestContext) {
+    const normalizedId = valueToText(applicationId);
+    if (!normalizedId) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '申请详情必须提供 applicationId', 400);
+    const record = (await listCurrentOnboardingApplications(requestContext)).find(item => item.applicationId === normalizedId);
+    if (!record) throw new FeishuProxyError('RESOURCE_NOT_FOUND', '申请不存在或不属于当前用户', 404);
+    return record;
   }
 
   function cacheEntrySize(entry) {
@@ -2613,7 +2760,7 @@ export function createFeishuReadOnlyService(options) {
     return request;
   }
 
-  async function executeFresh(operationId, input = {}, requestContext = {}) {
+  async function executeFreshInternal(operationId, input = {}, requestContext = {}, waitForCompletion = false) {
     performanceMetrics.requests += 1;
     const policy = operationCachePolicies[operationId];
     if (!policy || policy.freshMs <= 0 || policy.staleMs <= 0) {
@@ -2629,16 +2776,45 @@ export function createFeishuReadOnlyService(options) {
     }
     if (entry && timestamp >= entry.staleUntil) deleteOperationCacheEntry(key);
     performanceMetrics.misses += 1;
+    const refresh = startOperationRefresh(key, operationId, input, requestContext, policy);
+    const job = !waitForCompletion && coldMissBudgetMs > 0
+      ? trackSync(key, operationId, requestContext, refresh)
+      : null;
     try {
-      const value = await startOperationRefresh(key, operationId, input, requestContext, policy);
+      let timer;
+      const value = !waitForCompletion && coldMissBudgetMs > 0
+        ? await Promise.race([
+            refresh,
+            new Promise((_, reject) => {
+              timer = setTimeout(() => reject(new FeishuProxyError(
+                'FEISHU_INITIAL_SYNCING',
+                '正式飞书数据仍在同步',
+                202,
+                { retryAfterSeconds: 2, syncId: job.id, pollAfterMs: 2_000 }
+              )), coldMissBudgetMs);
+            })
+          ]).finally(() => { if (timer) clearTimeout(timer); })
+        : await refresh;
       return { ...value, traceId: value.traceId || traceIdFactory() };
     } catch (error) {
+      if (error?.code === 'FEISHU_INITIAL_SYNCING') throw error;
       if (entry && timestamp < entry.staleUntil) {
         performanceMetrics.staleFallbacks += 1;
         return cachedEnvelope(entry, 'stale', false);
       }
       throw error;
     }
+  }
+
+  function executeFresh(operationId, input = {}, requestContext = {}) {
+    return executeFreshInternal(operationId, input, requestContext, false);
+  }
+
+  // Aggregate tasks already expose their own sync job. They must await the
+  // shared underlying refresh instead of turning the nested 5-second budget
+  // into a terminal 503 response.
+  function executeBackground(operationId, input = {}, requestContext = {}) {
+    return executeFreshInternal(operationId, input, requestContext, true);
   }
 
   async function execute(operationId, input = {}, requestContext = {}) {
@@ -2663,6 +2839,7 @@ export function createFeishuReadOnlyService(options) {
     if (entry) deleteOperationCacheEntry(key);
     performanceMetrics.misses += 1;
     const refresh = startOperationRefresh(key, operationId, input, requestContext, policy);
+    const job = coldMissBudgetMs > 0 ? trackSync(key, operationId, requestContext, refresh) : null;
     if (coldMissBudgetMs > 0) {
       let timer;
       try {
@@ -2671,9 +2848,9 @@ export function createFeishuReadOnlyService(options) {
           new Promise((_, reject) => {
             timer = setTimeout(() => reject(new FeishuProxyError(
               'FEISHU_INITIAL_SYNCING',
-              '正式飞书数据正在首次同步，请稍后重试',
+              '正式飞书数据仍在同步',
               202,
-              { retryAfterSeconds: 2 }
+              { retryAfterSeconds: 2, syncId: job.id, pollAfterMs: 2_000 }
             )), coldMissBudgetMs);
           })
         ]);
@@ -2785,12 +2962,16 @@ export function createFeishuReadOnlyService(options) {
   return Object.freeze({
     execute,
     executeFresh,
+    executeBackground,
+    getReadSyncStatus,
     peekOperation,
     prewarm,
     waitForIdle,
     getPerformanceSnapshot,
     invalidateAppProjection,
     invalidateTables,
-    resolveCurrentUserProfile: readCurrentContactProjection
+    resolveCurrentUserProfile: readCurrentContactProjection,
+    listCurrentOnboardingApplications,
+    getCurrentOnboardingApplication
   });
 }

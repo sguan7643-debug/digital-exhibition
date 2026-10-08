@@ -9,6 +9,7 @@
   --form-control-disabled-bg:#f2f4f7;
   --form-control-disabled-text:#929dab;
   --form-control-error:#c62828;
+  --xlt-readable-muted:#5b6e82;
   font-synthesis: none;
   text-rendering: geometricPrecision;
 }
@@ -23,19 +24,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 img { display: block; max-width: 100%; }
 p { margin: 0; }
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-.integration-toast-stack{position:fixed;z-index:120;top:84px;right:24px;width:min(440px,calc(100vw - 48px));display:grid;gap:10px;pointer-events:none}
-.integration-toast-stack>*{pointer-events:auto}
-.integration-toast-stack>.request-activity-banner{pointer-events:none}
-.request-activity-banner{display:flex;align-items:center;gap:12px;margin:0;padding:13px 15px;color:#17304f;background:rgba(238,246,255,.98);border:1px solid #a9c9e8;border-radius:12px;box-shadow:0 12px 32px rgba(8,35,70,.18);backdrop-filter:blur(10px);animation:integration-toast-in .2s ease-out}
-.request-activity-banner__copy{display:grid;gap:3px;min-width:0}
-.request-activity-banner__copy strong{font-size:15px}
-.request-activity-banner__copy small{color:#536b84;font-size:13px}
-.request-activity-banner__bar{flex:0 0 auto;width:24px;height:24px;border:3px solid #b6d0e8;border-top-color:#0060a6;border-radius:50%;animation:global-request-spin .72s linear infinite}
-@keyframes integration-toast-in{from{opacity:0;transform:translateY(-8px) scale(.98)}to{opacity:1;transform:none}}
-@keyframes global-request-spin{to{transform:rotate(360deg)}}
-@media(max-width:760px){.integration-toast-stack{top:68px;right:10px;width:calc(100vw - 20px)}.request-activity-banner__copy small{display:none}}
-@media(prefers-reduced-motion:reduce){.request-activity-banner__bar,.request-activity-banner{animation:none}}
-
 :where(input:not([type="checkbox"]):not([type="radio"]),select,textarea){border-color:var(--form-control-border);transition:border-color .14s ease,box-shadow .14s ease,background-color .14s ease}
 :where(input:not([type="checkbox"]):not([type="radio"]),select,textarea):hover:not(:disabled){border-color:var(--form-control-hover)}
 :where(input:not([type="checkbox"]):not([type="radio"]),select,textarea):focus{outline:0!important}
@@ -1165,5 +1153,9 @@ body { color: var(--xlt-text); background: var(--xlt-canvas); }
     grid-template-columns: 1fr;
   }
 }
-/* APP-003 is the sole source for application detail metric and information blocks. */
-.product-detail[data-authoritative-detail="true"] > :not(.detail-crumb):not(.detail-hero):not(.remote-detail-facts):not(.authoritative-detail-body) { display: none; }
+/* Foreground requests remain visible; background cache refreshes stay silent. */
+.request-loading-toast{position:fixed;right:24px;top:84px;z-index:2000;display:flex;align-items:center;gap:14px;max-width:calc(100vw - 32px);padding:18px 22px;border:1px solid #bed6f2;border-radius:14px;background:#eff6ff;color:#153d65;box-shadow:0 8px 24px #18365518;pointer-events:none}
+.request-loading-toast p{margin:6px 0 0;font-size:14px;color:#466685}
+.request-loading-spinner{width:26px;height:26px;flex:none;border:3px solid #bad3ed;border-top-color:#0060a6;border-radius:50%;animation:request-spin .8s linear infinite}
+@keyframes request-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.request-loading-spinner{animation:none}}

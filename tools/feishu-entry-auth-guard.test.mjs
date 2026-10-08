@@ -66,6 +66,33 @@ assert.equal(recoveryStart.pathname, '/api/v1/auth/feishu/start');
 assert.equal(recoveryStart.searchParams.get('returnTo'), '/test2/apps?from=callback#apply');
 assert.equal(recoveryStart.searchParams.get('returnTo').includes('authError'), false);
 
+let transientRecoverySessionProbes = 0;
+const transientRecoveryGuard = createFeishuEntryAuthGuard({
+  appBasePath: '/test2',
+  location: new URL('http://127.0.0.1:4173/test2/?authError=FEISHU_AUTH_UPSTREAM_UNAVAILABLE'),
+  fetchImpl: async () => {
+    transientRecoverySessionProbes += 1;
+    return new Response(JSON.stringify({ authenticated: true, identity: { userId: 'u_test' } }), { status: 200 });
+  },
+  redirect: () => assert.fail('a temporary OAuth transport error with a valid session must not restart authorization')
+});
+assert.deepEqual(await transientRecoveryGuard.ensureAuthorized(), {
+  authorized: true,
+  render: true,
+  identity: { userId: 'u_test' }
+});
+assert.equal(transientRecoverySessionProbes, 1, 'temporary callback failures must re-check the existing session before rendering recovery');
+
+const legacyTransientRecoveryGuard = createFeishuEntryAuthGuard({
+  appBasePath: '/test2',
+  location: new URL('http://127.0.0.1:4173/test2/?authError=INTERNAL_AUTH_ERROR'),
+  fetchImpl: async () => { throw new TypeError('network unavailable'); },
+  redirect: () => assert.fail('a temporary OAuth transport error must remain retryable without redirect loops')
+});
+const legacyTransientState = await legacyTransientRecoveryGuard.ensureAuthorized();
+assert.equal(legacyTransientState.reason, 'session-unavailable');
+assert.equal(typeof legacyTransientState.retry, 'function');
+
 const localRouteGuard = createFeishuEntryAuthGuard({
   appBasePath: '/',
   location: new URL('http://127.0.0.1:4173/workbench'),

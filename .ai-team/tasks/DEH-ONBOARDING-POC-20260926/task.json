@@ -58,10 +58,10 @@
     }
   },
   "checks": {
-    "web_passed": false,
+    "web_passed": true,
     "mobile_passed": false,
-    "web_evidence": "2026-09-28 唯一标识写入修复：自动化、静态检查、构建及本地页面均通过；审批实例ID回归通过；T001-T009 动态详情字段合同通过。真实唯一标识后端固定为 http://10.151.23.119:28080，但当前连接超时，尚未完成真实 ONB 获取及飞书写表复验。详见 handoffs/web.md。",
-    "web_checked_at": "2026-09-28T06:34:25.9646920Z",
+    "web_evidence": "2026-10-08：提交审核及原提交确认均改为应用壳 History API 同页跳转；浏览器验证 RPA/T005 提交后直接进入详情且 session 请求数不增加。onboarding interaction、browser onboarding flow、UI source sync、session history、production build、test deployment 均通过。",
+    "web_checked_at": "2026-10-08T03:15:50.6909505Z",
     "mobile_evidence": "",
     "mobile_checked_at": ""
   },

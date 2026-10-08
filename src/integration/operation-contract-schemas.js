@@ -88,6 +88,8 @@ export const SYNTHETIC_ERROR_SCHEMA = Object.freeze({
     message: optionalText,
     traceId: identifier,
     retryAfterSeconds: Object.freeze({ type: 'integer', minimum: 1, maximum: 86400 })
+    ,syncId: identifier,
+    pollAfterMs: Object.freeze({ type: 'integer', minimum: 1, maximum: 10000 })
   },
   additionalProperties: false
 });
@@ -109,6 +111,9 @@ export function createVerifiedWriteOperationContracts(operationIds = []) {
       businessKey: identifier,
       idempotencyKey: identifier,
       ifMatch: Object.freeze({ type: 'integer', minimum: 1, maximum: 1000000000 }),
+      governance: Object.freeze({ type: 'object', required: ['confirmed', 'auditContractId', 'requestHash'], properties: {
+        confirmed: booleanValue, auditContractId: identifier, requestHash: identifier, approvalInstanceId: identifier
+      }, additionalProperties: false }),
       fields: Object.freeze({ type: 'object', additionalProperties: true })
     },
     additionalProperties: false
@@ -118,7 +123,8 @@ export function createVerifiedWriteOperationContracts(operationIds = []) {
     required: ['operationId', 'tableName', 'businessKey', 'recordId', 'version', 'replayed', 'deleted', 'alreadyAbsent'],
     properties: {
       operationId: identifier, tableName: text, businessKey: identifier, recordId: optionalText,
-      version: nonNegativeInteger, replayed: booleanValue, deleted: booleanValue, alreadyAbsent: booleanValue
+      version: nonNegativeInteger, replayed: booleanValue, deleted: booleanValue, alreadyAbsent: booleanValue,
+      command: optionalText, updatedCount: countInteger
     },
     additionalProperties: false
   });
@@ -127,7 +133,7 @@ export function createVerifiedWriteOperationContracts(operationIds = []) {
     requestSchema: writeRequestSchema,
     successSchema: envelopeSchema(writeDataSchema),
     errorSchema: SYNTHETIC_ERROR_SCHEMA,
-    contractStatus: 'test-write-server-projection-verified'
+    contractStatus: 'business-write-server-projection-verified'
   })])));
 }
 
@@ -384,7 +390,8 @@ const organizationDataSchema = Object.freeze({
 const contactUserRequestSchema = Object.freeze({
   type: 'object',
   properties: {
-    keyword: optionalText, employeeNo: optionalText, orgId: optionalText, departmentId: optionalText,
+    keyword: optionalText, userId: optionalText, employeeNo: optionalText, orgId: optionalText, departmentId: optionalText,
+    includeContact: booleanValue,
     enabled: booleanValue, page: Object.freeze({ type: 'integer', minimum: 1, maximum: 100 }),
     pageSize: Object.freeze({ enum: [10, 20, 50, 100] }), sort: Object.freeze({ enum: ['name,asc'] })
   },
@@ -399,15 +406,15 @@ const contactUserItemSchema = Object.freeze({
   properties: {
     userId: identifier, employeeNo: optionalText, displayName: text, avatarUrl: optionalText,
     orgId: optionalText, orgName: optionalText, departmentId: optionalText, departmentName: optionalText,
-    officeId: optionalText, officeName: optionalText, title: optionalText, mobileMasked: optionalText,
-    emailMasked: optionalText, enabled: booleanValue
+    officeId: optionalText, officeName: optionalText, title: optionalText, mobile: optionalText, email: optionalText,
+    mobileMasked: optionalText, emailMasked: optionalText, enabled: booleanValue
   },
   additionalProperties: false
 });
 const contactFiltersSchema = Object.freeze({
   type: 'object',
   properties: {
-    keyword: optionalText, employeeNo: optionalText, orgId: optionalText, departmentId: optionalText, enabled: booleanValue
+    keyword: optionalText, userId: optionalText, employeeNo: optionalText, orgId: optionalText, departmentId: optionalText, enabled: booleanValue
   },
   additionalProperties: false
 });

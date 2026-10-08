@@ -8,7 +8,7 @@ assert.deepEqual(
   FEISHU_WRITE_OPERATION_MANIFEST.map(item => item.operationId).sort(),
   OPERATION_REGISTRY.filter(item => item.access === 'write').map(item => item.id).sort()
 );
-assert.ok(FEISHU_WRITE_OPERATION_MANIFEST.every(item => item.requiresTestPrefix && item.requiresIdempotencyKey));
+assert.ok(FEISHU_WRITE_OPERATION_MANIFEST.every(item => !item.requiresTestPrefix && item.requiresIdempotencyKey), '正式 36 项写操作不得要求 TEST_ 前缀');
 
 let record = null;
 const updateCalls = [];
@@ -78,4 +78,4 @@ const alreadyConsistent = await service.createOnce({
 assert.equal(alreadyConsistent.reconciled, false);
 assert.equal(updateCalls.length, updatesBeforeReconciliation + 1, '字段一致时不得发送无意义更新');
 assert.equal(listTablesCalls, 1, '同一记录服务进程应缓存已解析的表标识');
-console.log('TEST_ prefix, idempotency replay, allowlisted reconciliation, optimistic conflict, rollback and cleanup contracts passed');
+console.log('formal manifest without TEST_ gate plus isolated test-record prefix, idempotency and optimistic-lock contracts passed');

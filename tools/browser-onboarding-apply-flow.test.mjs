@@ -10,22 +10,26 @@ const candidates = [
 const executablePath = candidates.find(candidate => fs.existsSync(candidate));
 if (!executablePath) throw new Error('未找到 Edge/Chromium');
 
-const origin = process.env.EXHIBITION_TEST_ORIGIN || 'http://127.0.0.1:4173';
+const origin = process.env.EXHIBITION_TEST_ORIGIN || 'http://127.0.0.1:4173/test2';
 const browser = await chromium.launch({ headless: true, executablePath });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const errors = [];
 let approvalRequest = null;
 let onboardingRequest = null;
+let sessionRequestCount = 0;
 page.on('pageerror', error => errors.push(error.message));
-await page.route('**/api/v1/auth/feishu/session', route => route.fulfill({
-  status: 200,
-  contentType: 'application/json',
-  body: JSON.stringify({
-    code: 'OK',
-    authenticated: true,
-    identity: { userId: 'linmm', displayName: '林敏敏', phone: '13900000000', email: 'linmm@example.com' }
-  })
-}));
+await page.route('**/api/v1/auth/feishu/session', route => {
+  sessionRequestCount += 1;
+  return route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      code: 'OK',
+      authenticated: true,
+      identity: { userId: 'linmm', displayName: '林敏敏', phone: '13900000000', email: 'linmm@example.com' }
+    })
+  });
+});
 await page.route('**/api/v1/operations/COM-003', async route => {
   await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
     code: 'OK', traceId: 'trace-com-003', data: {
@@ -35,9 +39,11 @@ await page.route('**/api/v1/operations/COM-003', async route => {
   }) });
 });
 await page.route('**/api/v1/operations/COM-004', async route => {
+  const requestBody = JSON.parse(route.request().postData() || '{}');
+  const includeContact = requestBody.input?.includeContact === true && requestBody.input?.userId === 'linmm';
   await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
     code: 'OK', traceId: 'trace-com-004', data: {
-      items: [{ userId: 'linmm', employeeNo: '10001', displayName: '林敏敏', avatarUrl: '', orgId: 'D004', orgName: '物资采购中心', departmentId: 'D004', departmentName: '物资采购中心', officeId: '', officeName: '', title: '测试人员', mobileMasked: '139****0000', emailMasked: 'l***@example.com', enabled: true }],
+      items: [{ userId: 'linmm', employeeNo: '10001', displayName: '林敏敏', avatarUrl: '', orgId: 'D004', orgName: '物资采购中心', departmentId: 'D004', departmentName: '物资采购中心', officeId: '', officeName: '', title: '测试人员', mobileMasked: '139****0000', emailMasked: 'l***@example.com', ...(includeContact ? { mobile: '13900000000', email: 'linmm@example.com' } : {}), enabled: true }],
       total: 1, page: 1, pageSize: 100, totalPages: 1, hasPrevious: false, hasNext: false, hasMore: false, sort: 'name,asc', filtersApplied: {}, source: 'feishu'
     }
   }) });
@@ -146,6 +152,23 @@ await page.route('**/api/v1/onboarding/applications/TEST_APPLICATION*', async ro
     authorizedUsers: ['linmm'], authorizedDepartments: ['物资采购中心'], attachments: [], icon: null
   }) });
 });
+await page.route('**/api/v1/onboarding/applications/TEST_REJECTED*', async route => {
+  await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+    applicationId: 'TEST_REJECTED', instanceId: 'TEST_REJECTED_INSTANCE', resourceId: 'TEST_REJECTED_RESOURCE',
+    applicationName: 'TEST_被拒绝的海能Work应用', applicationCode: 'TEST_HW_REJECTED', applicationType: 'T005',
+    businessDomain: 'BD004', applicant: 'linmm', applicantName: '林敏敏', status: 'REJECTED',
+    currentNode: '审批拒绝', rejectionReason: '请补充应用说明', submittedAt: '2026-09-27T00:00:00.000Z', lastSyncedAt: '2026-09-27T01:00:00.000Z',
+    authorizedUsers: [], authorizedDepartments: [],
+    detailFields: {
+      department: '物资采购中心', phone: '13900000000', email: 'linmm@example.com', summary: '原摘要', scenario: '原应用简介',
+      collaboration: '原合作方', webAddress: 'https://example.invalid/rejected', contact: 'linmm', contactDepartment: '物资采购中心',
+      contactPhone: '13900000000', contactEmail: 'linmm@example.com', scope: 'all', remarks: '原备注',
+      detailFields: { 使用指南: '原使用指南' }
+    },
+    attachments: [{ fileId: 'TEST_REJECTED_ATTACHMENT', fileName: '原说明.pdf', mimeType: 'application/pdf', sizeBytes: 1024 }],
+    icon: { fileId: 'TEST_REJECTED_ICON', fileName: '原图标.png', mimeType: 'image/png', sizeBytes: 256 }
+  }) });
+});
 
 async function fillRequiredFields({ type, name, code }) {
   await page.getByLabel('应用类型*').selectOption(type);
@@ -165,8 +188,10 @@ async function fillRequiredFields({ type, name, code }) {
   const contact = page.locator('fieldset').filter({ hasText: '接入人信息' });
   await contact.getByLabel('所属部门*').selectOption({ label: '物资采购中心' });
   await contact.getByLabel('接入人*').selectOption('linmm');
-  await contact.getByLabel('联系电话*').fill('13900000000');
-  await contact.getByLabel('联系邮箱*').fill('linmm@example.com');
+  await page.waitForFunction(() => [...document.querySelectorAll('fieldset')].find(item => item.textContent?.includes('接入人信息'))?.querySelector('input[type="tel"]')?.value === '13900000000');
+  assert.equal(await contact.getByLabel('联系电话*').inputValue(), '13900000000', '选择接入人后应自动带出真实联系电话');
+  assert.equal(await contact.getByLabel('联系邮箱*').inputValue(), 'linmm@example.com', '选择接入人后应自动带出真实联系邮箱');
+  await page.getByLabel('全部组织可见').check();
 }
 
 try {
@@ -219,22 +244,39 @@ try {
   await page.locator('form.apply-form').waitFor();
   await fillRequiredFields({ type: 'T005', name: 'TEST_海能Work应用上架', code: 'TEST_HW_001' });
   const permission = page.locator('fieldset').filter({ hasText: '应用权限开通' });
+  await permission.getByLabel('仅开放给部分部门/用户').check();
   await permission.getByLabel('适用部门*').selectOption({ label: '物资采购中心' });
-  await permission.getByLabel('适用用户*').selectOption('linmm');
+  await permission.getByLabel('适用用户').selectOption('linmm');
   await page.locator('input[type="file"]').first().setInputFiles({
     name: 'test-hw-icon.png', mimeType: 'image/png', buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4])
   });
   await page.locator('.upload-list li.ready').waitFor();
+  const sessionRequestsBeforeSubmit = sessionRequestCount;
   await page.getByRole('button', { name: '提交审核' }).click();
   await page.waitForURL('**/apps/onboarding/status?applicationId=TEST_APPLICATION');
   await page.getByText('飞书审批中', { exact: true }).first().waitFor();
+  assert.equal(sessionRequestCount, sessionRequestsBeforeSubmit, '提交成功必须应用内跳转，不得整页重载并重复检查登录状态');
   assert.equal(onboardingRequest.application.type, 'T005');
   assert.equal(onboardingRequest.application.name, 'TEST_海能Work应用上架');
   assert.equal(onboardingRequest.application.applicationCode, 'TEST_HW_001');
   assert.deepEqual(onboardingRequest.uploadIds, ['TEST_UPLOAD_ICON']);
   assert.match(onboardingRequest.attemptId, /^TEST_ATTEMPT_/);
+
+  await page.goto(`${origin}/apps/onboarding/status?applicationId=TEST_REJECTED`, { waitUntil: 'domcontentloaded' });
+  await page.getByText('审批拒绝', { exact: true }).first().waitFor();
+  await page.getByRole('link', { name: '编辑并重新提交' }).click();
+  await page.waitForURL('**/apps/onboarding/apply?copyFrom=TEST_REJECTED');
+  await page.getByText('已从被拒绝的申请复制', { exact: true }).waitFor();
+  assert.equal(await page.getByLabel('应用名称*').inputValue(), 'TEST_被拒绝的海能Work应用');
+  assert.equal(await page.getByLabel('应用编码*').inputValue(), 'TEST_HW_REJECTED');
+  assert.equal(await page.getByText('原图标.png', { exact: true }).count(), 1);
+  await page.getByRole('button', { name: '提交审核' }).click();
+  await page.waitForURL('**/apps/onboarding/status?applicationId=TEST_APPLICATION');
+  assert.equal(onboardingRequest.application.sourceApplicationId, 'TEST_REJECTED');
+  assert.equal(onboardingRequest.application.copySourceFiles, true);
+  assert.deepEqual(onboardingRequest.uploadIds, [], '复制重提由服务端复用有效文件引用，不伪造新的浏览器上传');
   assert.deepEqual(errors, []);
-  console.log('应用上线申请浏览器链路通过：RPA 后端提交、T005 飞书实例提交、真实状态查询');
+  console.log('应用上线申请浏览器链路通过：联系人回填、RPA/T005 提交、真实状态查询、拒绝后复制重提');
 } finally {
   await browser.close();
 }

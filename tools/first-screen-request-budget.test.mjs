@@ -28,40 +28,37 @@ const delayedProxy = createSafeProxyClient({
   timeoutMs: 12,
   operationContracts,
   fetchImpl: async (_url, init) => new Promise((_resolve, reject) => {
-    const timer = setTimeout(() => _resolve({ ok: true, status: 200, json: async () => ({ code: 'OK', data: {} }) }), 13);
     init.signal.addEventListener('abort', () => {
-      clearTimeout(timer);
       reject(init.signal.reason);
     }, { once: true });
   })
 });
+await assert.rejects(
+  () => delayedProxy.executeBatch(workbenchOperationIds.map(operationId => ({ operationId, input: {} }))),
+  error => error?.state === 'timeout' && error?.retryable === true,
+  '批量代理必须把超时稳定归类为可重试 timeout'
+);
+assert.equal(getRequestActivity().isLoading, false, 'all timed-out requests must clear activity in finally');
+
+const timeoutReason = Object.assign(new Error('请求超时'), { state: 'timeout', retryable: true });
 const source = createPageDataSource({
   route: '/workbench',
   runtime: { mode: 'remote', testWritesEnabled: false },
-  client: delayedProxy,
+  client: { executeBatch: async requests => requests.map(() => ({ status: 'rejected', reason: timeoutReason })) },
   operationResolver: operationId => ({ ...getOperation(operationId), remoteEnabled: true })
 });
 const result = await source.load();
 assert.equal(result.state, 'timeout');
 assert.ok(result.retryScope.length > 0);
 assert.ok(Object.values(result.sectionRecords).every(record => record.errorState === 'timeout' && record.retryable === true));
-assert.equal(getRequestActivity().isLoading, false, 'all timed-out requests must clear activity in finally');
 
 const syncingOperationIds = ['COM-001', 'COM-002', 'COM-005', 'WB-001', 'WB-002'];
-const syncingClient = createSafeProxyClient({
-  baseUrl: '/api/v1',
-  origin: 'http://127.0.0.1:5173',
-  timeoutMs: 12_000,
-  operationContracts: createSyntheticOperationContracts(syncingOperationIds),
-  fetchImpl: async () => ({
-    ok: true,
-    status: 202,
-    json: async () => ({
-      code: 'FEISHU_INITIAL_SYNCING', message: '正式飞书数据正在首次同步，请稍后重试',
-      traceId: 'trace-syncing', retryAfterSeconds: 2
-    })
-  })
+const syncingReason = Object.assign(new Error('正式飞书数据正在首次同步，请稍后重试'), {
+  state: 'initial-syncing', retryable: true, traceId: 'trace-syncing', retryAfterSeconds: 2
 });
+const syncingClient = {
+  executeBatch: async requests => requests.map(() => ({ status: 'rejected', reason: syncingReason }))
+};
 const syncingSource = createPageDataSource({
   route: '/workbench',
   runtime: { mode: 'remote', testWritesEnabled: false },
@@ -75,24 +72,22 @@ assert.ok(Object.values(syncingResult.sectionRecords).every(record => record.ret
 const renderedSource = await readFile(new URL('../src/App.vue', import.meta.url), 'utf8');
 assert.doesNotMatch(renderedSource, /class="integration-recovery"/, 'background recovery must not render a blocking or distracting retry bubble');
 assert.match(renderedSource, /retryIntegration/, 'background recovery must retain its internal retry action');
-assert.match(renderedSource, /request-activity-banner/, 'authenticated first-screen progress must remain visibly announced');
+assert.doesNotMatch(renderedSource, /request-activity-banner|integration-toast-stack/, 'background progress must not render a reference-external floating bubble');
 assert.match(renderedSource, /scheduleInitialSyncRetry/, '首次同步必须按服务端重试提示自动恢复，不得要求用户连续手动点击');
 assert.doesNotMatch(renderedSource, /global-request-loading/, 'authenticated first-screen progress must not cover and disable unaffected regions');
 
 let cancelledOperationCount = 0;
 const cancellableOperationIds = ['COM-001', 'COM-002', 'COM-005', 'WB-001', 'WB-002'];
-const cancellableClient = createSafeProxyClient({
-  baseUrl: '/api/v1',
-  origin: 'http://127.0.0.1:5173',
-  timeoutMs: 1000,
-  operationContracts: createSyntheticOperationContracts(cancellableOperationIds),
-  fetchImpl: async (_url, init) => new Promise((_resolve, reject) => {
+const cancellableClient = {
+  execute: async (_operationId, _input, init) => new Promise((_resolve, reject) => {
     init.signal.addEventListener('abort', () => {
       cancelledOperationCount += 1;
-      reject(init.signal.reason);
+      reject(Object.assign(new Error(init.signal.reason?.message || '页面已切换'), {
+        state: 'cancelled', retryable: false
+      }));
     }, { once: true });
   })
-});
+};
 const cancellableSource = createPageDataSource({
   route: '/workbench',
   runtime: { mode: 'remote', testWritesEnabled: false },

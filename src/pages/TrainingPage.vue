@@ -9,7 +9,7 @@ const props = defineProps({
   integrationState: { type: String, default: "loading" },
   operationExecutor: { type: Function, default: null },
   actionExecutor: { type: Function, default: null },
-  testWritesEnabled: { type: Boolean, default: false },
+  writesEnabled: { type: Boolean, default: false },
 });
 
 const selected = ref("全部");
@@ -75,14 +75,14 @@ watch(visibleCourses, (items) => {
   if (page.value > lastPage) page.value = lastPage;
 });
 async function register(course) {
-  if (!props.testWritesEnabled || !props.actionExecutor || !course.id) {
-    announcement.value = `${course.title}：真实 TEST_ 报名通道未启用`;
+  if (!props.writesEnabled || !props.actionExecutor || !course.id) {
+    announcement.value = `${course.title}：报名通道未启用`;
     return;
   }
   try {
     const input = buildApplicationWriteInput('TRN-004', course.id);
     await props.actionExecutor('TRN-004', input, { confirmed: true });
-    announcement.value = `${course.title}：TEST_ 报名已由服务端确认`;
+    announcement.value = `${course.title}：报名已由服务端确认`;
   } catch (error) {
     announcement.value = `${course.title}：报名失败，${error.message || '请稍后重试'}`;
   }

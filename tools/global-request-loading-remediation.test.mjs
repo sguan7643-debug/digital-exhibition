@@ -5,26 +5,20 @@ import { beginRequest, endRequest, getRequestActivity, trackRequest } from '../s
 const appSource = await readFile(new URL('../src/App.vue', import.meta.url), 'utf8');
 const styleSource = await readFile(new URL('../src/style.css', import.meta.url), 'utf8');
 
-assert.match(appSource, /class="request-activity-banner"/, '登录后的活跃请求必须渲染醒目的非阻塞提示');
-assert.match(appSource, /role="status"/, '请求提示必须以 status 向辅助技术播报');
-assert.match(appSource, /aria-live="polite"/, '请求提示必须使用 polite live region');
-assert.match(appSource, /aria-busy="true"/, '请求提示必须明确暴露 busy 状态');
+assert.doesNotMatch(appSource, /request-activity-banner|integration-toast-stack/, '数据缺失和恢复提示气泡不得重新出现');
+assert.match(appSource, /v-if="requestActivity\.isLoading"[\s\S]*?class="request-loading-toast"/, '请求处理中必须保留轻量 loading 气泡');
 assert.doesNotMatch(appSource, /class="global-request-loading"/, '登录后的业务请求不得渲染全屏遮罩');
 assert.doesNotMatch(appSource, /requestOverlay\.value\?\.focus/, '业务请求提示不得抢夺当前焦点');
 assert.doesNotMatch(appSource, /@click\.stop\.prevent/, '业务请求提示不得拦截页面点击');
 assert.doesNotMatch(appSource, /@keydown\.stop\.prevent/, '业务请求提示不得拦截键盘操作');
-assert.match(appSource, /requestActivity\.activeCount\s*>\s*1/, '并发请求必须显示请求数量');
-assert.match(appSource, /正在处理\s*\{\{\s*requestActivity\.activeCount\s*\}\}\s*项请求/, '并发请求文案必须为“正在处理 N 项请求”');
-assert.match(appSource, /页面其他区域仍可继续使用/, '请求提示必须明确说明页面并未被锁定');
 assert.doesNotMatch(appSource, /class="integration-toast-close"/, '已取消的数据恢复气泡不得重新展示');
 assert.doesNotMatch(appSource, /dismissIntegrationRecovery/, '已取消的数据恢复气泡不得保留关闭交互');
+assert.doesNotMatch(appSource, /正式飞书数据正在首次同步，请稍后重试/, '首次同步提示不得作为页面气泡展示');
 assert.match(appSource, /resolveActiveRetryScope\(envelope\)/, '所有受影响请求成功后必须自动关闭恢复提示');
 
-const bannerRule = styleSource.match(/\.request-activity-banner\{[^}]+\}/)?.[0] || '';
-assert.doesNotMatch(bannerRule, /position:fixed|inset:0|pointer-events:auto/, '请求提示不得覆盖视口或接管指针事件');
-assert.match(styleSource, /\.request-activity-banner__bar\{[^}]+border-radius:50%/, '请求提示必须包含清晰的加载进度标识');
+assert.doesNotMatch(styleSource, /request-activity-banner|integration-toast-stack/, '数据缺失提示气泡样式不得进入正式构建');
+assert.match(styleSource, /\.request-loading-toast/, 'loading 气泡样式必须保留');
 assert.doesNotMatch(styleSource, /\.integration-toast-close/, '已取消的数据恢复气泡样式不得重新进入正式构建');
-assert.match(styleSource, /@media\(prefers-reduced-motion:reduce\)[\s\S]*animation:none/, '必须尊重 reduced-motion');
 
 const first = beginRequest('正在查询审批状态');
 assert.equal(getRequestActivity().activeCount, 1);
@@ -44,4 +38,4 @@ await assert.rejects(
 );
 assert.equal(getRequestActivity().isLoading, false, '失败请求结束后提示必须消失');
 
-console.log('authenticated request activity remains visible without blocking the page');
+console.log('request loading bubble remains visible while missing-data and first-sync bubbles stay removed');

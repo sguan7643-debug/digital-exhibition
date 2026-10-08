@@ -3,6 +3,7 @@ import { getOperation } from '../src/integration/operation-registry.js';
 
 const ROUTE_PATTERN = /^\/api\/v1\/operations\/([A-Z]+-[0-9]{3})$/;
 const BATCH_ROUTE = '/api/v1/operations/batch';
+const SYNC_ROUTE = /^\/api\/v1\/operations\/sync-jobs\/([A-Za-z0-9-]{8,160})$/;
 
 function errorResult(error, traceId) {
   const controlled = error instanceof FeishuProxyError;
@@ -16,6 +17,7 @@ function errorResult(error, traceId) {
       message: controlled ? error.message : '安全代理处理失败',
       traceId,
       ...(retryAfterSeconds ? { retryAfterSeconds } : {})
+      ,...(controlled && error.syncId ? { syncId: error.syncId, pollAfterMs: error.pollAfterMs || 2000 } : {})
     }
   };
 }
@@ -30,6 +32,14 @@ export function createFeishuOperationDispatcher(options = {}) {
     const pathname = new URL(request.url || '/', 'http://localhost').pathname;
     const match = ROUTE_PATTERN.exec(pathname);
     const isBatch = pathname === BATCH_ROUTE;
+    const syncMatch = SYNC_ROUTE.exec(pathname);
+    if (syncMatch) {
+      if (request.method !== 'GET') return { status: 405, body: { code: 'METHOD_NOT_ALLOWED', message: '同步状态仅接受 GET' } };
+      try {
+        const context = await resolveRequestContext(request);
+        return { status: 200, body: service.getReadSyncStatus(syncMatch[1], context || {}) };
+      } catch (error) { return errorResult(error, traceIdFactory()); }
+    }
     if (!match && !isBatch) return null;
     const traceId = traceIdFactory();
     if (request.method !== 'POST') {
@@ -59,7 +69,7 @@ export function createFeishuOperationDispatcher(options = {}) {
       if (invalid) {
         return { status: 400, body: { code: 'INVALID_BATCH_ITEM', message: '批量请求仅允许已登记的只读 operation', traceId } };
       }
-      const requestContext = await resolveRequestContext(request);
+      const requestContext = { ...(await resolveRequestContext(request)), freshRead: request.headers?.['x-read-consistency'] === 'fresh' };
       const results = await Promise.all(body.requests.map(async item => {
         const itemTraceId = traceIdFactory();
         try {
@@ -83,7 +93,7 @@ export function createFeishuOperationDispatcher(options = {}) {
       return { status: 400, body: { code: 'INVALID_OPERATION_INPUT', message: 'input 必须是对象', traceId } };
     }
     try {
-      const requestContext = await resolveRequestContext(request);
+      const requestContext = { ...(await resolveRequestContext(request)), freshRead: request.headers?.['x-read-consistency'] === 'fresh' };
       const response = await service.execute(operationId, body.input || {}, requestContext || {});
       return { status: 200, body: response };
     } catch (error) {
@@ -121,7 +131,7 @@ export function createFeishuNodeMiddleware(options = {}) {
   const traceIdFactory = options.traceIdFactory || (() => `trace-${globalThis.crypto?.randomUUID?.() || Date.now()}`);
   return async function feishuProxyMiddleware(request, response, next) {
     const pathname = new URL(request.url || '/', 'http://localhost').pathname;
-    if (!ROUTE_PATTERN.test(pathname) && pathname !== BATCH_ROUTE) return next();
+    if (!ROUTE_PATTERN.test(pathname) && pathname !== BATCH_ROUTE && !SYNC_ROUTE.test(pathname)) return next();
     let body;
     try {
       body = request.method === 'POST' ? await readJsonBody(request) : {};

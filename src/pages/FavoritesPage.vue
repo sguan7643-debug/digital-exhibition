@@ -15,7 +15,7 @@ const props = defineProps({
   integrationState: { type: String, default: "loading" },
   operationExecutor: { type: Function, default: null },
   actionExecutor: { type: Function, default: null },
-  testWritesEnabled: { type: Boolean, default: false },
+  writesEnabled: { type: Boolean, default: false },
 });
 
 const REFERENCE_SHA256 =
@@ -100,14 +100,14 @@ function clearFilters() {
 const resultTitleRef = ref(null);
 
 async function cancelFavorite(card) {
-  if (!props.testWritesEnabled || !props.actionExecutor || !String(card.id).startsWith("TEST_") || !card.favoriteVersion) {
-    controller.announcement = "当前收藏不允许在测试写入通道中取消";
+  if (!props.writesEnabled || !props.actionExecutor || !card.favoriteVersion) {
+    controller.announcement = "当前收藏缺少版本信息，暂时无法取消";
     return;
   }
   try {
     await props.actionExecutor("FAV-004", {
       businessKey: card.id,
-      idempotencyKey: `TEST_IDEM_APP_UNFAVORITE_${window.crypto.randomUUID()}`,
+      idempotencyKey: `IDEM_APP_UNFAVORITE_${window.crypto.randomUUID()}`,
       ifMatch: card.favoriteVersion,
       fields: {},
     }, { confirmed: true });
@@ -323,8 +323,8 @@ async function launch(card) {
           ><button
             class="cancel-favorite"
             type="button"
-            :disabled="!testWritesEnabled || !String(card.id).startsWith('TEST_') || !card.favoriteVersion"
-            :title="!String(card.id).startsWith('TEST_') || !card.favoriteVersion ? '当前收藏不允许通过测试写入通道清理' : ''"
+            :disabled="!writesEnabled || !card.favoriteVersion"
+            :title="!card.favoriteVersion ? '当前收藏缺少版本信息' : ''"
             @click="cancelFavorite(card)"
           >
             取消收藏</button

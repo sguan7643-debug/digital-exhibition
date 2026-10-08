@@ -85,12 +85,24 @@ const coldService = createFeishuReadOnlyService({
   }
 });
 const coldStartedAt = Date.now();
-await assert.rejects(
-  coldService.execute('COM-005', { dictTypes: ['APPLICATION_TYPE'], includeDisabled: false }, userA),
-  error => error.code === 'FEISHU_INITIAL_SYNCING' && error.status === 202 && error.retryAfterSeconds === 2
-);
+let coldSyncError;
+try {
+  await coldService.execute('COM-005', { dictTypes: ['APPLICATION_TYPE'], includeDisabled: false }, userA);
+} catch (error) {
+  coldSyncError = error;
+}
+assert.equal(coldSyncError?.code, 'FEISHU_INITIAL_SYNCING');
+assert.equal(coldSyncError?.status, 202);
+assert.equal(coldSyncError?.retryAfterSeconds, 2);
+assert.match(coldSyncError?.syncId || '', /^read-/);
 assert.ok(Date.now() - coldStartedAt < 100, '真正冷启动必须快速返回首次同步状态');
-await coldService.waitForIdle();
+assert.equal(coldService.getReadSyncStatus(coldSyncError.syncId, userA).state, 'running');
+assert.throws(() => coldService.getReadSyncStatus(coldSyncError.syncId, userB), error => error.code === 'SYNC_JOB_FORBIDDEN');
+const backgroundResult = await coldService.executeBackground('COM-005', { dictTypes: ['APPLICATION_TYPE'], includeDisabled: false }, userA);
+assert.equal(backgroundResult.code, 'OK', '聚合后台读取必须等待共享回源完成，不能再次触发5秒同步响应');
+const completedSync = coldService.getReadSyncStatus(coldSyncError.syncId, userA);
+assert.equal(completedSync.state, 'completed');
+assert.equal(completedSync.result.code, 'OK', '同步任务完成后必须直接携带结果，前端无需重发原 operation');
 const afterColdSync = await coldService.execute('COM-005', { dictTypes: ['APPLICATION_TYPE'], includeDisabled: false }, userA);
 assert.equal(afterColdSync.cacheStatus, 'fresh', '后台同步完成后必须转为新鲜缓存');
 assert.equal(coldCalls.length, 1, '首次同步必须在后台完成实际飞书读取且不重复回源');

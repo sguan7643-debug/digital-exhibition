@@ -21,6 +21,32 @@ function hostMatchesNoProxy(hostname, noProxy) {
   });
 }
 
+function isLoopbackProxy(proxyUrl) {
+  try {
+    const hostname = new URL(proxyUrl).hostname.toLowerCase();
+    return hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '::1' || hostname === '[::1]';
+  } catch {
+    return false;
+  }
+}
+
+function errorChainCodes(error) {
+  const codes = new Set();
+  let current = error;
+  for (let depth = 0; current && depth < 6; depth += 1) {
+    if (current.code) codes.add(String(current.code).toUpperCase());
+    current = current.cause;
+  }
+  return codes;
+}
+
+function canRetryWithoutLoopbackProxy(error, method) {
+  const codes = errorChainCodes(error);
+  if (['ECONNREFUSED', 'ENETUNREACH', 'EHOSTUNREACH'].some(code => codes.has(code))) return true;
+  return ['GET', 'HEAD'].includes(String(method || 'GET').toUpperCase())
+    && ['ECONNRESET', 'UND_ERR_SOCKET'].some(code => codes.has(code));
+}
+
 export function resolveProxyUrlForTarget(target, env = process.env) {
   let parsed;
   try {
@@ -53,12 +79,30 @@ export function createFeishuProxyDispatcher(options = {}) {
 
 export function createFeishuProxyFetch(fetchImpl = globalThis.fetch, options = {}) {
   if (typeof fetchImpl !== 'function') throw new Error('缺少服务端 fetch 实现');
-  const dispatcher = options.dispatcher === undefined
-    ? createFeishuProxyDispatcher(options)
+  const usesEnvironmentProxy = options.dispatcher === undefined;
+  const proxyUrl = usesEnvironmentProxy
+    ? (options.proxyUrl ?? resolveProxyUrlForTarget(options.target ?? 'https://open.feishu.cn', options.env ?? process.env))
+    : '';
+  const dispatcher = usesEnvironmentProxy
+    ? createFeishuProxyDispatcher({ ...options, proxyUrl })
     : options.dispatcher;
   if (!dispatcher) return fetchImpl;
-  return (input, init = {}) => fetchImpl(input, {
-    ...init,
-    ...(init.dispatcher ? {} : { dispatcher })
-  });
+  const allowDirectFallback = usesEnvironmentProxy
+    && options.loopbackDirectFallback !== false
+    && isLoopbackProxy(proxyUrl);
+  return async (input, init = {}) => {
+    const usesManagedDispatcher = !init.dispatcher;
+    try {
+      return await fetchImpl(input, {
+        ...init,
+        ...(usesManagedDispatcher ? { dispatcher } : {})
+      });
+    } catch (error) {
+      const requestMethod = init.method || (typeof Request !== 'undefined' && input instanceof Request ? input.method : 'GET');
+      if (!allowDirectFallback || !usesManagedDispatcher || !canRetryWithoutLoopbackProxy(error, requestMethod)) throw error;
+      const directInit = { ...init };
+      delete directInit.dispatcher;
+      return fetchImpl(input, directInit);
+    }
+  };
 }

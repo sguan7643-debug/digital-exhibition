@@ -10,5 +10,6 @@ const record = computed(() => props.integrationData?.['OAN-003'] || null);
     description="仅展示飞书多维表格返回的公告数据；写入接口未启用时不提供草稿保存或发布。"
     :record="record"
     :state="integrationState"
+    variant="announcement-editor"
   />
 </template>

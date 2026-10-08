@@ -120,7 +120,8 @@ const rpaDetail=await mount('pages/RpaDetailPage.vue',{integrationState:'normal'
 assert.equal(textOf(flatten(rpaDetail.root).find(node=>node.type==='h1')),rpa.name);
 assert.equal(byClass(rpaDetail.root,'remote-app-detail').props['data-authoritative-detail'],'true');
 assert.equal(flatten(rpaDetail.root).find(node=>node.props?.['data-detail-return']!==undefined).props.href,'/apps');
-assert.ok(textOf(byClass(rpaDetail.root,'remote-detail-facts')).includes(rpa.appId));
+const informationSection=flatten(rpaDetail.root).find(node=>node.props?.['data-detail-section']==='information');
+assert.ok(textOf(informationSection).includes(rpa.appId),'真实应用编码必须展示在权威基本信息区');
 rpaDetail.app.unmount();
 
 const description=await mount('components/ClampedText.vue',{text:'测试应用的完整多行说明',id:'description-test'});

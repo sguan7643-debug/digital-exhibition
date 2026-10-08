@@ -167,7 +167,7 @@ function homepageAggregateEvent(contract, result) {
 export function assertWriteActionContext(action, operation, context = {}) {
   if (action?.remoteEnabled !== true) throw new Error('操作独立门禁未启用');
   if (!operation || operation.access !== 'write' || operation.remoteEnabled !== true) throw new Error('写 operation 未启用');
-  if (!context.permissions?.includes(action.requiredPermission)) throw new Error('缺少操作权限');
+  if (![action.requiredPermission, '*', 'admin.*', 'operation:*:execute'].some(permission => context.permissions?.includes(permission))) throw new Error('缺少操作权限');
   if (action.confirmationRequired && context.confirmed !== true) throw new Error('操作需要明确确认');
   if (action.idempotencyRequired && !context.idempotencyKey) throw new Error('操作需要幂等键');
   if (action.versionConditionRequired && !(context.ifMatch || context.version)) throw new Error('操作需要版本或 ETag 前置条件');
@@ -217,7 +217,32 @@ export function createPageDataSource({ route, runtime, client, homepageClient, o
       const stableEnvelope = envelope;
       envelope = reduceDataState({ ...envelope, mode: 'remote' }, { type: 'load' });
       if (route === '/workbench' && homepageClient) {
-        const result = await homepageClient.load({ forceRefresh: options.forceRefresh === true, signal: controller.signal });
+        let result;
+        try {
+          result = await homepageClient.load({ forceRefresh: options.forceRefresh === true, signal: controller.signal });
+        } catch (error) {
+          if (currentGeneration !== generation) return withContract(envelope);
+          const state = error?.state || 'error';
+          const retryable = error?.retryable !== false && state !== 'cancelled' && state !== 'authentication-required' && state !== 'permission-denied';
+          const sectionRecords = Object.fromEntries(contract.readOperationIds.map(operationId => [operationId, {
+            available: false,
+            traceId: error?.traceId || null,
+            sourceUpdatedAt: null,
+            dataStale: false,
+            isComplete: false,
+            errorState: state,
+            retryable,
+            retryAfterSeconds: Number.isInteger(error?.retryAfterSeconds) ? error.retryAfterSeconds : 2
+          }]));
+          envelope = reduceDataState({ ...envelope, mode: 'remote' }, {
+            type: 'fail', code: state, error: error?.message || '首页数据请求失败',
+            traceId: error?.traceId || null, isComplete: false, dataStale: false,
+            unavailableSections: [...contract.readOperationIds], unavailableReasonCode: state,
+            retryScope: retryable ? [...contract.readOperationIds] : [], sectionRecords,
+            refreshing: false, syncId: null, syncState: 'failed', syncError: error?.code || state
+          });
+          return withContract(envelope);
+        }
         if (currentGeneration !== generation) return withContract(envelope);
         envelope = reduceDataState({ ...envelope, mode: 'remote' }, homepageAggregateEvent(contract, result));
         return withContract(envelope);
@@ -273,6 +298,10 @@ export function createPageDataSource({ route, runtime, client, homepageClient, o
       envelope = Object.freeze({ ...envelope, refreshing: true, syncState: status.state, traceId: status.traceId || envelope.traceId });
       return withContract(envelope);
     }
+    if (status.state === 'completed' && status.result) {
+      envelope = reduceDataState({ ...envelope, mode: 'remote' }, homepageAggregateEvent(contract, { status: 200, body: status.result }));
+      return withContract(envelope);
+    }
     if (status.state === 'completed') return load({}, options.loadOptions || {});
     envelope = reduceDataState({ ...envelope, mode: 'remote' }, {
       type: 'fail',
@@ -300,8 +329,9 @@ export function createPageDataSource({ route, runtime, client, homepageClient, o
     const action = contract.actions.find(candidate => candidate.actionId === actionId);
     if (!action) throw new Error(`页面未登记操作：${actionId}`);
     const operation = operationResolver(action.operationId);
-    const effectiveAction = Object.freeze({ ...action, remoteEnabled: runtime.testWritesEnabled === true });
-    if (runtime.mode !== 'remote' || runtime.testWritesEnabled !== true) throw new Error('操作独立门禁未启用');
+    const writesEnabled = runtime.businessWritesEnabled === true;
+    const effectiveAction = Object.freeze({ ...action, remoteEnabled: writesEnabled });
+    if (runtime.mode !== 'remote' || !writesEnabled) throw new Error('正式写入通道未启用');
     assertWriteActionContext(effectiveAction, operation, context);
     return client.execute(action.operationId, {
       ...input,

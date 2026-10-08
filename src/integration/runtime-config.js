@@ -35,6 +35,7 @@ export function resolveIntegrationRuntime(options = {}) {
     remoteEnabled,
     contractEvidenceComplete,
     testWritesEnabled,
+    businessWritesEnabled: mode === 'remote' && remoteEnabled && contractEvidenceComplete,
     timeoutMs,
     reason
   });

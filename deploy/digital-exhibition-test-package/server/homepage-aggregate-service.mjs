@@ -94,8 +94,8 @@ function pendingSection(operationId, error) {
 }
 
 export function resolveHomepageResponseBudgetMs(value) {
-  const configured = Number(value ?? 25_000);
-  return Number.isFinite(configured) && configured > 0 ? Math.min(configured, 29_000) : 25_000;
+  const configured = Number(value ?? 5_000);
+  return Number.isFinite(configured) && configured > 0 ? Math.min(configured, 5_000) : 5_000;
 }
 
 export function createHomepageAggregateService(options = {}) {
@@ -103,6 +103,9 @@ export function createHomepageAggregateService(options = {}) {
   if (!readService?.peekOperation || !readService?.executeFresh) {
     throw new Error('首页聚合服务缺少可缓存读取能力');
   }
+  const executeBackground = typeof readService.executeBackground === 'function'
+    ? readService.executeBackground.bind(readService)
+    : readService.executeFresh.bind(readService);
   const now = options.now || Date.now;
   const idFactory = options.idFactory || (() => `sync-${randomUUID()}`);
   const traceIdFactory = options.traceIdFactory || (() => `trace-${randomUUID()}`);
@@ -193,7 +196,7 @@ export function createHomepageAggregateService(options = {}) {
     task.promise = (async () => {
       task.state = 'running';
       task.updatedAt = now();
-      const settled = await Promise.allSettled(HOMEPAGE_OPERATION_IDS.map(operationId => readService.executeFresh(
+      const settled = await Promise.allSettled(HOMEPAGE_OPERATION_IDS.map(operationId => executeBackground(
         operationId,
         HOMEPAGE_OPERATION_INPUTS[operationId],
         requestContext
@@ -313,6 +316,7 @@ export function createHomepageAggregateService(options = {}) {
       createdAt: new Date(task.createdAt).toISOString(),
       updatedAt: new Date(task.updatedAt).toISOString(),
       traceId: task.traceId
+      ,...(task.state === 'completed' && task.result ? { result: task.result } : {})
     };
   }
 
@@ -320,7 +324,7 @@ export function createHomepageAggregateService(options = {}) {
     if (prewarmPromise) return prewarmPromise;
     readiness = { state: 'warming', startedAt: now(), completedAt: null, errorCode: null };
     prewarmPromise = Promise.resolve().then(() => Promise.all(['COM-005', 'WB-002'].map(operationId => (
-      readService.executeFresh(operationId, HOMEPAGE_OPERATION_INPUTS[operationId], {})
+      executeBackground(operationId, HOMEPAGE_OPERATION_INPUTS[operationId], {})
     )))).then(() => {
       readiness = { state: 'ready', startedAt: readiness.startedAt, completedAt: now(), errorCode: null };
       return readiness;

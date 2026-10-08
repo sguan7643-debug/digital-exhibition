@@ -18,6 +18,10 @@ const context = cdpUrl
     : await browser.newContext({ viewport: { width: 360, height: 800 } });
 const page = await context.newPage();
 await page.setViewportSize({ width: 360, height: 800 });
+await page.route('**/api/v1/auth/feishu/session', route => route.fulfill({
+  status: 200, contentType: 'application/json',
+  body: JSON.stringify({ code: 'OK', authenticated: true, identity: { userId: 'browser-overflow-user', displayName: '浏览器验证用户', departmentName: '信息化部门' } })
+}));
 const results = [];
 try {
   for (const item of PAGE_MATRIX) {

@@ -7,6 +7,6 @@ assert.match(source,/RemoteAppDetailPage/,'工具详情必须复用统一远端�
 assert.match(source,/useAppDetailProjection/,'工具详情必须使用飞书远端投影');
 assert.match(source,/icon="tools"/,'工具详情必须关联工具线稿图标');
 for(const operation of ['APP-005','APP-006','APP-008','FAV-003','FAV-004'])assert.ok(live.includes(`'${operation}'`),`工具详情缺少 ${operation} 受控交互`);
-assert.match(live,/v-if="testWritesEnabled"/,'详情写操作必须受 TEST_ 隔离开关控制');
+assert.match(live,/v-if="writesEnabled"/,'详情写操作必须受正式业务写入开关控制');
 assert.doesNotMatch(source,/本地演示|mockDownload|createDetailController/,'工具详情不得保留伪业务交互');
-console.log('第六批 interaction：工具详情远端投影与受控真实操作合同通过');
+console.log('第六批 interaction：工具详情远端投影与正式受控操作合同通过');

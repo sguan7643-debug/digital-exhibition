@@ -36,6 +36,6 @@ assert.match(liveSections,/props\.operationExecutor\('MAT-003'/,'素材下载必
 for(const operation of ['APP-005','APP-006','APP-008','FAV-003','FAV-004']){
   assert.ok(liveSections.includes(`'${operation}'`),`详情联调区缺少 ${operation} 受控操作`);
 }
-assert.match(liveSections,/v-if="testWritesEnabled"/,'写操作只能在 TEST_ 隔离通道开启时展示');
+assert.match(liveSections,/v-if="writesEnabled"/,'写操作只能在正式业务写入通道开启时展示');
 
-console.log('真实详情组件：远端投影、六态、同源下载与 TEST_ 隔离写入合同通过');
+console.log('真实详情组件：远端投影、六态、同源下载与正式受控写入合同通过');

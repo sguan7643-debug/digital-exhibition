@@ -1,6 +1,7 @@
 function decorate(value, record, status) {
   return {
     ...value,
+    ...(status === 'stale' ? { dataStale: true, refreshing: true } : {}),
     browserCache: { status, updatedAt: new Date(record.updatedAt).toISOString() }
   };
 }
@@ -25,7 +26,12 @@ export function createPersistentReadClient(options = {}) {
     const pending = cache.runExclusive(key, async () => {
       const latest = await cache.read(key);
       if (latest?.updatedAt > observedAt) return decorate(latest.value, latest, 'fresh');
-      const value = await client.execute(operationId, input, { ...requestOptions, silent: background || requestOptions?.silent });
+      const value = await client.execute(operationId, input, { ...requestOptions, silent: background || requestOptions?.silent, fresh: background });
+      if (value?.dataStale === true) {
+        return latest
+          ? decorate(latest.value, latest, 'stale')
+          : { ...value, browserCache: { status: 'stale', updatedAt: value.sourceUpdatedAt || new Date(0).toISOString() } };
+      }
       const record = await cache.write(key, value, { operationIds: [operationId] });
       if (background) emit({ origin: 'local', background: true, record });
       return decorate(value, record, 'network');
@@ -62,7 +68,7 @@ export function createPersistentReadClient(options = {}) {
       }
       if (unresolved.length) {
         const results = typeof client.executeBatch === 'function'
-          ? await client.executeBatch(unresolved, { ...requestOptions, silent: background || requestOptions.silent })
+          ? await client.executeBatch(unresolved, { ...requestOptions, silent: background || requestOptions.silent, fresh: background })
           : await Promise.all(unresolved.map(async request => {
               try { return { status: 'fulfilled', value: await client.execute(request.operationId, request.input, { ...requestOptions, silent: background || requestOptions.silent }) }; }
               catch (reason) { return { status: 'rejected', reason }; }
@@ -72,6 +78,13 @@ export function createPersistentReadClient(options = {}) {
           const result = results[index];
           const key = operationKey(request.operationId, request.input);
           if (result.status === 'fulfilled') {
+            if (result.value?.dataStale === true) {
+              const latest = await cache.read(key);
+              resolved.set(key, { status: 'fulfilled', value: latest
+                ? decorate(latest.value, latest, 'stale')
+                : { ...result.value, browserCache: { status: 'stale', updatedAt: result.value.sourceUpdatedAt || new Date(0).toISOString() } } });
+              continue;
+            }
             const record = await cache.write(key, result.value, { operationIds: [request.operationId] });
             resolved.set(key, { status: 'fulfilled', value: decorate(result.value, record, 'network') });
             if (background) emit({ origin: 'local', background: true, record });
@@ -113,4 +126,3 @@ export function createPersistentReadClient(options = {}) {
     subscribe(listener) { subscribers.add(listener); return () => subscribers.delete(listener); }
   });
 }
-

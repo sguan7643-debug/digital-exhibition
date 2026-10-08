@@ -11,4 +11,4 @@ assert.deepEqual(training.fields, { 课程ID: 'COURSE-1', 状态: '已报名', �
 assert.equal(resolveDownloadFileId({ primaryFile: { fileId: 'file-token-1' }, materialId: 'MAT-1' }), 'file-token-1');
 assert.equal(resolveDownloadFileId({ materialId: 'MAT-1' }), '');
 assert.throws(() => buildApplicationWriteInput('APP-008', 'APP-1', { comment: '' }, options), /评论/);
-console.log('favorites, comments, training, and downloads use canonical resources and deterministic TEST_ write inputs');
+console.log('favorites, comments, training, and downloads use canonical resources and deterministic formal write inputs');

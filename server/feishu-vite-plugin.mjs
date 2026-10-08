@@ -25,6 +25,8 @@ import { createOnboardingUniqueIdentifierClient } from './onboarding-unique-iden
 import { createHomepageAggregateService } from './homepage-aggregate-service.mjs';
 import { createHomepageAggregateNodeMiddleware } from './homepage-aggregate-middleware.mjs';
 import { isSameOriginRequest } from './same-origin-request.mjs';
+import { createBusinessWriteGovernance } from './business-write-governance.mjs';
+import { createBusinessCommandHandlers } from './business-command-handlers.mjs';
 
 export function createFeishuMiddlewareStack(options = {}) {
   const contractPath = fileURLToPath(new URL('./contracts/feishu-base-identifiers.json', import.meta.url));
@@ -36,14 +38,28 @@ export function createFeishuMiddlewareStack(options = {}) {
     identifierContract,
     fileAccessService,
     allowedAppLaunchHosts: options.allowedAppLaunchHosts,
-    coldMissBudgetMs: options.coldMissBudgetMs ?? 1_500
+    coldMissBudgetMs: options.coldMissBudgetMs ?? 5_000
   });
   const adminClient = createFeishuSchemaAdminClient(options);
   const safeRecordService = createFeishuSafeTestRecordService({ client: adminClient });
   const writeService = createFeishuWriteOperationService({ safeRecordService });
+  const businessRecordService = createFeishuSafeTestRecordService({ client: createFeishuSchemaAdminClient({ ...options, recordWriteEnabled: true }), production: true });
+  let approvalService = null;
+  const commandHandlers = { ...createBusinessCommandHandlers(), ...(options.businessCommandHandlers || {}) };
+  const businessApprovalResolver = options.businessApprovalResolver || ((instanceId, context, expectation) => {
+    if (!approvalService?.resolveBusinessApproval) throw new Error('正式审批解析服务尚未初始化');
+    return approvalService.resolveBusinessApproval(instanceId, context, expectation);
+  });
+  const businessWriteService = createBusinessWriteGovernance({
+    writeService: createFeishuWriteOperationService({ safeRecordService: businessRecordService, commandHandlers }),
+    recordService: businessRecordService,
+    approvalResolver: businessApprovalResolver,
+    ledgerFile: options.businessWriteLedgerFile || join(process.cwd(), '.local', 'business-write-ledger.json')
+  });
   const service = createFeishuCompositeOperationService({
     readService,
     writeService,
+    businessWriteService,
     browserWriteEnabled: options.browserWriteEnabled ?? process.env.FEISHU_BROWSER_TEST_WRITE_ENABLED === '1'
   });
   const oauthEvidencePath = options.oauthEvidencePath ?? process.env.FEISHU_OAUTH_EVIDENCE_PATH ?? '';
@@ -77,7 +93,7 @@ export function createFeishuMiddlewareStack(options = {}) {
   });
   const approvalProjection = createFeishuApprovedAppProjection({ safeRecordService: approvalRecordService, orchestrator: onboardingOrchestrator });
   const approvalNotifier = createFeishuOnboardingApprovalNotifier({ client });
-  const approvalService = createFeishuApprovalService({
+  approvalService = createFeishuApprovalService({
     client,
     registryFile: approvalRegistryFile,
     projectionService: approvalProjection,

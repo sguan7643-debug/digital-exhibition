@@ -140,6 +140,46 @@ assert.notEqual(ownerShared.applicationId, otherShared.applicationId, '不同用
 assert.notEqual(ownerShared.instanceId, otherShared.instanceId, '不同用户使用相同 attemptId 时必须各自创建审批实例');
 assert.equal(approvalCalls.filter(call => call[0] === 'create').length, 3);
 
+service.registerUploadedFile({ attemptId: 'TEST_ATTEMPT_ALL_SCOPE', uploadId: 'TEST_UPLOAD_ALL_SCOPE_ICON', purpose: 'APPLICATION_ICON', originalName: 'all-scope.png', sizeBytes: 100, mimeType: 'image/png', detectedType: 'PNG', sha256: '5'.repeat(64), uploadedAt: '2026-09-26T09:58:00.000Z', fileToken: 'server-file-token-all-scope' }, session);
+const allScope = await service.submit({
+  attemptId: 'TEST_ATTEMPT_ALL_SCOPE',
+  application: { name: '全组织应用', applicationCode: 'HW-ALL', type: 'T005', domain: 'BD005', applicant: 'u_owner', department: 'dept-owner', scope: 'all', email: 'owner@example.com' },
+  uploadIds: ['TEST_UPLOAD_ALL_SCOPE_ICON']
+}, session);
+assert.equal(allScope.authorizedUsers.length, 0, '全部组织可见不应伪造具体授权用户');
+assert.equal(allScope.authorizedDepartments.length, 0, '全部组织可见不应伪造具体授权部门');
+
+service.registerUploadedFile({ attemptId: 'TEST_ATTEMPT_BAD_EMAIL', uploadId: 'TEST_UPLOAD_BAD_EMAIL_ICON', purpose: 'APPLICATION_ICON', originalName: 'bad-email.png', sizeBytes: 100, mimeType: 'image/png', detectedType: 'PNG', sha256: '6'.repeat(64), uploadedAt: '2026-09-26T09:59:00.000Z', fileToken: 'server-file-token-bad-email' }, session);
+await assert.rejects(() => service.submit({
+  attemptId: 'TEST_ATTEMPT_BAD_EMAIL',
+  application: { name: '邮箱非法', applicationCode: 'HW-BAD-EMAIL', type: 'T005', domain: 'BD005', applicant: 'u_owner', department: 'dept-owner', scope: 'all', email: 'bad@' },
+  uploadIds: ['TEST_UPLOAD_BAD_EMAIL_ICON']
+}, session), error => error?.code === 'ONBOARDING_EMAIL_INVALID');
+
+currentStatus = 'REJECTED';
+service.registerUploadedFile({ attemptId: 'TEST_ATTEMPT_REJECTED_SOURCE', uploadId: 'TEST_UPLOAD_REJECTED_ICON', purpose: 'APPLICATION_ICON', originalName: 'rejected.png', sizeBytes: 100, mimeType: 'image/png', detectedType: 'PNG', sha256: '7'.repeat(64), uploadedAt: '2026-09-26T10:00:00.000Z', fileToken: 'server-file-token-rejected' }, session);
+const rejectedSource = await service.submit({
+  attemptId: 'TEST_ATTEMPT_REJECTED_SOURCE',
+  application: { name: '被拒绝申请', applicationCode: 'HW-REJECTED', type: 'T005', domain: 'BD005', applicant: 'u_owner', department: 'dept-owner', scope: 'all' },
+  uploadIds: ['TEST_UPLOAD_REJECTED_ICON']
+}, session);
+assert.equal(rejectedSource.status, 'REJECTED');
+currentStatus = 'PENDING';
+const retried = await service.submit({
+  attemptId: 'TEST_ATTEMPT_REJECTED_RETRY',
+  application: { name: '修改后重提', applicationCode: 'HW-RETRY', type: 'T005', domain: 'BD005', applicant: 'u_owner', department: 'dept-owner', scope: 'all', sourceApplicationId: rejectedSource.applicationId, copySourceFiles: true },
+  uploadIds: []
+}, session);
+assert.notEqual(retried.applicationId, rejectedSource.applicationId, '重提必须创建新的申请记录');
+assert.equal(retried.icon.fileName, 'rejected.png', '重提应复用仍有效的原申请图标');
+assert.notEqual(retried.icon.fileId, rejectedSource.icon.fileId, '复用文件应生成属于新 attempt 的服务端引用');
+assert.equal((await service.get(rejectedSource.applicationId, session)).status, 'REJECTED', '原拒绝记录必须保持不变');
+await assert.rejects(() => service.submit({
+  attemptId: 'TEST_ATTEMPT_APPROVED_COPY',
+  application: { name: '错误复制', applicationCode: 'HW-BAD-COPY', type: 'T005', domain: 'BD005', applicant: 'u_owner', department: 'dept-owner', scope: 'all', sourceApplicationId: created.applicationId, copySourceFiles: true },
+  uploadIds: []
+}, session), error => error?.code === 'ONBOARDING_SOURCE_NOT_REJECTED');
+
 nowValue += 8 * 24 * 60 * 60 * 1000;
 const restarted = createFeishuOnboardingService({ approvalService, fileAccessService, orchestrator, uniqueIdentifierProvider, registryFile, now: () => nowValue });
 const restored = await restarted.get(created.applicationId, session);

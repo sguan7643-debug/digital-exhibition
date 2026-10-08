@@ -1,3 +1,30 @@
-<script setup>defineProps({projection:{type:Object,required:true}});</script>
-<template><dl v-if="projection.remoteMode" class="remote-detail-facts" aria-label="真实应用基础信息"><div><dt>应用编号</dt><dd>{{ projection.appCode }}</dd></div><div><dt>应用类型</dt><dd>{{ projection.typeName }}</dd></div><div><dt>版本号</dt><dd>{{ projection.versionName }}</dd></div><div><dt>负责人/开发者</dt><dd>{{ projection.ownerName }}</dd></div><div><dt>负责部门</dt><dd>{{ projection.departmentName }}</dd></div><div><dt>更新时间</dt><dd>{{ projection.updatedAt }}</dd></div></dl></template>
-<style scoped>.remote-detail-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0;padding:18px;background:#fff;border:1px solid #dce5ef}.remote-detail-facts div{padding:8px 12px;background:#f8fafc}.remote-detail-facts dt{color:#718397;font-size:13px}.remote-detail-facts dd{margin:6px 0 0;color:#173b60}@media(max-width:760px){.remote-detail-facts{grid-template-columns:1fr}}</style>
+<script setup>
+import { computed } from 'vue';
+
+const props = defineProps({
+  projection: { type: Object, required: true },
+  kind: { type: String, required: true },
+});
+
+const detail = computed(() => props.projection.detail?.value || props.projection.detail || {});
+const display = value => String(value ?? '').trim() || '—';
+const metrics = computed(() => [
+  { label: '访问次数', value: detail.value.usageCount == null ? '—' : `${detail.value.usageCount} 次` },
+  { label: '应用类型', value: display(props.projection.typeName) },
+  { label: '所属业务域', value: display(detail.value.domainName || detail.value.businessScope) },
+  { label: '最近更新', value: display(props.projection.updatedAt) },
+  { label: '开发单位', value: display(detail.value.developerOrgName || detail.value.responsibleOrgName) },
+  { label: '负责人', value: display(detail.value.ownerName), person: true },
+  { label: '开发者', value: display(detail.value.developerName), person: true },
+]);
+</script>
+
+<template>
+  <dl v-if="projection.remoteMode" class="detail-metrics" :class="{ 'rpa-metrics': kind === 'rpa' }" aria-label="应用关键指标">
+    <div v-for="(metric, index) in metrics" :key="metric.label">
+      <b aria-hidden="true">{{ index + 1 }}</b>
+      <dt>{{ metric.label }}</dt>
+      <dd :data-person-name="metric.person || undefined">{{ metric.value }}</dd>
+    </div>
+  </dl>
+</template>

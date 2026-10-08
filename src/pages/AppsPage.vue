@@ -3,7 +3,6 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import {
   categoryIconName,
-  applicationAccessMode,
   createAppsController,
   normalizeAppCategory,
 } from "../state/interaction-controllers.js";
@@ -15,13 +14,14 @@ import { buildApplicationWriteInput, launchApplication } from "../integration/ap
 import ClampedText from "../components/ClampedText.vue";
 import OverflowTags from "../components/OverflowTags.vue";
 import { buildApplicationDirectorySearchInput } from "../integration/application-directory-search.js";
+import { resolveApplicationCardAction } from "../integration/application-card-policy.js";
 
 const props = defineProps({
   integrationData: { type: Object, default: null },
   integrationState: { type: String, default: 'loading' },
   operationExecutor: { type: Function, default: null },
   actionExecutor: { type: Function, default: null },
-  testWritesEnabled: { type: Boolean, default: false },
+  requestActionEnabled: { type: Boolean, default: false },
 });
 
 const controller = routeSession.controller("apps", () =>
@@ -30,6 +30,8 @@ const controller = routeSession.controller("apps", () =>
 const directorySearchBusy = ref(false);
 const directorySearchError = ref("");
 const queriedRemoteItems = ref(null);
+const appAccess = ref({});
+let accessProbeGeneration = 0;
 const remoteApps = computed(() => {
   const items = queriedRemoteItems.value ?? props.integrationData?.['APP-002']?.items;
   return Array.isArray(items) ? projectApplicationCards(items) : [];
@@ -71,6 +73,60 @@ const appTypeStats = computed(() =>
 const filter = controller.filters;
 const tags = computed(() => [...new Set(displayedApps.value.map((app) => app.tag).filter(Boolean))]);
 const domains = computed(() => [...new Set(displayedApps.value.map((app) => app.domain).filter(Boolean))]);
+const requestEnabled = computed(() => props.requestActionEnabled && typeof props.actionExecutor === "function");
+
+function appKey(app) {
+  return String(app.appId || app.id || "");
+}
+function actionFor(app) {
+  const access = appAccess.value[appKey(app)];
+  if (!access || access.pending) {
+    return { kind: "unavailable", label: "正在校验", disabled: true, reason: "正在校验应用权限与启动配置" };
+  }
+  return resolveApplicationCardAction(access, { requestEnabled: requestEnabled.value });
+}
+async function probeApplicationAccess(app, generation) {
+  const key = appKey(app);
+  if (!key || !props.operationExecutor || appAccess.value[key]) return;
+  appAccess.value = { ...appAccess.value, [key]: { pending: true } };
+  try {
+    const response = await props.operationExecutor("APP-004", {
+      appId: key,
+      launchMode: "NEW_TAB",
+      sourcePage: "/apps",
+      requestedAt: new Date().toISOString(),
+    });
+    if (generation !== accessProbeGeneration) return;
+    appAccess.value = {
+      ...appAccess.value,
+      [key]: {
+        accessGranted: response?.data?.allowed === true,
+        launchable: Boolean(response?.data?.launchUrl),
+        accessReason: response?.data?.reasonMessage || "当前应用未获使用权限或未配置安全启动地址",
+      },
+    };
+  } catch (error) {
+    if (generation !== accessProbeGeneration) return;
+    appAccess.value = {
+      ...appAccess.value,
+      [key]: {
+        accessGranted: false,
+        launchable: false,
+        accessReason: error?.message || "暂时无法校验应用权限",
+      },
+    };
+  }
+}
+
+watch([pagedApps, () => props.operationExecutor], ([apps, executor], [previousApps, previousExecutor] = []) => {
+  if (executor !== previousExecutor) {
+    accessProbeGeneration += 1;
+    appAccess.value = {};
+  }
+  if (!executor) return;
+  const generation = accessProbeGeneration;
+  for (const app of apps) probeApplicationAccess(app, generation);
+}, { immediate: true });
 
 function syncUrl() {
   const query = new URLSearchParams(window.location.search);
@@ -128,19 +184,25 @@ async function launch(app) {
   try {
     const result = await launchApplication(props.operationExecutor, app.appId || app.id, { sourcePage: '/apps' });
     controller.announcement = `${app.name}：${result.message}`;
+    if (!result.launched) {
+      appAccess.value = {
+        ...appAccess.value,
+        [appKey(app)]: { accessGranted: false, launchable: false, accessReason: result.message },
+      };
+    }
   } catch (error) {
     controller.announcement = `${app.name}：${error.message || '应用启动失败'}`;
   }
 }
 async function requestUse(app) {
-  if (!props.testWritesEnabled || !props.actionExecutor) {
-    controller.announcement = `${app.name}：TEST_ 申请通道未启用`;
+  if (!props.requestActionEnabled || !props.actionExecutor) {
+    controller.announcement = `${app.name}：应用使用申请通道未启用`;
     return;
   }
   try {
-    const input = buildApplicationWriteInput('APP-005', app.appId || app.id, { reason: 'TEST_应用中心申请使用' });
+    const input = buildApplicationWriteInput('APP-005', app.appId || app.id, { reason: '应用中心申请使用' });
     await props.actionExecutor('APP-005', input, { confirmed: true });
-    controller.announcement = `${app.name}：TEST_ 申请已由服务端确认`;
+    controller.announcement = `${app.name}：申请已提交`;
   } catch (error) {
     controller.announcement = `${app.name}：申请失败，${error.message || '请稍后重试'}`;
   }
@@ -307,8 +369,8 @@ onBeforeUnmount(() => {
             </div>
             <dl class="catalog-people">
               <div class="catalog-department" :title="`负责部门：${app.department}`"><dt class="sr-only">负责部门</dt><dd>{{ app.department }}</dd></div>
-              <div class="catalog-developer" :title="`开发者：${app.developer}`"><dt class="sr-only">开发者</dt><svg class="person-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 6-4 4 4 4m8-8 4 4-4 4m-3-11-2 14"/></svg><dd>{{ app.developer }}</dd></div>
-              <div class="catalog-owner" :title="`负责人：${app.owner}`"><dt class="sr-only">负责人</dt><svg class="person-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="6" r="3"/><path d="M4 17v-2a6 6 0 0 1 12 0v2"/></svg><dd>{{ app.owner }}</dd></div>
+              <div class="catalog-developer" data-person-name :title="`开发者：${app.developer || '—'}`"><dt class="sr-only">开发者</dt><svg class="person-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="m6 6-4 4 4 4m8-8 4 4-4 4m-3-11-2 14"/></svg><dd>{{ app.developer || '—' }}</dd></div>
+              <div class="catalog-owner" data-person-name :title="`负责人：${app.owner || '—'}`"><dt class="sr-only">负责人</dt><svg class="person-icon" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="6" r="3"/><path d="M4 17v-2a6 6 0 0 1 12 0v2"/></svg><dd>{{ app.owner || '—' }}</dd></div>
             </dl>
             <ClampedText :text="app.description" :id="`app-description-${app.id}`" />
           </div>
@@ -320,9 +382,10 @@ onBeforeUnmount(() => {
             <div><dt>收藏量：</dt><dd>{{ app.favorites.toLocaleString("zh-CN") }}</dd></div>
           </dl>
           <div class="catalog-actions">
-            <button v-if="applicationAccessMode(app.route) === 'direct'" class="card-access" type="button" :disabled="!operationExecutor" @click="launch(app)">立即使用</button>
-            <button v-else-if="applicationAccessMode(app.route) === 'apply'" class="card-access" type="button" @click="requestUse(app)">申请使用</button>
-            <button v-else class="card-access" type="button" disabled>暂不可用</button>
+            <button v-if="actionFor(app).kind === 'launch'" class="card-access" type="button" @click="launch(app)">{{ actionFor(app).label }}</button>
+            <button v-else-if="actionFor(app).kind === 'request'" class="card-access" type="button" @click="requestUse(app)">{{ actionFor(app).label }}</button>
+            <button v-else class="card-access" type="button" disabled :title="actionFor(app).reason" :aria-describedby="`app-action-reason-${app.id}`">{{ actionFor(app).label }}</button>
+            <small v-if="actionFor(app).kind === 'unavailable'" :id="`app-action-reason-${app.id}`" class="card-action-reason">{{ actionFor(app).reason }}</small>
           </div>
         </footer>
       </article>
@@ -416,6 +479,8 @@ onBeforeUnmount(() => {
 #main-content .catalog-metrics dd{margin:0;color:#34516d;font-variant-numeric:tabular-nums}
 #main-content .application-card>footer{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;margin:auto -14px -14px;padding:10px 14px;background:transparent;border-top:1px solid #edf1f5;border-radius:0 0 11px 11px}
 #main-content .catalog-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px}
+#main-content .catalog-actions{min-width:0;flex-wrap:wrap}
+#main-content .card-action-reason{width:100%;max-width:240px;color:var(--xlt-readable-muted,#5b6e82);font-size:12px;line-height:1.45;text-align:right;overflow-wrap:anywhere}
 #main-content .application-card>footer :is(a,button){display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:6px 14px;border-radius:7px;white-space:nowrap;cursor:pointer}
 #main-content .application-card .card-access{color:#fff;background:#0060a6;border:1px solid #0060a6}
 #main-content .application-card .card-access:hover:not(:disabled),#main-content .apps-filter button[type=submit]:hover{background:#00528e;border-color:#00528e}

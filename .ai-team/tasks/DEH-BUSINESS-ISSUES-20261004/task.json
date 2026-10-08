@@ -1,0 +1,75 @@
+{
+  "task_id": "DEH-BUSINESS-ISSUES-20261004",
+  "title": "数智展厅业务问题清单整改",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "依据飞书《测试问题登记》逐项核验并整改数智展厅应用上架、应用浏览和详情展示问题，同时保持 digital-exhibition-SOURCE-20260916-165348 的标准 UI 样式。",
+  "target_user": "提交应用上架申请、查看审批进度及浏览和使用应用的数智展厅业务用户。",
+  "in_scope": [
+    "建立飞书问题清单与当前代码、测试和整改状态的一一对应关系",
+    "接入人选择后从真实用户目录自动带出联系电话和联系邮箱，并保留格式校验",
+    "消除应用编码是否必填、是否由用户填写及提交校验之间的冲突",
+    "为审批拒绝的申请提供基于原申请数据的编辑和重新提交入口",
+    "验证并保留 IndexedDB、服务端内存缓存、请求去重、静默刷新和局部加载状态",
+    "确保首页和应用详情只展示真实数据，不回退到业务 mock 数据",
+    "修复详情附件和复杂字段的结构化展示及页面溢出问题",
+    "根据真实授权和访问方式展示立即使用、申请使用或暂不可用动作",
+    "解释并约束全部组织可见与部分部门或用户的权限范围选择",
+    "仅允许选择已经配置真实审批通道的应用类型，未配置类型在提交前明确提示",
+    "以 digital-exhibition-SOURCE-20260916-165348 为唯一视觉标准执行回归对比"
+  ],
+  "out_of_scope": [
+    "修改飞书多维表字段结构、删除业务数据或执行数据回填",
+    "凭空新增未提供接口合同的审批通道或伪造审批成功",
+    "恢复参考源码包中的模拟业务数据和静态用户信息",
+    "重新设计已完成对齐的全局 UI 或采用其他视觉基线",
+    "执行合并、部署、发布或生产环境配置变更"
+  ],
+  "success_metric": "飞书清单中的 13 个截图问题全部完成可追溯分类；所有仍有效且在范围内的问题通过代码和自动化验证关闭；UI 对照、集成测试和生产构建无回退，阻断缺陷为 0。",
+  "deadline": "未指定；按业务问题清单优先推进",
+  "risk_level": "high",
+  "state": "complete",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "User",
+      "approved_at": "2026-10-04T12:32:04.4503329Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "User",
+      "approved_at": "2026-10-05T01:31:47.4749596Z"
+    },
+    "release": {
+      "approved": true,
+      "approved_by": "User",
+      "approved_at": "2026-10-06T09:09:39.3684591Z"
+    }
+  },
+  "checks": {
+    "web_passed": true,
+    "mobile_passed": false,
+    "web_evidence": ".ai-team/tasks/DEH-BUSINESS-ISSUES-20261004/handoffs/web.md",
+    "web_checked_at": "2026-10-06T03:10:29.0872663Z",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": true,
+    "blocking_defects": 0,
+    "evidence": ".ai-team/tasks/DEH-BUSINESS-ISSUES-20261004/qa-report.md",
+    "recorded_at": "2026-10-06T03:36:24.5439323Z"
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

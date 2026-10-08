@@ -129,4 +129,34 @@ assert.equal(syncingBatch[0].status, 'rejected');
 assert.equal(syncingBatch[0].reason.state, 'initial-syncing');
 assert.equal(syncingBatch[1].status, 'fulfilled');
 
+const syncUrls = [];
+const pollingClient = createSafeProxyClient({
+  baseUrl: '/api/v1',
+  origin: 'http://127.0.0.1:4173',
+  timeoutMs: 2_000,
+  operationContracts: createSyntheticOperationContracts(['APP-002']),
+  fetchImpl: async url => {
+    syncUrls.push(url);
+    if (url === '/api/v1/operations/APP-002') return {
+      ok: false,
+      status: 202,
+      async json() { return { code: 'FEISHU_INITIAL_SYNCING', message: '正式飞书数据仍在同步', traceId: 'trace-sync', retryAfterSeconds: 1, syncId: 'read-job-0001', pollAfterMs: 100 }; }
+    };
+    assert.equal(url, '/api/v1/operations/sync-jobs/read-job-0001');
+    return {
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          code: 'OK', syncId: 'read-job-0001', operationId: 'APP-002', state: 'completed',
+          result: { code: 'OK', data: { items: [] }, traceId: 'trace-complete' }
+        };
+      }
+    };
+  }
+});
+const polled = await pollingClient.execute('APP-002', {});
+assert.equal(polled.code, 'OK');
+assert.deepEqual(syncUrls, ['/api/v1/operations/APP-002', '/api/v1/operations/sync-jobs/read-job-0001'], '超过预算后只能查询任务状态，不得重发原 operation');
+
 console.log('Page read batch dispatch and single-request data-source flow passed');

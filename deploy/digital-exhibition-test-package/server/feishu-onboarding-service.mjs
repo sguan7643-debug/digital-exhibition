@@ -10,6 +10,7 @@ const STATUS_NODE_LABELS = Object.freeze({ PENDING: '飞书审批中', APPROVED:
 const APPLICATION_TYPE_LABELS = Object.freeze({ T005: '海能Work应用' });
 const BUSINESS_DOMAIN_LABELS = Object.freeze({ BD001: '生产运营', BD002: '综合管理', BD003: '供应链管理', BD004: '经营分析', BD005: '数字化办公' });
 const MOBILE_PHONE_PATTERN = /^(?:\+?86[ -]?)?1[3-9][0-9]{9}$/;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function fail(code, message, status = 400) {
   throw new FeishuProxyError(code, message, status);
@@ -58,7 +59,8 @@ function cleanText(value, maximum = 4000) {
 
 function normalizedApplication(input = {}) {
   const result = {};
-  for (const key of ['name', 'applicationCode', 'type', 'applicationTypeName', 'domain', 'businessDomainName', 'summary', 'description', 'scenario', 'collaboration', 'webAddress', 'mobileAddress', 'applicant', 'department', 'phone', 'email', 'contact', 'contactName', 'contactDepartment', 'contactPhone', 'contactEmail', 'users', 'authorizedUserName', 'accessDepartment', 'roles', 'scope', 'remarks']) result[key] = cleanText(input[key]);
+  for (const key of ['name', 'applicationCode', 'type', 'applicationTypeName', 'domain', 'businessDomainName', 'summary', 'description', 'scenario', 'collaboration', 'webAddress', 'mobileAddress', 'applicant', 'department', 'phone', 'email', 'contact', 'contactName', 'contactDepartment', 'contactPhone', 'contactEmail', 'users', 'authorizedUserName', 'accessDepartment', 'roles', 'scope', 'remarks', 'sourceApplicationId']) result[key] = cleanText(input[key]);
+  result.copySourceFiles = input.copySourceFiles === true;
   result.detailFields = Object.fromEntries(Object.entries(input.detailFields && typeof input.detailFields === 'object' ? input.detailFields : {}).map(([key, value]) => [cleanText(key, 128), cleanText(value)]));
   return result;
 }
@@ -80,7 +82,7 @@ function publicFile(file) {
   });
 }
 
-export function createFeishuOnboardingService({ approvalService, fileAccessService, onboardingFileService = null, uniqueIdentifierProvider = null, referenceResolver = null, orchestrator, registryFile = '', now = Date.now } = {}) {
+export function createFeishuOnboardingService({ approvalService, fileAccessService, onboardingFileService = null, uniqueIdentifierProvider = null, referenceResolver = null, readService = null, orchestrator, registryFile = '', now = Date.now } = {}) {
   if (!approvalService?.createInstance || !approvalService?.getInstance) throw new Error('上线申请服务缺少审批服务');
   if (!fileAccessService?.createGrant) throw new Error('上线申请服务缺少文件访问服务');
   const stored = readRegistry(registryFile);
@@ -169,9 +171,24 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
       lastSyncedAt: record.lastSyncedAt || '',
       publicationStatus: record.publicationStatus || '',
       publicationErrorCode: record.publicationStatus === 'FAILED' ? (record.publicationErrorCode || 'APPROVAL_PROJECTION_FAILED') : '',
+      sourceApplicationId: record.sourceApplicationId || application.sourceApplicationId || '',
       icon: publicFile(linked.find(file => file.purpose === 'APPLICATION_ICON')),
       attachments: linked.filter(file => file.purpose === 'APPLICATION_ATTACHMENT').map(publicFile),
       detailFields: application.detailFields || {}
+    });
+  }
+
+  function mergeAuthoritativeWithLocal(authoritative, local) {
+    if (!local) return authoritative;
+    const localValue = toPublic(local);
+    return Object.freeze({
+      ...localValue,
+      ...authoritative,
+      icon: localValue.icon,
+      attachments: localValue.attachments,
+      detailFields: Object.keys(authoritative.detailFields || {}).length ? authoritative.detailFields : localValue.detailFields,
+      publicationStatus: localValue.publicationStatus,
+      publicationErrorCode: localValue.publicationErrorCode
     });
   }
 
@@ -220,13 +237,55 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
 
   function validateSubmission(application, selected) {
     if (application.type !== 'T005') fail('ONBOARDING_TYPE_INVALID', '该接口只接受海能Work上线申请');
-    const missing = ['name', 'applicationCode', 'domain', 'applicant', 'department', 'users', 'accessDepartment'].filter(key => !application[key]);
+    const missing = ['name', 'applicationCode', 'domain', 'applicant', 'department'].filter(key => !application[key]);
+    if (application.scope !== 'all' && !application.users && !application.accessDepartment) missing.push('users/accessDepartment');
     if (missing.length) fail('ONBOARDING_FIELDS_REQUIRED', `上线申请缺少必填字段：${missing.join('、')}`, 422);
     for (const [key, label] of [['phone', '申请人联系电话'], ['contactPhone', '接入人联系电话']]) {
       if (application[key] && !MOBILE_PHONE_PATTERN.test(application[key])) fail('ONBOARDING_PHONE_INVALID', `${label}格式不正确`, 422);
     }
+    for (const [key, label] of [['email', '申请人联系邮箱'], ['contactEmail', '接入人联系邮箱']]) {
+      if (application[key] && !EMAIL_PATTERN.test(application[key])) fail('ONBOARDING_EMAIL_INVALID', `${label}格式不正确`, 422);
+    }
     if (selected.filter(file => file.purpose === 'APPLICATION_ICON').length !== 1) fail('ONBOARDING_ICON_REQUIRED', '海能Work上线申请必须上传 1 个应用图标', 422);
     if (selected.filter(file => file.purpose === 'APPLICATION_ATTACHMENT').length > 3) fail('ONBOARDING_ATTACHMENT_COUNT_EXCEEDED', '申请附件最多 3 个', 422);
+  }
+
+  async function rejectedSourceFor(application, session) {
+    const sourceApplicationId = cleanText(application.sourceApplicationId, 256);
+    if (!sourceApplicationId) return null;
+    const ownerSubject = subjectOf(session);
+    const local = applications.get(sourceApplicationId);
+    if (local && (local.ownerSubject !== ownerSubject || local.type !== 'APP_ONBOARDING')) {
+      fail('ONBOARDING_APPLICATION_NOT_AVAILABLE', '无法查看该申请', 404);
+    }
+    let source = local ? toPublic(local) : null;
+    if (readService?.getCurrentOnboardingApplication) {
+      try {
+        const authoritative = await readService.getCurrentOnboardingApplication(sourceApplicationId, { identity: session.identity });
+        source = mergeAuthoritativeWithLocal(authoritative, local);
+      } catch (error) {
+        if (!source) throw error;
+      }
+    }
+    if (!source) fail('ONBOARDING_APPLICATION_NOT_AVAILABLE', '无法查看该申请', 404);
+    if (String(source.status || '').toUpperCase() !== 'REJECTED') {
+      fail('ONBOARDING_SOURCE_NOT_REJECTED', '只有被拒绝的申请可以编辑并重新提交', 409);
+    }
+    return Object.freeze({ applicationId: sourceApplicationId, local, value: source });
+  }
+
+  function copiedFileCandidates(sourceRecord, attemptId, ownerSubject, selected) {
+    if (!sourceRecord) return [];
+    const iconPresent = selected.some(file => file.purpose === 'APPLICATION_ICON');
+    let attachmentSlots = Math.max(0, 3 - selected.filter(file => file.purpose === 'APPLICATION_ATTACHMENT').length);
+    const candidates = [];
+    for (const file of filesFor(sourceRecord)) {
+      if (file.purpose === 'APPLICATION_ICON' && iconPresent) continue;
+      if (file.purpose === 'APPLICATION_ATTACHMENT' && attachmentSlots-- <= 0) continue;
+      const uploadId = stableId('UPLOAD_COPY', `${ownerSubject}\0${attemptId}\0${file.uploadId}`);
+      candidates.push({ ...file, uploadId, attemptId, ownerSubject, applicationId: '', state: 'READY', uploadedAt: new Date(Number(now())).toISOString() });
+    }
+    return candidates;
   }
 
   async function submit(input = {}, session) {
@@ -237,10 +296,20 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
     const existing = [...applications.values()].find(record => record.ownerSubject === ownerSubject && record.attemptId === attemptId);
     if (existing?.instanceId) return toPublic(existing);
     const application = existing?.application || normalizedApplication(sessionApplication);
+    const source = existing ? null : await rejectedSourceFor(application, session);
     const uploadIds = existing?.uploadIds || [...new Set((input.uploadIds || []).map(String))];
-    const selected = uploadIds.map(uploadId => uploads.get(uploadId)).filter(file => file && file.ownerSubject === ownerSubject && file.attemptId === attemptId && file.state === 'READY' && !file.applicationId);
-    if (!existing && selected.length !== uploadIds.length) fail('ONBOARDING_UPLOAD_NOT_AVAILABLE', '存在不属于当前 attempt 的文件', 404);
+    const selectedUploads = uploadIds.map(uploadId => uploads.get(uploadId)).filter(file => file && file.ownerSubject === ownerSubject && file.attemptId === attemptId && file.state === 'READY' && !file.applicationId);
+    if (!existing && selectedUploads.length !== uploadIds.length) fail('ONBOARDING_UPLOAD_NOT_AVAILABLE', '存在不属于当前 attempt 的文件', 404);
+    const copiedFiles = !existing && application.copySourceFiles ? copiedFileCandidates(source?.local, attemptId, ownerSubject, selectedUploads) : [];
+    if (!existing && application.copySourceFiles && source && !source.local && !selectedUploads.some(file => file.purpose === 'APPLICATION_ICON')) {
+      fail('ONBOARDING_SOURCE_FILES_UNAVAILABLE', '原申请文件无法安全复用，请重新上传应用图标', 409);
+    }
+    const selected = [...selectedUploads, ...copiedFiles];
     validateSubmission(application, existing ? filesFor(existing) : selected);
+    if (!existing) {
+      for (const file of copiedFiles) uploads.set(file.uploadId, file);
+      uploadIds.push(...copiedFiles.map(file => file.uploadId));
+    }
     const submitKey = `${ownerSubject}\0${attemptId}`;
     if (!existing?.uniqueIdentifier && !uniqueIdentifierProvider?.getUniqueIdentifier) {
       fail('ONBOARDING_UNIQUE_IDENTIFIER_UNAVAILABLE', '唯一标识服务暂不可用', 503);
@@ -264,6 +333,7 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
       businessKey: stableId('BUSINESS_ONBOARDING', `${ownerSubject}\0${attemptId}`),
       idempotencyKey: stableId('IDEM_ONBOARDING', `${ownerSubject}\0${attemptId}`),
       runId: prepared.runId,
+      sourceApplicationId: source?.applicationId || '',
       application,
       uploadIds,
       instanceId: '',
@@ -321,18 +391,33 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
 
   async function list(session) {
     const ownerSubject = subjectOf(session);
+    if (readService?.listCurrentOnboardingApplications) {
+      const items = (await readService.listCurrentOnboardingApplications({ identity: session.identity }))
+        .map(item => mergeAuthoritativeWithLocal(item, applications.get(item.applicationId)))
+        .sort((a, b) => String(b.submittedAt).localeCompare(String(a.submittedAt)));
+      return Object.freeze({ items, total: items.length });
+    }
     const items = [...applications.values()].filter(record => record.ownerSubject === ownerSubject && record.type === 'APP_ONBOARDING').sort((a, b) => String(b.submittedAt).localeCompare(String(a.submittedAt))).map(toPublic);
     return Object.freeze({ items, total: items.length });
   }
 
   async function get(applicationId, session) {
+    subjectOf(session);
+    if (readService?.getCurrentOnboardingApplication) {
+      const authoritative = await readService.getCurrentOnboardingApplication(applicationId, { identity: session.identity });
+      return mergeAuthoritativeWithLocal(authoritative, applications.get(String(applicationId || '')));
+    }
     const record = ownedApplication(applicationId, session);
     await enrichReferenceNames(record, session);
     return toPublic(record);
   }
 
   async function sync(applicationId, session) {
-    const record = ownedApplication(applicationId, session);
+    const record = applications.get(String(applicationId || ''));
+    if (!record || record.ownerSubject !== subjectOf(session) || record.type !== 'APP_ONBOARDING') {
+      if (readService?.getCurrentOnboardingApplication) return get(applicationId, session);
+      fail('ONBOARDING_APPLICATION_NOT_AVAILABLE', '无法查看该申请', 404);
+    }
     if (!record.instanceId) return toPublic(record);
     if (!syncPromises.has(record.applicationId)) syncPromises.set(record.applicationId, (async () => {
       const result = await approvalService.getInstance(record.instanceId, session, { resourceId: record.resourceId });
@@ -345,6 +430,9 @@ export function createFeishuOnboardingService({ approvalService, fileAccessServi
       record.publicationErrorCode = record.publicationStatus === 'FAILED' ? cleanText(result.projectionError || 'APPROVAL_PROJECTION_FAILED', 240) : '';
       await enrichReferenceNames(record, session);
       persist();
+      if (readService?.getCurrentOnboardingApplication) {
+        try { return await get(applicationId, session); } catch { /* 表同步延迟时保留审批接口刚返回的状态。 */ }
+      }
       return toPublic(record);
     })().finally(() => syncPromises.delete(record.applicationId)));
     return syncPromises.get(record.applicationId);

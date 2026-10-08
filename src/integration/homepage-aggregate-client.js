@@ -92,12 +92,12 @@ export function createHomepageAggregateClient(options = {}) {
     }
   }
 
-  async function load({ forceRefresh = false, signal } = {}) {
+  async function load({ forceRefresh = false, signal, silent = false } = {}) {
     const result = await request(`${baseUrl}/homepage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(forceRefresh ? { forceRefresh: true } : {})
-    }, { signal, tracked: true });
+    }, { signal, tracked: !silent });
     return { status: result.status, body: validateAggregate(result.body, result.status) };
   }
 

@@ -16,13 +16,11 @@ assert.deepEqual([...new Set(topbarHeights)], [63],
   '共享顶栏不得在样式表末尾从 63px 覆盖为另一高度');
 assert.match(shell, /\.topbar\{height:63px;[^}]*background:#0060a6;/,
   '共享顶栏必须采用本次新版 63px 品牌蓝几何');
-assert.match(shell, /@media\(min-width:1421px\)\{\.primary-nav a\{min-width:0;flex:1 1 0\}\}/,
-  '宽屏十个主导航目的地必须均分可用宽度，不得在右侧留下大块空白');
+assert.doesNotMatch(shell, /@media\(min-width:1421px\)\{\.primary-nav a\{min-width:0;flex:1 1 0\}\}/,
+  '宽屏导航必须保持参考包几何，不得强制均分可用宽度');
 assert.match(shell, /\.exhibition-shell\{[^}]*grid-template-columns:minmax\(0,1fr\)/,
   '窄宽详情页的统一壳层不得被顶部导航最小内容宽度撑出视口');
-assert.match(shell, /@media\(min-width:761px\) and \(max-width:940px\)\{\.page-frame,\.standard-shell \.page-frame\{grid-template-columns:220px minmax\(0,1fr\)/,
-  '桌面与窄桌面视口必须保持用户批准的 220px 固定侧栏');
-assert.doesNotMatch(shell, /grid-template-columns:150px minmax\(0,1fr\)/,
-  '统一壳层不得在窄桌面重新引入 150px 侧栏');
+assert.match(shell, /@media\(min-width:761px\) and \(max-width:940px\)\{\.page-frame,\.standard-shell \.page-frame\{grid-template-columns:150px minmax\(0,1fr\)/,
+  '761–940px 视口必须保持参考包批准的 150px 固定侧栏');
 
 console.log('代表页公共壳层：全局 sr-only、63px 品牌蓝顶栏、宽屏导航均分与窄宽防溢出合同通过');

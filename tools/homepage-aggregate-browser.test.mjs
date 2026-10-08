@@ -37,10 +37,10 @@ function freshBody() {
   };
 }
 
-async function authorize(page) {
+async function authorize(page, userId = 'browser-user') {
   await page.route('**/api/v1/auth/feishu/session', route => route.fulfill({
     status: 200, headers: jsonHeaders,
-    body: JSON.stringify({ code: 'OK', authenticated: true, identity: { userId: 'browser-user' } })
+    body: JSON.stringify({ code: 'OK', authenticated: true, identity: { userId } })
   }));
 }
 
@@ -61,22 +61,43 @@ try {
     statusCalls += 1;
     return route.fulfill({
       status: 200, headers: jsonHeaders,
-      body: JSON.stringify({ code: 'OK', syncId: 'sync-browser-auto', state: 'completed', traceId: 'trace-browser-auto' })
+      body: JSON.stringify({ code: 'OK', syncId: 'sync-browser-auto', state: 'completed', traceId: 'trace-browser-auto', result: freshBody() })
     });
   });
   const response = await recoveryPage.goto(`${origin}/workbench`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
   assert.equal(response?.status(), 200);
   await recoveryPage.waitForFunction(() => !document.querySelector('.integration-recovery'));
   await recoveryPage.waitForFunction(() => window.performance.getEntriesByType('resource').length >= 0 && document.readyState !== 'loading');
-  await recoveryPage.waitForTimeout(1_300);
-  assert.equal(aggregateCalls, 2, '完成后只允许一次聚合重取');
+  await recoveryPage.waitForTimeout(2_300);
+  assert.equal(aggregateCalls, 1, '同步完成后必须直接消费任务结果，不得重发首页聚合请求');
   assert.equal(statusCalls, 1, '恢复路径只需一次完成状态查询');
   await recoveryPage.close();
+
+  const transientPage = await browser.newPage({ viewport: { width: 1366, height: 900 }, reducedMotion: 'reduce' });
+  await authorize(transientPage, 'browser-user-transient');
+  const pageErrors = [];
+  transientPage.on('pageerror', error => pageErrors.push(error.message));
+  let transientCalls = 0;
+  await transientPage.route('**/api/v1/homepage', route => {
+    transientCalls += 1;
+    return route.fulfill({
+      status: transientCalls === 1 ? 503 : 200,
+      headers: jsonHeaders,
+      body: JSON.stringify(transientCalls === 1
+        ? { code: 'FEISHU_UPSTREAM_TIMEOUT', message: '飞书暂时不可用', traceId: 'trace-transient' }
+        : freshBody())
+    });
+  });
+  await transientPage.goto(`${origin}/workbench`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
+  await transientPage.waitForFunction(() => document.querySelector('.data-update-time'), null, { timeout: 8_000 });
+  assert.equal(transientCalls, 2, '首页临时503后必须自动重试，无需用户刷新');
+  assert.deepEqual(pageErrors, [], '临时503不得产生未捕获页面异常');
+  await transientPage.close();
 
   const sizes = [320, 760, 1366, 1920];
   for (const width of sizes) {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
-    await authorize(page);
+    await authorize(page, `browser-user-${width}`);
     let polls = 0;
     await page.route('**/api/v1/homepage', route => route.fulfill({
       status: 202, headers: jsonHeaders,
@@ -91,7 +112,7 @@ try {
     });
     await page.goto(`${origin}/workbench`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
     assert.equal(await page.locator('.integration-recovery').count(), 0, `后台同步气泡在 ${width}px 下均不得展示`);
-    await page.waitForTimeout(1_200);
+    await page.waitForTimeout(2_300);
     assert.equal(await page.locator('.integration-recovery').count(), 0, '后台轮询期间不得重新弹出同步气泡');
     assert.ok(polls >= 1, '关闭气泡不得停止后台轻量状态轮询');
     await page.close();

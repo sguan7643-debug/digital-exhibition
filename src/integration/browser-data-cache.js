@@ -62,6 +62,7 @@ export function createBrowserDataCache(options = {}) {
   const notify = event => listeners.forEach(listener => { try { listener(event); } catch { /* cache listeners are isolated */ } });
 
   if (channel) channel.onmessage = async event => {
+    if (event?.data?.type === 'cache-invalidated' && event.data.namespace === namespace) { memory.clear(); invalidatedAt = event.data.at; notify({ origin: 'broadcast', invalidated: true }); return; }
     if (event?.data?.type !== 'cache-updated' || event.data.namespace !== namespace) return;
     const record = await storage.get(event.data.key);
     if (!record) return;
@@ -70,10 +71,13 @@ export function createBrowserDataCache(options = {}) {
   };
 
   async function read(cacheKey) {
+    const watermark = await storage.get(`${namespace}|invalidated`);
+    invalidatedAt = Math.max(invalidatedAt, Number(watermark?.at || 0));
+    if (memory.has(cacheKey) && memory.get(cacheKey).updatedAt <= invalidatedAt) memory.delete(cacheKey);
     if (memory.has(cacheKey)) return memory.get(cacheKey);
     const record = await storage.get(cacheKey);
-    if (record) memory.set(cacheKey, record);
-    return record || null;
+    if (record && record.updatedAt > invalidatedAt) memory.set(cacheKey, record);
+    return record && record.updatedAt > invalidatedAt ? record : null;
   }
 
   async function write(cacheKey, value, meta = {}) {
@@ -88,11 +92,17 @@ export function createBrowserDataCache(options = {}) {
     if (!locks?.request) return task();
     return locks.request(`xlt-read-${shortHash(cacheKey)}`, async () => task());
   }
+  let invalidatedAt = 0;
+  async function invalidate() {
+    invalidatedAt = Date.now();
+    await storage.put({ key: `${namespace}|invalidated`, at: invalidatedAt });
+    memory.clear();
+    channel?.postMessage({ type: 'cache-invalidated', namespace, at: invalidatedAt });
+  }
 
   return Object.freeze({
-    key, read, write, runExclusive,
+    key, read, write, runExclusive, invalidate,
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     close() { listeners.clear(); channel?.close?.(); }
   });
 }
-

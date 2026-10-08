@@ -10,5 +10,6 @@ const record = computed(() => props.integrationData?.['OAP-003'] || null);
     description="仅展示飞书多维表格返回的应用数据；写入接口未启用时不提供保存或发布。"
     :record="record"
     :state="integrationState"
+    variant="app-editor"
   />
 </template>

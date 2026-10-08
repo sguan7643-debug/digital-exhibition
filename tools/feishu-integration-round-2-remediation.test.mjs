@@ -71,6 +71,7 @@ const remoteRuntime = resolveIntegrationRuntime({
   timeoutMs: 1000, origin
 });
 assert.equal(remoteRuntime.testWritesEnabled, false);
+assert.equal(remoteRuntime.businessWritesEnabled, true);
 const testWriteRuntime = resolveIntegrationRuntime({
   requestedMode: 'remote', remoteEnabled: true, contractEvidenceComplete: true, testWritesEnabled: true,
   timeoutMs: 1000, origin
@@ -86,10 +87,10 @@ const favoriteSource = createPageDataSource({
 const favoriteAction = favoriteSource.contract.actions.find(action => action.actionId === 'FAV-003');
 assert.equal(favoriteAction.remoteEnabled, false);
 assert.equal(favoriteAction.versionConditionRequired, false);
-assert.equal(favoriteAction.isolatedTestRecordRequired, true);
+assert.equal(favoriteAction.isolatedTestRecordRequired, false);
 assert.equal(favoriteAction.auditContractRequired, true);
 assert.equal(favoriteAction.requestHashRequired, true);
-await assert.rejects(() => favoriteSource.executeAction('FAV-003', {}, {
+const formalWrite = await favoriteSource.executeAction('FAV-003', {}, {
   actionEnabled: true,
   permissions: ['operation:FAV-003:execute'],
   confirmed: true,
@@ -97,8 +98,9 @@ await assert.rejects(() => favoriteSource.executeAction('FAV-003', {}, {
   isolatedTestRecordId: 'isolated-record-001',
   auditContractId: 'audit-contract-001',
   requestHash: 'sha256:request-001'
-}), /操作独立门禁未启用/);
-assert.equal(writeTransportCalls, 0, 'caller context must not bypass the immutable action gate');
+});
+assert.equal(formalWrite.code, 'OK');
+assert.equal(writeTransportCalls, 1, '正式运行时满足合同后必须执行写入');
 
 const enabledAction = Object.freeze({
   ...favoriteAction,
@@ -120,7 +122,6 @@ for (const [field, expected] of [
   ['permissions', /权限/],
   ['confirmed', /确认/],
   ['idempotencyKey', /幂等/],
-  ['isolatedTestRecordId', /隔离测试记录/],
   ['auditContractId', /审计合同/],
   ['requestHash', /请求哈希/]
 ]) {
@@ -128,6 +129,9 @@ for (const [field, expected] of [
   delete incomplete[field];
   assert.throws(() => assertWriteActionContext(enabledAction, enabledWriteOperation, incomplete), expected);
 }
+const withoutTestRecord = { ...completeWriteContext };
+delete withoutTestRecord.isolatedTestRecordId;
+assert.equal(assertWriteActionContext(enabledAction, enabledWriteOperation, withoutTestRecord), true, '正式业务写入不得要求 TEST_ 隔离记录');
 assert.equal(assertWriteActionContext(enabledAction, enabledWriteOperation, completeWriteContext), true);
 const deleteAction = favoriteSource.contract.actions.find(action => action.actionId === 'FAV-004');
 assert.equal(deleteAction.versionConditionRequired, true);

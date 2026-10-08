@@ -89,4 +89,25 @@ assert.deepEqual(recoveredCallback.headers['Set-Cookie'], ['clear-state-cookie']
 assert.equal(recoveredCallback.body, null);
 assert.doesNotMatch(JSON.stringify(recoveredCallback), /sensitive state detail/);
 
+const callbackTransportFailure = createFeishuAuthDispatcher({
+  defaultReturnTo: '/test2/',
+  authService: {
+    beginAuthorization() { throw new Error('not used'); },
+    async completeAuthorization() {
+      throw new TypeError('fetch failed', {
+        cause: Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:10808'), { code: 'ECONNREFUSED' })
+      });
+    },
+    resolveIdentity() { return null; },
+    clearStateCookie() { return 'clear-state-cookie'; }
+  }
+});
+const recoveredTransportCallback = await callbackTransportFailure({
+  method: 'GET',
+  url: '/api/v1/auth/feishu/callback?code=network-code&state=network-state',
+  headers: { cookie: '' }
+});
+assert.equal(recoveredTransportCallback.status, 302);
+assert.equal(recoveredTransportCallback.headers.Location, '/test2/?authError=FEISHU_AUTH_UPSTREAM_UNAVAILABLE');
+
 console.log('Feishu OAuth start and callback routes use redirects, HttpOnly cookies, internal recovery pages, and sanitized failures');

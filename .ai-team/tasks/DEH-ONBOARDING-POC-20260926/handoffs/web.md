@@ -304,3 +304,110 @@
 - Edge/Chromium 320×800：长哈希完整断行、可选择复制且无页面横向溢出；320×800 和 760×900：“飞书授权”触控目标均达到 44px。
 - 本轮不改变 DOM 顺序、链接语义、可见焦点或键盘导航；既有 onboarding 与 UI 源同步套件继续覆盖标题聚焦、表格/卡片语义、状态播报和焦点样式。
 - 未执行真实远端 POC，不能据此宣称 OAuth、真实审批、跨 8 天、外部重启或清理门禁已通过；这些环境证据仍由独立 QA 复验。本修复没有削弱或绕过任何 live POC 门禁。
+
+## QA repair attempt 3 — 上传被兼容重复字段阻断（2026-10-08）
+
+### 问题、修复与边界
+
+- 分支：`task/digital-exhibition-ui-0817-dev-r3-web`。
+- 真实 Base 只读诊断确认 23 组同名字段均为相同类型、相同主键属性并覆盖相同必需选项；本次上传的直接触发项是“文件上传会话.运行标识”存在两份兼容字段。旧实现把任何重名都误判成“同名异型”，因此在媒体上传前返回 `POC_SCHEMA_CONFLICT`。
+- schema 检查现在按同名字段组逐一比较类型、主键和必需选项。全部兼容的历史重复字段作为 `compatibleDuplicates` 证据保留并允许运行；任一候选类型、主键或选项不兼容时仍以 `POC_SCHEMA_CONFLICT` 阻断，并在安全错误文案中指出表名和字段名。
+- schema execute 增加进程内 single-flight。图标与附件并发上传时共享同一次结构执行，后续请求在首个执行完成后重新走已准备上下文，避免两个请求对同一缺失字段各创建一次。
+- 本轮没有删除、重命名或修改真实 Base 字段，也没有创建测试媒体或业务记录。
+
+### 测试先行与真实只读证据
+
+- 新增 `tools/onboarding-schema-runtime-compat.test.mjs` 后首次运行退出码 `1`，兼容重复字段仍触发 `POC_SCHEMA_CONFLICT`，证明问题可稳定复现。
+- 修复后专项测试退出码 `0`：兼容重复字段通过、同名异型继续失败、两个并发 execute 只调用一次 `createField`。
+- 使用 `.env.local` 对真实 Base 执行只读 `inspect`：`planCount=0`、`conflictCount=0`、`compatibleDuplicateCount=23`。没有调用结构或记录写接口。
+
+### fresh command evidence
+
+| 命令 | 精确结果 |
+| --- | --- |
+| `node tools/onboarding-schema-runtime-compat.test.mjs`（实现前） | 退出码 `1`；`POC_SCHEMA_CONFLICT`。 |
+| `node tools/onboarding-schema-runtime-compat.test.mjs`（最终） | 退出码 `0`；兼容重复、异型拒绝和并发 single-flight 三类合同通过。 |
+| 真实 Base 只读 `orchestrator.inspect()` | 退出码 `0`；计划 `0`、冲突 `0`、兼容历史重复 `23`。 |
+| `npm run test:onboarding-poc` | 退出码 `0`；完整上线申请、上传、审批、本人隔离、状态、投影与通知回归通过。 |
+| `npm run test:integration` | 退出码 `0`；安全代理、认证、审批、写合同和请求 loading 回归通过。 |
+| `npm run check` | 退出码 `0`；源码静态、确定性、零外网、语义与原子资产检查通过。 |
+| `npm run build` | 退出码 `0`；Vite `6.4.1` 转换 `1938` 个模块并完成生产构建。 |
+| 本地服务探测 | `http://127.0.0.1:4173/test2/` 返回 HTTP `200`；服务已使用修复后代码重启。 |
+
+### 本次改动文件与已知风险
+
+- `server/feishu-onboarding-poc-orchestrator.mjs`
+- `tools/onboarding-schema-runtime-compat.test.mjs`
+- `package.json`
+- `.ai-team/tasks/DEH-ONBOARDING-POC-20260926/handoffs/web.md`
+- 本轮没有页面 DOM 或样式变化；既有 onboarding Web 合同继续覆盖响应式、键盘与状态播报。
+- 23 组兼容历史重复字段仍存在于真实 Base。运行时不再被它们误阻断，未来是否物理清理需单独执行带数据核验的结构治理任务。
+- 本轮未提交真实文件，因此真实媒体写入需要登录用户在页面点击“重试”完成最终环境验收。
+
+## QA repair attempt 4 — 飞书网络故障误报“授权失效”（2026-10-08）
+
+### 问题、修复与边界
+
+- 当前持久化 OAuth 会话核验为未过期（本地到期时间 `2026-10-08 18:21:45 +08:00`），但 Node 进程继承了不可用的本机代理 `127.0.0.1:10808`；飞书请求实际失败原因为 `ECONNRESET` / `ECONNREFUSED`，并非用户授权失效。
+- 飞书代理层现在只对环境变量自动选中的 loopback 代理实施受控直连降级：连接拒绝、网络/主机不可达时所有方法最多直连重试一次；连接重置或 socket 中断仅允许 GET/HEAD 重试。显式 dispatcher 或远程代理仍失败关闭，不被绕过。
+- OAuth callback 将原始网络故障标记为 `FEISHU_AUTH_UPSTREAM_UNAVAILABLE`，不再归入笼统内部授权错误。入口守卫对新代码及历史 `INTERNAL_AUTH_ERROR` 先重新探测现有 HttpOnly 会话：有效会话直接进入系统，临时不可达显示“重试登录检查”，只有明确 state/凭据类授权错误才展示“重新授权”。
+- 未改变会话 cookie、token 隔离、同源限制、授权 state 校验或飞书远程代理安全策略；未执行任何真实业务写入。
+
+### 测试先行与真实只读证据
+
+- 代理红测首先稳定复现 loopback `ECONNREFUSED` 只请求一次即抛错；实现后确认先代理、再直连恰两次，远程代理仍只尝试一次并失败关闭。
+- 入口红测首先证明临时 OAuth 网络错误被返回为 `authorization-recovery`；实现后会重新探测有效会话，探测网络仍失败时返回可重试 `session-unavailable`。
+- callback 红测首先得到 `authError=INTERNAL_AUTH_ERROR`；实现后得到 `authError=FEISHU_AUTH_UPSTREAM_UNAVAILABLE`。
+- 使用当前未过期 OAuth 会话调用真实飞书 `authen/v1/user_info` 只读接口，在无效 loopback 代理仍存在时获得 HTTP `200`、飞书业务码 `0` 且返回稳定用户身份；命令输出未包含 token 或用户隐私字段。
+
+### fresh command evidence
+
+| 命令 | 精确结果 |
+| --- | --- |
+| `node tools/feishu-proxy-dispatcher.test.mjs` | 退出码 `0`；loopback 自动直连降级及远程代理失败关闭通过。 |
+| `node tools/feishu-auth-middleware.test.mjs` | 退出码 `0`；OAuth callback 临时网络故障分类通过。 |
+| `node tools/feishu-entry-auth-guard.test.mjs` | 退出码 `0`；有效会话恢复、临时不可达重试和明确授权错误恢复通过。 |
+| `npm run test:integration` | 退出码 `0`；安全代理、认证、审批、36 写操作合同、页面动作及 loading 提示回归全部通过。 |
+| `npm run test:onboarding-poc` | 退出码 `0`；申请、上传、审批、状态、投影和通知回归全部通过。 |
+| `npm run check` | 退出码 `0`；源码静态、确定性、零外网、语义与原子资产检查通过。 |
+| `npm run build` | 退出码 `0`；Vite `6.4.1` 转换 `1938` 个模块，CSS `284.02 kB`（gzip `46.76 kB`），JS `963.41 kB`（gzip `225.99 kB`）。 |
+| 真实飞书只读 `authen/v1/user_info` | HTTP `200`、业务码 `0`、`identityReturned=true`；loopback 代理不可用时自动直连成功。 |
+| Edge stale-error 入口复验 | 携带有效 HttpOnly 会话访问 `/?authError=INTERNAL_AUTH_ERROR` 后 `appMounted=true`、`recoveryVisible=false`，不再误展示重新授权页。 |
+| 本地服务 | 已使用修复后代码重启，`http://127.0.0.1:4173/test2/` 正在运行。 |
+
+### 本次改动文件与已知风险
+
+- 运行时：`server/feishu-proxy-dispatcher.mjs`、`server/feishu-auth-middleware.mjs`、`src/integration/feishu-entry-auth-guard.js`。
+- 回归：`tools/feishu-proxy-dispatcher.test.mjs`、`tools/feishu-auth-middleware.test.mjs`、`tools/feishu-entry-auth-guard.test.mjs`。
+- 页面布局、DOM、键盘顺序和样式均未修改；请求 loading 气泡回归继续通过。
+- 已验证真实飞书身份只读接口和自动降级；未借此执行或声称真实申请、媒体或审批写入完成。
+
+## QA repair attempt 5 — 提交审核后直接进入申请详情（2026-10-08）
+
+### 问题与修复
+
+- 根因是申请提交成功及“不确定结果确认成功”两条路径均使用 `window.location.assign()`，触发整页重新加载；入口授权守卫因此重新请求登录会话，并在详情页出现前展示“正在确认登录状态”。
+- `OnboardingApplyPage` 现在只发出站内 `navigate` 事件；`App.vue` 使用现有 History API、路由会话快照和焦点恢复机制完成同页切换。提交成功后直接挂载申请详情页，不重新执行入口授权，也不产生额外 session 请求。
+- 浏览器直接打开地址时的登录校验保持不变；本轮没有绕过身份校验、权限、审批、幂等或审计合同。
+
+### 测试先行与验证证据
+
+- 红测：扩展 `tools/onboarding-apply-interaction.test.mjs` 后首次退出码 `1`，明确失败为“提交成功必须由应用壳执行同页路由切换”。
+- 绿测：静态合同确认申请页声明 `navigate`、应用壳接管跳转，且申请页不再调用 `window.location.assign()`。
+- 浏览器合同在 RPA 与 T005 提交前后统计 `/api/v1/auth/feishu/session` 请求数，确认提交后数量不增加，同时仍成功进入真实申请详情页。
+
+| 命令 | 精确结果 |
+| --- | --- |
+| `node tools/onboarding-apply-interaction.test.mjs` | 退出码 `0`；申请页站内跳转合同通过。 |
+| `$env:EXHIBITION_TEST_ORIGIN='http://127.0.0.1:4173/test2'; node tools/browser-onboarding-apply-flow.test.mjs` | 退出码 `0`；联系人回填、RPA/T005 提交、详情查询、拒绝后复制重提通过，提交后无新增 session 请求。 |
+| `npm run test:ui-source-sync` | 退出码 `0`；相关 UI、路由、审批状态与应用动作回归全部通过。 |
+| `node tools/session-history-remediation.test.mjs` | 退出码 `0`；路由历史、滚动与焦点快照通过。 |
+| `node tools/review-session-remediation-2.test.mjs` | 退出码 `0`；History entry、返回与视图状态合同通过。 |
+| `npm run build` | 退出码 `0`；Vite `6.4.1` 转换 `1938` 个模块；JS `964.45 kB`（gzip `226.14 kB`）。 |
+| `npm run test:test-deployment` | 退出码 `0`；`/test2`、根 API、重定向、路径穿越和构建资源检查通过。 |
+
+### 交付物与边界
+
+- 改动文件：`src/App.vue`、`src/pages/OnboardingApplyPage.vue`、`tools/onboarding-apply-interaction.test.mjs`、`tools/browser-onboarding-apply-flow.test.mjs`。
+- 新测试部署包：`deploy/digital-exhibition-test-package.zip`；SHA-256 `290FC38807408C04191B8BFF78086B965D9257EABBA8C2303200C4A1CEDA24AB`。
+- 本轮未修改页面布局、键盘顺序或视觉样式；详情页继续由既有标题焦点恢复逻辑接管。未部署、未推送、未合并。

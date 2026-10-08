@@ -1,14 +1,17 @@
 <script setup>
 import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
-import { confirmOnboardingAttempt, createOnboardingAttempt, normalizeApplicationType, removeOnboardingFile, submitOnboarding, uploadOnboardingFile } from "../integration/onboarding-approval.js";
+import { confirmOnboardingAttempt, createOnboardingAttempt, getOnboardingApplication, normalizeApplicationType, removeOnboardingFile, submitOnboarding, uploadOnboardingFile } from "../integration/onboarding-approval.js";
 import { normalizeAppBasePath, prependAppBasePath } from "../integration/app-base-path.js";
 import { runWithConcurrency } from "../integration/concurrency-pool.js";
+import { applicationTypePolicy, buildContactAutofill, buildRejectedApplicationCopy, normalizePermissionScope } from "../integration/onboarding-form-policy.js";
 
 const props = defineProps({
   integrationData: { type: Object, default: null },
   integrationState: { type: String, default: "loading" },
   integrationMode: { type: String, default: "remote" },
+  operationExecutor: { type: Function, default: null },
 });
+const emit = defineEmits(["navigate"]);
 
 const form = reactive({
   applicant: "",
@@ -143,10 +146,14 @@ const dictionaries = computed(() => props.integrationData?.["COM-005"]?.itemsByT
 const applicationTypes = computed(() => (dictionaries.value.APPLICATION_TYPE || []).map(item => ({
   label: item.label,
   value: normalizeApplicationType(item.value),
+  ...applicationTypePolicy(normalizeApplicationType(item.value)),
 })));
 const activeApplicationType = computed(
   () => applicationTypes.value.find((item) => item.value === form.type) || { label: "未选择", value: "" }
 );
+const activeTypePolicy = computed(() => applicationTypePolicy(form.type));
+const applicationCodeRequired = computed(() => activeTypePolicy.value.applicationCodeRequired);
+const scopedPermissionRequired = computed(() => form.scope === 'assigned');
 const activeDetailSchema = computed(
   () => applicationDetailSchemas[form.type] || { tableName: "应用详情", fields: [] }
 );
@@ -174,6 +181,12 @@ const announcement = ref("");
 const approvalResult = ref(null);
 const uncertainResult = ref(false);
 const validationErrors = ref([]);
+const sourceApplicationId = ref('');
+const copiedFrom = ref(null);
+const copiedFiles = ref({ icon: null, attachments: [] });
+const copyLoading = ref(false);
+const copyError = ref('');
+const copiedIconAvailable = computed(() => Boolean(copiedFiles.value.icon?.fileId));
 const appBasePath = normalizeAppBasePath(import.meta.env.VITE_EXHIBITION_APP_BASE || import.meta.env.BASE_URL);
 const statusHref = computed(() => {
   if (!approvalResult.value) return prependAppBasePath("/apps/onboarding/status", appBasePath);
@@ -216,7 +229,7 @@ const userOptions = computed(() => {
     .filter((item) => item?.enabled !== false)
     .map((item) => ({
       adAccount: String(item.userId || item.employeeNo || ""),
-      displayName: String(item.displayName || item.userId || item.employeeNo || ""),
+      displayName: String(item.displayName || ""),
       departmentId: String(item.departmentId || item.orgId || ""),
       departmentName: String(item.departmentName || item.orgName || ""),
       phone: String(item.mobile || ""),
@@ -226,9 +239,8 @@ const userOptions = computed(() => {
 });
 const applicantDisplay = computed(() => {
   const user = userOptions.value.find((item) => item.adAccount === form.applicant);
-  const userId = String(sessionApplicant.value?.userId || user?.adAccount || form.applicant || "").trim();
   const displayName = String(sessionApplicant.value?.displayName || user?.displayName || "").trim();
-  return displayName && userId ? `${displayName}（${userId}）` : displayName || userId;
+  return displayName || "—";
 });
 async function loadCurrentApplicant() {
   try {
@@ -300,6 +312,28 @@ watch(userOptions, () => {
     form.applicant = sessionApplicant.value.userId;
     syncApplicantProfile();
   }
+});
+watch(() => form.contact, async (contact, _previous, onCleanup) => {
+  const selected = userOptions.value.find((item) => item.adAccount === contact);
+  Object.assign(form, buildContactAutofill(selected));
+  if (!contact || !props.operationExecutor) return;
+  let cancelled = false;
+  onCleanup(() => { cancelled = true; });
+  try {
+    const response = await props.operationExecutor('COM-004', { userId: contact, includeContact: true, page: 1, pageSize: 10, enabled: true });
+    if (cancelled || form.contact !== contact) return;
+    const exact = (response?.data?.items || []).find(item => String(item.userId || item.employeeNo || '') === contact);
+    Object.assign(form, buildContactAutofill(exact));
+    announcement.value = exact ? '已带出所选接入人的联系电话和联系邮箱' : '所选接入人暂无可用联系方式，请手动填写';
+  } catch (error) {
+    if (!cancelled && form.contact === contact) announcement.value = `未能自动带出接入人联系方式：${error?.message || '请手动填写'}`;
+  }
+});
+watch(() => form.scope, (scope) => {
+  Object.assign(form, normalizePermissionScope({ ...form, scope }));
+  announcement.value = scope === 'all'
+    ? '已选择全部组织可见，具体部门和用户限制已清除'
+    : '已选择仅开放给部分部门或用户，请至少选择一个部门或用户';
 });
 async function uploadOne(file, purpose, target) {
   const item = reactive({ file, name: file.name, state: "uploading", error: "", result: null });
@@ -449,6 +483,11 @@ function clearValidationSummary() {
 }
 async function submitApplication(event) {
   if (submitting.value) return;
+  if (!activeTypePolicy.value.supported) {
+    submitError.value = activeTypePolicy.value.reason;
+    announcement.value = submitError.value;
+    return;
+  }
   if (await collectValidationErrors(event?.currentTarget)) return;
   if (!sessionApplicant.value?.userId || form.applicant !== sessionApplicant.value.userId) {
     submitError.value = sessionApplicantError.value || "申请人必须是当前飞书授权用户";
@@ -460,7 +499,7 @@ async function submitApplication(event) {
     announcement.value = submitError.value;
     return;
   }
-  if (form.type === "T005" && !uploadedIconReady.value) {
+  if (form.type === "T005" && !uploadedIconReady.value && !copiedIconAvailable.value) {
     submitError.value = "请上传 1 个有效的应用图标";
     announcement.value = submitError.value;
     return;
@@ -483,6 +522,8 @@ async function submitApplication(event) {
         businessDomainName: activeBusinessDomain.value.label,
         contactName: userOptions.value.find(item => item.adAccount === form.contact)?.displayName || '',
         authorizedUserName: userOptions.value.find(item => item.adAccount === form.users)?.displayName || '',
+        sourceApplicationId: sourceApplicationId.value,
+        copySourceFiles: Boolean(sourceApplicationId.value),
         attemptId: attemptId.value,
         uploadIds: readyUploads.value.map(item => item.result?.uploadId).filter(Boolean),
         detailFields: buildDetailFields(),
@@ -497,13 +538,34 @@ async function submitApplication(event) {
       ? "当前进入审批中状态"
       : approvalResult.value.message;
     announcement.value = `${form.type === "T005" ? "海能Work" : "RPA"} 应用上架申请已提交，${trackingMessage}`;
-    window.location.assign(statusHref.value);
+    emit("navigate", statusHref.value);
   } catch (error) {
     submitError.value = error instanceof Error ? error.message : "审批接口请求失败";
     uncertainResult.value = Boolean(error?.uncertain);
     announcement.value = submitError.value;
   } finally {
     submitting.value = false;
+  }
+}
+async function loadRejectedCopy() {
+  const copyFrom = new URLSearchParams(window.location.search).get('copyFrom');
+  if (!copyFrom) return;
+  copyLoading.value = true;
+  copyError.value = '';
+  try {
+    const detail = await getOnboardingApplication(copyFrom);
+    const copy = buildRejectedApplicationCopy(detail, sessionApplicant.value?.userId);
+    sourceApplicationId.value = copy.sourceApplicationId;
+    copiedFrom.value = copy;
+    copiedFiles.value = copy.files;
+    Object.assign(form, copy.form);
+    if (detailDrafts[form.type]) Object.assign(detailDrafts[form.type], copy.detailFields);
+    announcement.value = '已从被拒绝的申请复制，重新提交将创建新的申请记录';
+  } catch (error) {
+    copyError.value = error instanceof Error ? error.message : '无法复制被拒绝的申请';
+    announcement.value = copyError.value;
+  } finally {
+    copyLoading.value = false;
   }
 }
 async function confirmOriginalAttempt() {
@@ -513,14 +575,15 @@ async function confirmOriginalAttempt() {
   try {
     approvalResult.value = await confirmOnboardingAttempt(attemptId.value);
     uncertainResult.value = false;
-    window.location.assign(prependAppBasePath(`/apps/onboarding/status?applicationId=${encodeURIComponent(approvalResult.value.applicationId)}`, appBasePath));
+    emit("navigate", prependAppBasePath(`/apps/onboarding/status?applicationId=${encodeURIComponent(approvalResult.value.applicationId)}`, appBasePath));
   } catch (error) {
     submitError.value = error instanceof Error ? error.message : "原提交结果仍无法确认";
     uncertainResult.value = true;
   } finally { submitting.value = false; }
 }
-onMounted(() => {
-  loadCurrentApplicant();
+onMounted(async () => {
+  await loadCurrentApplicant();
+  await loadRejectedCopy();
   nextTick(() => document.getElementById("apply-title")?.focus());
 });
 </script>
@@ -564,6 +627,12 @@ onMounted(() => {
         <p>正在创建审批并写入多维表格，请勿重复点击。</p>
       </div>
     </section>
+    <section v-if="copyLoading" class="copy-request-banner" role="status">正在读取被拒绝的申请…</section>
+    <section v-else-if="copyError" class="copy-request-banner copy-request-error" role="alert">{{ copyError }}</section>
+    <section v-else-if="copiedFrom" class="copy-request-banner" role="status" aria-live="polite">
+      <strong>已从被拒绝的申请复制</strong>
+      <p>重新提交将创建新的申请记录，原记录不会被修改。<template v-if="copiedFrom.rejectionReason">退回原因：{{ copiedFrom.rejectionReason }}</template></p>
+    </section>
 
     <form class="apply-form" novalidate :aria-busy="submitting" @input="clearValidationSummary" @change="clearValidationSummary" @submit.prevent="submitApplication">
       <section v-if="validationErrors.length" class="validation-summary" role="alert" aria-labelledby="validation-summary-title">
@@ -604,23 +673,25 @@ onMounted(() => {
               required
           /></label>
           <label
-            >应用编码
+            >应用编码<b v-if="applicationCodeRequired">*</b>
             <input
               v-model="form.applicationCode"
               maxlength="100"
               placeholder="请输入应用编码，例如 RPA-SCM-VENDOR-001"
-              :required="form.type === 'T005'"
-          /></label>
+              :required="applicationCodeRequired"
+              aria-describedby="application-code-help"
+          /><small id="application-code-help">请按现行业务规则填写；系统不会使用唯一标识自动生成。</small></label>
           <label
             >应用类型<b>*</b
             ><select v-model="form.type" required>
               <option value="" disabled>请选择应用类型</option>
               <option
-                v-for="item in applicationTypes"
-                :key="item.value"
-                :value="item.value"
+              v-for="item in applicationTypes"
+              :key="item.value"
+              :value="item.value"
+              :disabled="!item.supported"
               >
-                {{ item.label }}
+                {{ item.label }}{{ item.supported ? '' : '（真实审批暂未开放）' }}
               </option>
             </select></label
           >
@@ -729,7 +800,7 @@ onMounted(() => {
           </select></label>
           <label>接入人<b>*</b><select v-model="form.contact" :disabled="directoryDisabled || !form.contactDepartment" required>
             <option value="" disabled>请先选择所属部门</option>
-            <option v-for="user in contactUserOptions" :key="user.adAccount" :value="user.adAccount">{{ user.displayName }}（{{ user.adAccount }}）</option>
+            <option v-for="user in contactUserOptions" :key="user.adAccount" :value="user.adAccount">{{ user.displayName }}</option>
           </select></label>
           <label
             >联系电话<b>*</b><input v-model="form.contactPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="15" pattern="(?:\x2B?86(?:\x20|\x2D)?)?1[3-9][0-9]{9}" data-validation-message="请输入正确的中国大陆手机号（11位，可带 +86）" required
@@ -745,14 +816,14 @@ onMounted(() => {
         <legend><span>6</span>应用权限开通</legend>
         <div class="field-grid four-cols">
           <label
-            >适用部门<b v-if="form.type === 'T005'">*</b><select v-model="form.accessDepartment" :disabled="directoryDisabled" :required="form.type === 'T005'" @change="resetApplicableUserForDepartment">
+            >适用部门<b v-if="scopedPermissionRequired">*</b><select v-model="form.accessDepartment" :disabled="directoryDisabled || !scopedPermissionRequired" :required="scopedPermissionRequired" @change="resetApplicableUserForDepartment">
               <option value="">请选择部门</option>
               <option v-for="department in departmentOptions" :key="department.id" :value="department.name">{{ department.name }}</option>
             </select></label
           >
-          <label>适用用户<b v-if="form.type === 'T005'">*</b><select v-model="form.users" :disabled="directoryDisabled || !form.accessDepartment" :required="form.type === 'T005'">
+          <label>适用用户<select v-model="form.users" :disabled="directoryDisabled || !scopedPermissionRequired || !form.accessDepartment">
             <option value="">请先选择适用部门</option>
-            <option v-for="user in applicableUserOptions" :key="user.adAccount" :value="user.adAccount">{{ user.displayName }}（{{ user.adAccount }}）</option>
+            <option v-for="user in applicableUserOptions" :key="user.adAccount" :value="user.adAccount">{{ user.displayName }}</option>
           </select></label>
           <label
             >适用角色<input v-model="form.roles" placeholder="请输入适用角色"
@@ -772,6 +843,8 @@ onMounted(() => {
                 value="all"
               />全部组织可见</label
             >
+            <small v-if="form.scope === 'all'" id="permission-scope-help">组织内已登录用户均可查看；选择后不再限制具体部门或用户。</small>
+            <small v-else id="permission-scope-help">仅所选部门或用户可见；请至少选择一个部门或用户。</small>
           </div>
         </div>
       </fieldset>
@@ -782,7 +855,7 @@ onMounted(() => {
           <label class="upload-box">
             <strong>应用图标<b>*</b></strong><span>＋ 选择图标</span>
             <small>PNG / JPEG / WebP，最多 1 个，不超过 5MB</small>
-            <input type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" :disabled="uploadBusy" :required="form.type === 'T005' && !uploadedIconReady" @change="chooseFiles('APPLICATION_ICON', $event)" />
+            <input type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" :disabled="uploadBusy" :required="form.type === 'T005' && !uploadedIconReady && !copiedIconAvailable" @change="chooseFiles('APPLICATION_ICON', $event)" />
           </label>
           <ul v-if="iconUploads.length" class="upload-list" aria-label="应用图标上传状态">
             <li v-for="item in iconUploads" :key="item.name" :class="item.state">
@@ -792,6 +865,7 @@ onMounted(() => {
               <button v-else-if="item.state === 'removing'" type="button" disabled>正在移除 {{ item.name }}</button>
             </li>
           </ul>
+          <div v-else-if="copiedFiles.icon" class="copied-file" role="status"><strong>{{ copiedFiles.icon.fileName }}</strong><small>沿用原申请中的有效图标；重新提交会创建新的申请记录。</small></div>
         </fieldset>
         <fieldset>
           <legend><span>8</span>申请附件（选填）</legend>
@@ -807,6 +881,9 @@ onMounted(() => {
               <button v-else-if="item.state === 'ready'" type="button" @click="removeUpload(item, attachmentUploads)">移除 {{ item.name }}</button>
               <button v-else-if="item.state === 'removing'" type="button" disabled>正在移除 {{ item.name }}</button>
             </li>
+          </ul>
+          <ul v-else-if="copiedFiles.attachments.length" class="upload-list copied-files" aria-label="从原申请复制的附件">
+            <li v-for="file in copiedFiles.attachments" :key="file.fileId" class="ready"><span><strong>{{ file.fileName }}</strong><small>沿用原申请中的有效附件引用</small></span></li>
           </ul>
         </fieldset>
       </div>
@@ -1166,6 +1243,7 @@ onMounted(() => {
   overflow-wrap: anywhere;
 }
 .upload-list{display:grid;gap:8px;margin:12px 0 0;padding:0;list-style:none}.upload-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;background:#f0faf6;border:1px solid #b9dfcf;border-radius:6px}.upload-list li.uploading{color:#174a7a;background:#eef6ff;border-color:#a9caeb}.upload-list li.failed{color:#a52222;background:#fff5f5;border-color:#efb8b8}.upload-list li>span{display:grid;min-width:0;gap:4px}.upload-list strong,.upload-list small{overflow-wrap:anywhere}.upload-list small{justify-self:start;color:inherit}.upload-list button{min-height:38px;padding:0 12px;color:#0060a6;background:#fff;border:1px solid #7891a8;border-radius:5px}.submit-disabled-reason{text-align:center;color:#3e5571}
+.copy-request-banner{display:grid;gap:5px;margin-bottom:14px;padding:13px 16px;color:#3e5571;background:#eef6ff;border:1px solid #a9caeb;border-radius:7px}.copy-request-banner p{margin:0;color:var(--xlt-readable-muted,#5b6e82)}.copy-request-error{color:#a52222;background:#fff5f5;border-color:#efb8b8}.copied-file{display:grid;gap:4px;margin-top:12px;padding:10px 12px;color:#165f45;background:#f0faf6;border:1px solid #b9dfcf;border-radius:6px}.copied-file small,.scope-field small{color:var(--xlt-readable-muted,#5b6e82)}.scope-field small{display:block;margin-top:5px;line-height:1.55}
 .form-actions {
   display: flex;
   align-items: center;
@@ -1237,6 +1315,7 @@ onMounted(() => {
   }
   .form-actions {
     flex-wrap: wrap;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
   .heading-actions a {
     min-height: 44px;

@@ -1,0 +1,73 @@
+{
+  "task_id": "DEH-UI-PARITY-REPAIR-20261008",
+  "title": "数智展厅 30 路由 UI 一致性返工与全量验收",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "纠正此前抽样验收造成的错误通过结论，以指定源码包为唯一视觉基准，逐页修复并验证数智展厅全部共同路由的 UI 一致性。",
+  "target_user": "使用数智产品展厅 Web 端的业务用户、产品验收人员和负责版本发布的维护人员。",
+  "in_scope": [
+    "以 digital-exhibition-SOURCE-20260916-165348.zip 为唯一视觉基准并校验固定 SHA-256",
+    "对参考包与当前项目共有的 30 个路由逐页进行结构、关键计算样式和截图对照，不允许用代表页面替代",
+    "优先修复 9 类应用详情页及后台管理、公告编辑、应用编辑、认证和上架详情等已确认结构缺失页面",
+    "所有共同路由至少覆盖标准桌面、紧凑桌面和 H5 三个视口，全部路由覆盖既定六档溢出与可达性检查",
+    "保留当前真实数据、身份、权限、审批、上传、缓存、路由和正式写入逻辑，只迁移视觉结构与样式",
+    "修正所有用户可见人员字段的名称投影：负责人、开发者、申请人、操作人等必须由用户字典解析为姓名，不得把人员编码或账号作为姓名回退展示",
+    "全站移除可见的“数据更新时间”文本及其布局占位，同时保留内部同步时间供缓存和刷新逻辑使用",
+    "为动态数据区域建立明确遮罩或语义对照规则，避免把数据值不同误判为样式差异或以此掩盖结构差异",
+    "补充能够在详情主体、页面区块、动作区、表格和响应式布局漂移时失败的长期回归测试"
+  ],
+  "out_of_scope": [
+    "用参考包模拟数据替换当前真实业务数据",
+    "修改飞书表结构、后端协议、权限规则、审批规则或业务字段含义",
+    "删除当前项目新增页面或业务能力",
+    "仅修复用户已截图的单个页面后再次宣称全量一致",
+    "执行合并、推送、部署、发布或生产环境变更"
+  ],
+  "success_metric": "30 个共同路由均有逐页、可复查的参考/当前视觉证据，所有路由级结构和关键样式合同通过，用户可见人员字段不再泄露原始编码，全站不再展示或占位“数据更新时间”，六档响应式检查无阻断问题，且现有真实业务与构建回归全部通过。",
+  "deadline": "未指定；按当前最高优先级立即返工",
+  "risk_level": "high",
+  "state": "development",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "User",
+      "approved_at": "2026-10-08T04:19:48.7627550Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "User",
+      "approved_at": "2026-10-08T04:37:52.3338279Z"
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": false,
+    "mobile_passed": false,
+    "web_evidence": "",
+    "web_checked_at": "",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": false,
+    "blocking_defects": 0,
+    "evidence": "",
+    "recorded_at": ""
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

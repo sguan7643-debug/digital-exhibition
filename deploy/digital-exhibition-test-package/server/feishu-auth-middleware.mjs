@@ -10,9 +10,23 @@ function normalizeRecoveryPath(value = '/test2/') {
   return url.origin === 'http://local.invalid' ? `${url.pathname}${url.search}${url.hash}` : '/test2/';
 }
 
+function isTransportFailure(error) {
+  let current = error;
+  for (let depth = 0; current && depth < 6; depth += 1) {
+    const code = String(current.code || '').toUpperCase();
+    if (['ECONNREFUSED', 'ECONNRESET', 'ENETUNREACH', 'EHOSTUNREACH', 'ETIMEDOUT', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_SOCKET'].includes(code)) {
+      return true;
+    }
+    current = current.cause;
+  }
+  return /^fetch failed$/i.test(String(error?.message || '').trim());
+}
+
 function callbackRecoveryResult(error, authService, defaultReturnTo) {
   const controlled = error instanceof FeishuProxyError;
-  const code = controlled ? error.code : 'INTERNAL_AUTH_ERROR';
+  const code = controlled
+    ? error.code
+    : isTransportFailure(error) ? 'FEISHU_AUTH_UPSTREAM_UNAVAILABLE' : 'INTERNAL_AUTH_ERROR';
   const target = new URL(normalizeRecoveryPath(defaultReturnTo), 'http://local.invalid');
   target.searchParams.set('authError', code);
   const clearCookie = authService.clearStateCookie?.();

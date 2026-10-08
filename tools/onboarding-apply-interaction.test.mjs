@@ -33,7 +33,10 @@ assert.match(appSource, /import OnboardingApplyPage from ['"]\.\/pages\/Onboardi
 assert.match(appSource, /<onboarding-apply-page[\s\S]*?v-else-if="page\.id === '32'"/);
 assert.match(appSource, /:integration-data="integrationEnvelope\.data"/);
 assert.match(appSource, /:integration-state="integrationEnvelope\.state"/);
+assert.match(appSource, /@navigate="navigateWithinApp"/, '提交成功必须由应用壳执行同页路由切换');
 assert.match(applySource, /<form[^>]*@submit\.prevent="submitApplication"/);
+assert.match(applySource, /defineEmits\(\[["']navigate["']\]\)/, '申请页必须通过 navigate 事件请求应用内跳转');
+assert.doesNotMatch(applySource, /window\.location\.assign\(/, '提交成功和确认原提交不得触发整页刷新');
 assert.match(applySource, /submitOnboarding\(/);
 assert.match(applySource, /approvalResult\.value\.applicationId/);
 assert.match(applySource, /query\.set\("applicationId", approvalResult\.value\.applicationId\)/);
@@ -145,8 +148,10 @@ assert.ok(contactSection.indexOf('所属部门') < contactSection.indexOf('接�
 
 const permissionSection = applySource.match(/<legend><span>6<\/span>应用权限开通<\/legend>([\s\S]*?)<\/fieldset>/)?.[1] || '';
 assert.ok(permissionSection.indexOf('适用部门') < permissionSection.indexOf('适用用户'), '适用部门必须排在适用用户之前');
-assert.match(permissionSection, /适用部门[\s\S]*?:required="form\.type === 'T005'"/, '海能Work 的适用部门必须必填');
-assert.match(permissionSection, /适用用户[\s\S]*?:required="form\.type === 'T005'"/, '海能Work 的适用用户必须必填');
+assert.match(permissionSection, /适用部门[\s\S]*?:required="scopedPermissionRequired"/, '仅部分开放时适用部门必须必填');
+assert.match(permissionSection, /:disabled="directoryDisabled \|\| !scopedPermissionRequired"/, '全部组织可见时必须禁用冲突的部门限制');
+assert.match(permissionSection, /组织内已登录用户均可查看/, '全部组织可见必须提供清晰解释');
+assert.doesNotMatch(permissionSection, /适用用户[\s\S]*?:required="form\.type === 'T005'"/, '适用用户不应与全部组织可见产生隐藏必填冲突');
 assert.match(applySource, /<legend><span>8<\/span>申请附件（选填）<\/legend>/);
 assert.match(applySource, /PNG \/ JPEG \/ WebP，最多 1 个，不超过 5MB/);
 assert.match(applySource, /PDF \/ DOCX \/ XLSX \/ PNG \/ JPEG，最多 3 个，每个不超过 20MB/);

@@ -47,11 +47,17 @@ function comparableFieldValue(value) {
   return String(value ?? '');
 }
 
-export function createFeishuSafeTestRecordService({ client, wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)) }) {
+export function createFeishuSafeTestRecordService({ client, production = false, wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)) }) {
   if (!client) throw new Error('缺少飞书记录客户端');
   const tableByName = new Map();
   let tablesLoaded = false;
   let tablesPromise = null;
+  const requireKey = (value, label = '业务键') => {
+    if (!production) return requireTestKey(value, label);
+    const key = String(value || '').trim();
+    if (!key || key.length > 128 || /[\u0000-\u001f]/.test(key)) throw new FeishuProxyError('BUSINESS_KEY_REQUIRED', `${label}缺失或格式无效`, 400);
+    return key;
+  };
 
   async function loadTables({ refresh = false } = {}) {
     if (tablesLoaded && !refresh) return tableByName;
@@ -75,19 +81,19 @@ export function createFeishuSafeTestRecordService({ client, wait = milliseconds 
       await loadTables({ refresh: true });
       table = tableByName.get(tableName);
     }
-    if (!table) throw new FeishuProxyError('TABLE_NOT_FOUND', '测试目标表不存在', 404);
+    if (!table) throw new FeishuProxyError('TABLE_NOT_FOUND', production ? '业务目标表不存在' : '测试目标表不存在', 404);
     return table;
   }
 
   async function find(tableId, keyField, businessKey) {
     const result = await client.searchRecords(tableId, keyField, businessKey);
-    if (result.items.length > 1) throw new FeishuProxyError('TEST_KEY_NOT_UNIQUE', 'TEST_ 业务键不唯一', 409);
+    if (result.items.length > 1) throw new FeishuProxyError(production ? 'BUSINESS_KEY_NOT_UNIQUE' : 'TEST_KEY_NOT_UNIQUE', production ? '业务键不唯一' : 'TEST_ 业务键不唯一', 409);
     return result.items[0] || null;
   }
 
   async function createOnce({ tableName, keyField, businessKey, idempotencyKey, fields = {}, governance = {}, reconcileFields }) {
-    const key = requireTestKey(businessKey);
-    const idempotency = requireTestKey(idempotencyKey, '幂等键');
+    const key = requireKey(businessKey);
+    const idempotency = requireKey(idempotencyKey, '幂等键');
     const table = await resolveTable(tableName);
     const existing = await find(table.table_id, keyField, key);
     const versionField = governance.versionField === undefined ? '版本' : governance.versionField;
@@ -96,7 +102,7 @@ export function createFeishuSafeTestRecordService({ client, wait = milliseconds 
     const deletedField = governance.deletedField === undefined ? '已删除' : governance.deletedField;
     if (existing) {
       if (traceField && textFieldValue(existing.fields?.[traceField]) !== idempotency) {
-        throw new FeishuProxyError('TEST_KEY_CONFLICT', 'TEST_ 业务键已被其他幂等请求占用', 409);
+        throw new FeishuProxyError(production ? 'BUSINESS_KEY_CONFLICT' : 'TEST_KEY_CONFLICT', production ? '业务键已被其他幂等请求占用' : 'TEST_ 业务键已被其他幂等请求占用', 409);
       }
       const allowlist = normalizeReconcileFields(reconcileFields);
       if (allowlist.length && versionField) {
@@ -121,7 +127,7 @@ export function createFeishuSafeTestRecordService({ client, wait = milliseconds 
     }
     const managed = {};
     if (versionField) managed[versionField] = 1;
-    if (sourceField) managed[sourceField] = 'TEST_INTEGRATION';
+    if (sourceField) managed[sourceField] = production ? 'DIGITAL_EXHIBITION' : 'TEST_INTEGRATION';
     if (traceField) managed[traceField] = idempotency;
     if (deletedField) managed[deletedField] = false;
     const record = await client.createRecord(table.table_id, { ...fields, [keyField]: key, ...managed });
@@ -129,12 +135,12 @@ export function createFeishuSafeTestRecordService({ client, wait = milliseconds 
   }
 
   async function update({ tableName, keyField, businessKey, ifMatch, fields = {}, governance = {} }) {
-    const key = requireTestKey(businessKey);
+    const key = requireKey(businessKey);
     const expectedVersion = Number(ifMatch);
     if (!Number.isInteger(expectedVersion) || expectedVersion < 1) throw new FeishuProxyError('IF_MATCH_REQUIRED', '更新必须提供正整数版本', 428);
     const table = await resolveTable(tableName);
     const existing = await find(table.table_id, keyField, key);
-    if (!existing) throw new FeishuProxyError('TEST_RECORD_NOT_FOUND', '测试记录不存在', 404);
+    if (!existing) throw new FeishuProxyError(production ? 'BUSINESS_RECORD_NOT_FOUND' : 'TEST_RECORD_NOT_FOUND', production ? '业务记录不存在' : '测试记录不存在', 404);
     const versionField = governance.versionField === undefined ? '版本' : governance.versionField;
     if (!versionField) throw new FeishuProxyError('VERSION_FIELD_UNAVAILABLE', '该表不支持原地更新', 409);
     const actualVersion = recordVersion(existing, versionField);
@@ -145,7 +151,7 @@ export function createFeishuSafeTestRecordService({ client, wait = milliseconds 
   }
 
   async function remove({ tableName, keyField, businessKey, ifMatch, governance = {} }) {
-    const key = requireTestKey(businessKey);
+    const key = requireKey(businessKey);
     const expectedVersion = Number(ifMatch);
     if (!Number.isInteger(expectedVersion) || expectedVersion < 1) throw new FeishuProxyError('IF_MATCH_REQUIRED', '删除必须提供正整数版本', 428);
     const table = await resolveTable(tableName);
@@ -160,11 +166,32 @@ export function createFeishuSafeTestRecordService({ client, wait = milliseconds 
     return { deleted: true, alreadyAbsent: false, recordId: existing.record_id };
   }
 
+  async function updateMany({ tableName, matchField, matchValue, fields = {}, governance = {} }) {
+    const value = requireKey(matchValue, '批量匹配值');
+    if (!String(matchField || '').trim()) throw new FeishuProxyError('BATCH_MATCH_FIELD_REQUIRED', '批量更新缺少受控匹配字段', 400);
+    const table = await resolveTable(tableName);
+    const result = await client.searchRecords(table.table_id, matchField, value, { pageSize: 100 });
+    if (result.hasMore) throw new FeishuProxyError('BATCH_SCOPE_TOO_LARGE', '批量更新超过单次安全上限，请缩小范围', 409);
+    const versionField = governance.versionField === undefined ? '版本' : governance.versionField;
+    let updatedCount = 0;
+    for (const existing of result.items || []) {
+      const patch = { ...fields };
+      if (versionField) patch[versionField] = recordVersion(existing, versionField) + 1;
+      await client.updateRecord(table.table_id, existing.record_id, patch);
+      updatedCount += 1;
+    }
+    return { updatedCount, version: 0, command: 'UPDATE_MANY' };
+  }
+
   async function rollback({ tableName, keyField, businessKey, fromVersion, restoreFields, governance }) {
     const updated = await update({ tableName, keyField, businessKey, ifMatch: fromVersion, fields: restoreFields, governance });
     await wait(800);
     return { ...updated, rolledBack: true };
   }
 
-  return Object.freeze({ createOnce, update, remove, rollback });
+  async function getRecord({ tableName, keyField, businessKey }) {
+    const table = await resolveTable(tableName);
+    return find(table.table_id, keyField, requireKey(businessKey));
+  }
+  return Object.freeze({ createOnce, update, updateMany, remove, rollback, getRecord });
 }

@@ -1,13 +1,19 @@
 const DEFAULT_GOVERNANCE = Object.freeze({ versionField: '版本', traceField: '追踪ID', sourceField: '来源系统', deletedField: '已删除' });
-const definition = (operationId, tableName, keyField, mode, allowedFields, cleanup = 'DELETE_TEST_RECORD', governance = DEFAULT_GOVERNANCE) => Object.freeze({
+const definition = (operationId, tableName, keyField, mode, allowedFields, cleanup = 'BUSINESS_RETENTION_POLICY', governance = DEFAULT_GOVERNANCE) => Object.freeze({
   operationId, tableName, keyField, mode, allowedFields: Object.freeze(allowedFields), cleanup,
-  governance, requiresTestPrefix: true, requiresIdempotencyKey: true, requiresVersion: ['UPDATE', 'DELETE', 'UPDATE_MANY', 'COMMAND'].includes(mode)
+  governance,
+  // The manifest describes the formal business channel. TEST_ isolation is kept
+  // only by the dedicated test-record service used by live verification tools.
+  requiresTestPrefix: false,
+  requiresIdempotencyKey: true,
+  requiresVersion: ['UPDATE', 'DELETE'].includes(mode) || (mode === 'COMMAND' && operationId !== 'ARC-003'),
+  matchField: operationId === 'MSG-005' ? '接收人ID' : ''
 });
 
 export const FEISHU_WRITE_OPERATION_MANIFEST = Object.freeze([
   definition('COM-006', '文件上传会话', '上传ID', 'CREATE', ['文件ID', '文件名', '大小字节', 'MIME类型', 'SHA256', '业务类型', '业务ID', '用途', '分片上传', '分片数', '状态', '过期时间', '飞书文件令牌']),
   definition('COM-007', '文件上传会话', '上传ID', 'UPDATE', ['文件ID', '状态', '飞书文件令牌', '大小字节', 'SHA256']),
-  definition('COM-011', '用户行为流水', '事件ID', 'CREATE', ['事件类型', '用户ID', '匿名ID', '会话ID', '页面路径', '来源路径', '资源类型', '资源ID', '搜索词哈希', '场景', '停留毫秒', '脱敏元数据', '发生时间', '请求ID', '路由月份'], 'DELETE_TEST_RECORD', { versionField: '', traceField: '请求ID', sourceField: '', deletedField: '' }),
+  definition('COM-011', '用户行为流水', '事件ID', 'CREATE', ['事件类型', '用户ID', '匿名ID', '会话ID', '页面路径', '来源路径', '资源类型', '资源ID', '搜索词哈希', '场景', '停留毫秒', '脱敏元数据', '发生时间', '请求ID', '路由月份'], 'BUSINESS_RETENTION_POLICY', { versionField: '', traceField: '请求ID', sourceField: '', deletedField: '' }),
   definition('MSG-003', '消息通知', '消息ID', 'UPDATE', ['已读状态']),
   definition('MSG-004', '消息通知', '消息ID', 'UPDATE', ['已读状态']),
   definition('MSG-005', '消息通知', '消息ID', 'UPDATE_MANY', ['接收人ID', '已读状态']),

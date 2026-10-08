@@ -44,15 +44,18 @@ for (const page of governedUiMatrix) {
   assert.equal(page.remoteWhen, 'contract-evidence-complete');
 }
 assert.deepEqual(getPageIntegrationContract('/workbench').operationIds, ['COM-001', 'COM-002', 'COM-005', 'WB-001', 'WB-002', 'COM-011']);
-assert.deepEqual(getPageIntegrationContract('/apps').operationIds, ['APP-001', 'APP-002', 'APP-004']);
+assert.deepEqual(getPageIntegrationContract('/apps').operationIds, ['APP-001', 'APP-002', 'APP-004', 'APP-005']);
 assert.deepEqual(getPageIntegrationContract('/apps/report-001').operationIds, ['APP-003', 'APP-009', 'APP-007', 'MAT-001', 'MAT-002', 'MAT-003', 'COM-008', 'FAV-003', 'FAV-004', 'APP-005', 'APP-006', 'APP-008']);
 
 assert.deepEqual(resolveIntegrationRuntime({}), {
   mode: 'disabled', proxyBase: '/api/v1', remoteEnabled: false,
-  contractEvidenceComplete: false, testWritesEnabled: false, timeoutMs: null, reason: 'kill-switch-disabled'
+  contractEvidenceComplete: false, testWritesEnabled: false, businessWritesEnabled: false,
+  timeoutMs: null, reason: 'kill-switch-disabled'
 });
 assert.equal(resolveIntegrationRuntime({ requestedMode: 'remote', remoteEnabled: true, contractEvidenceComplete: false }).mode, 'disabled');
-assert.equal(resolveIntegrationRuntime({ requestedMode: 'remote', remoteEnabled: true, contractEvidenceComplete: true, timeoutMs: 8000 }).mode, 'remote');
+const formalRuntime = resolveIntegrationRuntime({ requestedMode: 'remote', remoteEnabled: true, contractEvidenceComplete: true, timeoutMs: 8000 });
+assert.equal(formalRuntime.mode, 'remote');
+assert.equal(formalRuntime.businessWritesEnabled, true, '正式写通道不得依赖 TEST_ 开关');
 assert.throws(() => resolveIntegrationRuntime({ proxyBase: 'https://open.feishu.cn/open-apis' }), /安全代理/);
 
 const calls = [];

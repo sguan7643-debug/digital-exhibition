@@ -65,8 +65,8 @@ assert.match(talent, /tbody tr\[aria-selected=(?:"true"|true)\]\s*\{\s*backgroun
   '人才库只能高亮用户实际选中的行，初始不得伪造首行选中');
 assert.doesNotMatch(talent, />×</);
 
-assert.match(shell, /@media\(min-width:761px\) and \(max-width:940px\)\{[^}]*grid-template-columns:220px/,
-  '窄桌面仍须保留统一的 220px 目录栏');
+assert.match(shell, /@media\(min-width:761px\) and \(max-width:940px\)\{[^}]*grid-template-columns:150px/,
+  '窄桌面须保留参考包的 150px 目录栏');
 assert.match(shell, /@media\(min-width:941px\) and \(max-width:1600px\)\{[^}]*grid-template-columns:220px/,
   '941–1600px 参考必须保留获批的 220px 固定目录栏');
 assert.match(shell, /\.exhibition-shell\{height:100vh;overflow:hidden;display:grid;grid-template-columns:minmax\(0,1fr\);grid-template-rows:auto minmax\(0,1fr\)\}/,
@@ -79,12 +79,12 @@ assert.match(shell, /main\{min-width:0;min-height:0;overflow-y:auto/,
   '只有右侧主要内容区域可以纵向滚动');
 assert.match(shell, /'certification-shell': props\.page\.id === '27'/,
   '数字化认证必须有冻结参考专属的壳层视觉几何标识');
-assert.doesNotMatch(shell, /\.certification-shell \.topbar\{/,
-  '数字化认证应直接继承全站 63px 顶部导航高度，不得单独覆盖');
+assert.match(shell, /\.certification-shell \.topbar\{height:63px\}/,
+  '数字化认证必须保留参考包明确的 63px 顶部导航高度');
 assert.match(shell, /\.certification-shell \.page-frame\{grid-template-columns:220px minmax\(0,1fr\)\}/,
   '数字化认证应与全站共享 220px 左侧导航宽度');
-assert.equal((shell.match(/\.certification-shell \.topbar\{/g) || []).length, 0,
-  '数字化认证壳层不得保留独立顶栏几何规则');
+assert.equal((shell.match(/\.certification-shell \.topbar\{/g) || []).length, 1,
+  '数字化认证壳层只允许保留一条参考包顶栏几何规则');
 assert.match(certification, /:global\(#main-content\)\s*>\s*\.cert-page\s*\{[\s\S]*?padding:\s*18px 20px 28px/,
   '数字化认证页必须使用统一内容边距并让横幅充满可用区域');
 assert.match(shell, /@media\(min-width:761px\) and \(max-width:1000px\)\{[\s\S]*?\.primary-nav a\{[^}]*flex:0 0 auto/,

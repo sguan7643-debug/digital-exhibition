@@ -35,7 +35,7 @@ assert.match(shell, /\.primary-nav a\[aria-current='page'\]::after\{[^}]*backgro
   '每页只通过统一白色下划线表达当前导航项');
 assert.doesNotMatch(shell, /\.ui-update-(?:workbench|apps|report) \.topbar/,
   '页面 variant 不得覆盖共享头部样式');
-assert.doesNotMatch(shell, /\.certification-shell \.topbar/,
-  '认证页不得使用不同高度的头部');
+assert.match(shell, /\.certification-shell \.topbar\{height:63px\}/,
+  '认证页必须显式保持参考包统一的 63px 头部高度');
 
 console.log('全站唯一新版头部导航合同测试通过');

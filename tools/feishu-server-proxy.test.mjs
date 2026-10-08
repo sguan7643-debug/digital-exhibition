@@ -304,6 +304,10 @@ assert.deepEqual(contactUsers.data.items[0], {
 assert.equal(contactUsers.data.sort, 'name,asc');
 assert.equal(contactUsers.data.filtersApplied.enabled, true);
 assert.doesNotMatch(JSON.stringify(contactUsers), /13800000000|private@example\.invalid/, '通讯录代理不得暴露手机号或邮箱原值');
+const selectedContact = await service.execute('COM-004', { userId: 'ou-user-001', includeContact: true, page: 1, pageSize: 10 }, { identity: { userId: 'ou-requester' } });
+assert.equal(selectedContact.data.items.length, 1);
+assert.equal(selectedContact.data.items[0].mobile, '13800000000', '只允许对明确选中的联系人返回电话');
+assert.equal(selectedContact.data.items[0].email, 'private@example.invalid', '只允许对明确选中的联系人返回邮箱');
 
 const talentFacets = await service.execute('TAL-005', { page: 1, pageSize: 10 });
 assert.equal(talentFacets.data.types[0].name, '数字化人才');

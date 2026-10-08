@@ -69,6 +69,7 @@ export function createFeishuOnboardingPocOrchestrator({
   let prepared = null;
   let schemaDiscovery = null;
   let schemaDiscoveryPromise = null;
+  let executePromise = null;
 
   function assertFingerprint() {
     const expected = String(expectedFingerprint || '').trim().toLowerCase();
@@ -102,6 +103,7 @@ export function createFeishuOnboardingPocOrchestrator({
     const plan = [];
     const before = [];
     const conflicts = [];
+    const compatibleDuplicates = [];
     for (const schema of ONBOARDING_POC_MANIFEST.tables) {
       const table = byName.get(schema.table_name);
       if (!table) {
@@ -110,22 +112,42 @@ export function createFeishuOnboardingPocOrchestrator({
         continue;
       }
       const fields = await adminClient.listFields(table.table_id);
-      const fieldsByName = new Map(fields.map(field => [String(field.field_name || ''), field]));
+      const fieldsByName = new Map();
+      for (const field of fields) {
+        const fieldName = String(field.field_name || '');
+        if (!fieldsByName.has(fieldName)) fieldsByName.set(fieldName, []);
+        fieldsByName.get(fieldName).push(field);
+      }
       const missing = [];
       for (const expected of schema.fields) {
-        const actual = fieldsByName.get(expected.field_name);
-        if (!actual) {
+        const candidates = fieldsByName.get(expected.field_name) || [];
+        if (!candidates.length) {
           missing.push(expected.field_name);
           plan.push({ action: 'CREATE_FIELD', tableName: schema.table_name, tableId: table.table_id, fieldName: expected.field_name, field: expected });
-        } else if (!compatibleField(expected, actual)) {
-          conflicts.push({ tableName: schema.table_name, fieldName: expected.field_name, expectedType: expected.type, actualType: actual.type });
+          continue;
+        }
+        const compatible = candidates.filter(actual => compatibleField(expected, actual));
+        if (compatible.length !== candidates.length) {
+          conflicts.push({
+            tableName: schema.table_name,
+            fieldName: expected.field_name,
+            reason: candidates.length > 1 ? 'DUPLICATE_FIELD_INCOMPATIBLE' : 'FIELD_INCOMPATIBLE',
+            count: candidates.length,
+            expectedType: expected.type,
+            actualTypes: candidates.map(actual => actual.type)
+          });
+        } else if (candidates.length > 1) {
+          compatibleDuplicates.push({ tableName: schema.table_name, fieldName: expected.field_name, count: candidates.length });
         }
       }
-      before.push({ tableName: schema.table_name, tableId: table.table_id, fields: fields.map(field => ({ fieldId: field.field_id || '', fieldName: field.field_name, type: field.type, primary: Boolean(field.is_primary || field.isPrimary), options: [...existingOptionNames(field)] })), missing });
+      before.push({ tableName: schema.table_name, tableId: table.table_id, fields: fields.map(field => ({ fieldId: field.field_id || '', fieldName: field.field_name, type: field.type, primary: Boolean(field.is_primary || field.isPrimary), options: [...existingOptionNames(field)] })), missing, compatibleDuplicates: compatibleDuplicates.filter(item => item.tableName === schema.table_name) });
     }
     assertSchemaPlan(plan);
-    if (conflicts.length) fail('POC_SCHEMA_CONFLICT', 'POC schema 存在同名异型、主键或选项冲突');
-    return { plan, before, conflicts };
+    if (conflicts.length) {
+      const summary = conflicts.slice(0, 3).map(item => `${item.tableName}.${item.fieldName}`).join('、');
+      fail('POC_SCHEMA_CONFLICT', `POC schema 存在同名异型、主键或选项冲突：${summary}`);
+    }
+    return { plan, before, conflicts, compatibleDuplicates };
   }
 
   async function readSchemaOnce() {
@@ -211,7 +233,7 @@ export function createFeishuOnboardingPocOrchestrator({
     return prepared;
   }
 
-  async function execute({ session } = {}) {
+  async function executeOnce({ session } = {}) {
     const context = await prepare({ session });
     if (!context.plan.length) {
       if (context.after) return context;
@@ -231,6 +253,19 @@ export function createFeishuOnboardingPocOrchestrator({
     const result = Object.freeze({ ...context, plan: Object.freeze([]), plannedActions: context.plan, after: after.before, applied: context.plan.length });
     prepared = result;
     return result;
+  }
+
+  async function execute({ session } = {}) {
+    if (executePromise) {
+      await executePromise;
+      return executeOnce({ session });
+    }
+    executePromise = executeOnce({ session });
+    try {
+      return await executePromise;
+    } finally {
+      executePromise = null;
+    }
   }
 
   function allowedFieldsFor(tableName) {
