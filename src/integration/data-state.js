@@ -42,7 +42,7 @@ export function reduceDataState(previous, event) {
       : {
       'permission-denied': '无权访问当前数据',
       'authentication-required': '需要先完成飞书登录',
-      'initial-syncing': '正式飞书数据正在首次同步，请稍后重试',
+      'initial-syncing': '请求处理中',
       timeout: '数据请求超时，可稍后重试',
       cancelled: '数据更新已取消',
       'rate-limited': '请求过于频繁，请稍后再试',

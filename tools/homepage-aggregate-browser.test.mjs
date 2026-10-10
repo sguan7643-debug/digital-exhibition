@@ -48,6 +48,8 @@ const browser = await chromium.launch({ headless: true, executablePath });
 try {
   const recoveryPage = await browser.newPage({ viewport: { width: 1366, height: 900 }, reducedMotion: 'reduce' });
   await authorize(recoveryPage);
+  const recoveryErrors = [];
+  recoveryPage.on('pageerror', error => recoveryErrors.push(error.message));
   let aggregateCalls = 0;
   let statusCalls = 0;
   await recoveryPage.route('**/api/v1/homepage', route => {
@@ -59,6 +61,12 @@ try {
   });
   await recoveryPage.route('**/api/v1/sync-jobs/**', route => {
     statusCalls += 1;
+    if (statusCalls === 1) {
+      return route.fulfill({
+        status: 504, headers: jsonHeaders,
+        body: JSON.stringify({ code: 'FEISHU_READ_BUDGET_EXCEEDED', message: '任务状态暂时不可用', retryAfterSeconds: 1 })
+      });
+    }
     return route.fulfill({
       status: 200, headers: jsonHeaders,
       body: JSON.stringify({ code: 'OK', syncId: 'sync-browser-auto', state: 'completed', traceId: 'trace-browser-auto', result: freshBody() })
@@ -66,11 +74,11 @@ try {
   });
   const response = await recoveryPage.goto(`${origin}/workbench`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
   assert.equal(response?.status(), 200);
-  await recoveryPage.waitForFunction(() => !document.querySelector('.integration-recovery'));
-  await recoveryPage.waitForFunction(() => window.performance.getEntriesByType('resource').length >= 0 && document.readyState !== 'loading');
-  await recoveryPage.waitForTimeout(2_300);
+  await recoveryPage.locator('.request-loading-toast').waitFor({ state: 'visible', timeout: 8_000 });
+  await recoveryPage.locator('.request-loading-toast').waitFor({ state: 'hidden', timeout: 8_000 });
   assert.equal(aggregateCalls, 1, '同步完成后必须直接消费任务结果，不得重发首页聚合请求');
-  assert.equal(statusCalls, 1, '恢复路径只需一次完成状态查询');
+  assert.equal(statusCalls, 2, '任务状态短暂失败后必须继续查询同一任务');
+  assert.deepEqual(recoveryErrors, [], '任务状态短暂失败不得产生未捕获页面异常');
   await recoveryPage.close();
 
   const transientPage = await browser.newPage({ viewport: { width: 1366, height: 900 }, reducedMotion: 'reduce' });
@@ -89,7 +97,8 @@ try {
     });
   });
   await transientPage.goto(`${origin}/workbench`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
-  await transientPage.waitForFunction(() => document.querySelector('.data-update-time'), null, { timeout: 8_000 });
+  for (let attempt = 0; attempt < 40 && transientCalls < 2; attempt += 1) await transientPage.waitForTimeout(100);
+  await transientPage.locator('.request-loading-toast').waitFor({ state: 'hidden', timeout: 8_000 });
   assert.equal(transientCalls, 2, '首页临时503后必须自动重试，无需用户刷新');
   assert.deepEqual(pageErrors, [], '临时503不得产生未捕获页面异常');
   await transientPage.close();

@@ -16,6 +16,14 @@ function dictionaryLabel(items, value) {
   return clean((Array.isArray(items) ? items : []).find(item => clean(item?.value) === normalized)?.label);
 }
 
+export function resolvePersonDisplayName(user, context = 'onboarding.authorized-user') {
+  const displayName = clean(user?.displayName || user?.name);
+  if (displayName) return displayName;
+  const identifier = clean(user?.userId);
+  if (identifier) console.warn('[person-name-unresolved]', { context });
+  return '';
+}
+
 export function createFeishuOnboardingReferenceResolver({ readService, client } = {}) {
   async function resolve(application = {}, session = {}) {
     const type = clean(application.type).toUpperCase();
@@ -37,7 +45,7 @@ export function createFeishuOnboardingReferenceResolver({ readService, client } 
     }
     if (client?.getContactUser && userId && !authorizedUserName) {
       tasks.push(client.getContactUser(userId).then(user => {
-        authorizedUserName = clean(user?.displayName || user?.name || user?.userId);
+        authorizedUserName = resolvePersonDisplayName(user);
       }).catch(() => {}));
     }
     await Promise.all(tasks);
@@ -46,4 +54,3 @@ export function createFeishuOnboardingReferenceResolver({ readService, client } 
 
   return Object.freeze({ resolve });
 }
-

@@ -53,7 +53,7 @@ assert.ok(result.retryScope.length > 0);
 assert.ok(Object.values(result.sectionRecords).every(record => record.errorState === 'timeout' && record.retryable === true));
 
 const syncingOperationIds = ['COM-001', 'COM-002', 'COM-005', 'WB-001', 'WB-002'];
-const syncingReason = Object.assign(new Error('正式飞书数据正在首次同步，请稍后重试'), {
+const syncingReason = Object.assign(new Error('请求处理中'), {
   state: 'initial-syncing', retryable: true, traceId: 'trace-syncing', retryAfterSeconds: 2
 });
 const syncingClient = {

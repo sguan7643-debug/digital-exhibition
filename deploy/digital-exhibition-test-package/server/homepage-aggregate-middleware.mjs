@@ -58,6 +58,7 @@ export function createHomepageAggregateNodeMiddleware(options = {}) {
   const traceIdFactory = options.traceIdFactory || (() => `trace-${globalThis.crypto?.randomUUID?.() || Date.now()}`);
 
   return async function homepageAggregateMiddleware(request, response, next) {
+    const requestReceivedAtMs = Date.now();
     const pathname = new URL(request.url || '/', 'http://localhost').pathname;
     const syncMatch = SYNC_PATH.exec(pathname);
     const matched = pathname === AGGREGATE_PATH || pathname === LIVE_PATH || pathname === READY_PATH || syncMatch;
@@ -70,13 +71,13 @@ export function createHomepageAggregateNodeMiddleware(options = {}) {
       }
       if (pathname === READY_PATH) {
         if (request.method !== 'GET') return sendJson(response, 405, { code: 'METHOD_NOT_ALLOWED', message: '该接口仅接受 GET', traceId });
-        const readiness = service.getReadiness();
+        const readiness = await service.getReadiness();
         return sendJson(response, readiness.ready ? 200 : 503, { code: readiness.ready ? 'OK' : 'NOT_READY', ...readiness, traceId });
       }
-      const requestContext = await resolveRequestContext(request);
+      const requestContext = { ...(await resolveRequestContext(request)), requestReceivedAtMs };
       if (syncMatch) {
         if (request.method !== 'GET') return sendJson(response, 405, { code: 'METHOD_NOT_ALLOWED', message: '该接口仅接受 GET', traceId });
-        return sendJson(response, 200, service.getSyncStatus(syncMatch[1], requestContext || {}));
+        return sendJson(response, 200, await service.getSyncStatus(syncMatch[1], requestContext || {}));
       }
       if (request.method !== 'POST') return sendJson(response, 405, { code: 'METHOD_NOT_ALLOWED', message: '该接口仅接受 POST', traceId });
       const contentType = String(request.headers?.['content-type'] || '').toLowerCase();

@@ -1,5 +1,14 @@
 import { beginRequest, endRequest } from './request-status.js';
-export function createPersistentHomepageClient({ client, cache, freshMs = 30_000, maxStaleMs = 86_400_000, now = Date.now }) {
+export function createPersistentHomepageClient({
+  client,
+  cache,
+  freshMs = 30_000,
+  maxStaleMs = 86_400_000,
+  now = Date.now,
+  pollMinMs: configuredPollMinMs = 100,
+  pollMaxMs: configuredPollMaxMs = 5_000,
+  syncTimeoutMs: configuredSyncTimeoutMs = 60_000
+}) {
   const key = cache.key('homepage', {});
   let inFlight = null;
   const subscribers = new Set();
@@ -15,6 +24,30 @@ export function createPersistentHomepageClient({ client, cache, freshMs = 30_000
       ...(status === 'stale' ? { aggregateState: 'stale', dataStale: true, refreshing: true } : {}),
       browserCache: { status, updatedAt: new Date(record.updatedAt).toISOString() }
     }
+  });
+
+  const pollMinMs = Math.max(1, Number(configuredPollMinMs) || 100);
+  const pollMaxMs = Math.max(pollMinMs, Number(configuredPollMaxMs) || 5_000);
+  const syncTimeoutMs = Math.max(pollMaxMs, Number(configuredSyncTimeoutMs) || 60_000);
+  const resolvePollDelay = value => Math.max(
+    pollMinMs,
+    Math.min(pollMaxMs, Number(value?.pollAfterMs) || Number(value?.retryAfterSeconds) * 1_000 || 2_000)
+  );
+  const waitForPoll = (delayMs, signal) => new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason || new DOMException('请求已取消', 'AbortError'));
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener?.('abort', onAbort);
+      reject(signal.reason || new DOMException('请求已取消', 'AbortError'));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener?.('abort', onAbort);
+      resolve();
+    }, delayMs);
+    signal?.addEventListener?.('abort', onAbort, { once: true });
   });
 
   async function refresh(options = {}, observedAt = 0, background = false) {
@@ -44,15 +77,37 @@ export function createPersistentHomepageClient({ client, cache, freshMs = 30_000
   }
 
   async function completeSync(result, options = {}) {
-      const deadline = Date.now() + 60_000;
+      const deadline = Date.now() + syncTimeoutMs;
+      let pollDelayMs = resolvePollDelay(result.body);
       while (result.body?.syncId && (result.status === 202 || result.body.refreshing)) {
         if (options.signal?.aborted) throw options.signal.reason;
-        if (Date.now() > deadline) throw new Error('首页同步超时');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        if (Date.now() >= deadline) throw Object.assign(new Error('首页同步超时'), { state: 'timeout', retryable: true });
+        await waitForPoll(pollDelayMs, options.signal);
         if (options.signal?.aborted) throw options.signal.reason;
-        const status = await client.status(result.body.syncId, options);
+        let status;
+        try {
+          status = await client.status(result.body.syncId, options);
+        } catch (error) {
+          if (options.signal?.aborted) throw options.signal.reason || error;
+          if (error?.retryable === false || Date.now() >= deadline) throw error;
+          pollDelayMs = resolvePollDelay(error);
+          continue;
+        }
         if (status.state === 'completed' && status.result) { result = { status: 200, body: status.result }; break; }
-        if (['failed', 'expired'].includes(status.state)) throw new Error(status.errorCode || '首页同步失败');
+        if (status.state === 'completed') {
+          throw Object.assign(new Error('首页同步任务完成但缺少结果'), { state: 'schema-drift', retryable: false });
+        }
+        if (['queued', 'running'].includes(status.state)) {
+          pollDelayMs = resolvePollDelay(status);
+          continue;
+        }
+        if (['failed', 'expired'].includes(status.state)) {
+          throw Object.assign(new Error(status.error?.message || status.errorCode || '首页同步失败'), {
+            state: status.state === 'expired' ? 'timeout' : (status.error?.state || 'error'),
+            retryable: false,
+            code: status.error?.code || status.errorCode || 'HOMEPAGE_SYNC_FAILED'
+          });
+        }
       }
       return result;
   }

@@ -1,0 +1,100 @@
+{
+  "task_id": "DEH-SERVER-CACHE-20261008",
+  "title": "服务器本地快照缓存与五秒完整读取",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "在飞书多维表格继续作为唯一业务数据库、且不增加 Redis 或独立数据库资源的条件下，使用现有服务器的受限内存缓存和本地持久快照，使普通读取请求优先返回完整正式数据，并让至少 90% 的代表性首次页面读取在 5 秒内完成。",
+  "target_user": "访问数智产品展厅的已授权 Web 用户，以及负责共享服务器稳定性的运维人员。",
+  "in_scope": [
+    "在部署目录外增加受限、可重建的服务器本地正式数据快照",
+    "Node 服务启动时恢复快照、后台预热并按分级周期静默刷新飞书数据",
+    "普通读取优先从内存或有效快照返回完整数据，不向页面暴露首次同步文案",
+    "无有效缓存时最多等待飞书五秒，未完成则返回兼容的同步任务合同并由后台继续执行，现有前端自动轮询至终态且无需手动刷新",
+    "本任务只修改后端、后端测试和服务器部署包，前端文件保持零变更并兼容现有同步任务查询协议",
+    "按租户、用户、权限和数据范围隔离缓存，并禁止缓存凭据与附件文件本体",
+    "每次缓存命中前实时校验当前会话、权限和数据范围，登录、审批实时状态、写入及写后确认等强一致操作继续直接访问飞书",
+    "正式业务写通道取消业务键和幂等键的 TEST_ 前缀门禁，同时保留身份、权限、审批、幂等和审计合同以及测试通道隔离",
+    "同一租户下身份、权限集合、数据范围、operation 和规范化参数完全相同的冷请求必须合并为单一同步任务，任一隔离维度不同则禁止合并、复用或查询；任务级总尝试最多3次，退避500ms、1000ms且上限1000ms，completed/failed终态至少保留10分钟",
+    "唯一TTL矩阵为普通/租户fresh 60秒、max-stale 15分钟，用户/管理fresh 30秒、max-stale 5分钟；server/feishu-read-cache-policies.mjs明列的54个operation可缓存、11个强一致operation禁止缓存，其他未列出operation默认不缓存",
+    "飞书完整成功返回零记录时按成功空集合处理和缓存，未完成、超时或权限失败不得伪装为空结果",
+    "将systemd服务迁移到专用非root用户和组seaoil-deh，缓存目录、临时文件和快照owner/group均为seaoil-deh:seaoil-deh，并以0700目录和0600文件模式保护本地快照",
+    "写成功后局部更新或精确失效缓存，避免清空全部读取缓存",
+    "将运行资源限制为最多1.5个CPU核、2GB内存和3GB磁盘缓存；容量超限时先LRU淘汰并减少非代表性operation缓存，绝不删除success schema字段，取消代表operation缓存必须触发范围变更重审",
+    "性能代表项固定为POST /api/v1/homepage、COM-005、APP-002、MAT-001、WB-003，普通用户覆盖固定项，管理员补充ADM-003；每项每适用场景30次，并在测试开始时锁定同一测试Base各表完整记录数和总计，测试期间保持不变",
+    "提供自动化测试、预热测量、完整服务器部署包、校验值、部署与回滚命令"
+  ],
+  "out_of_scope": [
+    "将飞书多维表格替换为其他业务数据库",
+    "申请或部署 Redis、外部缓存集群或新的数据库服务",
+    "缓存图片、视频或附件文件本体",
+    "承诺强一致查询、写操作或飞书实时冷读取 100% 在 5 秒内完成",
+    "修改与读取缓存无关的页面样式或业务功能",
+    "修改前端源文件或前端构建产物",
+    "删除测试工具、测试夹具、测试审批定义或高风险验收通道的 TEST_ 隔离",
+    "删除success schema字段、缩小测试Base或取消代表operation缓存来规避容量与性能验收",
+    "继续以root或其他共享服务账号运行目标systemd服务",
+    "由 Codex 直接登录服务器执行部署、发布或生产配置变更"
+  ],
+  "success_metric": "测试环境中，固定代表项POST /api/v1/homepage、COM-005、APP-002、MAT-001、WB-003及管理员补充ADM-003按每项每适用场景30次执行；测试开始时锁定并在报告记录同一测试Base各表完整记录数和总计，测试期间不变；有有效快照或完成预热后的样本至少90%在5秒内以HTTP 200返回符合success schema的完整正式数据。无有效缓存且五秒未完成时返回非503同步任务合同，现有前端保持loading、自动轮询并取得终态。相同隔离键冷请求只产生一个任务，不同隔离范围不得合并或查询；任务总尝试最多3次，退避500ms、1000ms，终态至少保留10分钟。飞书完整成功零记录以HTTP 200完整空集合缓存，超时、分页未完成、权限失败和同步未完成不得伪装为空。服务以seaoil-deh:seaoil-deh运行并从部署目录外恢复快照；运行时不超过1.5个CPU核、2GB内存和3GB磁盘缓存；容量降级不删除success schema字段或未经重审取消代表operation缓存；强一致例外、实时鉴权、写后更新和回滚均有自动化或可复现证据。",
+  "deadline": "尽快完成",
+  "risk_level": "high",
+  "state": "blocked",
+  "stop": {
+    "reason": "Repair attempt 2 failed in the authenticated test environment: four unresolved blockers remain (homepage completion, automatic recovery, task-status HTTP contract, and reusable cache formation); the governed two-attempt repair limit is exhausted.",
+    "stopped_by": "AI Team Lead (Codex)",
+    "stopped_at": "2026-10-09T16:32:21.7296557Z"
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "User (Product Owner)",
+      "approved_at": "2026-10-08T13:45:34.9218678Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "User (Product Owner)",
+      "approved_at": "2026-10-08T13:56:26.5017758Z"
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": true,
+    "mobile_passed": false,
+    "web_evidence": ".ai-team/tasks/DEH-SERVER-CACHE-20261008/handoffs/web.md",
+    "web_checked_at": "2026-10-09T15:39:59.6146614Z",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": false,
+    "blocking_defects": 4,
+    "evidence": ".ai-team/tasks/DEH-SERVER-CACHE-20261008/qa-report.md",
+    "recorded_at": "2026-10-09T16:31:44.3096823Z"
+  },
+  "repair_attempts": 2,
+  "repair_history": [
+    {
+      "attempt": 1,
+      "platform": "web",
+      "evidence": ".ai-team/tasks/DEH-SERVER-CACHE-20261008/qa-report.md (Repair Routing)",
+      "qa_evidence": ".ai-team/tasks/DEH-SERVER-CACHE-20261008/qa-report.md",
+      "recorded_at": "2026-10-09T06:33:36.4865172Z"
+    },
+    {
+      "attempt": 2,
+      "platform": "web",
+      "evidence": ".ai-team/tasks/DEH-SERVER-CACHE-20261008/qa-report.md (Repair Attempt 2 Routing)",
+      "qa_evidence": ".ai-team/tasks/DEH-SERVER-CACHE-20261008/qa-report.md",
+      "recorded_at": "2026-10-09T15:10:57.4827731Z"
+    }
+  ]
+}

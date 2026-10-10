@@ -7,9 +7,12 @@
     "node": ">=20.6"
   },
   "scripts": {
-    "start": "node --env-file=.env server/test-deployment-server.mjs"
+    "start": "node --max-old-space-size=1536 --env-file=.env server/test-deployment-server.mjs"
   },
   "dependencies": {
-    "undici": "^6.21.1"
-  }
+    "undici": "6.28.1"
+  },
+  "bundledDependencies": [
+    "undici"
+  ]
 }

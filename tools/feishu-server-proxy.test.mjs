@@ -112,6 +112,70 @@ const emptyTableClient = createFeishuOpenApiClient({
 });
 assert.deepEqual(await emptyTableClient.listRecords('tblEmpty', { pageSize: 10 }), { items: [], total: 0, hasMore: false, nextPageToken: '' });
 
+let externalAbortObserved = false;
+const abortableClient = createFeishuOpenApiClient({
+  appId: 'app-test', appSecret: 'secret-test', baseToken: 'base-test',
+  fetchImpl: async (url, init = {}) => {
+    if (String(url).endsWith('/auth/v3/tenant_access_token/internal')) {
+      return Response.json({ code: 0, tenant_access_token: 'server-only-token', expire: 7200 });
+    }
+    return new Promise((resolve, reject) => {
+      init.signal?.addEventListener('abort', () => {
+        externalAbortObserved = true;
+        reject(init.signal.reason || new Error('aborted'));
+      }, { once: true });
+    });
+  }
+});
+const externalController = new AbortController();
+const abortableRead = abortableClient.listRecords('tblAbort', { pageSize: 10 }, { signal: externalController.signal });
+await new Promise(resolve => setTimeout(resolve, 0));
+externalController.abort(new FeishuProxyError('READ_SYNC_DEADLINE_EXCEEDED', '数据同步超时', 504));
+await assert.rejects(() => abortableRead, error => error?.code === 'READ_SYNC_DEADLINE_EXCEEDED');
+assert.equal(externalAbortObserved, true, '任务硬截止必须传播到真实 OpenAPI fetch AbortSignal');
+
+let tokenAbortObserved = false;
+const tokenAbortClient = createFeishuOpenApiClient({
+  appId: 'app-test', appSecret: 'secret-test', baseToken: 'base-test',
+  fetchImpl: async (_url, init = {}) => new Promise((resolve, reject) => {
+    init.signal?.addEventListener('abort', () => {
+      tokenAbortObserved = true;
+      reject(init.signal.reason || new Error('aborted'));
+    }, { once: true });
+  })
+});
+const tokenController = new AbortController();
+const tokenBoundRead = tokenAbortClient.listRecords('tblAbortToken', { pageSize: 10 }, { signal: tokenController.signal });
+await new Promise(resolve => setTimeout(resolve, 0));
+tokenController.abort(new FeishuProxyError('READ_SYNC_DEADLINE_EXCEEDED', '数据同步超时', 504));
+await assert.rejects(() => tokenBoundRead, error => error?.code === 'READ_SYNC_DEADLINE_EXCEEDED');
+assert.equal(tokenAbortObserved, true, '任务硬截止必须中止由该任务等待的租户 token fetch');
+
+let contactAbortCount = 0;
+const contactAbortClient = createFeishuOpenApiClient({
+  appId: 'app-test', appSecret: 'secret-test', baseToken: 'base-test',
+  fetchImpl: async (url, init = {}) => {
+    if (String(url).endsWith('/auth/v3/tenant_access_token/internal')) {
+      return Response.json({ code: 0, tenant_access_token: 'server-only-token', expire: 7200 });
+    }
+    return new Promise((resolve, reject) => {
+      init.signal?.addEventListener('abort', () => {
+        contactAbortCount += 1;
+        reject(init.signal.reason || new Error('aborted'));
+      }, { once: true });
+    });
+  }
+});
+const contactController = new AbortController();
+const contactReads = Promise.all([
+  contactAbortClient.listDepartmentChildren('0', { pageSize: 50 }, { signal: contactController.signal }),
+  contactAbortClient.listUsersByDepartment('0', { pageSize: 50 }, { signal: contactController.signal })
+]);
+await new Promise(resolve => setTimeout(resolve, 0));
+contactController.abort(new FeishuProxyError('READ_SYNC_DEADLINE_EXCEEDED', '数据同步超时', 504));
+await assert.rejects(() => contactReads, error => error?.code === 'READ_SYNC_DEADLINE_EXCEEDED');
+assert.equal(contactAbortCount, 2, '通讯录部门和用户 fetch 都必须接收任务硬截止信号');
+
 const calls = [];
 const fakeRowsByTableId = new Map([
   [contract.byName.get('数字化认证').tableId, { record_id: 'rec-cert', fields: { 主键: 'CERT-001', 认证类型: 'RPA', 状态: '有效' } }],
@@ -210,6 +274,7 @@ assert.equal(calls.filter(call => call.url.endsWith('/auth/v3/tenant_access_toke
 const service = createFeishuReadOnlyService({
   client,
   identifierContract: contract,
+  realtimeAuthorization: false,
   traceIdFactory: () => 'trace-feishu-server-001',
   now: () => new Date('2026-09-02T08:00:00.000Z')
 });

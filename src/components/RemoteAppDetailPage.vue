@@ -1,10 +1,11 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import TypeLineIcon from './TypeLineIcon.vue';
 import AppDetailStateBoundary from './AppDetailStateBoundary.vue';
 import AppDetailRemoteFacts from './AppDetailRemoteFacts.vue';
 import AppDetailAuthoritativeBody from './AppDetailAuthoritativeBody.vue';
 import AppDetailLiveSections from './AppDetailLiveSections.vue';
+import { projectAppDetailDirectoryNames, resolveAppDetailDirectoryNames } from '../integration/app-detail-directory-names.js';
 
 const props = defineProps({
   projection: { type: Object, required: true },
@@ -17,6 +18,33 @@ const props = defineProps({
 });
 
 const detail = computed(() => props.projection.detail?.value || props.projection.detail || {});
+const resolvedDirectoryNames = ref({});
+let directoryResolutionRun = 0;
+const directoryResolutionKey = computed(() => {
+  const source = detail.value;
+  return [
+    source.appId,
+    source.ownerId, source.ownerName,
+    source.developerId, source.developerName,
+    source.responsibleOrgId, source.responsibleOrgName,
+    source.developerOrgId, source.developerOrgName,
+    typeof props.operationExecutor === 'function' ? 'enabled' : 'disabled',
+  ].map(value => String(value ?? '').trim()).join('\u0000');
+});
+watch(directoryResolutionKey, async () => {
+  const run = ++directoryResolutionRun;
+  resolvedDirectoryNames.value = {};
+  if (!detail.value.appId || typeof props.operationExecutor !== 'function') return;
+  const names = await resolveAppDetailDirectoryNames({ ...detail.value }, props.operationExecutor);
+  if (run === directoryResolutionRun) resolvedDirectoryNames.value = names;
+}, { immediate: true });
+const displayDetail = computed(() => projectAppDetailDirectoryNames(detail.value, resolvedDirectoryNames.value));
+const displayProjection = computed(() => ({
+  ...props.projection,
+  detail: displayDetail.value,
+  ownerName: displayDetail.value.ownerName || displayDetail.value.developerName || '—',
+  departmentName: displayDetail.value.responsibleOrgName || displayDetail.value.developerOrgName || '—',
+}));
 const FAMILY_CLASSES = Object.freeze({
   tool: 'tool-detail', work: 'work-detail', report: 'report-detail', dashboard: 'dashboard-detail',
   dataset: 'dataset-detail', metric: 'metric-detail', ai: 'ai-detail', ead: 'ead-detail', rpa: 'rpa-detail',
@@ -73,8 +101,8 @@ function scrollTo(id) {
         </div>
       </div>
     </header>
-    <AppDetailRemoteFacts :projection="projection" :kind="kind" />
-    <AppDetailAuthoritativeBody :projection="projection" :kind="kind" />
+    <AppDetailRemoteFacts :projection="displayProjection" :kind="kind" />
+    <AppDetailAuthoritativeBody :projection="displayProjection" :kind="kind" />
     <AppDetailLiveSections
       :integration-data="integrationData || { 'APP-003': detail }"
       integration-state="normal"

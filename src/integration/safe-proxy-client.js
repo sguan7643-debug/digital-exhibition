@@ -103,16 +103,24 @@ export function createSafeProxyClient(options = {}) {
   const fetchImpl = options.fetchImpl || globalThis.fetch;
   if (typeof fetchImpl !== 'function') throw new Error('缺少安全代理请求实现');
   const timeoutMs = Number.isFinite(options.timeoutMs) && options.timeoutMs > 0 ? options.timeoutMs : null;
+  const syncPollMinMs = Math.max(1, Number(options.syncPollMinMs) || 100);
+  const syncPollMaxMs = Math.max(syncPollMinMs, Number(options.syncPollMaxMs) || 5_000);
+  const syncTimeoutMs = Math.max(syncPollMaxMs, Number(options.syncTimeoutMs) || timeoutMs || 60_000);
   const traceIdFactory = options.traceIdFactory || (() => globalThis.crypto?.randomUUID?.() || `trace-sequence-${++fallbackTraceSequence}`);
   const operationContracts = options.operationContracts || {};
 
   async function awaitSync(body, operationId, contract, signal) {
     if (!/^[A-Za-z0-9-]{8,160}$/.test(body.syncId || '')) throw createSchemaError('同步任务编号缺失或无效');
+    const deadline = Date.now() + syncTimeoutMs;
+    let pollAfterMs = Number(body.pollAfterMs) || 2_000;
     for (;;) {
+      if (Date.now() >= deadline) {
+        throw new IntegrationRequestError('数据同步超时', { state: 'timeout', retryable: true, code: 'SYNC_STATUS_TIMEOUT' });
+      }
       await new Promise((resolve, reject) => {
         if (signal.aborted) return reject(signal.reason);
         const abort = () => { clearTimeout(timer); signal.removeEventListener('abort', abort); reject(signal.reason); };
-        const timer = setTimeout(() => { signal.removeEventListener('abort', abort); resolve(); }, Math.max(100, Math.min(5000, body.pollAfterMs || 2000)));
+        const timer = setTimeout(() => { signal.removeEventListener('abort', abort); resolve(); }, Math.max(syncPollMinMs, Math.min(syncPollMaxMs, pollAfterMs)));
         signal.addEventListener('abort', abort, { once: true });
       });
       const response = await fetchImpl(`${baseUrl}/operations/sync-jobs/${encodeURIComponent(body.syncId)}`, {
@@ -120,14 +128,25 @@ export function createSafeProxyClient(options = {}) {
       });
       const status = await response.json();
       assertSafePayload(status);
-      if (!response.ok) throw new IntegrationRequestError(status.message || '同步任务查询失败', { ...normalizeIntegrationError({ status: response.status, code: status.code }), status: response.status });
+      if (!response.ok) {
+        const normalized = normalizeIntegrationError({ status: response.status, code: status.code });
+        if (normalized.retryable && Date.now() < deadline) {
+          pollAfterMs = Number(status.pollAfterMs) || Number(status.retryAfterSeconds) * 1_000 || pollAfterMs;
+          continue;
+        }
+        throw new IntegrationRequestError(status.message || '同步任务查询失败', { ...normalized, status: response.status, code: status.code });
+      }
       if (status.code !== 'OK' || status.operationId !== operationId || status.syncId !== body.syncId) throw createSchemaError('同步任务响应不符合合同');
-      if (status.state === 'running') continue;
+      if (status.state === 'queued' || status.state === 'running') {
+        pollAfterMs = Number(status.pollAfterMs) || pollAfterMs;
+        continue;
+      }
       if (status.state === 'completed') {
         enforceSchema(status.result, contract.successSchema, 'success response');
         return status.result;
       }
       if (status.state === 'failed') throw new IntegrationRequestError(status.error?.message || '数据同步失败', { ...normalizeIntegrationError(status.error), status: status.error?.status });
+      if (status.state === 'expired') throw new IntegrationRequestError(status.error?.message || '同步任务已过期', { state: 'timeout', retryable: false, status: status.error?.status, code: status.error?.code || 'SYNC_JOB_EXPIRED' });
       throw createSchemaError('同步任务状态无效');
     }
   }
@@ -207,7 +226,7 @@ export function createSafeProxyClient(options = {}) {
         if (body?.code === 'FEISHU_INITIAL_SYNCING') {
           if (body.syncId) return await awaitSync(body, operationId, contract, controller.signal);
           const normalized = validateErrorEnvelope(body, contract, response, traceId);
-          throw new IntegrationRequestError('正式飞书数据正在首次同步', {
+          throw new IntegrationRequestError('请求处理中', {
             ...normalized, status: response.status, traceId: body.traceId || traceId
           });
         }

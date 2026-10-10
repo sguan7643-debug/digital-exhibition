@@ -132,15 +132,19 @@ export function createTestDeploymentServer({ config, prewarm = true, feishuOptio
   const stack = createFeishuMiddlewareStack({
     ...feishuOptions,
     prewarm,
+    requirePersistentCache: feishuOptions.requirePersistentCache ?? prewarm !== false,
     defaultAuthReturnTo: feishuOptions.defaultAuthReturnTo || `${normalized.appBase}/`
   });
   const staticHandler = createStaticHandler(normalized);
-  return createServer((request, response) => {
+  const server = createServer((request, response) => {
     runMiddlewareChain(stack.middlewares, request, response, staticHandler).catch(() => {
       if (!response.headersSent) sendJson(response, 500, { code: 'TEST_SERVER_ERROR', message: '测试服务暂不可用' });
       else response.destroy();
     });
   });
+  server.flushRuntimeCache = () => stack.readService.flushPersistentCache?.();
+  server.on('close', () => stack.readService.close?.());
+  return server;
 }
 
 export async function startTestDeploymentServer() {
@@ -155,7 +159,18 @@ export async function startTestDeploymentServer() {
 
 const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : '';
 if (invokedPath === import.meta.url) {
-  startTestDeploymentServer().catch(error => {
+  startTestDeploymentServer().then(server => {
+    let stopping = false;
+    const stop = async signal => {
+      if (stopping) return;
+      stopping = true;
+      try { await server.flushRuntimeCache?.(); } catch {}
+      await new Promise(resolveClose => server.close(resolveClose));
+      process.stdout.write(`Digital Exhibition test server stopped: ${signal}\n`);
+    };
+    process.once('SIGTERM', () => { stop('SIGTERM').catch(() => { process.exitCode = 1; }); });
+    process.once('SIGINT', () => { stop('SIGINT').catch(() => { process.exitCode = 1; }); });
+  }).catch(error => {
     process.stderr.write(`Test server failed to start: ${String(error?.message || error)}\n`);
     process.exitCode = 1;
   });

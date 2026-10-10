@@ -27,18 +27,52 @@ import { createHomepageAggregateNodeMiddleware } from './homepage-aggregate-midd
 import { isSameOriginRequest } from './same-origin-request.mjs';
 import { createBusinessWriteGovernance } from './business-write-governance.mjs';
 import { createBusinessCommandHandlers } from './business-command-handlers.mjs';
+import { createPersistentReadCache, snapshotNamespace } from './feishu-persistent-read-cache.mjs';
+
+export async function runFeishuStartupPrewarmSequence({ homepagePrewarm, onboardingPrewarm }) {
+  try {
+    return await homepagePrewarm();
+  } finally {
+    await Promise.resolve()
+      .then(() => onboardingPrewarm())
+      .catch(() => null);
+  }
+}
 
 export function createFeishuMiddlewareStack(options = {}) {
   const contractPath = fileURLToPath(new URL('./contracts/feishu-base-identifiers.json', import.meta.url));
   const identifierContract = loadFeishuIdentifierContract(contractPath);
   const client = createFeishuOpenApiClient(options);
   const fileAccessService = createFeishuFileAccessService({ client });
+  const appId = options.appId ?? process.env.FEISHU_APP_ID ?? '';
+  const appSecret = options.appSecret ?? process.env.FEISHU_APP_SECRET ?? '';
+  const baseToken = options.baseToken ?? process.env.FEISHU_BASE_TOKEN ?? '';
+  const persistentCacheEnabled = options.persistentCacheEnabled
+    ?? (process.env.FEISHU_RUNTIME_CACHE_ENABLED === '1' || (process.env.FEISHU_RUNTIME_CACHE_ENABLED !== '0' && process.platform !== 'win32'));
+  const runtimeCacheDir = options.runtimeCacheDir ?? process.env.FEISHU_RUNTIME_CACHE_DIR ?? '/home/seaoil/pre-demo/runtime-cache/';
+  const persistentCache = createPersistentReadCache({
+    enabled: persistentCacheEnabled,
+    directory: runtimeCacheDir,
+    maxDiskBytes: Math.min(3 * 1024 * 1024 * 1024, Number(options.runtimeCacheMaxBytes ?? process.env.FEISHU_RUNTIME_CACHE_MAX_BYTES) || 3 * 1024 * 1024 * 1024),
+    namespace: snapshotNamespace({ appId, baseToken }),
+    requiredOwner: options.runtimeCacheOwner ?? process.env.FEISHU_RUNTIME_CACHE_OWNER ?? (process.platform === 'win32' ? '' : 'seaoil-deh'),
+    forbiddenValues: [appSecret, baseToken]
+  });
+  const memoryCacheMaxBytes = Math.min(
+    256 * 1024 * 1024,
+    Number(options.memoryCacheMaxBytes ?? process.env.FEISHU_MEMORY_CACHE_MAX_BYTES) || 256 * 1024 * 1024
+  );
   const readService = createFeishuReadOnlyService({
     client,
     identifierContract,
     fileAccessService,
     allowedAppLaunchHosts: options.allowedAppLaunchHosts,
-    coldMissBudgetMs: options.coldMissBudgetMs ?? 5_000
+    coldMissBudgetMs: options.coldMissBudgetMs ?? 5_000,
+    syncTaskTimeoutMs: Math.min(25_000, Number(options.syncTaskTimeoutMs ?? process.env.FEISHU_SYNC_TASK_TIMEOUT_MS) || 25_000),
+    maxSyncConcurrency: Math.min(3, Number(options.maxSyncConcurrency ?? process.env.FEISHU_SYNC_MAX_CONCURRENCY) || 3),
+    operationCacheMaxBytes: Math.max(1_024, Math.floor(memoryCacheMaxBytes / 2)),
+    tableReadCacheMaxBytes: Math.max(1_024, Math.floor(memoryCacheMaxBytes / 2)),
+    persistentCache
   });
   const adminClient = createFeishuSchemaAdminClient(options);
   const safeRecordService = createFeishuSafeTestRecordService({ client: adminClient });
@@ -58,6 +92,7 @@ export function createFeishuMiddlewareStack(options = {}) {
   });
   const service = createFeishuCompositeOperationService({
     readService,
+    persistentCache,
     writeService,
     businessWriteService,
     browserWriteEnabled: options.browserWriteEnabled ?? process.env.FEISHU_BROWSER_TEST_WRITE_ENABLED === '1'
@@ -100,7 +135,10 @@ export function createFeishuMiddlewareStack(options = {}) {
     approvalNotifier,
     preWriteGate: input => onboardingOrchestrator.execute(input),
     onInstanceCreated: record => onboardingOrchestrator.appendLedger({ objectType: 'APPROVAL_INSTANCE', instanceId: record.instanceId, businessKey: record.businessKey, applicationId: record.applicationId, cleanupStrategy: 'RETAIN_APPROVAL_INSTANCE' }),
-    onProjected: () => readService.invalidateAppProjection()
+    onProjected: async () => {
+      readService.invalidateAppProjection();
+      await readService.flushPersistentCache?.({ discardOnFailure: true });
+    }
   });
   const approvalMiddleware = createFeishuApprovalNodeMiddleware({
     service: approvalService,
@@ -136,15 +174,19 @@ export function createFeishuMiddlewareStack(options = {}) {
   const homepageService = createHomepageAggregateService({
     readService,
     prewarm: options.prewarm,
-    responseBudgetMs: options.homepageResponseBudgetMs
+    requirePersistentCache: options.requirePersistentCache !== false,
+    responseBudgetMs: options.homepageResponseBudgetMs,
+    taskTimeoutMs: Math.min(25_000, Number(options.syncTaskTimeoutMs ?? process.env.FEISHU_SYNC_TASK_TIMEOUT_MS) || 25_000)
   });
   const homepageMiddleware = createHomepageAggregateNodeMiddleware({
     service: homepageService,
     resolveRequestContext
   });
   if (options.prewarm !== false) queueMicrotask(() => {
-    homepageService.startPrewarm();
-    onboardingOrchestrator.prewarm().catch(() => null);
+    void runFeishuStartupPrewarmSequence({
+      homepagePrewarm: () => homepageService.startPrewarm(),
+      onboardingPrewarm: () => onboardingOrchestrator.prewarm()
+    }).catch(() => null);
   });
   const middleware = createFeishuNodeMiddleware({
     service,

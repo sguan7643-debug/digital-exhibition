@@ -16,8 +16,9 @@ function errorResult(error, traceId) {
       code: controlled ? error.code : 'INTERNAL_PROXY_ERROR',
       message: controlled ? error.message : '安全代理处理失败',
       traceId,
-      ...(retryAfterSeconds ? { retryAfterSeconds } : {})
-      ,...(controlled && error.syncId ? { syncId: error.syncId, pollAfterMs: error.pollAfterMs || 2000 } : {})
+      ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
+      ...(controlled && error.syncId ? { syncId: error.syncId, pollAfterMs: error.pollAfterMs || 2000 } : {}),
+      ...(controlled && error.writeCommitted === true ? { writeCommitted: true, retryable: false } : {})
     }
   };
 }
@@ -29,6 +30,9 @@ export function createFeishuOperationDispatcher(options = {}) {
   const resolveRequestContext = options.resolveRequestContext || (() => ({}));
 
   return async function dispatch(request = {}) {
+    const requestReceivedAtMs = Number.isFinite(Number(request.requestReceivedAtMs))
+      ? Number(request.requestReceivedAtMs)
+      : Date.now();
     const pathname = new URL(request.url || '/', 'http://localhost').pathname;
     const match = ROUTE_PATTERN.exec(pathname);
     const isBatch = pathname === BATCH_ROUTE;
@@ -37,7 +41,7 @@ export function createFeishuOperationDispatcher(options = {}) {
       if (request.method !== 'GET') return { status: 405, body: { code: 'METHOD_NOT_ALLOWED', message: '同步状态仅接受 GET' } };
       try {
         const context = await resolveRequestContext(request);
-        return { status: 200, body: service.getReadSyncStatus(syncMatch[1], context || {}) };
+        return { status: 200, body: await service.getReadSyncStatus(syncMatch[1], context || {}) };
       } catch (error) { return errorResult(error, traceIdFactory()); }
     }
     if (!match && !isBatch) return null;
@@ -69,7 +73,11 @@ export function createFeishuOperationDispatcher(options = {}) {
       if (invalid) {
         return { status: 400, body: { code: 'INVALID_BATCH_ITEM', message: '批量请求仅允许已登记的只读 operation', traceId } };
       }
-      const requestContext = { ...(await resolveRequestContext(request)), freshRead: request.headers?.['x-read-consistency'] === 'fresh' };
+      const requestContext = {
+        ...(await resolveRequestContext(request)),
+        freshRead: request.headers?.['x-read-consistency'] === 'fresh',
+        requestReceivedAtMs
+      };
       const results = await Promise.all(body.requests.map(async item => {
         const itemTraceId = traceIdFactory();
         try {
@@ -93,7 +101,11 @@ export function createFeishuOperationDispatcher(options = {}) {
       return { status: 400, body: { code: 'INVALID_OPERATION_INPUT', message: 'input 必须是对象', traceId } };
     }
     try {
-      const requestContext = { ...(await resolveRequestContext(request)), freshRead: request.headers?.['x-read-consistency'] === 'fresh' };
+      const requestContext = {
+        ...(await resolveRequestContext(request)),
+        freshRead: request.headers?.['x-read-consistency'] === 'fresh',
+        requestReceivedAtMs
+      };
       const response = await service.execute(operationId, body.input || {}, requestContext || {});
       return { status: 200, body: response };
     } catch (error) {
@@ -130,6 +142,7 @@ export function createFeishuNodeMiddleware(options = {}) {
   const dispatch = createFeishuOperationDispatcher(options);
   const traceIdFactory = options.traceIdFactory || (() => `trace-${globalThis.crypto?.randomUUID?.() || Date.now()}`);
   return async function feishuProxyMiddleware(request, response, next) {
+    const requestReceivedAtMs = Date.now();
     const pathname = new URL(request.url || '/', 'http://localhost').pathname;
     if (!ROUTE_PATTERN.test(pathname) && pathname !== BATCH_ROUTE && !SYNC_ROUTE.test(pathname)) return next();
     let body;
@@ -143,7 +156,7 @@ export function createFeishuNodeMiddleware(options = {}) {
       response.end(JSON.stringify(result.body));
       return;
     }
-    const result = await dispatch({ method: request.method, url: request.url, headers: request.headers, body });
+    const result = await dispatch({ method: request.method, url: request.url, headers: request.headers, body, requestReceivedAtMs });
     response.statusCode = result.status;
     response.setHeader('Content-Type', 'application/json; charset=utf-8');
     response.setHeader('Cache-Control', 'no-store');

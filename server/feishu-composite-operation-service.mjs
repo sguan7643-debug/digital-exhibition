@@ -16,13 +16,23 @@ export function createFeishuCompositeOperationService({ readService, writeServic
     async execute(operationId, input = {}, requestContext = {}) {
       const operation = getOperation(operationId);
       if (!operation) throw new FeishuProxyError('UNKNOWN_OPERATION', '接口不在受控操作清单中', 404);
-      if (operation.access !== 'write') return requestContext.freshRead && readService.executeFresh
-        ? readService.executeFresh(operationId, input, requestContext)
-        : readService.execute(operationId, input, requestContext);
+      if (operation.access !== 'write') {
+        if (requestContext.freshRead) {
+          const consistentRead = readService.executeRealtimeWithHandoff
+            || readService.executeConsistent
+            || readService.executeFresh
+            || readService.execute;
+          return consistentRead.call(readService, operationId, input, requestContext);
+        }
+        return readService.execute(operationId, input, requestContext);
+      }
       if (!businessWriteService && !browserWriteEnabled) throw new FeishuProxyError('BROWSER_TEST_WRITE_DISABLED', '浏览器测试写入门禁未开启', 403);
       if (requestContext.sameOriginRequest !== true) throw new FeishuProxyError('WRITE_ORIGIN_DENIED', '写请求未通过同源校验', 403);
       if (!requestContext.identity?.userId && !requestContext.identity?.openId) throw new FeishuProxyError('USER_AUTH_REQUIRED', '需要先完成飞书用户授权', 401);
-      const user = await readService.execute('COM-001', {}, requestContext);
+      const permissionRead = typeof readService.executeConsistent === 'function'
+        ? readService.executeConsistent.bind(readService)
+        : readService.execute.bind(readService);
+      const user = await permissionRead('COM-001', {}, requestContext);
       if (!permissionAllows(user?.data?.permissions, operationId)) {
         throw new FeishuProxyError('PERMISSION_DENIED', '当前用户缺少该写操作权限', 403);
       }
@@ -31,6 +41,7 @@ export function createFeishuCompositeOperationService({ readService, writeServic
         : await writeService.execute(operationId, input);
       if (typeof readService.invalidateTables === 'function' && result?.data?.tableName) {
         readService.invalidateTables([result.data.tableName]);
+        await readService.flushPersistentCache?.({ discardOnFailure: true });
       }
       return result;
     }

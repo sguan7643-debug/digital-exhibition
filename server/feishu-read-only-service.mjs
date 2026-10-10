@@ -1,7 +1,15 @@
 import { FeishuProxyError } from './feishu-open-api-client.mjs';
 import { getOperation } from '../src/integration/operation-registry.js';
 import { createHash, randomUUID } from 'node:crypto';
-import { READ_OPERATION_CACHE_POLICIES } from './feishu-read-cache-policies.mjs';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { setMaxListeners } from 'node:events';
+import {
+  READ_OPERATION_CACHE_POLICIES,
+  REPRESENTATIVE_CACHE_OPERATION_IDS,
+  STRONG_CONSISTENCY_OPERATION_IDS
+} from './feishu-read-cache-policies.mjs';
+import { createReadIsolationKey, fingerprintReadIsolation, normalizeReadInput } from './feishu-read-isolation-key.mjs';
+import { createVerifiedReadOperationContracts, validateContractSchema } from '../src/integration/operation-contract-schemas.js';
 
 const READ_PLANS = Object.freeze({
   'COM-001': Object.freeze({ kind: 'current-user' }),
@@ -70,10 +78,13 @@ const READ_PLANS = Object.freeze({
   'MAT-002': Object.freeze({ kind: 'first-batch-detail' }),
   'MAT-003': Object.freeze({ kind: 'secure-resource' })
 });
+const STRONG_CONSISTENCY_OPERATION_SET = new Set(STRONG_CONSISTENCY_OPERATION_IDS);
+const REPRESENTATIVE_CACHE_OPERATION_SET = new Set(REPRESENTATIVE_CACHE_OPERATION_IDS);
+const VERIFIED_READ_OPERATION_CONTRACTS = createVerifiedReadOperationContracts();
 
 const PROFILE_FIELDS = Object.freeze({
   user: Object.freeze(['AD账号', '工号', '姓名', '手机号脱敏值', '邮箱脱敏值', '组织ID', '组织名称', '所属部门ID', '所属部门名称']),
-  permissions: Object.freeze(['AD账号', '状态', '权限编码', '启用']),
+  permissions: Object.freeze(['AD账号', '主体ID', '状态', '权限编码', '数据范围', '启用', '生效时间', '失效时间']),
   messages: Object.freeze(['消息ID', '接收人ID', '消息标题', '消息内容', '分类', '已读状态', '消息时间', '消息类型编码', '消息摘要', '优先级', '发送人ID', '目标类型', '目标ID', '目标路径', '过期时间', '阅读时间']),
   favorites: Object.freeze(['用户ID', '有效']),
   balance: Object.freeze(['用户ID', '当前总积分']),
@@ -247,6 +258,20 @@ function safeRecord(record, plan) {
   };
 }
 
+function createSyncAbortController() {
+  const controller = new AbortController();
+  setMaxListeners(0, controller.signal);
+  return controller;
+}
+
+export function resolveFeishuReadHandoffBudgetMs(value) {
+  const configured = Number(value ?? 5_000);
+  if (!Number.isFinite(configured) || configured <= 0) return 0;
+  // Production's five-second browser SLO includes serialization and transport.
+  // Tiny test budgets stay exact so deterministic unit tests remain practical.
+  return configured >= 1_000 ? Math.min(configured, 4_500) : configured;
+}
+
 export function createFeishuReadOnlyService(options) {
   const { client, identifierContract } = options || {};
   if (!client || !identifierContract?.byName) throw new Error('只读服务缺少飞书客户端或标识契约');
@@ -256,12 +281,36 @@ export function createFeishuReadOnlyService(options) {
   const tableReadCacheMs = options.tableReadCacheMs ?? 60_000;
   const readBudgetMs = resolveFeishuReadBudgetMs(options.readBudgetMs ?? process.env.FEISHU_READ_BUDGET_MS);
   const configuredColdMissBudgetMs = Number(options.coldMissBudgetMs ?? 0);
-  const coldMissBudgetMs = Number.isFinite(configuredColdMissBudgetMs) && configuredColdMissBudgetMs > 0
-    ? Math.min(configuredColdMissBudgetMs, 5_000)
-    : 0;
+  const coldMissBudgetMs = resolveFeishuReadHandoffBudgetMs(configuredColdMissBudgetMs);
   const readNow = options.readNow || Date.now;
   const cacheNow = options.cacheNow || Date.now;
   const readSleep = options.readSleep || (milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)));
+  const persistentCache = options.persistentCache || null;
+  const maxSyncConcurrency = Math.max(1, Math.min(3, Number(options.maxSyncConcurrency ?? 3) || 3));
+  const backgroundRefreshIntervalMs = Math.max(1_000, Number(options.backgroundRefreshIntervalMs ?? 15_000) || 15_000);
+  const syncJobRetentionMs = Math.max(600_000, Number(options.syncJobRetentionMs ?? 600_000) || 600_000);
+  const syncRetryAttempts = Math.max(1, Math.min(3, Number(options.syncRetryAttempts ?? 3) || 3));
+  const syncRetryBackoffMs = Math.max(1, Math.min(1_000, Number(options.syncRetryBackoffMs ?? 500) || 500));
+  const syncTaskTimeoutMs = Math.max(1, Math.min(25_000, Number(options.syncTaskTimeoutMs ?? 25_000) || 25_000));
+  const taskStatusAuthorizationBudgetMs = Math.max(1, Math.min(4_500, Number(options.statusAuthorizationBudgetMs ?? 4_000) || 4_000));
+  const taskStatusAuthorizationContinuationMs = Math.max(
+    2_000,
+    Math.min(10_000, Number(options.statusAuthorizationContinuationMs ?? 6_000) || 6_000)
+  );
+  const realtimeAuthorization = options.realtimeAuthorization !== false;
+  const tableDependencyScope = new AsyncLocalStorage();
+  const strongReadScope = new AsyncLocalStorage();
+  const syncTaskScope = new AsyncLocalStorage();
+  const sharedReadBatchScope = new AsyncLocalStorage();
+  const authorizationReadScope = new AsyncLocalStorage();
+  const verifiedAuthorizationContexts = new WeakSet();
+  const authorizationRequests = new WeakMap();
+  const authorizationRequestsByIdentity = new Map();
+  const taskStatusAuthorizationContinuations = new Map();
+  const trustedSystemContexts = new WeakSet();
+  let activeSyncs = 0;
+  const syncQueue = [];
+  const authorizationSyncQueue = [];
   const fileAccessService = options.fileAccessService;
   const allowedAppLaunchHosts = new Set((Array.isArray(options.allowedAppLaunchHosts)
     ? options.allowedAppLaunchHosts
@@ -270,61 +319,366 @@ export function createFeishuReadOnlyService(options) {
   let appProjectionCache = null;
   let appProjectionExpiresAt = 0;
   let appProjectionPending = null;
+  let appProjectionPendingEpoch = -1;
   let appDetailCountCache = null;
   let appDetailCountExpiresAt = 0;
   let appDetailCountPending = null;
+  let appDetailCountPendingEpoch = -1;
   let announcementProjectionCache = null;
   let announcementProjectionExpiresAt = 0;
   let announcementProjectionPending = null;
+  let announcementProjectionPendingEpoch = -1;
   const talentProjectionCache = new Map();
   const talentProjectionPending = new Map();
+  const talentProjectionPendingEpoch = new Map();
   let contactProjectionCache = null;
   let contactProjectionExpiresAt = 0;
   let contactProjectionPending = null;
+  let contactProjectionPendingEpoch = -1;
   const dictionaryProjectionCache = new Map();
   const dictionaryProjectionPending = new Map();
+  const dictionaryProjectionPendingEpoch = new Map();
   const tableReadCache = new Map();
+  const tableReadCacheMaxEntries = Math.max(1, Number(options.tableReadCacheMaxEntries ?? 512));
+  const tableReadCacheMaxBytes = Math.max(1_024, Number(options.tableReadCacheMaxBytes ?? 128 * 1024 * 1024));
+  let tableReadCacheBytes = 0;
   const tableReadPending = new Map();
   const operationCache = new Map();
   const operationPending = new Map();
+  let cacheInvalidationEpoch = 0;
+  const tableInvalidationVersions = new Map();
   const syncJobs = new Map();
   const syncByRequest = new Map();
 
+  function syncDeadlineError() {
+    return new FeishuProxyError(
+      'READ_SYNC_DEADLINE_EXCEEDED',
+      '数据同步超时',
+      504,
+      { retryAfterSeconds: 2 }
+    );
+  }
+
+  function syncStateExpired(state = syncTaskScope.getStore()) {
+    if (!state) return false;
+    return state.cancelled === true
+      || state.signal?.aborted === true
+      || (Number.isFinite(state.deadlineAt) && readNow() >= state.deadlineAt);
+  }
+
+  function assertSyncTaskActive(state = syncTaskScope.getStore()) {
+    if (!syncStateExpired(state)) return;
+    if (state) state.cancelled = true;
+    throw syncDeadlineError();
+  }
+
+  function syncRequestOptions() {
+    const state = syncTaskScope.getStore();
+    return state?.signal ? { signal: state.signal } : {};
+  }
+
+  async function sleepWithinSync(milliseconds) {
+    const state = syncTaskScope.getStore();
+    assertSyncTaskActive(state);
+    if (!state?.signal) return readSleep(milliseconds);
+    let abortHandler;
+    try {
+      await Promise.race([
+        readSleep(milliseconds),
+        new Promise((_, reject) => {
+          abortHandler = () => reject(syncDeadlineError());
+          state.signal.addEventListener('abort', abortHandler, { once: true });
+        })
+      ]);
+    } finally {
+      if (abortHandler) state.signal.removeEventListener('abort', abortHandler);
+    }
+    assertSyncTaskActive(state);
+  }
+
+  function runWithSyncSlot(task) {
+    const taskState = syncTaskScope.getStore();
+    const priority = authorizationReadScope.getStore() === true;
+    return new Promise((resolve, reject) => {
+      let started = false;
+      let settled = false;
+      let queuedAbortHandler;
+      const settle = (callback, value) => {
+        if (settled) return;
+        settled = true;
+        callback(value);
+      };
+      const startNext = () => (authorizationSyncQueue.shift() || syncQueue.shift())?.();
+      const run = () => {
+        if (started || settled) return;
+        started = true;
+        if (queuedAbortHandler) taskState.signal.removeEventListener('abort', queuedAbortHandler);
+        if (syncStateExpired(taskState)) {
+          settle(reject, syncDeadlineError());
+          startNext();
+          return;
+        }
+        activeSyncs += 1;
+        let abortHandler;
+        const execution = Promise.resolve().then(() => syncTaskScope.run(taskState, () => {
+          assertSyncTaskActive(taskState);
+          return task();
+        }));
+        abortHandler = taskState?.signal
+          ? () => settle(reject, syncDeadlineError())
+          : null;
+        if (abortHandler) taskState.signal.addEventListener('abort', abortHandler, { once: true });
+        execution.then(
+          value => settle(resolve, value),
+          error => settle(reject, error)
+        ).finally(() => {
+          if (abortHandler) taskState.signal.removeEventListener('abort', abortHandler);
+          activeSyncs -= 1;
+          startNext();
+        });
+      };
+      if (activeSyncs < maxSyncConcurrency) run();
+      else {
+        const queue = priority ? authorizationSyncQueue : syncQueue;
+        queue.push(run);
+        if (taskState?.signal) {
+          queuedAbortHandler = () => {
+            const index = queue.indexOf(run);
+            if (index >= 0) queue.splice(index, 1);
+            settle(reject, syncDeadlineError());
+          };
+          if (taskState.signal.aborted) queuedAbortHandler();
+          else taskState.signal.addEventListener('abort', queuedAbortHandler, { once: true });
+        }
+      }
+    });
+  }
+
+  function runWithSharedReadBatch(factory) {
+    if (sharedReadBatchScope.getStore()) return factory();
+    return sharedReadBatchScope.run({ promises: new Map() }, factory);
+  }
+
+  function sharedBatchPromise(key, factory) {
+    const batch = sharedReadBatchScope.getStore();
+    if (!batch) return factory();
+    const normalizedKey = String(key || '');
+    const current = batch.promises.get(normalizedKey);
+    if (current) return current;
+    const request = Promise.resolve().then(factory);
+    batch.promises.set(normalizedKey, request);
+    return request;
+  }
+
+  function noteTableDependency(tableName) {
+    const normalized = String(tableName || '');
+    if (!normalized) return;
+    const tracker = tableDependencyScope.getStore();
+    if (!tracker) return;
+    if (tracker instanceof Set) {
+      tracker.add(normalized);
+      return;
+    }
+    tracker.names?.add(normalized);
+    if (tracker.versions instanceof Map && !tracker.versions.has(normalized)) {
+      tracker.versions.set(normalized, tableInvalidationVersions.get(normalized) || 0);
+    }
+  }
+
+  function dependencyTracker() {
+    return { names: new Set(), versions: new Map() };
+  }
+
+  function dependenciesChanged(tracker) {
+    if (!tracker?.versions) return false;
+    for (const [tableName, version] of tracker.versions) {
+      if ((tableInvalidationVersions.get(tableName) || 0) !== version) return true;
+    }
+    return false;
+  }
+
+  function syncTaskCancelled() {
+    return syncStateExpired();
+  }
+
   function syncOwner(context) {
-    return fingerprint(stableCacheValue(context?.identity || {}));
+    const identity = context?.identity || {};
+    return fingerprint({
+      tenantKey: valueToText(identity.tenantKey || identity.tenantId),
+      userId: valueToText(identity.userId),
+      openId: valueToText(identity.openId),
+      adAccount: valueToText(identity.adAccount)
+    });
+  }
+
+  function syncAuthorizationFingerprint(context) {
+    const identity = context?.identity || {};
+    return fingerprint({
+      tenantKey: valueToText(identity.tenantKey || identity.tenantId),
+      userId: valueToText(identity.adAccount || identity.userId || identity.openId),
+      permissions: Array.isArray(identity.permissions) ? [...identity.permissions].map(String).sort() : [],
+      dataScope: valueToList(identity.dataScope).map(String).sort()
+    });
+  }
+
+  function cleanupSyncJobs() {
+    const timestamp = cacheNow();
+    for (const [id, job] of syncJobs) {
+      if (!job.finishedAt || timestamp - job.finishedAt <= syncJobRetentionMs) continue;
+      if (job.state !== 'expired') {
+        job.state = 'expired';
+        job.expiredAt = timestamp;
+        for (const alias of job.aliases || [job.key]) {
+          if (syncByRequest.get(alias) === job) syncByRequest.delete(alias);
+        }
+        continue;
+      }
+      if (timestamp - Number(job.expiredAt || timestamp) <= syncJobRetentionMs) continue;
+      syncJobs.delete(id);
+    }
+  }
+
+  function syncFailure(error) {
+    return {
+      code: String(error?.code || 'READ_SYNC_FAILED'),
+      message: error instanceof FeishuProxyError ? error.message : '数据同步失败',
+      status: Number(error?.status || 500),
+      retryable: false
+    };
   }
 
   function trackSync(key, operationId, context, promise) {
-    const scopedKey = `${syncOwner(context)}:${key}`;
+    const authorizationFingerprint = syncAuthorizationFingerprint(context);
+    const scopedKey = `${syncOwner(context)}:${authorizationFingerprint}:${key}`;
     const existing = syncByRequest.get(scopedKey);
     if (existing?.state === 'running') return existing;
-    for (const [id, job] of syncJobs) {
-      if (job.finishedAt && cacheNow() - job.finishedAt > 300_000) {
-        syncJobs.delete(id);
-        if (syncByRequest.get(job.key) === job) syncByRequest.delete(job.key);
-      }
-    }
-    const job = { id: `read-${randomUUID()}`, key: scopedKey, owner: syncOwner(context), operationId, state: 'running' };
+    cleanupSyncJobs();
+    const job = {
+      id: `read-${randomUUID()}`,
+      key: scopedKey,
+      aliases: new Set([scopedKey]),
+      owner: syncOwner(context),
+      authorizationFingerprint,
+      operationId,
+      state: 'running'
+    };
     syncJobs.set(job.id, job);
     syncByRequest.set(scopedKey, job);
     promise.then(result => { job.result = result; job.state = 'completed'; }, error => {
-      job.error = { code: error.code || 'READ_SYNC_FAILED', message: error instanceof FeishuProxyError ? error.message : '数据同步失败', status: error.status || 500 };
+      job.error = syncFailure(error);
       job.state = 'failed';
     }).finally(() => { job.finishedAt = cacheNow(); });
     return job;
   }
 
-  function getReadSyncStatus(id, context = {}) {
+  function trackEndToEndSync(operationId, input, context, promise, authorizationFingerprintProvider, authorizedContextProvider) {
+    const resolvedAuthorizationFingerprint = valueToText(authorizationFingerprintProvider?.());
+    const resolvedAuthorizedContext = authorizedContextProvider?.();
+    const rawIdentity = context?.identity || {};
+    const rawScope = {
+      tenantKey: valueToText(rawIdentity.tenantKey || rawIdentity.tenantId),
+      userId: valueToText(rawIdentity.userId),
+      openId: valueToText(rawIdentity.openId),
+      adAccount: valueToText(rawIdentity.adAccount),
+      permissions: Array.isArray(rawIdentity.permissions) ? [...rawIdentity.permissions].map(String).sort() : [],
+      dataScope: valueToList(rawIdentity.dataScope || rawIdentity.departmentId || '').map(String).sort(),
+      operationId,
+      input: normalizeReadInput(operationId, input || {})
+    };
+    const provisionalKey = `request-pending-auth:${syncOwner(context)}:${fingerprint(rawScope)}`;
+    const canonicalKey = resolvedAuthorizationFingerprint && resolvedAuthorizedContext
+      ? `request:${createReadIsolationKey(operationId, input, resolvedAuthorizedContext)}`
+      : '';
+    const scopedKey = canonicalKey || provisionalKey;
+    let existing = canonicalKey ? syncByRequest.get(canonicalKey) : null;
+    if (!existing) {
+      const provisional = syncByRequest.get(provisionalKey);
+      const provisionalAuthorization = valueToText(
+        provisional?.authorizationFingerprint || provisional?.authorizationFingerprintProvider?.()
+      );
+      if (!canonicalKey || !provisionalAuthorization || provisionalAuthorization === resolvedAuthorizationFingerprint) {
+        existing = provisional;
+      }
+    }
+    if (existing?.state === 'running') {
+      if (canonicalKey) {
+        existing.authorizationFingerprint ||= resolvedAuthorizationFingerprint;
+        existing.aliases?.add(canonicalKey);
+        syncByRequest.set(canonicalKey, existing);
+      }
+      promise.catch(() => {});
+      return existing;
+    }
+    cleanupSyncJobs();
+    const job = {
+      id: `read-${randomUUID()}`,
+      key: scopedKey,
+      aliases: new Set([scopedKey, provisionalKey].filter(Boolean)),
+      owner: syncOwner(context),
+      authorizationFingerprint: resolvedAuthorizationFingerprint,
+      authorizationFingerprintProvider,
+      operationId,
+      state: 'running'
+    };
+    syncJobs.set(job.id, job);
+    for (const alias of job.aliases) syncByRequest.set(alias, job);
+    promise.then(result => {
+      job.authorizationFingerprint = valueToText(authorizationFingerprintProvider?.()) || job.authorizationFingerprint;
+      const resolvedContext = authorizedContextProvider?.() || null;
+      const resolvedKey = resolvedContext
+        ? `request:${createReadIsolationKey(operationId, input, resolvedContext)}`
+        : '';
+      if (resolvedKey) {
+        job.aliases.add(resolvedKey);
+        syncByRequest.set(resolvedKey, job);
+      }
+      job.result = result;
+      job.state = 'completed';
+    }, error => {
+      job.authorizationFingerprint = valueToText(authorizationFingerprintProvider?.()) || job.authorizationFingerprint;
+      job.error = syncFailure(error);
+      job.state = 'failed';
+    }).finally(() => { job.finishedAt = cacheNow(); });
+    return job;
+  }
+
+  async function getReadSyncStatus(id, context = {}) {
+    requireIdentity(context);
+    cleanupSyncJobs();
     const job = syncJobs.get(id);
-    if (!job || (job.finishedAt && cacheNow() - job.finishedAt > 300_000)) throw new FeishuProxyError('SYNC_JOB_NOT_FOUND', '同步任务已过期', 404);
+    if (!job) throw new FeishuProxyError('SYNC_JOB_NOT_FOUND', '同步任务已过期', 404);
     if (job.owner !== syncOwner(context)) throw new FeishuProxyError('SYNC_JOB_FORBIDDEN', '无权查看该同步任务', 403);
-    return { code: 'OK', syncId: job.id, operationId: job.operationId, state: job.state, ...(job.result ? { result: job.result } : {}), ...(job.error ? { error: job.error } : {}) };
+    const statusAuthorization = await authorizeTaskStatus(job.operationId, context);
+    const authorizedContext = statusAuthorization.context;
+    const expectedAuthorization = job.authorizationFingerprint
+      || valueToText(job.authorizationFingerprintProvider?.());
+    if (!statusAuthorization.deferred && expectedAuthorization && expectedAuthorization !== syncAuthorizationFingerprint(authorizedContext)) {
+      throw new FeishuProxyError('SYNC_JOB_FORBIDDEN', '当前权限或数据范围已变化，不能查看该同步任务', 403);
+    }
+    // When Feishu permission lookup is temporarily slow, keep the status
+    // endpoint on HTTP 200 but withhold terminal data until a real-time check
+    // succeeds. The next poll joins the same permission read.
+    const state = statusAuthorization.deferred && job.state !== 'running' ? 'running' : job.state;
+    return {
+      code: 'OK',
+      syncId: job.id,
+      operationId: job.operationId,
+      state,
+      ...(state === 'running' ? { pollAfterMs: 2_000 } : {}),
+      ...(state === 'completed' && job.result ? { result: job.result } : {}),
+      ...(state === 'failed' && job.error ? { error: job.error } : {})
+    };
   }
   const uncachedOperationPending = new Map();
   const operationCachePolicies = Object.freeze({ ...READ_OPERATION_CACHE_POLICIES, ...(options.operationCachePolicies || {}) });
   const operationCacheMaxEntries = Math.max(1, Number(options.operationCacheMaxEntries ?? 1_000));
   const operationCacheMaxBytes = Math.max(1_024, Number(options.operationCacheMaxBytes ?? 128 * 1024 * 1024));
   let operationCacheBytes = 0;
+  let operationCacheVersion = 0;
+  let persistedOperationCacheVersion = -1;
+  let persistedOperationCacheKeys = new Set();
+  let persistentCommit = null;
+  const persistentCommitCoalesceMs = Math.max(0, Math.min(25, Number(options.persistentCommitCoalesceMs ?? 5) || 0));
   const performanceMetrics = {
     requests: 0,
     freshHits: 0,
@@ -332,6 +686,8 @@ export function createFeishuReadOnlyService(options) {
     misses: 0,
     refreshes: 0,
     refreshFailures: 0,
+    refreshRetries: 0,
+    deadlineFailures: 0,
     staleFallbacks: 0,
     inflightDedupeHits: 0
   };
@@ -371,6 +727,41 @@ export function createFeishuReadOnlyService(options) {
     return filter ? `${tableName}\u0000${fingerprint(filter)}` : tableName;
   }
 
+  function tableCacheEntrySize(rows) {
+    try {
+      return Buffer.byteLength(JSON.stringify(rows || []), 'utf8');
+    } catch {
+      return 1_024;
+    }
+  }
+
+  function deleteTableReadCacheEntry(key) {
+    const entry = tableReadCache.get(key);
+    if (!entry) return false;
+    tableReadCacheBytes = Math.max(0, tableReadCacheBytes - Number(entry.byteSize || 0));
+    return tableReadCache.delete(key);
+  }
+
+  function getTableReadCacheEntry(key) {
+    const entry = tableReadCache.get(key);
+    if (!entry) return null;
+    tableReadCache.delete(key);
+    tableReadCache.set(key, entry);
+    return entry;
+  }
+
+  function setTableReadCacheEntry(key, entry) {
+    deleteTableReadCacheEntry(key);
+    const sizedEntry = { ...entry, byteSize: tableCacheEntrySize(entry.rows) };
+    tableReadCache.set(key, sizedEntry);
+    tableReadCacheBytes += sizedEntry.byteSize;
+    while (tableReadCache.size > tableReadCacheMaxEntries || tableReadCacheBytes > tableReadCacheMaxBytes) {
+      const oldestKey = tableReadCache.keys().next().value;
+      if (oldestKey == null) break;
+      deleteTableReadCacheEntry(oldestKey);
+    }
+  }
+
   function equalityFilter(tableName, fieldName, value) {
     const table = resolveTable(tableName);
     if (!table.fields.some(field => field.name === fieldName)) {
@@ -392,6 +783,8 @@ export function createFeishuReadOnlyService(options) {
   }
 
   async function readAllUncached(tableName, fieldNames = [], { filter = '' } = {}) {
+    assertSyncTaskActive();
+    noteTableDependency(tableName);
     const table = resolveTable(tableName);
     const requestedFields = normalizedFieldNames(fieldNames);
     const items = [];
@@ -400,21 +793,28 @@ export function createFeishuReadOnlyService(options) {
     let readWithoutProjection = false;
     const readPageWithinBudget = async (query, startedAt) => {
       const deadline = startedAt + readBudgetMs;
-      const remaining = deadline - readNow();
-      if (remaining <= 0) throw readBudgetError(startedAt);
+      const taskDeadline = syncTaskScope.getStore()?.deadlineAt;
+      const effectiveDeadline = Number.isFinite(taskDeadline) ? Math.min(deadline, taskDeadline) : deadline;
+      const remaining = effectiveDeadline - readNow();
+      const timeoutError = Number.isFinite(taskDeadline) && taskDeadline <= deadline
+        ? syncDeadlineError
+        : () => readBudgetError(startedAt);
+      if (remaining <= 0) throw timeoutError();
       let timer;
       try {
         return await Promise.race([
-          client.listRecords(table.tableId, query),
-          new Promise((_, reject) => { timer = setTimeout(() => reject(readBudgetError(startedAt)), remaining); })
+          runWithSyncSlot(() => client.listRecords(table.tableId, query, syncRequestOptions())),
+          new Promise((_, reject) => { timer = setTimeout(() => reject(timeoutError()), remaining); })
         ]);
       } finally {
         clearTimeout(timer);
       }
     };
     for (let page = 1; page <= 100; page += 1) {
+      assertSyncTaskActive();
       let result;
       for (let attempt = 0; attempt < 2; attempt += 1) {
+        assertSyncTaskActive();
         const attemptStartedAt = readNow();
         try {
           result = await readPageWithinBudget({
@@ -433,9 +833,10 @@ export function createFeishuReadOnlyService(options) {
           const retryable = [429, 502, 504].includes(error?.status) && error?.code !== 'FEISHU_READ_BUDGET_EXCEEDED';
           if (!retryable || retried || attempt === 1) throw error;
           retried = true;
-          await readSleep(300);
+          await sleepWithinSync(300);
         }
       }
+      assertSyncTaskActive();
       items.push(...result.items);
       if (!result.hasMore || !result.nextPageToken) return items;
       pageToken = result.nextPageToken;
@@ -445,10 +846,12 @@ export function createFeishuReadOnlyService(options) {
 
   function createTableReadBatch(tableName, requestedFields, filter = '') {
     const resourceKey = tableReadResourceKey(tableName, filter);
+    const startedInvalidationEpoch = cacheInvalidationEpoch;
     let resolveRequest;
     let rejectRequest;
     const batch = {
       started: false,
+      epoch: startedInvalidationEpoch,
       fields: new Set(requestedFields),
       promise: new Promise((resolve, reject) => {
         resolveRequest = resolve;
@@ -458,15 +861,15 @@ export function createFeishuReadOnlyService(options) {
     tableReadPending.set(resourceKey, batch);
     queueMicrotask(async () => {
       batch.started = true;
-      const cached = tableReadCache.get(resourceKey);
+      const cached = getTableReadCacheEntry(resourceKey);
       if (cached && readNow() < cached.expiresAt) {
         for (const fieldName of cached.fields) batch.fields.add(fieldName);
       }
       const mergedFields = [...batch.fields];
       try {
         const rows = await readAllUncached(tableName, mergedFields, { filter });
-        if (tableReadCacheMs > 0) {
-          tableReadCache.set(resourceKey, {
+        if (tableReadCacheMs > 0 && startedInvalidationEpoch === cacheInvalidationEpoch && !syncTaskCancelled()) {
+          setTableReadCacheEntry(resourceKey, {
             rows,
             fields: new Set(mergedFields),
             expiresAt: readNow() + tableReadCacheMs
@@ -483,14 +886,16 @@ export function createFeishuReadOnlyService(options) {
   }
 
   function readAll(tableName, fieldNames = [], { filter = '' } = {}) {
+    noteTableDependency(tableName);
     const requestedFields = tableRequestedFields(tableName, fieldNames);
+    if (strongReadScope.getStore() === true) return readAllUncached(tableName, requestedFields, { filter });
     const resourceKey = tableReadResourceKey(tableName, filter);
-    const cached = tableReadCache.get(resourceKey);
+    const cached = getTableReadCacheEntry(resourceKey);
     if (cached && readNow() < cached.expiresAt && fieldsCover(cached.fields, requestedFields)) {
       return Promise.resolve(cached.rows);
     }
     const pending = tableReadPending.get(resourceKey);
-    if (pending) {
+    if (pending?.epoch === cacheInvalidationEpoch) {
       if (!pending.started) {
         requestedFields.forEach(fieldName => pending.fields.add(fieldName));
         return pending.promise;
@@ -502,6 +907,8 @@ export function createFeishuReadOnlyService(options) {
   }
 
   async function readPage(tableName, { page = 1, pageSize = 10, fieldNames = [] } = {}) {
+    assertSyncTaskActive();
+    noteTableDependency(tableName);
     const table = resolveTable(tableName);
     const startedAt = readNow();
     const deadline = startedAt + readBudgetMs;
@@ -509,27 +916,35 @@ export function createFeishuReadOnlyService(options) {
     let result;
     let readWithoutProjection = false;
     for (let currentPage = 1; currentPage <= page; currentPage += 1) {
-      const remaining = deadline - readNow();
-      if (remaining <= 0) throw readBudgetError(startedAt);
+      assertSyncTaskActive();
+      const taskDeadline = syncTaskScope.getStore()?.deadlineAt;
+      const effectiveDeadline = Number.isFinite(taskDeadline) ? Math.min(deadline, taskDeadline) : deadline;
+      const remaining = effectiveDeadline - readNow();
+      const timeoutError = Number.isFinite(taskDeadline) && taskDeadline <= deadline
+        ? syncDeadlineError
+        : () => readBudgetError(startedAt);
+      if (remaining <= 0) throw timeoutError();
       let timer;
       try {
         const query = { viewId: table.views[0]?.viewId, pageSize, pageToken, fieldNames: readWithoutProjection ? [] : fieldNames };
         try {
           result = await Promise.race([
-            client.listRecords(table.tableId, query),
-            new Promise((_, reject) => { timer = setTimeout(() => reject(readBudgetError(startedAt)), remaining); })
+            runWithSyncSlot(() => client.listRecords(table.tableId, query, syncRequestOptions())),
+            new Promise((_, reject) => { timer = setTimeout(() => reject(timeoutError()), remaining); })
           ]);
         } catch (error) {
           if (!isFieldContractDrift(error) || readWithoutProjection) throw error;
           readWithoutProjection = true;
+          assertSyncTaskActive();
           result = await Promise.race([
-            client.listRecords(table.tableId, { ...query, fieldNames: [] }),
-            new Promise((_, reject) => { timer = setTimeout(() => reject(readBudgetError(startedAt)), Math.max(0, deadline - readNow())); })
+            runWithSyncSlot(() => client.listRecords(table.tableId, { ...query, fieldNames: [] }, syncRequestOptions())),
+            new Promise((_, reject) => { timer = setTimeout(() => reject(timeoutError()), Math.max(0, effectiveDeadline - readNow())); })
           ]);
         }
       } finally {
         clearTimeout(timer);
       }
+      assertSyncTaskActive();
       if (currentPage < page) {
         if (!result.hasMore || !result.nextPageToken) break;
         pageToken = result.nextPageToken;
@@ -539,17 +954,28 @@ export function createFeishuReadOnlyService(options) {
   }
 
   function getDictionaryProjection(tableName, fieldNames = []) {
+    noteTableDependency(tableName);
+    if (strongReadScope.getStore() === true) return readAll(tableName, fieldNames);
     const timestamp = Date.now();
     const key = tableReadKey(tableName, fieldNames);
     const cached = dictionaryProjectionCache.get(key);
     if (cached && timestamp < cached.expiresAt) return Promise.resolve(cached.rows);
     const pending = dictionaryProjectionPending.get(key);
-    if (pending) return pending;
+    if (pending && dictionaryProjectionPendingEpoch.get(key) === cacheInvalidationEpoch) return pending;
+    const startedInvalidationEpoch = cacheInvalidationEpoch;
     const projection = readAll(tableName, fieldNames).then(rows => {
-      dictionaryProjectionCache.set(key, { rows, expiresAt: Date.now() + appProjectionCacheMs });
+      if (startedInvalidationEpoch === cacheInvalidationEpoch && !syncTaskCancelled()) {
+        dictionaryProjectionCache.set(key, { rows, expiresAt: Date.now() + appProjectionCacheMs });
+      }
       return rows;
-    }).finally(() => { dictionaryProjectionPending.delete(key); });
+    }).finally(() => {
+      if (dictionaryProjectionPending.get(key) === projection) {
+        dictionaryProjectionPending.delete(key);
+        dictionaryProjectionPendingEpoch.delete(key);
+      }
+    });
     dictionaryProjectionPending.set(key, projection);
+    dictionaryProjectionPendingEpoch.set(key, startedInvalidationEpoch);
     return projection;
   }
 
@@ -611,30 +1037,56 @@ export function createFeishuReadOnlyService(options) {
   }
 
   async function getAppProjection() {
+    ['应用索引', '应用类型配置', '用户字典', '部门字典', '业务域字典', '场景字典'].forEach(noteTableDependency);
+    if (strongReadScope.getStore() === true) return readAppProjection();
     const timestamp = Date.now();
     if (appProjectionCache && timestamp < appProjectionExpiresAt) return appProjectionCache;
-    if (appProjectionPending) return appProjectionPending;
-    appProjectionPending = readAppProjection().then(result => {
-      appProjectionCache = result;
-      appProjectionExpiresAt = Date.now() + appProjectionCacheMs;
+    if (appProjectionPending && appProjectionPendingEpoch === cacheInvalidationEpoch) return appProjectionPending;
+    const startedInvalidationEpoch = cacheInvalidationEpoch;
+    const projection = readAppProjection().then(result => {
+      if (startedInvalidationEpoch === cacheInvalidationEpoch && !syncTaskCancelled()) {
+        appProjectionCache = result;
+        appProjectionExpiresAt = Date.now() + appProjectionCacheMs;
+      }
       return result;
-    }).finally(() => { appProjectionPending = null; });
-    return appProjectionPending;
+    }).finally(() => {
+      if (appProjectionPending === projection) {
+        appProjectionPending = null;
+        appProjectionPendingEpoch = -1;
+      }
+    });
+    appProjectionPending = projection;
+    appProjectionPendingEpoch = startedInvalidationEpoch;
+    return projection;
   }
 
   async function getAppDetailCounts() {
+    APP_DETAIL_COUNT_SOURCES.forEach(source => noteTableDependency(source.tableName));
+    if (strongReadScope.getStore() === true) {
+      return Promise.all(APP_DETAIL_COUNT_SOURCES.map(async source => ({ ...source, count: (await readAll(source.tableName)).length })));
+    }
     const timestamp = Date.now();
     if (appDetailCountCache && timestamp < appDetailCountExpiresAt) return appDetailCountCache;
-    if (appDetailCountPending) return appDetailCountPending;
-    appDetailCountPending = Promise.all(APP_DETAIL_COUNT_SOURCES.map(async source => ({
+    if (appDetailCountPending && appDetailCountPendingEpoch === cacheInvalidationEpoch) return appDetailCountPending;
+    const startedInvalidationEpoch = cacheInvalidationEpoch;
+    const projection = Promise.all(APP_DETAIL_COUNT_SOURCES.map(async source => ({
       ...source,
       count: (await readAll(source.tableName)).length
     }))).then(result => {
-      appDetailCountCache = result;
-      appDetailCountExpiresAt = Date.now() + appProjectionCacheMs;
+      if (startedInvalidationEpoch === cacheInvalidationEpoch && !syncTaskCancelled()) {
+        appDetailCountCache = result;
+        appDetailCountExpiresAt = Date.now() + appProjectionCacheMs;
+      }
       return result;
-    }).finally(() => { appDetailCountPending = null; });
-    return appDetailCountPending;
+    }).finally(() => {
+      if (appDetailCountPending === projection) {
+        appDetailCountPending = null;
+        appDetailCountPendingEpoch = -1;
+      }
+    });
+    appDetailCountPending = projection;
+    appDetailCountPendingEpoch = startedInvalidationEpoch;
+    return projection;
   }
 
   async function readAnnouncementProjection() {
@@ -658,28 +1110,56 @@ export function createFeishuReadOnlyService(options) {
   }
 
   async function getAnnouncementProjection() {
+    noteTableDependency('公告通知');
+    if (strongReadScope.getStore() === true) return readAnnouncementProjection();
     const timestamp = Date.now();
     if (announcementProjectionCache && timestamp < announcementProjectionExpiresAt) return announcementProjectionCache;
-    if (announcementProjectionPending) return announcementProjectionPending;
-    announcementProjectionPending = readAnnouncementProjection().then(result => {
-      announcementProjectionCache = result;
-      announcementProjectionExpiresAt = Date.now() + appProjectionCacheMs;
+    if (announcementProjectionPending && announcementProjectionPendingEpoch === cacheInvalidationEpoch) return announcementProjectionPending;
+    const startedInvalidationEpoch = cacheInvalidationEpoch;
+    const projection = readAnnouncementProjection().then(result => {
+      if (startedInvalidationEpoch === cacheInvalidationEpoch && !syncTaskCancelled()) {
+        announcementProjectionCache = result;
+        announcementProjectionExpiresAt = Date.now() + appProjectionCacheMs;
+      }
       return result;
-    }).finally(() => { announcementProjectionPending = null; });
-    return announcementProjectionPending;
+    }).finally(() => {
+      if (announcementProjectionPending === projection) {
+        announcementProjectionPending = null;
+        announcementProjectionPendingEpoch = -1;
+      }
+    });
+    announcementProjectionPending = projection;
+    announcementProjectionPendingEpoch = startedInvalidationEpoch;
+    return projection;
   }
 
   function getTalentProjection(kind, reader) {
+    const dependencies = {
+      people: ['人才库', '用户字典', '部门字典'],
+      projects: ['人才项目', '用户字典'],
+      progress: ['项目进度', '人才项目', '用户字典']
+    }[kind] || [];
+    dependencies.forEach(noteTableDependency);
+    if (strongReadScope.getStore() === true) return reader();
     const timestamp = Date.now();
     const cached = talentProjectionCache.get(kind);
     if (cached && timestamp < cached.expiresAt) return Promise.resolve(cached.value);
     const pending = talentProjectionPending.get(kind);
-    if (pending) return pending;
+    if (pending && talentProjectionPendingEpoch.get(kind) === cacheInvalidationEpoch) return pending;
+    const startedInvalidationEpoch = cacheInvalidationEpoch;
     const projection = reader().then(value => {
-      talentProjectionCache.set(kind, { value, expiresAt: Date.now() + appProjectionCacheMs });
+      if (startedInvalidationEpoch === cacheInvalidationEpoch && !syncTaskCancelled()) {
+        talentProjectionCache.set(kind, { value, expiresAt: Date.now() + appProjectionCacheMs });
+      }
       return value;
-    }).finally(() => { talentProjectionPending.delete(kind); });
+    }).finally(() => {
+      if (talentProjectionPending.get(kind) === projection) {
+        talentProjectionPending.delete(kind);
+        talentProjectionPendingEpoch.delete(kind);
+      }
+    });
     talentProjectionPending.set(kind, projection);
+    talentProjectionPendingEpoch.set(kind, startedInvalidationEpoch);
     return projection;
   }
 
@@ -759,7 +1239,9 @@ export function createFeishuReadOnlyService(options) {
     const items = [];
     let pageToken = '';
     for (let page = 1; page <= 100; page += 1) {
-      const result = await readPage(pageToken);
+      assertSyncTaskActive();
+      const result = await runWithSyncSlot(() => readPage(pageToken, syncRequestOptions()));
+      assertSyncTaskActive();
       items.push(...result.items);
       if (!result.hasMore || !result.nextPageToken) break;
       pageToken = result.nextPageToken;
@@ -777,9 +1259,10 @@ export function createFeishuReadOnlyService(options) {
     const seenDepartments = new Set(['0']);
     while (queue.length) {
       const parent = queue.shift();
-      const children = await readContactPage(pageToken => client.listDepartmentChildren(parent.id, {
+      assertSyncTaskActive();
+      const children = await readContactPage((pageToken, requestOptions) => client.listDepartmentChildren(parent.id, {
         pageSize: 50, pageToken, userIdType: 'user_id', departmentIdType: 'open_department_id'
-      }));
+      }, requestOptions));
       for (const item of children) {
         const id = valueToText(item.open_department_id || item.department_id);
         if (!id || seenDepartments.has(id)) continue;
@@ -808,9 +1291,10 @@ export function createFeishuReadOnlyService(options) {
     };
     const usersById = new Map();
     for (const departmentId of ['0', ...departments.map(item => item.id)]) {
-      const users = await readContactPage(pageToken => client.listUsersByDepartment(departmentId, {
+      assertSyncTaskActive();
+      const users = await readContactPage((pageToken, requestOptions) => client.listUsersByDepartment(departmentId, {
         pageSize: 50, pageToken, userIdType: 'user_id', departmentIdType: 'open_department_id'
-      }));
+      }, requestOptions));
       for (const item of users) {
         const userId = valueToText(item.user_id || item.open_id);
         if (!userId) continue;
@@ -834,15 +1318,26 @@ export function createFeishuReadOnlyService(options) {
   }
 
   async function getContactProjection() {
+    if (strongReadScope.getStore() === true) return readContactProjection();
     const timestamp = Date.now();
     if (contactProjectionCache && timestamp < contactProjectionExpiresAt) return contactProjectionCache;
-    if (contactProjectionPending) return contactProjectionPending;
-    contactProjectionPending = readContactProjection().then(result => {
-      contactProjectionCache = result;
-      contactProjectionExpiresAt = Date.now() + appProjectionCacheMs;
+    if (contactProjectionPending && contactProjectionPendingEpoch === cacheInvalidationEpoch) return contactProjectionPending;
+    const startedInvalidationEpoch = cacheInvalidationEpoch;
+    const projection = readContactProjection().then(result => {
+      if (startedInvalidationEpoch === cacheInvalidationEpoch && !syncTaskCancelled()) {
+        contactProjectionCache = result;
+        contactProjectionExpiresAt = Date.now() + appProjectionCacheMs;
+      }
       return result;
-    }).finally(() => { contactProjectionPending = null; });
-    return contactProjectionPending;
+    }).finally(() => {
+      if (contactProjectionPending === projection) {
+        contactProjectionPending = null;
+        contactProjectionPendingEpoch = -1;
+      }
+    });
+    contactProjectionPending = projection;
+    contactProjectionPendingEpoch = startedInvalidationEpoch;
+    return projection;
   }
 
   function buildOrganizationTree(departments, rootId = '0', maxDepth = 20) {
@@ -1465,7 +1960,7 @@ export function createFeishuReadOnlyService(options) {
     }
     return {
       ...paginatePublic(items, page, pageSize), sort,
-      filtersApplied: { keyword: valueToText(input.keyword).trim(), scene: valueToText(input.scene), typeCode: valueToText(input.typeCode) },
+      filtersApplied: { keyword: normalizedKeyword, scene: valueToText(input.scene), typeCode: valueToText(input.typeCode) },
       facets: { scenes: [...sceneCounts.values()], types: [...typeCounts.values()] }, normalizedKeyword
     };
   }
@@ -1486,6 +1981,252 @@ export function createFeishuReadOnlyService(options) {
     return (!starts || starts <= timestamp) && (!ends || ends >= timestamp);
   }
 
+  function requiredPermissionForOperation(operationId) {
+    if (operationId.startsWith('TAL-')) return 'talent.view';
+    if (operationId === 'OPS-001') return 'operations.dashboard.view';
+    if (operationId.startsWith('OAN-')) return 'operations.announcements.manage';
+    if (operationId.startsWith('OAP-')) return 'operations.apps.manage';
+    if (operationId === 'ADM-006') return 'admin.health.view';
+    if (operationId === 'ADM-007') return 'admin.permissions.view';
+    if (operationId.startsWith('ADM-')) return 'admin.audit.view';
+    if (operationId.startsWith('ARC-')) return 'admin.archive.view';
+    if (operationId.startsWith('INT-')) return 'admin.integrations.view';
+    return '';
+  }
+
+  function permissionAllowsCode(permissions, permissionCode) {
+    if (!permissionCode) return true;
+    const values = new Set(Array.isArray(permissions) ? permissions.map(String) : []);
+    return values.has('*') || values.has('admin.*') || values.has(permissionCode)
+      || [...values].some(item => item.endsWith('.*') && permissionCode.startsWith(item.slice(0, -1)));
+  }
+
+  async function readCurrentAuthorization(requestContext) {
+    const { identity, userId } = requireIdentity(requestContext);
+    const permissionFilter = identityFilter('用户权限', ['AD账号', '主体ID'], userId);
+    const permissionRows = await authorizationReadScope.run(true, () => (
+      strongReadScope.run(true, () => readAll('用户权限', PROFILE_FIELDS.permissions, { filter: permissionFilter }))
+    ));
+    const activeRows = permissionRows.filter(record => {
+      const fields = record?.fields || {};
+      return permissionSubjectIdentifier(fields) === userId && permissionRecordActive(fields);
+    });
+    const permissions = [...new Set(activeRows.map(record => valueToText(record?.fields?.['权限编码'])).filter(Boolean))].sort();
+    const dataScope = [...new Set(activeRows.flatMap(record => valueToList(record?.fields?.['数据范围'])).filter(Boolean))].sort();
+    return { identity, userId, permissions, dataScope };
+  }
+
+  function authorizationIdentityKey(context = {}) {
+    const identity = context.identity || {};
+    return fingerprintReadIsolation({
+      tenant: valueToText(identity.tenantKey || identity.tenantId || 'default-tenant'),
+      userId: valueToText(identity.userId),
+      openId: valueToText(identity.openId),
+      adAccount: valueToText(identity.adAccount)
+    });
+  }
+
+  function verifiedContextFromAccess(context, access) {
+    const authorizedContext = {
+      ...context,
+      verifiedAuthorization: {
+        userId: access.userId,
+        permissions: [...access.permissions],
+        dataScope: [...access.dataScope]
+      },
+      identity: {
+        ...(context.identity || {}),
+        permissions: [...access.permissions],
+        dataScope: access.dataScope.join(',')
+      }
+    };
+    verifiedAuthorizationContexts.add(authorizedContext);
+    return authorizedContext;
+  }
+
+  function rebindVerifiedContext(context, authorizedContext) {
+    const access = authorizedContext?.verifiedAuthorization;
+    if (!access) return authorizedContext;
+    return verifiedContextFromAccess(context, {
+      userId: access.userId,
+      permissions: Array.isArray(access.permissions) ? access.permissions : [],
+      dataScope: Array.isArray(access.dataScope) ? access.dataScope : valueToList(access.dataScope)
+    });
+  }
+
+  function taskStatusAuthorizationKey(operationId, context) {
+    return `${valueToText(operationId)}\u0000${authorizationIdentityKey(context)}`;
+  }
+
+  function cleanupTaskStatusAuthorizationContinuations() {
+    const timestamp = Date.now();
+    for (const [key, continuation] of taskStatusAuthorizationContinuations) {
+      if (continuation.expiresAt <= timestamp) taskStatusAuthorizationContinuations.delete(key);
+    }
+  }
+
+  function retainTaskStatusAuthorization(key, outcome) {
+    cleanupTaskStatusAuthorizationContinuations();
+    while (taskStatusAuthorizationContinuations.size >= 1_000) {
+      taskStatusAuthorizationContinuations.delete(taskStatusAuthorizationContinuations.keys().next().value);
+    }
+    taskStatusAuthorizationContinuations.set(key, {
+      ...outcome,
+      expiresAt: Date.now() + taskStatusAuthorizationContinuationMs
+    });
+  }
+
+  function consumeTaskStatusAuthorization(key, context) {
+    cleanupTaskStatusAuthorizationContinuations();
+    const continuation = taskStatusAuthorizationContinuations.get(key);
+    if (!continuation) return null;
+    taskStatusAuthorizationContinuations.delete(key);
+    if (continuation.error) throw continuation.error;
+    return {
+      context: rebindVerifiedContext(context, continuation.context),
+      deferred: false
+    };
+  }
+
+  function waitForAuthorization(accessRequest, authorizationState) {
+    if (!authorizationState) return accessRequest;
+    assertSyncTaskActive(authorizationState);
+    const deadlineAt = Number(authorizationState.deadlineAt);
+    const signal = authorizationState.signal;
+    if (!Number.isFinite(deadlineAt) && !signal) return accessRequest;
+    let timer;
+    let abortHandler;
+    const deadline = new Promise((_, reject) => {
+      if (Number.isFinite(deadlineAt)) {
+        timer = setTimeout(() => reject(syncDeadlineError()), Math.max(0, deadlineAt - readNow()));
+      }
+      if (signal) {
+        abortHandler = () => reject(syncDeadlineError());
+        if (signal.aborted) abortHandler();
+        else signal.addEventListener('abort', abortHandler, { once: true });
+      }
+    });
+    return Promise.race([accessRequest, deadline]).finally(() => {
+      clearTimeout(timer);
+      if (abortHandler) signal?.removeEventListener?.('abort', abortHandler);
+    });
+  }
+
+  async function authorizeRequestContext(requestContext = {}) {
+    const context = requestContext && typeof requestContext === 'object' ? requestContext : {};
+    if (!realtimeAuthorization || trustedSystemContexts.has(context) || verifiedAuthorizationContexts.has(context)) return context;
+    const current = authorizationRequests.get(context);
+    if (current) return current;
+    const inheritedState = syncTaskScope.getStore();
+    const externalDeadlineAt = Number(context.syncDeadlineAtMs);
+    const externalSignal = context.syncAbortSignal;
+    const authorizationState = inheritedState || (
+      Number.isFinite(externalDeadlineAt) || externalSignal
+        ? {
+            cancelled: externalSignal?.aborted === true,
+            signal: externalSignal,
+            deadlineAt: Number.isFinite(externalDeadlineAt) ? externalDeadlineAt : undefined
+          }
+        : null
+    );
+    const authorizationRequestKey = authorizationIdentityKey(context);
+    let accessRequest = authorizationRequestsByIdentity.get(authorizationRequestKey);
+    if (!accessRequest) {
+      // The shared authorization read must not inherit the first caller's task
+      // deadline. Each waiter applies its own deadline below, while the single
+      // upstream permission read can safely finish for later status polls.
+      const detachedContext = { ...context };
+      delete detachedContext.syncDeadlineAtMs;
+      delete detachedContext.syncAbortSignal;
+      accessRequest = syncTaskScope.run(undefined, () => (
+        Promise.resolve().then(() => readCurrentAuthorization(detachedContext))
+      )).finally(() => {
+        if (authorizationRequestsByIdentity.get(authorizationRequestKey) === accessRequest) {
+          authorizationRequestsByIdentity.delete(authorizationRequestKey);
+        }
+      });
+      authorizationRequestsByIdentity.set(authorizationRequestKey, accessRequest);
+    }
+    const request = waitForAuthorization(accessRequest, authorizationState).then(access => {
+      assertSyncTaskActive(authorizationState);
+      return verifiedContextFromAccess(context, access);
+    }).finally(() => {
+      if (authorizationRequests.get(context) === request) authorizationRequests.delete(context);
+    });
+    authorizationRequests.set(context, request);
+    return request;
+  }
+
+  function isTransientAuthorizationFailure(error) {
+    const code = String(error?.code || '');
+    const status = Number(error?.status || 0);
+    if ([401, 403].includes(status)) return false;
+    return status === 429
+      || [
+        'FEISHU_UPSTREAM_TIMEOUT',
+        'FEISHU_UPSTREAM_UNAVAILABLE',
+        'FEISHU_READ_BUDGET_EXCEEDED',
+        'READ_SYNC_DEADLINE_EXCEEDED',
+        'TENANT_TOKEN_FAILED',
+        'UPSTREAM_INVALID_JSON'
+      ].includes(code)
+      || (status >= 500 && /^(?:FEISHU_|TENANT_TOKEN_|UPSTREAM_)/.test(code));
+  }
+
+  async function authorizeTaskStatus(operationId, requestContext = {}) {
+    requireIdentity(requestContext);
+    const continuationKey = taskStatusAuthorizationKey(operationId, requestContext);
+    const continuation = consumeTaskStatusAuthorization(continuationKey, requestContext);
+    if (continuation) return continuation;
+    const authorization = (async () => {
+      const currentAuthorization = await authorizeRequestContext(requestContext);
+      const policy = operationId ? operationCachePolicies[operationId] : null;
+      const authorizedContext = policy
+        ? await authorizeCacheRequest(operationId, currentAuthorization, policy)
+        : currentAuthorization;
+      return { context: authorizedContext, deferred: false };
+    })();
+    let timer;
+    try {
+      const result = await Promise.race([
+        authorization,
+        new Promise(resolve => {
+          timer = setTimeout(() => resolve({ context: null, deferred: true }), taskStatusAuthorizationBudgetMs);
+        })
+      ]);
+      if (result.deferred) {
+        authorization.then(
+          completed => retainTaskStatusAuthorization(continuationKey, { context: completed.context }),
+          error => {
+            if (!isTransientAuthorizationFailure(error)) {
+              retainTaskStatusAuthorization(continuationKey, { error });
+            }
+          }
+        );
+      }
+      return result;
+    } catch (error) {
+      if (!isTransientAuthorizationFailure(error)) throw error;
+      return { context: null, deferred: true };
+    } finally {
+      clearTimeout(timer);
+      // A timed-out real-time check remains active and is shared by the next
+      // poll. It never re-runs the original business operation.
+      authorization.catch(() => {});
+    }
+  }
+
+  async function authorizeCacheRequest(operationId, requestContext, policy) {
+    if (!realtimeAuthorization || !policy || trustedSystemContexts.has(requestContext)) return requestContext;
+    const authorizedContext = await authorizeRequestContext(requestContext);
+    const access = authorizedContext.verifiedAuthorization;
+    const requiredPermission = requiredPermissionForOperation(operationId);
+    if (!permissionAllowsCode(access.permissions, requiredPermission)) {
+      throw new FeishuProxyError('PERMISSION_DENIED', '当前用户无权访问该接口', 403);
+    }
+    return authorizedContext;
+  }
+
   async function readCurrentContactProjection(requestContext) {
     const { identity, userId } = requireIdentity(requestContext);
     const projection = await getContactProjection();
@@ -1504,19 +2245,47 @@ export function createFeishuReadOnlyService(options) {
     };
   }
 
-  async function readCurrentUserProjection(requestContext) {
+  async function readCurrentContactSummary(requestContext) {
+    const { identity, userId } = requireIdentity(requestContext);
+    const localSummary = {
+      userId,
+      employeeNo: valueToText(identity.employeeNo),
+      displayName: valueToText(identity.displayName),
+      avatarUrl: valueToText(identity.avatarUrl) || null,
+      tenantId: valueToText(identity.tenantKey),
+      tenantName: '',
+      orgId: '',
+      orgName: '',
+      departmentId: '',
+      departmentName: ''
+    };
+    const contactUserId = valueToText(identity.userId);
+    if (typeof client.getContactUser !== 'function' || !contactUserId) return localSummary;
+    const contact = await runWithSyncSlot(() => client.getContactUser(contactUserId, syncRequestOptions()));
+    return {
+      ...localSummary,
+      displayName: localSummary.displayName || valueToText(contact?.displayName)
+    };
+  }
+
+  async function readCurrentUserProjectionUnshared(requestContext) {
     const { identity, userId } = requireIdentity(requestContext);
     const permissionFilter = identityFilter('用户权限', ['AD账号', '主体ID'], userId);
     const messageFilter = equalityFilter('消息通知', '接收人ID', userId);
     const favoriteFilter = equalityFilter('应用收藏', '用户ID', userId);
     const balanceFilter = equalityFilter('积分余额', '用户ID', userId);
+    const verifiedAuthorization = requestContext?.verifiedAuthorization?.userId === userId
+      ? requestContext.verifiedAuthorization
+      : null;
     const [userRows, permissionRows, messageRows, favoriteRows, balanceRows, currentContact] = await Promise.all([
       getDictionaryProjection('用户字典', PROFILE_FIELDS.user),
-      readAll('用户权限', PROFILE_FIELDS.permissions, { filter: permissionFilter }),
+      verifiedAuthorization
+        ? Promise.resolve([])
+        : readAll('用户权限', PROFILE_FIELDS.permissions, { filter: permissionFilter }),
       readAll('消息通知', PROFILE_FIELDS.messages, { filter: messageFilter }),
       readAll('应用收藏', PROFILE_FIELDS.favorites, { filter: favoriteFilter }),
       readAll('积分余额', PROFILE_FIELDS.balance, { filter: balanceFilter }),
-      readCurrentContactProjection(requestContext).catch(() => null)
+      readCurrentContactSummary(requestContext).catch(() => null)
     ]);
     const user = userRows.find(record => {
       const fields = record?.fields || {};
@@ -1526,9 +2295,12 @@ export function createFeishuReadOnlyService(options) {
       const fields = record?.fields || {};
       return permissionSubjectIdentifier(fields) === userId && permissionRecordActive(fields);
     });
-    const permissionCodes = [...new Set(permissions.map(record => valueToText(record?.fields?.['权限编码'])).filter(Boolean))];
+    const permissionCodes = verifiedAuthorization
+      ? [...new Set((verifiedAuthorization.permissions || []).map(String).filter(Boolean))]
+      : [...new Set(permissions.map(record => valueToText(record?.fields?.['权限编码'])).filter(Boolean))];
     const availableOrgIds = [...new Set([
       valueToText(user['组织ID']),
+      ...(verifiedAuthorization?.dataScope || []),
       ...permissions.flatMap(record => valueToList(record?.fields?.['数据范围']))
     ].filter(Boolean))];
     const messageItems = messageRows.filter(record => valueToText(record?.fields?.['接收人ID']) === userId);
@@ -1545,9 +2317,27 @@ export function createFeishuReadOnlyService(options) {
     };
   }
 
+  function readCurrentUserProjection(requestContext) {
+    const identity = requestContext?.identity || {};
+    const sharedBatch = sharedReadBatchScope.getStore();
+    const key = fingerprintReadIsolation({
+      projection: 'current-user',
+      tenantKey: valueToText(identity.tenantKey || identity.tenantId),
+      userId: valueToText(identity.adAccount || identity.userId || identity.openId),
+      authorization: syncAuthorizationFingerprint(requestContext)
+    });
+    return sharedBatchPromise(key, () => (
+      sharedBatch
+        ? strongReadScope.run(true, () => readCurrentUserProjectionUnshared(requestContext))
+        : readCurrentUserProjectionUnshared(requestContext)
+    ));
+  }
+
   async function requirePermission(requestContext, permissionCode) {
-    const user = await readCurrentUserProjection(requestContext);
-    if (!user.permissions.includes('*') && !user.permissions.includes(permissionCode)) {
+    const currentUserId = valueToText(requestContext?.identity?.adAccount || requestContext?.identity?.userId);
+    const verified = requestContext?.verifiedAuthorization;
+    const user = verified?.userId === currentUserId ? verified : await readCurrentAuthorization(requestContext);
+    if (!permissionAllowsCode(user.permissions, permissionCode)) {
       throw new FeishuProxyError('PERMISSION_DENIED', '当前用户无权访问该管理接口', 403);
     }
     return user;
@@ -1825,14 +2615,7 @@ export function createFeishuReadOnlyService(options) {
   }
 
   async function executeAdminRead(operationId, input, requestContext) {
-    const requiredPermission = operationId === 'OPS-001' ? 'operations.dashboard.view'
-      : operationId.startsWith('OAN-') ? 'operations.announcements.manage'
-      : operationId.startsWith('OAP-') ? 'operations.apps.manage'
-      : operationId === 'ADM-006' ? 'admin.health.view'
-      : operationId === 'ADM-007' ? 'admin.permissions.view'
-      : operationId.startsWith('ADM-') ? 'admin.audit.view'
-      : operationId.startsWith('ARC-') ? 'admin.archive.view' : 'admin.integrations.view';
-    await requirePermission(requestContext, requiredPermission);
+    await requirePermission(requestContext, requiredPermissionForOperation(operationId));
     if (operationId === 'INT-003') {
       assertAllowedInput(input, ['domainCodes', 'connectionCodes', 'checkTables', 'checkFields', 'checkViews', 'checkPermissions', 'createMissingFields', 'dryRun', 'reason']);
       if (input.createMissingFields === true || input.dryRun === false) throw new FeishuProxyError('SCHEMA_WRITE_NOT_ALLOWED', '结构核验读接口只允许 dryRun，不能创建字段', 403);
@@ -2525,6 +3308,7 @@ export function createFeishuReadOnlyService(options) {
     if (extraInputKeys.length) throw new FeishuProxyError('INVALID_OPERATION_INPUT', '请求包含未允许的输入字段', 400);
     const table = identifierContract.byName.get(plan.tableName);
     if (!table) throw new FeishuProxyError('IDENTIFIER_CONTRACT_MISSING', '飞书表标识契约缺失', 503);
+    noteTableDependency(plan.tableName);
     const pageSize = input.pageSize == null ? 10 : input.pageSize;
     if (!Number.isInteger(pageSize)) throw new FeishuProxyError('INVALID_PAGE_SIZE', '页容量必须是整数', 400);
     const page = input.page == null ? 1 : input.page;
@@ -2534,12 +3318,14 @@ export function createFeishuReadOnlyService(options) {
     let pageToken = '';
     let result;
     for (let currentPage = 1; currentPage <= page; currentPage += 1) {
-      result = await client.listRecords(table.tableId, {
+      assertSyncTaskActive();
+      result = await runWithSyncSlot(() => client.listRecords(table.tableId, {
         viewId: table.views[0]?.viewId,
         pageSize,
         pageToken,
         fieldNames: table.fields.map(field => field.name)
-      });
+      }, syncRequestOptions()));
+      assertSyncTaskActive();
       if (currentPage === page) break;
       if (!result.hasMore || !result.nextPageToken) {
         result = { items: [], total: result.total, hasMore: false, nextPageToken: '' };
@@ -2559,16 +3345,8 @@ export function createFeishuReadOnlyService(options) {
     };
   }
 
-  function operationCacheKey(operationId, input, requestContext, policy) {
-    const identity = requestContext?.identity || {};
-    const tenant = valueToText(identity.tenantKey || identity.tenantId || 'default-tenant');
-    const user = valueToText(identity.adAccount || identity.userId || identity.openId || 'anonymous');
-    const permissions = Array.isArray(identity.permissions) ? [...identity.permissions].map(String).sort().join(',') : '';
-    const dataScope = valueToText(identity.dataScope || identity.departmentId || '');
-    const scopeValue = policy.scope === 'tenant'
-      ? `${tenant}\u0000public`
-      : `${tenant}\u0000${user}\u0000${permissions}\u0000${dataScope}`;
-    return `${operationId}\u0000${policy.code || policy.scope}\u0000${fingerprint(scopeValue)}\u0000${JSON.stringify(stableCacheValue(input || {}))}`;
+  function operationCacheKey(operationId, input, requestContext) {
+    return createReadIsolationKey(operationId, input, requestContext);
   }
 
   function splitReferenceValues(value) {
@@ -2676,37 +3454,226 @@ export function createFeishuReadOnlyService(options) {
     }
   }
 
-  function deleteOperationCacheEntry(key) {
+  function persistentEntries() {
+    return [...operationCache.entries()].map(([key, entry]) => ({
+      key,
+      operationId: entry.operationId,
+      value: entry.value,
+      createdAt: entry.createdAt,
+      lastAccessedAt: entry.lastAccessedAt,
+      freshUntil: entry.freshUntil,
+      staleUntil: entry.staleUntil,
+      dependencies: entry.dependencies || []
+    }));
+  }
+
+  function validateOperationSuccess(operationId, value) {
+    const contract = VERIFIED_READ_OPERATION_CONTRACTS[operationId];
+    if (!contract?.successSchema) {
+      throw new FeishuProxyError('READ_SUCCESS_SCHEMA_MISSING', '读取结果缺少受控成功合同', 502, { operationId });
+    }
+    if (!value || value.code !== 'OK' || value.isComplete !== true) {
+      throw new FeishuProxyError('READ_RESULT_INCOMPLETE', '读取结果尚未完整，禁止写入缓存', 502, { operationId });
+    }
+    try {
+      validateContractSchema(value, contract.successSchema, `${operationId} success`);
+    } catch (error) {
+      throw new FeishuProxyError('READ_SUCCESS_SCHEMA_INVALID', '读取结果未通过成功数据合同校验', 502, {
+        operationId,
+        schemaError: String(error?.message || error)
+      });
+    }
+    return value;
+  }
+
+  function cacheRuntimeError(error) {
+    return new FeishuProxyError('CACHE_RUNTIME_UNAVAILABLE', '服务器缓存快照写入失败', 503, {
+      cacheError: String(error?.code || error?.message || error || 'SNAPSHOT_WRITE_FAILED')
+    });
+  }
+
+  function schedulePersistentSnapshot() {
+    persistentCache?.enqueue?.(persistentEntries);
+  }
+
+  async function commitPersistentSnapshot(requiredVersion, requiredKey) {
+    const health = persistentCache?.metrics?.();
+    if (!health?.enabled || typeof persistentCache?.flush !== 'function') return true;
+    while (persistedOperationCacheVersion < requiredVersion || (requiredKey && !persistedOperationCacheKeys.has(requiredKey))) {
+      assertSyncTaskActive();
+      if (requiredKey && !operationCache.has(requiredKey)) {
+        throw Object.assign(new Error('缓存条目在快照提交前已失效'), { code: 'CACHE_ENTRY_INVALIDATED_BEFORE_COMMIT' });
+      }
+      if (!persistentCommit) {
+        persistentCommit = (async () => {
+          if (persistentCommitCoalesceMs > 0) {
+            await new Promise(resolve => setTimeout(resolve, persistentCommitCoalesceMs));
+          }
+          const targetVersion = operationCacheVersion;
+          const snapshot = persistentEntries();
+          const result = await persistentCache.flush(() => snapshot);
+          const currentHealth = persistentCache.metrics?.();
+          const keys = Array.isArray(result?.keys) ? result.keys : snapshot.map(entry => entry.key);
+          if (result === false || currentHealth?.lastError || currentHealth?.writeSuspended) {
+            throw Object.assign(new Error(currentHealth?.lastError || 'SNAPSHOT_WRITE_FAILED'), {
+              code: currentHealth?.lastError || 'SNAPSHOT_WRITE_FAILED'
+            });
+          }
+          persistedOperationCacheVersion = targetVersion;
+          persistedOperationCacheKeys = new Set(keys);
+          return result;
+        })().finally(() => { persistentCommit = null; });
+      }
+      await persistentCommit;
+      assertSyncTaskActive();
+      if (requiredKey
+        && persistedOperationCacheVersion >= requiredVersion
+        && !persistedOperationCacheKeys.has(requiredKey)) {
+        throw Object.assign(new Error('缓存条目被持久快照容量策略裁剪'), { code: 'CACHE_PERSISTED_ENTRY_PRUNED' });
+      }
+    }
+    return Object.freeze({ written: true, keys: Object.freeze([...persistedOperationCacheKeys]) });
+  }
+
+  function deleteOperationCacheEntry(key, { persist = true } = {}) {
     const entry = operationCache.get(key);
     if (!entry) return false;
     operationCacheBytes = Math.max(0, operationCacheBytes - Number(entry.byteSize || 0));
-    return operationCache.delete(key);
+    const deleted = operationCache.delete(key);
+    if (deleted) operationCacheVersion += 1;
+    if (deleted && persist) schedulePersistentSnapshot();
+    return deleted;
   }
 
   function clearOperationCache() {
+    if (operationCache.size) operationCacheVersion += 1;
     operationCache.clear();
     operationCacheBytes = 0;
+    schedulePersistentSnapshot();
   }
 
   function getOperationCacheEntry(key) {
     const entry = operationCache.get(key);
     if (!entry) return null;
+    entry.lastAccessedAt = cacheNow();
     operationCache.delete(key);
     operationCache.set(key, entry);
     return entry;
   }
 
-  function setOperationCacheEntry(key, entry) {
-    deleteOperationCacheEntry(key);
-    const sizedEntry = { ...entry, byteSize: cacheEntrySize(entry) };
+  function setOperationCacheEntry(key, entry, { persist = true } = {}) {
+    deleteOperationCacheEntry(key, { persist: false });
+    const sizedEntry = { ...entry, lastAccessedAt: Number(entry.lastAccessedAt) || cacheNow(), byteSize: cacheEntrySize(entry) };
     operationCache.set(key, sizedEntry);
+    operationCacheVersion += 1;
     operationCacheBytes += sizedEntry.byteSize;
     while (operationCache.size > operationCacheMaxEntries || operationCacheBytes > operationCacheMaxBytes) {
-      const oldestKey = operationCache.keys().next().value;
-      if (oldestKey == null) break;
-      deleteOperationCacheEntry(oldestKey);
+      const oldestNonRepresentative = [...operationCache.entries()]
+        .find(([, candidate]) => !REPRESENTATIVE_CACHE_OPERATION_SET.has(candidate.operationId))?.[0];
+      if (oldestNonRepresentative != null) {
+        deleteOperationCacheEntry(oldestNonRepresentative, { persist: false });
+        continue;
+      }
+      // Every remaining entry is protected. Reject the just-inserted entry so
+      // an already completed representative cache is never displaced.
+      if (operationCache.has(key)) deleteOperationCacheEntry(key, { persist: false });
+      break;
+    }
+    if (persist) schedulePersistentSnapshot();
+  }
+
+  async function commitOperationCacheEntry(key, operationId, value, policy, dependencies, input, requestContext) {
+    assertSyncTaskActive();
+    validateOperationSuccess(operationId, value);
+    if (dependenciesChanged(dependencies)) {
+      throw new FeishuProxyError('CACHE_INVALIDATED_DURING_SYNC', '同步期间数据已更新，正在重新读取', 409, { operationId });
+    }
+    const timestamp = cacheNow();
+    const cachedValue = { ...value, dataStale: false, refreshing: false, cacheStatus: 'fresh' };
+    const previous = operationCache.get(key) || null;
+    setOperationCacheEntry(key, {
+      operationId,
+      value: cachedValue,
+      createdAt: timestamp,
+      lastAccessedAt: timestamp,
+      freshUntil: timestamp + policy.freshMs,
+      staleUntil: timestamp + policy.staleMs,
+      dependencies: [...dependencies.names].filter(Boolean),
+      refreshSpec: { operationId, input: stableCacheValue(input || {}), requestContext: refreshContext(requestContext) }
+    }, { persist: false });
+    const requiredCacheVersion = operationCacheVersion;
+    try {
+      if (operationCache.get(key)?.value !== cachedValue) {
+        throw Object.assign(new Error('缓存条目超过进程内缓存容量'), { code: 'CACHE_MEMORY_CAPACITY_EXCEEDED' });
+      }
+      const persisted = await commitPersistentSnapshot(requiredCacheVersion, key);
+      assertSyncTaskActive();
+      const health = persistentCache?.metrics?.();
+      const persistedCurrentKey = !health?.enabled || !Array.isArray(persisted?.keys) || persisted.keys.includes(key);
+      if (health?.enabled && (persisted === false || !persistedCurrentKey || health.lastError || health.writeSuspended)) {
+        throw Object.assign(new Error(health.lastError || 'SNAPSHOT_WRITE_FAILED'), { code: health.lastError || 'SNAPSHOT_WRITE_FAILED' });
+      }
+      if (operationCache.get(key)?.value !== cachedValue) {
+        throw Object.assign(new Error('缓存条目在快照提交期间被容量淘汰'), { code: 'CACHE_MEMORY_ENTRY_EVICTED' });
+      }
+      if (dependenciesChanged(dependencies)) {
+        deleteOperationCacheEntry(key, { persist: false });
+        await persistentCache?.flush?.(persistentEntries);
+        throw new FeishuProxyError('CACHE_INVALIDATED_DURING_SYNC', '同步期间数据已更新，正在重新读取', 409, { operationId });
+      }
+      return cachedValue;
+    } catch (error) {
+      const current = operationCache.get(key);
+      if (current?.value === cachedValue) {
+        deleteOperationCacheEntry(key, { persist: false });
+      }
+      if (previous && !operationCache.has(key)) setOperationCacheEntry(key, previous, { persist: false });
+      if (['CACHE_INVALIDATED_DURING_SYNC', 'READ_SYNC_DEADLINE_EXCEEDED'].includes(String(error?.code || ''))) throw error;
+      throw cacheRuntimeError(error);
     }
   }
+
+  const persistentRestoreState = { completed: false, restoredEntries: 0, usableEntries: 0, errorCode: null };
+  const persistentRestore = persistentCache?.restore?.().then(entries => {
+    const ordered = [...(entries || [])].sort((left, right) => Number(left.lastAccessedAt || left.createdAt) - Number(right.lastAccessedAt || right.createdAt));
+    for (const entry of ordered) {
+      try {
+        validateOperationSuccess(entry.operationId, entry.value);
+      } catch {
+        continue;
+      }
+      setOperationCacheEntry(entry.key, {
+        operationId: entry.operationId,
+        value: entry.value,
+        createdAt: entry.createdAt,
+        lastAccessedAt: entry.lastAccessedAt,
+        freshUntil: entry.freshUntil,
+        staleUntil: entry.staleUntil,
+        dependencies: entry.dependencies || []
+      }, { persist: false });
+      persistentRestoreState.restoredEntries += 1;
+    }
+    persistentRestoreState.usableEntries = operationCache.size;
+    persistentRestoreState.completed = true;
+  }).catch(error => {
+    persistentRestoreState.completed = true;
+    persistentRestoreState.errorCode = String(error?.code || error?.message || 'SNAPSHOT_RESTORE_FAILED');
+  }) || Promise.resolve().then(() => { persistentRestoreState.completed = true; });
+
+  const backgroundRefreshTimer = setInterval(() => {
+    cleanupSyncJobs();
+    const timestamp = cacheNow();
+    for (const [key, entry] of operationCache) {
+      if (!entry.refreshSpec || timestamp < entry.freshUntil || timestamp >= entry.staleUntil || operationPending.has(key)) continue;
+      const { operationId, input, requestContext } = entry.refreshSpec;
+      const policy = operationCachePolicies[operationId];
+      // User/admin scopes are refreshed only by a live request after real-time
+      // authorization. The timer may refresh tenant-wide data without a session.
+      if (!policy || policy.scope !== 'tenant') continue;
+      startOperationRefresh(key, operationId, input, requestContext, policy).catch(() => {});
+    }
+  }, backgroundRefreshIntervalMs);
+  backgroundRefreshTimer.unref?.();
 
   function cachedEnvelope(entry, state, refreshing = false) {
     return {
@@ -2719,6 +3686,60 @@ export function createFeishuReadOnlyService(options) {
     };
   }
 
+  function refreshContext(requestContext = {}) {
+    const identity = requestContext.identity || {};
+    return {
+      identity: {
+        tenantKey: valueToText(identity.tenantKey || identity.tenantId),
+        userId: valueToText(identity.userId),
+        openId: valueToText(identity.openId),
+        adAccount: valueToText(identity.adAccount),
+        departmentId: valueToText(identity.departmentId),
+        dataScope: valueToText(identity.dataScope),
+        permissions: Array.isArray(identity.permissions) ? identity.permissions.map(String) : []
+      }
+    };
+  }
+
+  function rememberRefresh(entry, operationId, input, requestContext) {
+    if (!entry) return;
+    entry.refreshSpec = {
+      operationId,
+      input: stableCacheValue(input || {}),
+      requestContext: refreshContext(requestContext)
+    };
+  }
+
+  function retryableRefreshError(error) {
+    if (['READ_SUCCESS_SCHEMA_INVALID', 'READ_SUCCESS_SCHEMA_MISSING', 'READ_RESULT_INCOMPLETE', 'CACHE_RUNTIME_UNAVAILABLE'].includes(String(error?.code || ''))) {
+      return false;
+    }
+    const status = Number(error?.status || 0);
+    if (status === 429 || status >= 500) return true;
+    return ['FEISHU_READ_BUDGET_EXCEEDED', 'FEISHU_UPSTREAM_TIMEOUT', 'UPSTREAM_DOWN', 'ECONNRESET', 'ETIMEDOUT', 'CACHE_INVALIDATED_DURING_SYNC'].includes(String(error?.code || ''));
+  }
+
+  async function executeRefreshWithRetry(key, operationId, input, requestContext, policy, strong) {
+    let lastError;
+    for (let attempt = 1; attempt <= syncRetryAttempts; attempt += 1) {
+      assertSyncTaskActive();
+      const dependencies = dependencyTracker();
+      try {
+        const execute = () => tableDependencyScope.run(dependencies, () => executeUncached(operationId, input, requestContext));
+        const value = await (strong ? strongReadScope.run(true, execute) : execute());
+        assertSyncTaskActive();
+        return await commitOperationCacheEntry(key, operationId, value, policy, dependencies, input, requestContext);
+      } catch (error) {
+        lastError = error;
+        if (syncStateExpired() || error?.code === 'READ_SYNC_DEADLINE_EXCEEDED') throw syncDeadlineError();
+        if (attempt >= syncRetryAttempts || !retryableRefreshError(error)) throw error;
+        performanceMetrics.refreshRetries += 1;
+        await sleepWithinSync(Math.min(1_000, syncRetryBackoffMs * (2 ** (attempt - 1))));
+      }
+    }
+    throw lastError;
+  }
+
   function startOperationRefresh(key, operationId, input, requestContext, policy) {
     const current = operationPending.get(key);
     if (current) {
@@ -2726,20 +3747,61 @@ export function createFeishuReadOnlyService(options) {
       return current;
     }
     performanceMetrics.refreshes += 1;
-    const request = executeUncached(operationId, input, requestContext).then(value => {
-      const timestamp = cacheNow();
-      const cachedValue = { ...value, dataStale: false, refreshing: false, cacheStatus: 'fresh' };
-      setOperationCacheEntry(key, {
-        value: cachedValue,
-        createdAt: timestamp,
-        freshUntil: timestamp + policy.freshMs,
-        staleUntil: timestamp + policy.staleMs
-      });
-      return cachedValue;
-    }).catch(error => {
+    let deadlineTimer;
+    const abortBindings = [];
+    // User/admin projections remain isolated from lower caches. WB-001 is the
+    // homepage exception: its identity/permission/current-user projection is
+    // forced through the shared live read batch, while public catalogue source
+    // tables may reuse startup snapshots. The final WB-001 key still contains
+    // all six isolation dimensions.
+    const isolatedSourceRead = realtimeAuthorization
+      && policy.scope !== 'tenant'
+      && operationId !== 'WB-001'
+      && !trustedSystemContexts.has(requestContext);
+    const parentState = syncTaskScope.getStore();
+    const contextDeadlineAt = Number(requestContext?.syncDeadlineAtMs);
+    const controller = createSyncAbortController();
+    const ownDeadlineAt = readNow() + syncTaskTimeoutMs;
+    const candidateDeadlines = [ownDeadlineAt, parentState?.deadlineAt, contextDeadlineAt].filter(Number.isFinite);
+    const taskState = {
+      cancelled: false,
+      controller,
+      signal: controller.signal,
+      deadlineAt: Math.min(...candidateDeadlines)
+    };
+    for (const signal of [parentState?.signal, requestContext?.syncAbortSignal].filter(Boolean)) {
+      if (abortBindings.some(binding => binding.signal === signal)) continue;
+      const handler = () => {
+        taskState.cancelled = true;
+        controller.abort(syncDeadlineError());
+      };
+      abortBindings.push({ signal, handler });
+      if (signal.aborted) handler();
+      else signal.addEventListener('abort', handler, { once: true });
+    }
+    const execution = syncTaskScope.run(taskState, () => executeRefreshWithRetry(
+      key,
+      operationId,
+      input,
+      requestContext,
+      policy,
+      isolatedSourceRead
+    ));
+    const deadline = new Promise((_, reject) => {
+      deadlineTimer = setTimeout(() => {
+        taskState.cancelled = true;
+        const error = syncDeadlineError();
+        controller.abort(error);
+        reject(error);
+      }, Math.max(0, taskState.deadlineAt - readNow()));
+    });
+    const request = Promise.race([execution, deadline]).catch(error => {
       performanceMetrics.refreshFailures += 1;
+      if (error?.code === 'READ_SYNC_DEADLINE_EXCEEDED') performanceMetrics.deadlineFailures += 1;
       throw error;
     }).finally(() => {
+      clearTimeout(deadlineTimer);
+      for (const binding of abortBindings) binding.signal.removeEventListener('abort', binding.handler);
       if (operationPending.get(key) === request) operationPending.delete(key);
     });
     operationPending.set(key, request);
@@ -2749,6 +3811,7 @@ export function createFeishuReadOnlyService(options) {
   function peekOperation(operationId, input = {}, requestContext = {}) {
     const policy = operationCachePolicies[operationId];
     if (!policy || policy.freshMs <= 0 || policy.staleMs <= 0) return null;
+    if (realtimeAuthorization && policy.scope !== 'tenant' && !verifiedAuthorizationContexts.has(requestContext)) return null;
     const key = operationCacheKey(operationId, input, requestContext, policy);
     const entry = getOperationCacheEntry(key);
     if (!entry) return null;
@@ -2759,16 +3822,17 @@ export function createFeishuReadOnlyService(options) {
     return null;
   }
 
-  function executeUncachedDeduped(operationId, input = {}, requestContext = {}) {
+  function executeUncachedDeduped(operationId, input = {}, requestContext = {}, { strong = false } = {}) {
     const plan = READ_PLANS[operationId];
     const scope = plan?.kind === 'admin-read' ? 'admin' : 'user';
-    const key = operationCacheKey(operationId, input, requestContext, { code: `S-${scope === 'admin' ? 'A' : 'U'}0`, scope });
+    const key = `${strong ? 'consistent' : 'default'}\u0000${operationCacheKey(operationId, input, requestContext, { code: `S-${scope === 'admin' ? 'A' : 'U'}0`, scope })}`;
     const current = uncachedOperationPending.get(key);
     if (current) {
       performanceMetrics.inflightDedupeHits += 1;
       return current;
     }
-    const request = executeUncached(operationId, input, requestContext).finally(() => {
+    const execution = () => executeUncached(operationId, input, requestContext);
+    const request = (strong ? strongReadScope.run(true, execution) : execution()).finally(() => {
       if (uncachedOperationPending.get(key) === request) uncachedOperationPending.delete(key);
     });
     uncachedOperationPending.set(key, request);
@@ -2776,14 +3840,20 @@ export function createFeishuReadOnlyService(options) {
   }
 
   async function executeFreshInternal(operationId, input = {}, requestContext = {}, waitForCompletion = false) {
+    await persistentRestore;
     performanceMetrics.requests += 1;
     const policy = operationCachePolicies[operationId];
     if (!policy || policy.freshMs <= 0 || policy.staleMs <= 0) {
       performanceMetrics.misses += 1;
+      if (STRONG_CONSISTENCY_OPERATION_SET.has(operationId)) {
+        return strongReadScope.run(true, () => executeUncached(operationId, input, requestContext));
+      }
       return executeUncachedDeduped(operationId, input, requestContext);
     }
-    const key = operationCacheKey(operationId, input, requestContext, policy);
+    const authorizedContext = await authorizeCacheRequest(operationId, requestContext, policy);
+    const key = operationCacheKey(operationId, input, authorizedContext, policy);
     const entry = getOperationCacheEntry(key);
+    rememberRefresh(entry, operationId, input, authorizedContext);
     const timestamp = cacheNow();
     if (entry && timestamp < entry.freshUntil) {
       performanceMetrics.freshHits += 1;
@@ -2791,9 +3861,9 @@ export function createFeishuReadOnlyService(options) {
     }
     if (entry && timestamp >= entry.staleUntil) deleteOperationCacheEntry(key);
     performanceMetrics.misses += 1;
-    const refresh = startOperationRefresh(key, operationId, input, requestContext, policy);
+    const refresh = startOperationRefresh(key, operationId, input, authorizedContext, policy);
     const job = !waitForCompletion && coldMissBudgetMs > 0
-      ? trackSync(key, operationId, requestContext, refresh)
+      ? trackSync(key, operationId, authorizedContext, refresh)
       : null;
     try {
       let timer;
@@ -2803,7 +3873,7 @@ export function createFeishuReadOnlyService(options) {
             new Promise((_, reject) => {
               timer = setTimeout(() => reject(new FeishuProxyError(
                 'FEISHU_INITIAL_SYNCING',
-                '正式飞书数据仍在同步',
+                '请求处理中',
                 202,
                 { retryAfterSeconds: 2, syncId: job.id, pollAfterMs: 2_000 }
               )), coldMissBudgetMs);
@@ -2829,18 +3899,80 @@ export function createFeishuReadOnlyService(options) {
   // shared underlying refresh instead of turning the nested 5-second budget
   // into a terminal 503 response.
   function executeBackground(operationId, input = {}, requestContext = {}) {
+    const policy = operationCachePolicies[operationId];
+    if (!policy || policy.freshMs <= 0 || policy.staleMs <= 0) {
+      const startedAt = requestStartedAt(requestContext);
+      return runBoundedReadTask(async () => {
+        await persistentRestore;
+        performanceMetrics.requests += 1;
+        performanceMetrics.misses += 1;
+        if (STRONG_CONSISTENCY_OPERATION_SET.has(operationId)) {
+          return strongReadScope.run(true, () => executeUncached(operationId, input, requestContext));
+        }
+        return executeUncachedDeduped(operationId, input, requestContext);
+      }, startedAt, requestContext).promise;
+    }
     return executeFreshInternal(operationId, input, requestContext, true);
   }
 
-  async function execute(operationId, input = {}, requestContext = {}) {
+  function requestStartedAt(requestContext = {}) {
+    const current = Number(readNow());
+    const supplied = Number(requestContext.requestReceivedAtMs);
+    return Number.isFinite(supplied) && supplied >= 0 && supplied <= current + 1_000
+      ? supplied
+      : current;
+  }
+
+  function runBoundedReadTask(factory, startedAt, requestContext = {}) {
+    const controller = createSyncAbortController();
+    const contextDeadlineAt = Number(requestContext?.syncDeadlineAtMs);
+    const taskState = {
+      cancelled: false,
+      controller,
+      signal: controller.signal,
+      deadlineAt: Math.min(
+        startedAt + syncTaskTimeoutMs,
+        Number.isFinite(contextDeadlineAt) ? contextDeadlineAt : Number.POSITIVE_INFINITY
+      )
+    };
+    const externalSignal = requestContext?.syncAbortSignal;
+    const externalAbort = () => {
+      taskState.cancelled = true;
+      controller.abort(syncDeadlineError());
+    };
+    if (externalSignal?.aborted) externalAbort();
+    else externalSignal?.addEventListener?.('abort', externalAbort, { once: true });
+    let timer;
+    const execution = syncTaskScope.run(taskState, factory);
+    const deadline = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        taskState.cancelled = true;
+        const error = syncDeadlineError();
+        controller.abort(error);
+        reject(error);
+      }, Math.max(0, taskState.deadlineAt - readNow()));
+    });
+    const promise = Promise.race([execution, deadline]).catch(error => {
+      if (error?.code === 'READ_SYNC_DEADLINE_EXCEEDED') performanceMetrics.deadlineFailures += 1;
+      throw error;
+    }).finally(() => {
+      clearTimeout(timer);
+      externalSignal?.removeEventListener?.('abort', externalAbort);
+    });
+    return { promise, taskState };
+  }
+
+  async function executeCacheable(operationId, input, requestContext, policy, onAuthorized) {
+    assertSyncTaskActive();
+    await persistentRestore;
+    assertSyncTaskActive();
     performanceMetrics.requests += 1;
-    const policy = operationCachePolicies[operationId];
-    if (!policy || policy.freshMs <= 0 || policy.staleMs <= 0) {
-      performanceMetrics.misses += 1;
-      return executeUncachedDeduped(operationId, input, requestContext);
-    }
-    const key = operationCacheKey(operationId, input, requestContext, policy);
+    const authorizedContext = await authorizeCacheRequest(operationId, requestContext, policy);
+    assertSyncTaskActive();
+    onAuthorized?.(authorizedContext);
+    const key = operationCacheKey(operationId, input, authorizedContext, policy);
     const entry = getOperationCacheEntry(key);
+    rememberRefresh(entry, operationId, input, authorizedContext);
     const timestamp = cacheNow();
     if (entry && timestamp < entry.freshUntil) {
       performanceMetrics.freshHits += 1;
@@ -2848,75 +3980,180 @@ export function createFeishuReadOnlyService(options) {
     }
     if (entry && timestamp < entry.staleUntil) {
       performanceMetrics.staleHits += 1;
-      startOperationRefresh(key, operationId, input, requestContext, policy).catch(() => {});
+      startOperationRefresh(key, operationId, input, authorizedContext, policy).catch(() => {});
       return cachedEnvelope(entry, 'stale', true);
     }
     if (entry) deleteOperationCacheEntry(key);
     performanceMetrics.misses += 1;
-    const refresh = startOperationRefresh(key, operationId, input, requestContext, policy);
-    const job = coldMissBudgetMs > 0 ? trackSync(key, operationId, requestContext, refresh) : null;
-    if (coldMissBudgetMs > 0) {
-      let timer;
-      try {
-        const value = await Promise.race([
-          refresh,
-          new Promise((_, reject) => {
-            timer = setTimeout(() => reject(new FeishuProxyError(
-              'FEISHU_INITIAL_SYNCING',
-              '正式飞书数据仍在同步',
-              202,
-              { retryAfterSeconds: 2, syncId: job.id, pollAfterMs: 2_000 }
-            )), coldMissBudgetMs);
-          })
-        ]);
-        return { ...value, traceId: value.traceId || traceIdFactory() };
-      } finally {
-        if (timer) clearTimeout(timer);
-      }
-    }
-    const value = await refresh;
+    const value = await startOperationRefresh(key, operationId, input, authorizedContext, policy);
+    assertSyncTaskActive();
     return { ...value, traceId: value.traceId || traceIdFactory() };
   }
 
+  async function awaitOrHandoff(operationId, input, requestContext, startedAt, bounded, authorizationState) {
+    if (coldMissBudgetMs <= 0) return bounded;
+    const remaining = Math.max(0, startedAt + coldMissBudgetMs - readNow());
+    let timer;
+    const outcome = await Promise.race([
+      bounded.then(value => ({ completed: true, value })),
+      new Promise(resolve => { timer = setTimeout(() => resolve({ completed: false }), remaining); })
+    ]).finally(() => clearTimeout(timer));
+    if (outcome.completed) return outcome.value;
+
+    const job = trackEndToEndSync(
+      operationId,
+      input,
+      requestContext,
+      bounded,
+      () => authorizationState.fingerprint,
+      () => authorizationState.context
+    );
+    throw new FeishuProxyError(
+      'FEISHU_INITIAL_SYNCING',
+      '请求处理中',
+      202,
+      { retryAfterSeconds: 2, syncId: job.id, pollAfterMs: 2_000 }
+    );
+  }
+
+  function executeRealtimeWithHandoff(operationId, input = {}, requestContext = {}) {
+    const startedAt = requestStartedAt(requestContext);
+    const authorizationState = { fingerprint: '', context: null };
+    const bounded = runBoundedReadTask(async () => {
+      performanceMetrics.requests += 1;
+      performanceMetrics.misses += 1;
+      const policy = operationCachePolicies[operationId];
+      const authorizedContext = policy
+        ? await authorizeCacheRequest(operationId, requestContext, policy)
+        : await authorizeRequestContext(requestContext);
+      assertSyncTaskActive();
+      authorizationState.context = authorizedContext;
+      authorizationState.fingerprint = syncAuthorizationFingerprint(authorizedContext);
+      const value = await executeUncachedDeduped(operationId, input, authorizedContext, { strong: true });
+      validateOperationSuccess(operationId, value);
+      return value;
+    }, startedAt, requestContext).promise;
+    return awaitOrHandoff(operationId, input, requestContext, startedAt, bounded, authorizationState);
+  }
+
+  async function execute(operationId, input = {}, requestContext = {}) {
+    const policy = operationCachePolicies[operationId];
+    if (!policy || policy.freshMs <= 0 || policy.staleMs <= 0) {
+      return executeRealtimeWithHandoff(operationId, input, requestContext);
+    }
+    const startedAt = requestStartedAt(requestContext);
+    let authorizationFingerprint = '';
+    let authorizedContextForTask = null;
+    const bounded = runBoundedReadTask(
+      () => executeCacheable(operationId, input, requestContext, policy, authorizedContext => {
+        authorizedContextForTask = authorizedContext;
+        authorizationFingerprint = syncAuthorizationFingerprint(authorizedContext);
+      }),
+      startedAt,
+      requestContext
+    ).promise;
+    return awaitOrHandoff(operationId, input, requestContext, startedAt, bounded, {
+      get fingerprint() { return authorizationFingerprint; },
+      get context() { return authorizedContextForTask; }
+    });
+  }
+
+  async function executeConsistent(operationId, input = {}, requestContext = {}) {
+    await persistentRestore;
+    performanceMetrics.requests += 1;
+    performanceMetrics.misses += 1;
+    return strongReadScope.run(true, () => executeUncached(operationId, input, requestContext));
+  }
+
   function invalidateAppProjection() {
+    cacheInvalidationEpoch += 1;
     appProjectionCache = null;
     appProjectionExpiresAt = 0;
     appDetailCountCache = null;
     appDetailCountExpiresAt = 0;
     dictionaryProjectionCache.clear();
     for (const tableName of ['应用索引', '应用类型配置', '用户字典', '部门字典', '业务域字典', '场景字典']) {
+      tableInvalidationVersions.set(tableName, (tableInvalidationVersions.get(tableName) || 0) + 1);
       invalidateTableSnapshots(tableName);
     }
-    clearOperationCache();
+    invalidateOperationEntries(['应用索引', '应用类型配置', '用户字典', '部门字典', '业务域字典', '场景字典']);
+  }
+
+  function invalidateOperationEntries(tableNames = []) {
+    const targets = new Set(tableNames.map(valueToText).filter(Boolean));
+    if (!targets.size) return 0;
+    let invalidated = 0;
+    for (const [key, entry] of operationCache) {
+      const dependencies = Array.isArray(entry.dependencies) ? entry.dependencies : [];
+      if (!dependencies.some(tableName => targets.has(tableName))) continue;
+      if (deleteOperationCacheEntry(key, { persist: false })) invalidated += 1;
+    }
+    if (invalidated) schedulePersistentSnapshot();
+    return invalidated;
   }
 
   function invalidateTables(tableNames = []) {
-    for (const tableName of tableNames) invalidateTableSnapshots(valueToText(tableName));
-    appProjectionCache = null;
-    appProjectionExpiresAt = 0;
-    appDetailCountCache = null;
-    appDetailCountExpiresAt = 0;
-    announcementProjectionCache = null;
-    announcementProjectionExpiresAt = 0;
-    dictionaryProjectionCache.clear();
-    talentProjectionCache.clear();
-    contactProjectionCache = null;
-    contactProjectionExpiresAt = 0;
-    clearOperationCache();
+    const normalized = [...new Set(tableNames.map(valueToText).filter(Boolean))];
+    if (normalized.length) cacheInvalidationEpoch += 1;
+    for (const tableName of normalized) {
+      tableInvalidationVersions.set(tableName, (tableInvalidationVersions.get(tableName) || 0) + 1);
+      invalidateTableSnapshots(tableName);
+    }
+    const targetSet = new Set(normalized);
+    const appTables = new Set(['应用索引', '应用类型配置', '用户字典', '部门字典', '业务域字典', '场景字典', ...APP_DETAIL_COUNT_SOURCES.map(item => item.tableName)]);
+    if (normalized.some(tableName => appTables.has(tableName))) {
+      appProjectionCache = null;
+      appProjectionExpiresAt = 0;
+      appDetailCountCache = null;
+      appDetailCountExpiresAt = 0;
+    }
+    if (targetSet.has('公告通知') || targetSet.has('公告已读明细')) {
+      announcementProjectionCache = null;
+      announcementProjectionExpiresAt = 0;
+    }
+    if (normalized.some(tableName => /人才|项目进度/.test(tableName))) talentProjectionCache.clear();
+    if (targetSet.has('用户字典') || targetSet.has('部门字典')) {
+      contactProjectionCache = null;
+      contactProjectionExpiresAt = 0;
+    }
+    if (normalized.some(tableName => /字典|配置|分类/.test(tableName))) dictionaryProjectionCache.clear();
+    invalidateOperationEntries(normalized);
   }
 
   function invalidateTableSnapshots(tableName) {
     for (const key of tableReadCache.keys()) {
-      if (key === tableName || key.startsWith(`${tableName}\u0000`)) tableReadCache.delete(key);
+      if (key === tableName || key.startsWith(`${tableName}\u0000`)) deleteTableReadCacheEntry(key);
     }
   }
 
   async function prewarm({ identities = [] } = {}) {
+    await persistentRestore;
+    const systemContext = { identity: { tenantKey: valueToText(options.prewarmTenantKey || 'default-tenant'), userId: 'system-prewarm' } };
+    trustedSystemContexts.add(systemContext);
+    const startupInputs = Object.freeze({
+      'COM-005': { dictTypes: ['APPLICATION_TYPE', 'BUSINESS_DOMAIN', 'SCENE'], includeDisabled: false },
+      'WB-002': { page: 1, pageSize: 20, sort: 'RELEVANCE' }
+    });
+    const restoredHits = Object.entries(startupInputs).filter(([operationId, input]) => peekOperation(operationId, input, systemContext));
+    if (restoredHits.length === Object.keys(startupInputs).length) {
+      const persistentHealth = await checkPersistentCacheHealth();
+      if (persistentHealth?.enabled && (persistentHealth.healthy === false || persistentHealth.lastError || persistentHealth.writeSuspended)) {
+        throw new FeishuProxyError('CACHE_RUNTIME_UNAVAILABLE', '服务器缓存运行目录不可用', 503, {
+          cacheError: String(persistentHealth.lastError || 'CACHE_WRITES_SUSPENDED')
+        });
+      }
+      persistentRestoreState.usableEntries = operationCache.size;
+      return Object.freeze({
+        restoredEntries: persistentRestoreState.restoredEntries,
+        verifiedHits: restoredHits.map(([operationId]) => operationId),
+        source: 'persistent-snapshot'
+      });
+    }
     const p0Tables = [
       ['应用类型配置', []], ['部门字典', []], ['业务域字典', []], ['场景字典', []], ['应用索引', []], ['素材分类', []],
       ['用户字典', PROFILE_FIELDS.user], ['培训课程', []], ['公告通知', []]
     ];
-    const prewarmConcurrency = 4;
+    const prewarmConcurrency = 3;
     const prewarmTable = async ([tableName, fields]) => {
       for (let attempt = 1; attempt <= 3; attempt += 1) {
         try {
@@ -2934,8 +4171,8 @@ export function createFeishuReadOnlyService(options) {
       await Promise.all(p0Tables.slice(offset, offset + prewarmConcurrency).map(prewarmTable));
     }
     await Promise.all([
-      execute('COM-005', { dictTypes: ['APPLICATION_TYPE', 'BUSINESS_DOMAIN', 'SCENE', 'MATERIAL_CATEGORY'], includeDisabled: false }, {}),
-      execute('WB-002', { page: 1, pageSize: 20 }, {})
+      executeBackground('COM-005', startupInputs['COM-005'], systemContext),
+      executeBackground('WB-002', startupInputs['WB-002'], systemContext)
     ]);
     for (const requestContext of identities) {
       await Promise.all([
@@ -2944,6 +4181,23 @@ export function createFeishuReadOnlyService(options) {
         execute('WB-001', { hotLimit: 4, courseLimit: 3, noticeLimit: 4 }, requestContext)
       ]);
     }
+    try {
+      await flushPersistentCache();
+    } catch (error) {
+      throw new FeishuProxyError('CACHE_RUNTIME_UNAVAILABLE', '服务器缓存运行目录不可用', 503, {
+        cacheError: String(error?.code || error?.message || 'SNAPSHOT_WRITE_FAILED')
+      });
+    }
+    const persistentHealth = persistentCache?.metrics?.();
+    if (persistentHealth?.enabled && persistentHealth.lastError) {
+      throw new FeishuProxyError('CACHE_RUNTIME_UNAVAILABLE', '服务器缓存运行目录不可用', 503, { cacheError: persistentHealth.lastError });
+    }
+    const verifiedHits = Object.entries(startupInputs).filter(([operationId, input]) => peekOperation(operationId, input, systemContext));
+    if (verifiedHits.length !== 2) {
+      throw new FeishuProxyError('CACHE_STARTUP_HIT_FAILED', '服务器缓存恢复后无法实际命中', 503);
+    }
+    persistentRestoreState.usableEntries = operationCache.size;
+    return Object.freeze({ restoredEntries: persistentRestoreState.restoredEntries, verifiedHits: verifiedHits.map(([operationId]) => operationId) });
   }
 
   async function waitForIdle() {
@@ -2964,25 +4218,109 @@ export function createFeishuReadOnlyService(options) {
         entries: operationCache.size,
         bytes: operationCacheBytes,
         maxEntries: operationCacheMaxEntries,
-        maxBytes: operationCacheMaxBytes
+        maxBytes: operationCacheMaxBytes,
+        tableEntries: tableReadCache.size,
+        tableBytes: tableReadCacheBytes,
+        tableMaxEntries: tableReadCacheMaxEntries,
+        tableMaxBytes: tableReadCacheMaxBytes
       }),
       inflight: Object.freeze({
         cacheableOperations: operationPending.size,
         strongOperations: uncachedOperationPending.size,
-        tableReads: tableReadPending.size
-      })
+        tableReads: tableReadPending.size,
+        feishuSyncs: activeSyncs,
+        queuedFeishuSyncs: syncQueue.length + authorizationSyncQueue.length,
+        queuedAuthorizationSyncs: authorizationSyncQueue.length,
+        maxFeishuSyncs: maxSyncConcurrency,
+        syncTaskTimeoutMs
+      }),
+      persistent: persistentCache?.metrics?.() || Object.freeze({ enabled: false }),
+      restore: Object.freeze({ ...persistentRestoreState })
     });
+  }
+
+  async function checkPersistentCacheHealth() {
+    await persistentRestore;
+    if (typeof persistentCache?.checkHealth === 'function') return persistentCache.checkHealth();
+    const current = persistentCache?.metrics?.() || Object.freeze({ enabled: false, lastError: null, writeSuspended: false });
+    return Object.freeze({ ...current, healthy: !current.enabled || (!current.lastError && !current.writeSuspended) });
+  }
+
+  async function flushPersistentCache({ discardOnFailure = false } = {}) {
+    await persistentRestore;
+    if (typeof persistentCache?.flush !== 'function') return true;
+    let result;
+    let failure;
+    try {
+      result = await persistentCache.flush(persistentEntries);
+    } catch (error) {
+      failure = error;
+    }
+    let health = persistentCache.metrics?.();
+    const healthyCommit = !health?.enabled
+      || (result !== false && !health.lastError && !health.writeSuspended);
+    if (!failure && healthyCommit) return result;
+    if (!discardOnFailure) throw cacheRuntimeError(failure || health?.lastError || 'SNAPSHOT_WRITE_FAILED');
+
+    try {
+      if (typeof persistentCache.discardSnapshot !== 'function') {
+        throw Object.assign(new Error('持久缓存不支持隔离旧快照'), { code: 'CACHE_SNAPSHOT_DISCARD_UNAVAILABLE' });
+      }
+      await persistentCache.discardSnapshot();
+    } catch (discardError) {
+      throw new FeishuProxyError('CACHE_INVALIDATION_PERSIST_FAILED', '业务写入已成功，但旧缓存快照无法安全隔离', 503, {
+        cacheError: String(discardError?.code || discardError?.message || discardError),
+        writeCommitted: true,
+        retryable: false
+      });
+    }
+
+    try {
+      result = await persistentCache.flush(persistentEntries);
+      health = persistentCache.metrics?.();
+      if (result !== false && (!health?.enabled || (!health.lastError && !health.writeSuspended))) return result;
+    } catch (retryError) {
+      failure = retryError;
+    }
+    return Object.freeze({
+      written: false,
+      discarded: true,
+      errorCode: String(failure?.code || health?.lastError || 'SNAPSHOT_WRITE_FAILED')
+    });
+  }
+
+  async function getStartupCacheState() {
+    await persistentRestore;
+    const timestamp = cacheNow();
+    const usableEntries = [...operationCache.values()].filter(entry => timestamp < Number(entry.staleUntil)).length;
+    persistentRestoreState.usableEntries = usableEntries;
+    return Object.freeze({ ...persistentRestoreState, usableEntries });
+  }
+
+  function close() {
+    clearInterval(backgroundRefreshTimer);
+    taskStatusAuthorizationContinuations.clear();
   }
 
   return Object.freeze({
     execute,
+    executeRealtimeWithHandoff,
+    executeConsistent,
+    authorizeRequestContext,
+    authorizeTaskStatus,
+    runWithSharedReadBatch,
+    validateOperationSuccess,
     executeFresh,
     executeBackground,
     getReadSyncStatus,
     peekOperation,
     prewarm,
     waitForIdle,
+    flushPersistentCache,
+    close,
     getPerformanceSnapshot,
+    getStartupCacheState,
+    checkPersistentCacheHealth,
     invalidateAppProjection,
     invalidateTables,
     resolveCurrentUserProfile: readCurrentContactProjection,

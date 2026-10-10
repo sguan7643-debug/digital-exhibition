@@ -24,6 +24,16 @@ function safeJson(response) {
   });
 }
 
+function upstreamFailureCauseCode(error) {
+  let current = error;
+  for (let depth = 0; current && depth < 6; depth += 1) {
+    const code = String(current?.code || '').trim().toUpperCase();
+    if (/^[A-Z0-9_]{2,64}$/.test(code)) return code;
+    current = current?.cause;
+  }
+  return error?.name === 'TypeError' ? 'FETCH_FAILED' : 'UPSTREAM_REQUEST_FAILED';
+}
+
 function safeUpstreamDetails(value) {
   if (!value || typeof value !== 'object') return undefined;
   const allowed = {};
@@ -49,15 +59,37 @@ function createUpstreamLimiter(maxConcurrentRequests) {
   const waiting = [];
   const runNext = () => {
     if (active >= maxConcurrentRequests || !waiting.length) return;
-    active += 1;
     const job = waiting.shift();
+    if (job.signal?.aborted) {
+      job.cleanup?.();
+      job.reject(job.signal.reason || new FeishuProxyError('READ_SYNC_DEADLINE_EXCEEDED', '数据同步超时', 504));
+      runNext();
+      return;
+    }
+    active += 1;
+    job.cleanup?.();
     Promise.resolve().then(job.task).then(job.resolve, job.reject).finally(() => {
       active -= 1;
       runNext();
     });
   };
-  return task => new Promise((resolve, reject) => {
-    waiting.push({ task, resolve, reject });
+  return (task, { signal } = {}) => new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason || new FeishuProxyError('READ_SYNC_DEADLINE_EXCEEDED', '数据同步超时', 504));
+      return;
+    }
+    const job = { task, resolve, reject, signal, cleanup: null };
+    if (signal) {
+      const onAbort = () => {
+        const index = waiting.indexOf(job);
+        if (index < 0) return;
+        waiting.splice(index, 1);
+        reject(signal.reason || new FeishuProxyError('READ_SYNC_DEADLINE_EXCEEDED', '数据同步超时', 504));
+      };
+      signal.addEventListener('abort', onAbort, { once: true });
+      job.cleanup = () => signal.removeEventListener('abort', onAbort);
+    }
+    waiting.push(job);
     runNext();
   });
 }
@@ -87,12 +119,18 @@ export function createFeishuOpenApiClient(options = {}) {
     }
   }
 
-  async function fetchUpstream(url, init, upstreamPath) {
+  async function fetchUpstream(url, init, upstreamPath, { signal } = {}) {
     return scheduleUpstream(async () => {
     const controller = new AbortController();
     const startedAt = now();
     let timedOut = false;
     let timer;
+    let externalAbortHandler;
+    if (signal) {
+      externalAbortHandler = () => controller.abort(signal.reason);
+      if (signal.aborted) externalAbortHandler();
+      else signal.addEventListener('abort', externalAbortHandler, { once: true });
+    }
     const deadline = new Promise((_, reject) => {
       timer = setTimeout(() => {
         timedOut = true;
@@ -106,43 +144,103 @@ export function createFeishuOpenApiClient(options = {}) {
         deadline
       ]);
     } catch (cause) {
+      if (signal?.aborted) {
+        throw signal.reason instanceof Error
+          ? signal.reason
+          : new FeishuProxyError('READ_SYNC_DEADLINE_EXCEEDED', '数据同步超时', 504);
+      }
       if (timedOut) {
         throw new FeishuProxyError('FEISHU_UPSTREAM_TIMEOUT', '飞书服务响应超时', 504, {
           upstreamPath,
           elapsedMs: Math.max(0, Number(now()) - Number(startedAt))
         });
       }
-      throw cause;
+      if (cause instanceof FeishuProxyError) throw cause;
+      throw new FeishuProxyError('FEISHU_UPSTREAM_UNAVAILABLE', '飞书服务暂不可用', 502, {
+        upstreamPath,
+        causeCode: upstreamFailureCauseCode(cause),
+        elapsedMs: Math.max(0, Number(now()) - Number(startedAt))
+      });
     } finally {
       clearTimeout(timer);
+      if (externalAbortHandler) signal.removeEventListener('abort', externalAbortHandler);
     }
+    }, { signal });
+  }
+
+  function requestAbortError(signal) {
+    return signal?.reason instanceof Error
+      ? signal.reason
+      : new FeishuProxyError('READ_SYNC_DEADLINE_EXCEEDED', '数据同步超时', 504);
+  }
+
+  function waitForTenantToken(pending, signal) {
+    pending.waiters += 1;
+    let settled = false;
+    let abortHandler;
+    return new Promise((resolve, reject) => {
+      const finish = (callback, value) => {
+        if (settled) return;
+        settled = true;
+        if (abortHandler) signal.removeEventListener('abort', abortHandler);
+        pending.waiters = Math.max(0, pending.waiters - 1);
+        callback(value);
+      };
+      abortHandler = signal
+        ? () => {
+            const error = requestAbortError(signal);
+            finish(reject, error);
+            if (pending.waiters === 0 && !pending.settled) pending.controller.abort(error);
+          }
+        : null;
+      if (signal?.aborted) {
+        abortHandler();
+        return;
+      }
+      if (abortHandler) signal.addEventListener('abort', abortHandler, { once: true });
+      pending.promise.then(
+        value => finish(resolve, value),
+        error => finish(reject, error)
+      );
     });
   }
 
-  async function getTenantToken() {
+  function createTenantTokenRequest() {
+    const controller = new AbortController();
+    const pending = { controller, promise: null, waiters: 0, settled: false };
+    pending.promise = (async () => {
+      const response = await fetchUpstream(`${API_ROOT}/auth/v3/tenant_access_token/internal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ app_id: appId, app_secret: appSecret })
+      }, '/auth/v3/tenant_access_token/internal', { signal: controller.signal });
+      const body = await safeJson(response);
+      if (!response.ok || body.code !== 0 || !body.tenant_access_token) {
+        throw new FeishuProxyError('TENANT_TOKEN_FAILED', '飞书租户访问令牌获取失败', response.status || 502);
+      }
+      cachedTenantToken = body.tenant_access_token;
+      const validSeconds = Math.max(60, Number(body.expire || 7200) - 300);
+      tokenExpiresAt = now() + validSeconds * 1000;
+      return cachedTenantToken;
+    })();
+    tenantTokenPending = pending;
+    const finalize = () => {
+      pending.settled = true;
+      if (tenantTokenPending === pending) tenantTokenPending = null;
+    };
+    pending.promise.then(finalize, finalize);
+    return pending;
+  }
+
+  async function getTenantToken(requestOptions = {}) {
     requireCredentials();
     if (cachedTenantToken && now() < tokenExpiresAt) return cachedTenantToken;
-    if (tenantTokenPending) return tenantTokenPending;
-    tenantTokenPending = (async () => {
-      try {
-        const response = await fetchUpstream(`${API_ROOT}/auth/v3/tenant_access_token/internal`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ app_id: appId, app_secret: appSecret })
-        }, '/auth/v3/tenant_access_token/internal');
-        const body = await safeJson(response);
-        if (!response.ok || body.code !== 0 || !body.tenant_access_token) {
-          throw new FeishuProxyError('TENANT_TOKEN_FAILED', '飞书租户访问令牌获取失败', response.status || 502);
-        }
-        cachedTenantToken = body.tenant_access_token;
-        const validSeconds = Math.max(60, Number(body.expire || 7200) - 300);
-        tokenExpiresAt = now() + validSeconds * 1000;
-        return cachedTenantToken;
-      } finally {
-        tenantTokenPending = null;
-      }
-    })();
-    return tenantTokenPending;
+    const signal = requestOptions?.signal;
+    if (signal?.aborted) throw requestAbortError(signal);
+    const pending = !tenantTokenPending || tenantTokenPending.settled || tenantTokenPending.controller.signal.aborted
+      ? createTenantTokenRequest()
+      : tenantTokenPending;
+    return waitForTenantToken(pending, signal);
   }
 
   async function approvalRequest(pathname, { method = 'GET', body, accessToken } = {}, upstreamPath = pathname) {
@@ -326,16 +424,16 @@ export function createFeishuOpenApiClient(options = {}) {
     return Object.freeze({ messageId: String(body.data.message_id) });
   }
 
-  async function getContactUser(userId) {
+  async function getContactUser(userId, requestOptions = {}) {
     const normalized = String(userId || '').trim();
     if (!normalized || normalized.length > 256) throw new FeishuProxyError('INVALID_CONTACT_USER_ID', '飞书用户标识非法', 400);
-    const token = await getTenantToken();
+    const token = await getTenantToken(requestOptions);
     const url = new URL(`${API_ROOT}/contact/v3/users/${encodeURIComponent(normalized)}`);
     url.searchParams.set('user_id_type', 'user_id');
     url.searchParams.set('department_id_type', 'open_department_id');
     const response = await fetchUpstream(url, {
       method: 'GET', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
-    }, '/contact/v3/users/{userId}');
+    }, '/contact/v3/users/{userId}', requestOptions);
     const body = await safeJson(response);
     if (!response.ok || body.code !== 0 || !body.data?.user) {
       const status = response.status === 401 ? 401 : response.status === 403 ? 403 : response.status === 404 ? 404 : response.status === 429 ? 429 : 502;
@@ -352,12 +450,12 @@ export function createFeishuOpenApiClient(options = {}) {
     });
   }
 
-  async function listRecords(tableId, query = {}) {
+  async function listRecords(tableId, query = {}, requestOptions = {}) {
     requireCredentials();
     if (!/^tbl[A-Za-z0-9]+$/.test(tableId || '')) throw new FeishuProxyError('INVALID_TABLE_ID', '飞书表标识非法', 400);
     if (query.viewId && !/^vew[A-Za-z0-9]+$/.test(query.viewId)) throw new FeishuProxyError('INVALID_VIEW_ID', '飞书视图标识非法', 400);
     const pageSize = normalizePageSize(query.pageSize);
-    const token = await getTenantToken();
+    const token = await getTenantToken(requestOptions);
     const url = new URL(`${API_ROOT}/bitable/v1/apps/${encodeURIComponent(baseToken)}/tables/${encodeURIComponent(tableId)}/records`);
     url.searchParams.set('page_size', String(pageSize));
     if (query.viewId) url.searchParams.set('view_id', query.viewId);
@@ -373,7 +471,7 @@ export function createFeishuOpenApiClient(options = {}) {
     const response = await fetchUpstream(url, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
-    }, '/bitable/v1/apps/{base}/tables/{tableId}/records');
+    }, '/bitable/v1/apps/{base}/tables/{tableId}/records', requestOptions);
     const body = await safeJson(response);
     const emptySuccess = body.code === 0 && body.data && body.data.items == null && Number(body.data.total || 0) === 0;
     if (!response.ok || body.code !== 0 || !body.data || (!Array.isArray(body.data.items) && !emptySuccess)) {
@@ -393,17 +491,17 @@ export function createFeishuOpenApiClient(options = {}) {
     };
   }
 
-  async function downloadMedia(fileToken) {
+  async function downloadMedia(fileToken, requestOptions = {}) {
     requireCredentials();
     const normalized = String(fileToken || '');
     if (!/^[A-Za-z0-9_-]{1,256}$/.test(normalized)) {
       throw new FeishuProxyError('INVALID_FILE_TOKEN', '飞书文件标识非法', 400);
     }
-    const token = await getTenantToken();
+    const token = await getTenantToken(requestOptions);
     const response = await fetchUpstream(`${API_ROOT}/drive/v1/medias/${encodeURIComponent(normalized)}/download`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/octet-stream' }
-    }, '/drive/v1/medias/{fileToken}/download');
+    }, '/drive/v1/medias/{fileToken}/download', requestOptions);
     if (!response.ok) {
       const status = response.status === 403 ? 403 : response.status === 404 ? 404 : response.status === 429 ? 429 : 502;
       throw new FeishuProxyError('FEISHU_MEDIA_DOWNLOAD_FAILED', '飞书文件下载失败', status);
@@ -411,13 +509,13 @@ export function createFeishuOpenApiClient(options = {}) {
     return response;
   }
 
-  async function contactList(pathname, query = {}) {
+  async function contactList(pathname, query = {}, requestOptions = {}) {
     requireCredentials();
     const pageSize = query.pageSize == null ? 50 : Number(query.pageSize);
     if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50) {
       throw new FeishuProxyError('INVALID_CONTACT_PAGE_SIZE', '通讯录页容量必须是 1 至 50 的整数', 400);
     }
-    const token = await getTenantToken();
+    const token = await getTenantToken(requestOptions);
     const url = new URL(`${API_ROOT}${pathname}`);
     url.searchParams.set('page_size', String(pageSize));
     url.searchParams.set('user_id_type', query.userIdType || 'user_id');
@@ -425,7 +523,7 @@ export function createFeishuOpenApiClient(options = {}) {
     if (query.pageToken) url.searchParams.set('page_token', String(query.pageToken));
     const response = await fetchUpstream(url, {
       method: 'GET', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
-    }, '/contact/v3/departments/{departmentId}/children');
+    }, '/contact/v3/departments/{departmentId}/children', requestOptions);
     const body = await safeJson(response);
     if (!response.ok || body.code !== 0 || (body.data?.items != null && !Array.isArray(body.data.items))) {
       const status = response.status === 429 ? 429 : response.status === 403 ? 403 : 502;
@@ -440,15 +538,15 @@ export function createFeishuOpenApiClient(options = {}) {
     };
   }
 
-  async function listDepartmentChildren(departmentId = '0', query = {}) {
+  async function listDepartmentChildren(departmentId = '0', query = {}, requestOptions = {}) {
     const normalized = String(departmentId || '');
     if (!/^[a-zA-Z0-9][a-zA-Z0-9_\-@.]{0,63}$/.test(normalized)) {
       throw new FeishuProxyError('INVALID_DEPARTMENT_ID', '飞书部门标识非法', 400);
     }
-    return contactList(`/contact/v3/departments/${encodeURIComponent(normalized)}/children`, query);
+    return contactList(`/contact/v3/departments/${encodeURIComponent(normalized)}/children`, query, requestOptions);
   }
 
-  const listUsersByDepartmentWithId = async (departmentId = '0', query = {}) => {
+  const listUsersByDepartmentWithId = async (departmentId = '0', query = {}, requestOptions = {}) => {
     requireCredentials();
     const normalized = String(departmentId || '');
     if (!/^[a-zA-Z0-9][a-zA-Z0-9_\-@.]{0,63}$/.test(normalized)) {
@@ -458,14 +556,14 @@ export function createFeishuOpenApiClient(options = {}) {
     if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50) {
       throw new FeishuProxyError('INVALID_CONTACT_PAGE_SIZE', '通讯录页容量必须是 1 至 50 的整数', 400);
     }
-    const token = await getTenantToken();
+    const token = await getTenantToken(requestOptions);
     const url = new URL(`${API_ROOT}/contact/v3/users/find_by_department`);
     url.searchParams.set('department_id', normalized);
     url.searchParams.set('page_size', String(pageSize));
     url.searchParams.set('user_id_type', query.userIdType || 'user_id');
     url.searchParams.set('department_id_type', query.departmentIdType || 'open_department_id');
     if (query.pageToken) url.searchParams.set('page_token', String(query.pageToken));
-    const response = await fetchUpstream(url, { method: 'GET', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } }, '/contact/v3/users/find_by_department');
+    const response = await fetchUpstream(url, { method: 'GET', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } }, '/contact/v3/users/find_by_department', requestOptions);
     const body = await safeJson(response);
     if (!response.ok || body.code !== 0 || (body.data?.items != null && !Array.isArray(body.data.items))) {
       const status = response.status === 429 ? 429 : response.status === 403 ? 403 : 502;

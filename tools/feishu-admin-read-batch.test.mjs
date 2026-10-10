@@ -38,7 +38,7 @@ const rowsByName = new Map([
 ]);
 const tableNames = new Map([...identifierContract.byName.values()].map(table => [table.tableId, table.name]));
 const client = { async listRecords(tableId) { const items = rowsByName.get(tableNames.get(tableId)) || []; return { items, total: items.length, hasMore: false, nextPageToken: '' }; } };
-const service = createFeishuReadOnlyService({ client, identifierContract, now: () => new Date('2026-09-02T05:00:00.000Z'), traceIdFactory: () => 'trace-admin' });
+const service = createFeishuReadOnlyService({ client, identifierContract, realtimeAuthorization: false, now: () => new Date('2026-09-02T05:00:00.000Z'), traceIdFactory: () => 'trace-admin' });
 const context = { identity: { userId: 'ADMIN-1' } };
 const contracts = createVerifiedReadOperationContracts();
 const responses = new Map();

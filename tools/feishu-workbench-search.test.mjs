@@ -16,7 +16,7 @@ const rows = new Map([
 ]);
 const names = new Map([...identifierContract.byName.values()].map(table => [table.tableId, table.name]));
 const client = { async listRecords(tableId) { const items = rows.get(names.get(tableId)) || []; return { items, total: items.length, hasMore: false, nextPageToken: '' }; } };
-const service = createFeishuReadOnlyService({ client, identifierContract, appProjectionCacheMs: 0 });
+const service = createFeishuReadOnlyService({ client, identifierContract, realtimeAuthorization: false, appProjectionCacheMs: 0 });
 const response = await service.execute('WB-002', { keyword: ' 采购 ', scene: '生产运营', typeCode: 'REPORT', page: 1, pageSize: 10 });
 assert.equal(response.data.items[0].appId, 'APP-1');
 assert.equal(response.data.normalizedKeyword, '采购');

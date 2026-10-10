@@ -24,7 +24,7 @@ const rowsByName = new Map([
 ]);
 const tableNames = new Map([...identifierContract.byName.values()].map(table => [table.tableId, table.name]));
 const client = { async listRecords(tableId) { const items = rowsByName.get(tableNames.get(tableId)) || []; return { items, total: items.length, hasMore: false, nextPageToken: '' }; } };
-const service = createFeishuReadOnlyService({ client, identifierContract, appProjectionCacheMs: 0, now: () => new Date('2026-09-02T05:00:00.000Z'), traceIdFactory: () => 'trace-detail' });
+const service = createFeishuReadOnlyService({ client, identifierContract, realtimeAuthorization: false, appProjectionCacheMs: 0, now: () => new Date('2026-09-02T05:00:00.000Z'), traceIdFactory: () => 'trace-detail' });
 const context = { identity: { userId: 'USER-1', openId: 'OPEN-1' } };
 const contracts = createVerifiedReadOperationContracts();
 const responses = new Map();

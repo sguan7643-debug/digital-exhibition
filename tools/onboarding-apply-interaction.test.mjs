@@ -89,10 +89,11 @@ assert.match(applySource, /v-for="field in activeDetailSchema\.fields"/);
 assert.match(applySource, /detailFields:\s*buildDetailFields\(\)/);
 assert.match(applySource, /申请人联系电话:\s*form\.phone/);
 assert.match(applySource, /申请人联系邮箱:\s*form\.email/);
+assert.match(applySource, /const applicantDepartmentId = departmentId\(form\.department\)/);
 assert.match(applySource, /接入人所属部门ID:\s*departmentId\(form\.contactDepartment\)/);
 for (const [fieldName, valueSource] of [
   ['应用名称', 'form.name'],
-  ['所属部门ID', 'departmentId(form.department)'],
+  ['所属部门ID', 'applicantDepartmentId'],
   ['所属业务域ID', 'form.domain'],
   ['摘要', 'form.summary'],
   ['应用简介', 'form.scenario'],

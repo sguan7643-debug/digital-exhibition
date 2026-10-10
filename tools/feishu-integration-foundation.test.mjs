@@ -22,7 +22,7 @@ assert.equal(OPERATION_REGISTRY.length, 101, 'operation registry must contain th
 const identifiers = JSON.parse(readFileSync(path.resolve('server/contracts/feishu-base-identifiers.json'), 'utf8'));
 const serverReadme = readFileSync(path.resolve('server/README.md'), 'utf8');
 assert.equal(identifiers.tableCount, 64); assert.equal(identifiers.fieldCount, 1229);
-assert.match(serverReadme, /64 表\/1229 字段/); assert.match(serverReadme, /101 项：65 个只读接口与 36 个仅允许/);
+assert.match(serverReadme, /64 表\/1229 字段/); assert.match(serverReadme, /101 项：65 个只读接口与 36 个正式业务写接口/);
 assert.equal(OPERATION_REGISTRY.filter(item=>item.access==='read').length,65); assert.equal(OPERATION_REGISTRY.filter(item=>item.access==='write').length,36);
 assert.equal(FIRST_BATCH_OPERATION_IDS.length, 25);
 assert.equal(LATER_BATCH_OPERATION_IDS.length, 59);

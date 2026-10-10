@@ -40,6 +40,7 @@ const client = {
 const readService = createFeishuReadOnlyService({
   client,
   identifierContract,
+  realtimeAuthorization: false,
   appProjectionCacheMs: 0,
   now: () => new Date('2026-09-29T12:00:00.000Z'),
   traceIdFactory: () => 'trace-onboarding-authoritative'

@@ -1,0 +1,27 @@
+[Unit]
+Description=Digital Exhibition test server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=seaoil-deh
+Group=seaoil-deh
+WorkingDirectory=/home/seaoil/pre-demo/test
+EnvironmentFile=/home/seaoil/pre-demo/test/.env
+ExecStart=/usr/bin/env node --max-old-space-size=1536 server/test-deployment-server.mjs
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+UMask=0077
+CPUQuota=150%
+MemoryHigh=1800M
+MemoryMax=2G
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/home/seaoil/pre-demo/test/.local /home/seaoil/pre-demo/runtime-cache
+
+[Install]
+WantedBy=multi-user.target

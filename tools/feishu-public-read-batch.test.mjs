@@ -27,7 +27,7 @@ const client = {
     return { items, total: items.length, hasMore: false, nextPageToken: '' };
   }
 };
-const service = createFeishuReadOnlyService({ client, identifierContract: contract, now: () => new Date('2026-09-02T01:00:00.000Z'), traceIdFactory: () => 'trace-public-batch' });
+const service = createFeishuReadOnlyService({ client, identifierContract: contract, realtimeAuthorization: false, now: () => new Date('2026-09-02T01:00:00.000Z'), traceIdFactory: () => 'trace-public-batch' });
 const publicContracts = createPublicReadOperationContracts();
 assert.deepEqual(Object.keys(publicContracts).sort(), ['CER-001', 'CER-002', 'MAT-001', 'OPS-003', 'PTS-004', 'TRN-001', 'TRN-002', 'TRN-003']);
 assert.ok(Object.values(publicContracts).every(item => item.contractStatus === 'server-projection-verified'));

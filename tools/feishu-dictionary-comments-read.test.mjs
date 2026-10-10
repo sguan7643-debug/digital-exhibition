@@ -22,7 +22,7 @@ const rowsByName = new Map([
 ]);
 const nameByTableId = new Map([...identifierContract.byName.values()].map(table => [table.tableId, table.name]));
 const client = { async listRecords(tableId) { const items = rowsByName.get(nameByTableId.get(tableId)) || []; return { items, total: items.length, hasMore: false, nextPageToken: '' }; } };
-const service = createFeishuReadOnlyService({ client, identifierContract, now: () => new Date('2026-09-02T05:00:00.000Z'), traceIdFactory: () => 'trace-dict-comment' });
+const service = createFeishuReadOnlyService({ client, identifierContract, realtimeAuthorization: false, now: () => new Date('2026-09-02T05:00:00.000Z'), traceIdFactory: () => 'trace-dict-comment' });
 const contracts = createVerifiedReadOperationContracts();
 
 const dictionaryResponse = await service.execute('COM-005', { dictTypes: ['APPLICATION_TYPE', 'BUSINESS_DOMAIN', 'SCENE', 'MATERIAL_CATEGORY', 'UNKNOWN'], includeDisabled: false });

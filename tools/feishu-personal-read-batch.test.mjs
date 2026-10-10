@@ -37,7 +37,7 @@ const rowsByName = new Map([
 ]);
 const tableNames = new Map([...identifierContract.byName.values()].map(table => [table.tableId, table.name]));
 const client = { async listRecords(tableId) { const items = rowsByName.get(tableNames.get(tableId)) || []; return { items, total: items.length, hasMore: false, nextPageToken: '' }; } };
-const service = createFeishuReadOnlyService({ client, identifierContract, appProjectionCacheMs: 0, now: () => new Date('2026-09-02T05:00:00.000Z'), traceIdFactory: () => 'trace-personal' });
+const service = createFeishuReadOnlyService({ client, identifierContract, realtimeAuthorization: false, appProjectionCacheMs: 0, now: () => new Date('2026-09-02T05:00:00.000Z'), traceIdFactory: () => 'trace-personal' });
 const context = { identity: { userId: 'USER-1', openId: 'OPEN-1' } };
 const contracts = createVerifiedReadOperationContracts();
 const responses = new Map();
@@ -100,6 +100,7 @@ const concurrentService = createFeishuReadOnlyService({
     }
   },
   appProjectionCacheMs: 0,
+  realtimeAuthorization: false,
   now: () => new Date('2026-09-02T05:00:00.000Z'),
   traceIdFactory: () => 'trace-concurrent-personal'
 });
@@ -108,8 +109,8 @@ await Promise.all([
   concurrentService.execute('WB-003', { recentMessageLimit: 5, todoLimit: 5 }, context),
   concurrentService.execute('WB-004', { page: 1, pageSize: 10 }, context)
 ]);
-assert.equal(concurrentReads.get('用户字典'), 1, '同一时刻的个人读取必须复用用户字典请求');
-assert.equal(concurrentReads.get('消息通知'), 1, '同一时刻的个人读取必须复用消息通知请求');
+assert.equal(concurrentReads.get('用户字典'), 2, '强一致 COM-001 独立读取，其他同刻个人读取仍复用用户字典请求');
+assert.equal(concurrentReads.get('消息通知'), 2, '强一致 COM-001 独立读取，其他同刻个人读取仍复用消息通知请求');
 
 for (const operationId of ['MSG-001', 'MSG-002', 'FAV-001', 'FAV-002', 'PTS-001', 'PTS-002', 'PTS-003', 'WB-001', 'WB-003', 'WB-004']) {
   assert.doesNotThrow(() => validateContractSchema(responses.get(operationId), contracts[operationId].successSchema, operationId));

@@ -15,6 +15,7 @@ const rows = new Map([
 const reads = new Map();
 const service = createFeishuReadOnlyService({
   identifierContract,
+  realtimeAuthorization: false,
   readSleep: async () => {},
   client: {
     async listRecords(tableId) {

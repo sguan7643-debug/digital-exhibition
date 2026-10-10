@@ -29,7 +29,7 @@ const client = {
     return { items, total: items.length, hasMore: false, nextPageToken: '' };
   }
 };
-const service = createFeishuReadOnlyService({ client, identifierContract, appProjectionCacheMs: 0, now: () => new Date('2026-09-02T03:00:00.000Z'), traceIdFactory: () => 'trace-first-detail' });
+const service = createFeishuReadOnlyService({ client, identifierContract, realtimeAuthorization: false, appProjectionCacheMs: 0, now: () => new Date('2026-09-02T03:00:00.000Z'), traceIdFactory: () => 'trace-first-detail' });
 const contracts = createVerifiedReadOperationContracts();
 
 const cases = [

@@ -1,4 +1,6 @@
-const P0_USER = Object.freeze(['COM-001', 'COM-002', 'WB-001']);
+// Current-user permissions and navigation are authorization conclusions. They
+// must stay on the strong-consistency path and are never persisted as data cache.
+const P0_USER = Object.freeze(['WB-001']);
 const P0_TENANT = Object.freeze(['COM-005', 'WB-002']);
 const CACHED_TENANT = Object.freeze([
   'COM-003', 'COM-004',
@@ -26,8 +28,16 @@ const CACHED_ADMIN = Object.freeze([
 ]);
 
 export const STRONG_CONSISTENCY_OPERATION_IDS = Object.freeze([
-  'COM-008', 'APP-004', 'APP-010', 'TRN-006', 'CER-003',
+  'COM-001', 'COM-002', 'COM-008', 'APP-004', 'APP-010', 'TRN-006', 'CER-003',
   'ADM-007', 'MAT-003', 'COM-010', 'ARC-002'
+]);
+
+// Capacity pressure may evict non-representative reads, but these operations
+// cover the fixed acceptance matrix and the cacheable homepage sections. If
+// they cannot all fit, startup/task completion must fail instead of silently
+// replacing them with lower-priority entries.
+export const REPRESENTATIVE_CACHE_OPERATION_IDS = Object.freeze([
+  'COM-005', 'APP-002', 'MAT-001', 'WB-001', 'WB-002', 'WB-003', 'ADM-003'
 ]);
 
 const policy = (code, freshMs, staleMs, scope) => Object.freeze({ code, freshMs, staleMs, scope });
@@ -46,4 +56,3 @@ export const READ_OPERATION_CACHE_POLICIES = Object.freeze(Object.fromEntries([
 ]));
 
 export const CACHEABLE_READ_OPERATION_IDS = Object.freeze(Object.keys(READ_OPERATION_CACHE_POLICIES));
-

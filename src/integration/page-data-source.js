@@ -118,7 +118,7 @@ function homepageAggregateEvent(contract, result) {
       retryAfterSeconds: Math.max(1, Math.round(Number(body.pollAfterMs || 2000) / 1000))
     }]));
     return {
-      type: 'fail', code: 'initial-syncing', error: '正式飞书数据正在首次同步',
+      type: 'fail', code: 'initial-syncing', error: '请求处理中',
       traceId: body.traceId || null, traceIds: body.traceId ? [body.traceId] : [],
       isComplete: false, dataStale: false, lastSyncedAt: null,
       unavailableSections: [...contract.readOperationIds], unavailableReasonCode: 'initial-syncing',
@@ -251,13 +251,20 @@ export function createPageDataSource({ route, runtime, client, homepageClient, o
         operationId,
         input: options.inputByOperation?.[operationId] || input
       }));
-      const settled = typeof client.executeBatch === 'function' && requests.length > 1
-        ? await client.executeBatch(requests, { signal: controller.signal })
-        : await Promise.allSettled(requests.map(request => client.execute(
+      let settled;
+      if (typeof client.executeBatch === 'function' && requests.length > 1) {
+        try {
+          settled = await client.executeBatch(requests, { signal: controller.signal });
+        } catch (reason) {
+          settled = requests.map(() => ({ status: 'rejected', reason }));
+        }
+      } else {
+        settled = await Promise.allSettled(requests.map(request => client.execute(
           request.operationId,
           request.input,
           { signal: controller.signal }
         )));
+      }
       if (currentGeneration !== generation) return withContract(envelope);
       const aggregate = aggregateReadResults(contract, requestedOperationIds, settled, options.operationIds ? stableEnvelope : null);
       envelope = aggregate.kind === 'success'

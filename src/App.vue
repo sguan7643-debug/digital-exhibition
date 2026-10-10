@@ -350,7 +350,7 @@ const integrationRecovery = computed(() => {
     message: initialSyncing && envelope.dataStale
       ? '数据正在更新，当前内容仍可使用。'
       : initialSyncing
-        ? '正式飞书数据正在首次同步，页面其他区域仍可使用。'
+        ? '请求处理中。'
       : timeout
         ? '部分飞书数据请求超时，已保留可用内容。'
         : '部分飞书数据暂时不可用，已保留可用内容。',

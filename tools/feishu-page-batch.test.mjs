@@ -114,7 +114,7 @@ const syncingClient = createSafeProxyClient({
       return {
         code: 'OK',
         results: [
-          { operationId: 'APP-002', status: 202, body: { code: 'FEISHU_INITIAL_SYNCING', message: '正式飞书数据正在首次同步，请稍后重试', traceId: 'trace-syncing', retryAfterSeconds: 2 } },
+          { operationId: 'APP-002', status: 202, body: { code: 'FEISHU_INITIAL_SYNCING', message: '请求处理中', traceId: 'trace-syncing', retryAfterSeconds: 2 } },
           { operationId: 'ANN-002', status: 200, body: { code: 'OK', data: { items: [] }, traceId: 'trace-ann' } }
         ]
       };
@@ -140,7 +140,7 @@ const pollingClient = createSafeProxyClient({
     if (url === '/api/v1/operations/APP-002') return {
       ok: false,
       status: 202,
-      async json() { return { code: 'FEISHU_INITIAL_SYNCING', message: '正式飞书数据仍在同步', traceId: 'trace-sync', retryAfterSeconds: 1, syncId: 'read-job-0001', pollAfterMs: 100 }; }
+      async json() { return { code: 'FEISHU_INITIAL_SYNCING', message: '请求处理中', traceId: 'trace-sync', retryAfterSeconds: 1, syncId: 'read-job-0001', pollAfterMs: 100 }; }
     };
     assert.equal(url, '/api/v1/operations/sync-jobs/read-job-0001');
     return {

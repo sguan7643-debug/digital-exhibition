@@ -1,0 +1,77 @@
+{
+  "task_id": "DEH-SERVER-CACHE-RECOVERY-20261010",
+  "title": "服务器缓存、同步任务与失败恢复链路重构",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "在飞书多维表格继续作为唯一业务数据源且不引入 Redis 或其他数据库的前提下，重构服务器本地缓存、同步任务和失败恢复链路，使首页与代表 operation 在真实测试环境满足五秒响应、二十五秒冷任务完成、缓存可复用、状态查询稳定和自动恢复的最终用户效果。",
+  "target_user": "访问数智产品展厅的已授权 Web 用户，以及维护共享测试服务器资源与发布安全的运维人员。",
+  "in_scope": [
+    "分析前置任务 DEH-SERVER-CACHE-20261008 的真实测试失败、相关 trace 与服务日志，形成证据化根因",
+    "统一单接口、批量接口、首页聚合和持久快照的六维缓存键与规范化输入",
+    "确保 success schema 校验、内存缓存和持久快照提交成功后才标记同步任务 completed",
+    "确保 failed、expired 或超时任务退出任务合并索引，新请求使用 last-known-good 或创建新的受控重试任务",
+    "首页 COM-001、COM-002、COM-005、WB-001、WB-002 五段全部成功后原子提交完整首页结果",
+    "修复 COM-001、WB-003 分页、实时鉴权、同步并发和二十五秒任务预算竞争",
+    "确保两个 sync-jobs 状态接口对存在且有权任务始终 HTTP 200 表达 queued、running、completed、failed 或 expired，且不重跑业务 operation",
+    "确保 COM-005、APP-002、MAT-001、WB-003、ADM-003 完成后相同隔离键立即命中可复用缓存",
+    "保留实时登录、权限、数据范围、审批、幂等、审计与强一致操作保护",
+    "保持 CPU 1.5 核、内存 2GB、缓存磁盘 3GB、同步并发最多 3 的资源限制",
+    "增加失败任务不复用、缓存原子提交、首页完整性、状态接口稳定性、真实超时和重启恢复自动化测试",
+    "生成纯后端服务器部署包、SHA-256、部署验证回滚命令，并在用户部署后收集真实测试环境量化证据"
+  ],
+  "out_of_scope": [
+    "修改前端源码、根 dist、组件、样式、路由或视觉资源",
+    "引入 Redis、外部缓存集群、独立数据库或替换飞书多维表格",
+    "缓存飞书令牌、Cookie、密钥或附件二进制文件",
+    "削弱登录、权限、数据范围、审批、幂等、审计或强一致校验",
+    "通过部分数据、空模块、受控代理占位、缩小测试 Base 或降低量化门槛冒充成功",
+    "由 Codex 直接登录服务器执行部署、发布或生产配置变更"
+  ],
+  "success_metric": "真实测试环境中：强制冷首页 5/5 在25秒内 completed 且返回完整五段正式数据；暖首页至少27/30在5秒内首次HTTP 200完整返回；所有 sync-jobs 状态查询0次HTTP 500/504；轮询不重复POST首页；COM-005、APP-002、MAT-001、WB-003、ADM-003均取得完整结果并在相同输入复读时直接命中缓存；失败任务不被后续普通请求复用；真实首页无需手动刷新；401/403、安全校验及1.5 CPU、2GB内存、3GB磁盘、最多3路同步并发无回归。",
+  "deadline": "尽快完成；不得用继续消耗共享服务器或飞书配额替代根因修复",
+  "risk_level": "high",
+  "state": "development",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "User (Product Owner)",
+      "approved_at": "2026-10-10T02:41:17.1893201Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "User (Product Owner)",
+      "approved_at": "2026-10-10T03:07:52.0859006Z"
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": false,
+    "mobile_passed": false,
+    "web_evidence": "",
+    "web_checked_at": "",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": false,
+    "blocking_defects": 0,
+    "evidence": "",
+    "recorded_at": ""
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

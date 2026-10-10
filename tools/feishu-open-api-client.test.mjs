@@ -43,6 +43,33 @@ await assert.rejects(
   }
 );
 
+let unavailableCalls = 0;
+const unavailableClient = createFeishuOpenApiClient({
+  appId: 'id', appSecret: 'secret', baseToken: 'base', proxyEnv: {},
+  fetchImpl: async url => {
+    unavailableCalls += 1;
+    if (String(url).endsWith('/auth/v3/tenant_access_token/internal')) {
+      return Response.json({ code: 0, tenant_access_token: 'tenant-token', expire: 7200 });
+    }
+    const socketError = Object.assign(new Error('socket reset with sensitive upstream details'), { code: 'ECONNRESET' });
+    throw Object.assign(new TypeError('fetch failed'), { cause: socketError });
+  }
+});
+await assert.rejects(
+  () => unavailableClient.listRecords('tblSensitive', { pageSize: 10 }),
+  error => {
+    assert.equal(error.code, 'FEISHU_UPSTREAM_UNAVAILABLE');
+    assert.equal(error.status, 502);
+    assert.equal(error.causeCode, 'ECONNRESET');
+    assert.equal(error.upstreamPath, '/bitable/v1/apps/{base}/tables/{tableId}/records');
+    assert.equal(typeof error.elapsedMs, 'number');
+    assert.doesNotMatch(JSON.stringify(error), /tblSensitive|socket reset|secret/i);
+    return true;
+  },
+  'raw undici/network failures must become controlled retryable upstream errors'
+);
+assert.equal(unavailableCalls, 2);
+
 let tenantTokenCalls = 0;
 const singleFlightClient = createFeishuOpenApiClient({
   appId: 'id', appSecret: 'secret', baseToken: 'base',

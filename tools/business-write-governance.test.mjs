@@ -116,14 +116,26 @@ const ledger = JSON.parse(readFileSync(ledgerFile, 'utf8'));
 assert.ok(Object.values(ledger).some(entry => entry.state === 'completed' && entry.actor === 'USER001'));
 assert.ok(Object.values(ledger).every(entry => !('fields' in entry)), '审计台账只记录字段名和摘要，不落业务字段值');
 
+let consistentPermissionReads = 0;
+let persistentInvalidationFlushes = 0;
 const readService = {
   async execute(operationId) { return operationId === 'COM-001' ? { data: { permissions: ['operation:APP-005:execute'] } } : { data: {} }; },
+  async executeConsistent(operationId) {
+    consistentPermissionReads += 1;
+    return operationId === 'COM-001' ? { data: { permissions: ['operation:APP-005:execute'] } } : { data: {} };
+  },
   invalidateTables() {},
+  async flushPersistentCache(options) {
+    assert.deepEqual(options, { discardOnFailure: true }, '正式写失效必须在持久提交失败时隔离旧快照');
+    persistentInvalidationFlushes += 1;
+  },
   getReadSyncStatus() {}
 };
 const composite = createFeishuCompositeOperationService({ readService, writeService, businessWriteService: businessService });
 const allowedInput = { businessKey: 'APPLICATION-2026-002', idempotencyKey: 'IDEM-APPLICATION-002', fields: { 应用ID: 'APP-002' } };
 assert.equal((await composite.execute('APP-005', governed('APP-005', allowedInput), { identity, sameOriginRequest: true })).code, 'OK');
+assert.equal(consistentPermissionReads, 1, '正式写入权限必须实时回源校验，不能读取普通业务缓存');
+assert.equal(persistentInvalidationFlushes, 1, '正式写成功后必须在响应前持久化精确失效结果');
 await assert.rejects(() => composite.execute('FAV-003', governed('FAV-003', spoof), { identity, sameOriginRequest: true }), error => error.code === 'PERMISSION_DENIED');
 await assert.rejects(() => composite.execute('APP-005', governed('APP-005', allowedInput), { identity, sameOriginRequest: false }), error => error.code === 'WRITE_ORIGIN_DENIED');
 

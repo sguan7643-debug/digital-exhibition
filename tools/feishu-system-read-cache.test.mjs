@@ -15,9 +15,9 @@ const classifiedIds = [...CACHEABLE_READ_OPERATION_IDS, ...STRONG_CONSISTENCY_OP
 
 assert.equal(readOperationIds.length, 65);
 assert.deepEqual(classifiedIds, readOperationIds, '65 个只读 operation 必须全部进入缓存或强一致策略');
-assert.equal(CACHEABLE_READ_OPERATION_IDS.length, 56);
-assert.equal(STRONG_CONSISTENCY_OPERATION_IDS.length, 9);
-assert.equal(Object.keys(READ_OPERATION_CACHE_POLICIES).length, 56);
+assert.equal(CACHEABLE_READ_OPERATION_IDS.length, 54);
+assert.equal(STRONG_CONSISTENCY_OPERATION_IDS.length, 11);
+assert.equal(Object.keys(READ_OPERATION_CACHE_POLICIES).length, 54);
 assert.ok(STRONG_CONSISTENCY_OPERATION_IDS.every(operationId => !READ_OPERATION_CACHE_POLICIES[operationId]));
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -27,6 +27,7 @@ let failReads = false;
 let upstreamCalls = 0;
 const service = createFeishuReadOnlyService({
   identifierContract,
+  realtimeAuthorization: false,
   readNow: () => clock,
   cacheNow: () => clock,
   now: () => new Date(clock),

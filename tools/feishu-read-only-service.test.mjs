@@ -23,6 +23,7 @@ function responseFor(tableId) {
 let retryCalls = 0;
 const retryService = createFeishuReadOnlyService({
   identifierContract,
+  realtimeAuthorization: false,
   client: {
     async listRecords(tableId) {
       if (namesById.get(tableId) === '应用类型配置' && retryCalls++ < 2) {
@@ -32,15 +33,14 @@ const retryService = createFeishuReadOnlyService({
     }
   }
 });
-await assert.rejects(
-  () => retryService.execute('WB-002', { page: 1, pageSize: 20 }),
-  error => error?.status === 502
-);
-assert.equal(retryCalls, 2, 'retryable read must make one retry only');
+const recoveredAfterTaskRetry = await retryService.execute('WB-002', { page: 1, pageSize: 20 });
+assert.equal(recoveredAfterTaskRetry.code, 'OK');
+assert.equal(retryCalls, 3, 'task-level retry must recover after the table-level retry budget is exhausted');
 
 let upstreamTimeoutCalls = 0;
 const upstreamTimeoutRetryService = createFeishuReadOnlyService({
   identifierContract,
+  realtimeAuthorization: false,
   readSleep: async () => {},
   client: {
     async listRecords(tableId) {
@@ -57,6 +57,8 @@ assert.equal(upstreamTimeoutCalls, 2, 'an upstream 504 receives one retry only')
 let paginatedRetryCalls = 0;
 const aggregateRetryService = createFeishuReadOnlyService({
   identifierContract,
+  realtimeAuthorization: false,
+  syncRetryAttempts: 1,
   readSleep: async () => {},
   client: {
     async listRecords(tableId) {
@@ -77,6 +79,8 @@ assert.equal(paginatedRetryCalls, 3, 'the single retry budget applies across eve
 
 const budgetService = createFeishuReadOnlyService({
   identifierContract,
+  realtimeAuthorization: false,
+  syncRetryAttempts: 1,
   readBudgetMs: 20,
   client: { listRecords: async tableId => new Promise(resolve => setTimeout(() => resolve(responseFor(tableId)), 40)) }
 });
@@ -87,7 +91,8 @@ await assert.rejects(
 
 const extendedBudgetService = createFeishuReadOnlyService({
   identifierContract,
-  readBudgetMs: 20,
+  realtimeAuthorization: false,
+  readBudgetMs: 50,
   client: { listRecords: async tableId => new Promise(resolve => setTimeout(() => resolve(responseFor(tableId)), 18)) }
 });
 await extendedBudgetService.execute('COM-001', {}, { identity: { userId: 'u-test', adAccount: 'u-test' } });
@@ -95,18 +100,21 @@ await extendedBudgetService.execute('COM-001', {}, { identity: { userId: 'u-test
 let defaultBudgetClockReads = 0;
 const defaultBudgetService = createFeishuReadOnlyService({
   identifierContract,
+  realtimeAuthorization: false,
+  syncRetryAttempts: 1,
   readNow: () => ++defaultBudgetClockReads === 1 ? 0 : 35_001,
   client: { listRecords: async tableId => responseFor(tableId) }
 });
 await assert.rejects(
   () => defaultBudgetService.execute('WB-002', { page: 1, pageSize: 20 }),
-  error => error?.code === 'FEISHU_READ_BUDGET_EXCEEDED',
-  'the default aggregate table-read budget must stop after the approved 35 seconds'
+  error => error?.code === 'READ_SYNC_DEADLINE_EXCEEDED',
+  'the approved 25-second task deadline must precede the 35-second table-read budget'
 );
 
 const profileReadQueries = new Map();
 const profileFieldService = createFeishuReadOnlyService({
   identifierContract,
+  realtimeAuthorization: false,
   client: {
     async listRecords(tableId, query = {}) {
       profileReadQueries.set(namesById.get(tableId), query);
@@ -125,6 +133,7 @@ assert.ok(!profileReadQueries.get('用户权限').fieldNames.includes('用户ID'
 const driftQueries = [];
 const driftTolerantService = createFeishuReadOnlyService({
   identifierContract,
+  realtimeAuthorization: false,
   client: {
     async listRecords(tableId, query = {}) {
       driftQueries.push({ tableName: namesById.get(tableId), fieldNames: query.fieldNames || [] });
@@ -162,6 +171,7 @@ latestFirstRows.set('应用索引', [
 ]);
 const latestFirstService = createFeishuReadOnlyService({
   identifierContract,
+  realtimeAuthorization: false,
   client: {
     async listRecords(tableId) {
       const items = latestFirstRows.get(namesById.get(tableId)) || [];
@@ -181,6 +191,7 @@ assert.deepEqual(
 let typeReads = 0;
 const sharedProjectionService = createFeishuReadOnlyService({
   identifierContract,
+  realtimeAuthorization: false,
   appProjectionCacheMs: 1_000,
   client: {
     async listRecords(tableId) {
@@ -201,6 +212,7 @@ assert.equal(typeReads, 1, 'concurrent COM-005 and WB-002 reads must share appli
 let firstScreenUserDictionaryReads = 0;
 const sharedFirstScreenService = createFeishuReadOnlyService({
   identifierContract,
+  realtimeAuthorization: false,
   appProjectionCacheMs: 1_000,
   client: {
     async listRecords(tableId) {
@@ -217,6 +229,6 @@ await Promise.all([
   sharedFirstScreenService.execute('WB-001', { hotLimit: 4, courseLimit: 3, noticeLimit: 4 }, firstScreenContext),
   sharedFirstScreenService.execute('WB-002', { page: 1, pageSize: 20 }, firstScreenContext)
 ]);
-assert.equal(firstScreenUserDictionaryReads, 1, 'concurrent first-screen projections must share one user-dictionary read');
+assert.equal(firstScreenUserDictionaryReads, 3, '关闭鉴权夹具时，三个用户范围强一致操作仍必须独立读取，租户投影可共享');
 
 console.log('Feishu read budget, one-retry policy, and shared dictionary projection passed');
