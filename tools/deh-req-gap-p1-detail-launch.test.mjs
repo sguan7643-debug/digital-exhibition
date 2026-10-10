@@ -7,7 +7,7 @@ const detailFiles=['AiDetailPage.vue','DashboardDetailPage.vue','DatasetDetailPa
 for(const file of detailFiles){const detailSource=readFileSync(new URL(`../src/pages/${file}`,import.meta.url),'utf8');assert.match(detailSource,/<RemoteAppDetailPage :projection="projection"/,`${file} must use the shared authoritative detail page`);assert.doesNotMatch(detailSource,/window\.open|location\.(?:assign|replace)|mockDownload/,`${file} must not restore local-only launch or download behavior`);}
 const sharedDetail=readFileSync(new URL('../src/components/RemoteAppDetailPage.vue',import.meta.url),'utf8');
 assert.match(sharedDetail,/data-authoritative-detail="true"/);
-assert.match(sharedDetail,/class="detail-hero-side"[\s\S]*aria-controls="live-app-actions"[\s\S]*收藏[\s\S]*申请使用/,'reference hero actions must forward to the governed live operation area');
+assert.match(sharedDetail,/class="detail-hero-side"[\s\S]*@click="toggleFavorite"[\s\S]*detail-request-use[\s\S]*申请使用/,'reference hero actions must execute favorite and enter the governed application page directly');
 assert.match(sharedDetail,/<AppDetailLiveSections[\s\S]*:operation-executor="operationExecutor"[\s\S]*:action-executor="actionExecutor"[\s\S]*:writes-enabled="writesEnabled"/,'hero actions must be backed by the governed detail operation component');
 assert.doesNotMatch(sharedDetail,/window\.open|location\.(?:assign|replace)|mockDownload/,'shared hero must not execute an ungoverned local action');
 const source=readFileSync(new URL('../src/components/AppDetailLiveSections.vue',import.meta.url),'utf8');assert.match(source,/integrationState==='normal' && appId/);assert.match(source,/@click="launch"/);assert.doesNotMatch(source,/testWritesEnabled[^\n]*权限校验后使用/);

@@ -6,10 +6,13 @@ import {
 } from '../src/integration/onboarding-approval.js';
 
 assert.deepEqual(resolveApprovalTransport('T003'), { kind: 'rpa', path: '/api/processInstanceStart', contentType: 'multipart/form-data' });
-assert.deepEqual(resolveApprovalTransport('T005'), { kind: 'feishu', path: '/api/v1/approvals/instances', contentType: 'application/json' });
+assert.deepEqual(resolveApprovalTransport('T005'), { kind: 'feishu', path: '/api/v1/onboarding/applications', contentType: 'application/json' });
 assert.equal(normalizeApplicationType('RPA'), 'T003');
 assert.equal(normalizeApplicationType('HAINENG'), 'T005');
-assert.throws(() => resolveApprovalTransport('T001'), /未配置真实审批/);
+for (const type of ['T001','T002','T004','T006','T007','T008','T009']) {
+  assert.deepEqual(resolveApprovalTransport(type), { kind: 'feishu', path: '/api/v1/onboarding/applications', contentType: 'application/json' });
+}
+assert.throws(() => resolveApprovalTransport('INVALID'), /有效的应用类型/);
 assert.equal(createOnboardingAttempt('TEST_ATTEMPT_FIXED'), 'TEST_ATTEMPT_FIXED');
 
 const calls = [];
@@ -28,15 +31,22 @@ const submitted = await submitOnboarding({
   applicant: 'authorized-user-001', department: 'authorized-dept-001', users: 'authorized-user-001', accessDepartment: 'authorized-dept-001', domain: 'PROCUREMENT',
   uploadIds: ['TEST_UPLOAD_ICON'], detailFields: { 使用指南: '使用指南' }
 }, [], fetchImpl);
-assert.deepEqual(submitted, { kind: 'feishu', applicationId: 'TEST_APPLICATION_ONE', instanceId: 'TEST_INSTANCE', resourceId: 'TEST_RESOURCE', status: 'PENDING', message: '飞书审批已提交' });
+assert.deepEqual(submitted, { kind: 'feishu', applicationId: 'TEST_APPLICATION_ONE', instanceId: 'TEST_INSTANCE', resourceId: 'TEST_RESOURCE', status: 'PENDING', message: '应用审批已提交' });
 assert.equal(calls[0].url, '/api/v1/onboarding/applications');
 assert.equal(calls[0].options.credentials, 'same-origin');
 const requestBody = JSON.parse(calls[0].options.body);
 assert.equal(requestBody.attemptId, 'TEST_ATTEMPT_FIXED');
 assert.equal(requestBody.application.name, '海能Work', '审批标题和应用名称不得强制 TEST_ 前缀');
 assert.equal(requestBody.application.applicationCode, 'HW-001');
+assert.equal(requestBody.application.type, 'T005');
 assert.deepEqual(requestBody.uploadIds, ['TEST_UPLOAD_ICON']);
 assert.doesNotMatch(calls[0].options.body, /token|secret/i);
+
+await submitOnboarding({
+  type: 'T001', attemptId: 'TEST_ATTEMPT_AI', name: 'AI应用', applicant: 'authorized-user-001',
+  department: 'authorized-dept-001', domain: 'PROCUREMENT', uploadIds: []
+}, [], fetchImpl);
+assert.equal(JSON.parse(calls[1].options.body).application.type, 'T001', '通用审批不得把所有类型强制改成 T005');
 
 assert.deepEqual(await listOnboardingApplications(fetchImpl), { items: [], total: 0 });
 assert.equal((await getOnboardingApplication('TEST_APPLICATION_ONE', fetchImpl)).applicationId, 'TEST_APPLICATION_ONE');

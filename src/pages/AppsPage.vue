@@ -10,7 +10,7 @@ import { routeSession } from "../state/session-store.js";
 import PaginationControl from "../components/PaginationControl.vue";
 import TypeLineIcon from "../components/TypeLineIcon.vue";
 import { projectApplicationCards } from "../integration/app-read-model.js";
-import { buildApplicationWriteInput, launchApplication } from "../integration/application-actions.js";
+import { launchApplication } from "../integration/application-actions.js";
 import ClampedText from "../components/ClampedText.vue";
 import OverflowTags from "../components/OverflowTags.vue";
 import { buildApplicationDirectorySearchInput } from "../integration/application-directory-search.js";
@@ -23,6 +23,7 @@ const props = defineProps({
   actionExecutor: { type: Function, default: null },
   requestActionEnabled: { type: Boolean, default: false },
 });
+const emit = defineEmits(['navigate']);
 
 const controller = routeSession.controller("apps", () =>
   createAppsController([]),
@@ -194,18 +195,16 @@ async function launch(app) {
     controller.announcement = `${app.name}：${error.message || '应用启动失败'}`;
   }
 }
-async function requestUse(app) {
+function requestUse(app) {
   if (!props.requestActionEnabled || !props.actionExecutor) {
     controller.announcement = `${app.name}：应用使用申请通道未启用`;
     return;
   }
-  try {
-    const input = buildApplicationWriteInput('APP-005', app.appId || app.id, { reason: '应用中心申请使用' });
-    await props.actionExecutor('APP-005', input, { confirmed: true });
-    controller.announcement = `${app.name}：申请已提交`;
-  } catch (error) {
-    controller.announcement = `${app.name}：申请失败，${error.message || '请稍后重试'}`;
-  }
+  const query = new URLSearchParams({
+    appId: String(app.appId || app.id),
+    returnTo: String(app.route || '/apps'),
+  });
+  emit('navigate', `/apps/use/apply?${query}`);
 }
 function openCard(event) {
   if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;

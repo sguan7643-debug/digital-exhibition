@@ -7,6 +7,7 @@ const training = await read('src/pages/TrainingPage.vue');
 const favorites = await read('src/pages/FavoritesPage.vue');
 const details = await read('src/components/AppDetailLiveSections.vue');
 const apps = await read('src/pages/AppsPage.vue');
+const useApply = await read('src/pages/ApplicationUseApplyPage.vue');
 const app = await read('src/App.vue');
 
 assert.match(training, /integrationData\?\.\['TRN-002'\]/, '培训列表必须消费 TRN-002 真实课程');
@@ -24,12 +25,15 @@ assert.match(details, /resolveDownloadFileId\(material\)/, '素材下载必须�
 assert.doesNotMatch(details, /APP006/, '详情动作不得硬编码应用 ID');
 
 assert.match(apps, /launchApplication\(props\.operationExecutor/, '应用卡片必须先通过 APP-004 权限校验');
-assert.match(apps, /buildApplicationWriteInput\('APP-005'/, '应用卡片申请使用必须建立正式写入输入');
+assert.match(apps, /emit\('navigate', `\/apps\/use\/apply\?\$\{query\}`\)/, '应用卡片申请使用必须进入正式申请页');
+assert.match(useApply, /buildApplicationWriteInput\('APP-005'/, '应用使用申请页必须建立正式写入输入');
+assert.match(useApply, /await props\.actionExecutor\('APP-005'/, '应用使用申请页必须调用正式写入通道');
 assert.match(apps, /requestActionEnabled/, '应用卡片申请使用必须由当前可执行申请通道控制');
 assert.match(app, /:request-action-enabled="integrationRuntime\.businessWritesEnabled && integrationContract\.actions\.some\(action => action\.operationId === 'APP-005'\)"/, '合同完整的远程环境应启用正式申请入口');
 assert.doesNotMatch(apps, /申请使用为本地演示操作/, '应用卡片不得把申请使用伪装成本地成功');
 
 assert.match(app, /<training-page[\s\S]*?:integration-data="integrationEnvelope\.data"/, 'App 必须向培训页传入实时数据');
 assert.match(app, /<favorites-page[\s\S]*?:action-executor="executePageWriteOperation"/, 'App 必须向收藏页传入受控写执行器');
+assert.match(app, /<application-use-apply-page[\s\S]*?:action-executor="executePageWriteOperation"/, 'App 必须挂载应用使用申请页');
 
 console.log('application pages wire real training, favorites, detail actions, and canonical resources');

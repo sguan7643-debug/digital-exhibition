@@ -33,9 +33,10 @@ assert.match(projection,/\['authentication-required', 'permission-denied'\][\s\S
   '授权和权限异常必须映射为统一鉴权状态');
 assert.match(liveSections,/props\.operationExecutor\('COM-008'/,'附件下载必须调用真实受控操作接口');
 assert.match(liveSections,/props\.operationExecutor\('MAT-003'/,'素材下载必须调用真实受控操作接口');
-for(const operation of ['APP-005','APP-006','APP-008','FAV-003','FAV-004']){
+for(const operation of ['APP-006','APP-008','FAV-003','FAV-004']){
   assert.ok(liveSections.includes(`'${operation}'`),`详情联调区缺少 ${operation} 受控操作`);
 }
+assert.match(liveSections,/\/apps\/use\/apply\?/,'详情页申请使用必须进入独立申请页');
 assert.match(liveSections,/v-if="writesEnabled"/,'写操作只能在正式业务写入通道开启时展示');
 
 console.log('真实详情组件：远端投影、六态、同源下载与正式受控写入合同通过');

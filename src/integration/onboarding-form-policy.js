@@ -1,4 +1,3 @@
-const SUPPORTED_TYPES = new Set(['T003', 'T005']);
 const CODE_REQUIRED_TYPES = new Set(['T003', 'T005']);
 const PHONE_PATTERN = /^(?:\+?86[ -]?)?1[3-9][0-9]{9}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -15,11 +14,11 @@ function text(value) {
 
 export function applicationTypePolicy(value) {
   const type = text(value).toUpperCase();
-  const supported = SUPPORTED_TYPES.has(type);
+  const supported = /^T[0-9]{3}$/.test(type);
   return Object.freeze({
     supported,
     applicationCodeRequired: CODE_REQUIRED_TYPES.has(type),
-    reason: supported ? '' : '该应用类型尚未配置真实审批通道，暂不可提交。'
+    reason: supported ? '' : '请选择有效的应用类型。'
   });
 }
 

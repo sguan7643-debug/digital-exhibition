@@ -16,8 +16,9 @@ const read = path => readFile(new URL(path, root), 'utf8');
 
 assert.deepEqual(applicationTypePolicy('T003'), { supported: true, applicationCodeRequired: true, reason: '' });
 assert.deepEqual(applicationTypePolicy('T005'), { supported: true, applicationCodeRequired: true, reason: '' });
-assert.equal(applicationTypePolicy('T001').supported, false);
-assert.match(applicationTypePolicy('T001').reason, /真实审批/);
+for (const type of ['T001','T002','T004','T006','T007','T008','T009']) {
+  assert.equal(applicationTypePolicy(type).supported, true, `${type} 应可选择并提交`);
+}
 
 assert.deepEqual(buildContactAutofill({ userId: 'u-1', mobile: '+8613812345678', email: 'u1@example.com' }), {
   contactPhone: '+8613812345678', contactEmail: 'u1@example.com'
@@ -89,7 +90,7 @@ assert.match(applySource, /userId: contact/);
 assert.match(appSource, /:operation-executor="executeReadOperation"/);
 assert.match(applySource, /applicationCodeRequired/);
 assert.match(applySource, /系统不会使用唯一标识自动生成/);
-assert.match(applySource, /:disabled="!item\.supported"/);
+assert.doesNotMatch(applySource, /:disabled="!item\.supported"|真实审批暂未开放/, '所有正式应用类型都必须可选择');
 assert.match(applySource, /normalizePermissionScope/);
 assert.match(applySource, /组织内已登录用户均可查看/);
 assert.match(applySource, /sourceApplicationId/);

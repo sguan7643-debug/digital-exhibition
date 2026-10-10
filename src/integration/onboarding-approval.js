@@ -22,8 +22,8 @@ export function normalizeApplicationType(applicationType) {
 export function resolveApprovalTransport(applicationType) {
   const normalizedType = normalizeApplicationType(applicationType);
   if (normalizedType === 'T003') return Object.freeze({ kind: 'rpa', path: '/api/processInstanceStart', contentType: 'multipart/form-data' });
-  if (normalizedType === 'T005') return Object.freeze({ kind: 'feishu', path: '/api/v1/approvals/instances', contentType: 'application/json' });
-  throw new Error('该应用类型尚未配置真实审批');
+  if (/^T[0-9]{3}$/.test(normalizedType)) return Object.freeze({ kind: 'feishu', path: '/api/v1/onboarding/applications', contentType: 'application/json' });
+  throw new Error('请选择有效的应用类型');
 }
 
 async function readResult(response) {
@@ -123,8 +123,8 @@ export async function submitOnboarding(form, files = [], fetchImpl = globalThis.
   const attemptId = createOnboardingAttempt(form.attemptId);
   const result = await onboardingRequest('/api/v1/onboarding/applications', {
     method: 'POST',
-    body: { attemptId, application: { ...form, type: 'T005' }, uploadIds: Array.isArray(form.uploadIds) ? form.uploadIds : [] },
-    label: '正在提交海能Work审批'
+    body: { attemptId, application: { ...form, type: normalizeApplicationType(form.type) }, uploadIds: Array.isArray(form.uploadIds) ? form.uploadIds : [] },
+    label: '正在提交应用审批'
   }, fetchImpl);
   const applicationId = String(result.applicationId || '');
   const instanceId = String(result.instanceId || '');
@@ -132,7 +132,7 @@ export async function submitOnboarding(form, files = [], fetchImpl = globalThis.
   const status = String(result.status || '').toUpperCase();
   if (!applicationId) throw new Error('提交成功响应缺少 applicationId');
   if (!APPROVAL_STATUSES.has(status)) return Object.freeze({ kind: 'feishu', applicationId, instanceId, resourceId, status: 'ERROR', message: '审批状态返回异常，请稍后重试' });
-  return Object.freeze({ kind: 'feishu', applicationId, instanceId, resourceId, status, message: instanceId ? '飞书审批已提交' : '申请已保存，但暂无审批跟踪编号' });
+  return Object.freeze({ kind: 'feishu', applicationId, instanceId, resourceId, status, message: instanceId ? '应用审批已提交' : '申请已保存，但暂无审批跟踪编号' });
 }
 
 export async function getOnboardingStatus(instanceId, fetchImpl = globalThis.fetch, resourceId = '') {

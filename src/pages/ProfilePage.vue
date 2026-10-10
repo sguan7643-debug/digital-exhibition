@@ -11,7 +11,8 @@ const pageState=computed(()=>{
   if(['authentication-required','permission-denied'].includes(props.integrationState))return 'permission-denied';
   if(['error','timeout','rate-limited','schema-drift','security-error'].includes(props.integrationState))return 'error';
   if(props.integrationState==='disabled')return 'disabled';
-  return summary.value?.user?'normal':'empty';
+  if(summary.value?.user||sessionIdentity.value?.userId||sessionIdentity.value?.displayName)return 'normal';
+  return sessionChecked.value?'empty':'loading';
 });
 function mergeIdentity(summaryIdentity, sessionValue){
   const result={...(summaryIdentity||{})};
@@ -28,7 +29,7 @@ function optionalNumber(value){const number=Number(value);return value!==null&&v
 function numberText(value){const number=optionalNumber(value);return number===null?'—':number.toLocaleString('zh-CN');}
 function monthChangeText(value){const number=optionalNumber(value);return number===null?'—':`本月　${number>=0?'+':''}${number}`;}
 const stats=computed(()=>{
-  const value=summary.value?.stats;if(!value)return [];
+  const value=summary.value?.stats||{};
   return [['我的积分',numberText(value.pointBalance),'积分',monthChangeText(value.pointMonthIncrease),'/assets/profile-stat-points.png'],['收藏应用',numberText(value.favoriteCount),'个','应用收藏','/assets/profile-stat-favorite.png'],['应用访问次数',numberText(value.appVisitCount),'次','累计访问','/assets/profile-stat-visits.png'],['应用使用次数',numberText(value.appUseCount),'次','累计使用','/assets/profile-stat-use.png']];
 });
 const quick=computed(()=>(summary.value?.quickEntries||[]).map(item=>[item.name,item.description,safeLocalPath(item.path),item.enabled]));

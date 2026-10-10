@@ -71,10 +71,21 @@ const ONBOARDING_APPLY_PAGE = definePage({
   sha256: 'LOCAL-ONBOARDING-APPLY-FX-817'
 });
 
+const APPLICATION_USE_APPLY_PAGE = definePage({
+  id: '33',
+  reference: '新增-应用使用申请.png',
+  route: '/apps/use/apply',
+  role: '普通员工',
+  title: '应用使用申请',
+  width: 1672,
+  height: 941,
+  sha256: 'LOCAL-APPLICATION-USE-APPLY-FX-817'
+});
+
 export function resolvePage(input, state = 'normal', appBasePath = '/') {
   const pathname = stripAppBasePath(new URL(input, 'http://127.0.0.1').pathname, appBasePath);
   if (!pathname) return undefined;
-  const additivePages = [MATERIALS_PAGE, ONBOARDING_APPLY_PAGE];
+  const additivePages = [MATERIALS_PAGE, ONBOARDING_APPLY_PAGE, APPLICATION_USE_APPLY_PAGE];
   const page = PAGE_MATRIX.find(candidate => candidate.route === pathname) || additivePages.find(candidate => candidate.route === pathname);
   if (!page) return undefined;
   const normalizedState=state==='empty'&&!page.empty?'normal':state;

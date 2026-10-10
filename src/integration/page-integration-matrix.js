@@ -13,7 +13,7 @@ const versionRequiredOperationIds = new Set([
   'OAN-005','OAN-006','OAN-007','OAP-005','OAP-009','ARC-003'
 ]);
 const appDetailOperationIds = Object.freeze([
-  'APP-003','APP-009','APP-007','MAT-001','MAT-002','MAT-003','COM-008',
+  'APP-003','APP-009','APP-007','MAT-001','MAT-002','MAT-003','COM-008','FAV-002',
   'FAV-003','FAV-004','APP-005','APP-006','APP-008'
 ]);
 
@@ -79,7 +79,8 @@ export const PAGE_INTEGRATION_MATRIX = Object.freeze([
   define('29','/talent/projects',['TAL-002','TAL-004'],['talent-project','talent-write'],'disabled'),
   define('30','/talent/progress',['TAL-003','TAL-004'],['talent-progress','talent-write'],'disabled'),
   define('31','/materials',['MAT-001','MAT-002','MAT-003'],['material-facet','material-category','material-list','material-download']),
-  define('32','/apps/onboarding/apply',['COM-003','COM-004','COM-005'],['organization-directory','contact-directory','dictionary','onboarding-form'])
+  define('32','/apps/onboarding/apply',['COM-003','COM-004','COM-005'],['organization-directory','contact-directory','dictionary','onboarding-form']),
+  define('33','/apps/use/apply',['APP-003','APP-005'],['application-detail','application-use-request'])
 ]);
 
 export function getPageIntegrationContract(route) {

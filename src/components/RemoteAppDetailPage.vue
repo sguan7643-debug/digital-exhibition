@@ -45,6 +45,8 @@ const displayProjection = computed(() => ({
   ownerName: displayDetail.value.ownerName || displayDetail.value.developerName || '—',
   departmentName: displayDetail.value.responsibleOrgName || displayDetail.value.developerOrgName || '—',
 }));
+const liveSections = ref(null);
+const favoriteActive = ref(false);
 const FAMILY_CLASSES = Object.freeze({
   tool: 'tool-detail', work: 'work-detail', report: 'report-detail', dashboard: 'dashboard-detail',
   dataset: 'dataset-detail', metric: 'metric-detail', ai: 'ai-detail', ead: 'ead-detail', rpa: 'rpa-detail',
@@ -60,9 +62,17 @@ const tags = computed(() => {
   return [...new Set(values)].slice(0, 5);
 });
 const supportsMetricBuild = computed(() => ['report', 'dashboard', 'metric'].includes(props.kind));
+const requestUseHref = computed(() => {
+  const appId = String(displayDetail.value.appId || '').trim();
+  const returnTo = `${globalThis.location?.pathname || '/apps'}${globalThis.location?.search || ''}`;
+  return `/apps/use/apply?${new URLSearchParams({ appId, returnTo })}`;
+});
 
 function scrollTo(id) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function toggleFavorite() {
+  liveSections.value?.toggleFavorite?.();
 }
 </script>
 
@@ -95,8 +105,8 @@ function scrollTo(id) {
           </div>
         </div>
         <div class="detail-hero-side" aria-label="应用操作">
-          <button type="button" aria-controls="live-app-actions" @click="scrollTo('live-app-actions')">收藏</button>
-          <button type="button" aria-controls="live-app-actions" @click="scrollTo('live-app-actions')">申请使用</button>
+          <button type="button" :disabled="!writesEnabled || !displayDetail.appId" :aria-pressed="favoriteActive" :title="writesEnabled?'':'正式收藏通道暂未启用'" @click="toggleFavorite">{{ favoriteActive ? '取消收藏' : '收藏' }}</button>
+          <a class="detail-request-use" :href="requestUseHref">申请使用</a>
           <button v-if="supportsMetricBuild" type="button" class="metric-build-trigger" aria-controls="detail-features" @click="scrollTo('detail-features')">个性化指标构建</button>
         </div>
       </div>
@@ -104,11 +114,13 @@ function scrollTo(id) {
     <AppDetailRemoteFacts :projection="displayProjection" :kind="kind" />
     <AppDetailAuthoritativeBody :projection="displayProjection" :kind="kind" />
     <AppDetailLiveSections
+      ref="liveSections"
       :integration-data="integrationData || { 'APP-003': detail }"
       integration-state="normal"
       :operation-executor="operationExecutor"
       :action-executor="actionExecutor"
       :writes-enabled="writesEnabled"
+      @favorite-change="favoriteActive = $event"
     />
   </article>
   <AppDetailStateBoundary v-else :projection="projection" />

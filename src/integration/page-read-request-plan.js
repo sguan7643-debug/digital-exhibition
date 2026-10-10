@@ -55,6 +55,7 @@ export function buildPageReadRequestPlan({ route, readOperationIds, operationCon
     inputByOperation['APP-007'] = { appId, page: 1, pageSize: 20, sort: 'createdAt,desc' };
     inputByOperation['MAT-001'] = {};
     inputByOperation['MAT-002'] = { relatedAppId: appId, page: 1, pageSize: 20, sort: 'updatedAt,desc' };
+    inputByOperation['FAV-002'] = { resourceType: 'APP', page: 1, pageSize: 100 };
   }
 
   const applicationId = queryIdentifier(searchParams, 'applicationId');

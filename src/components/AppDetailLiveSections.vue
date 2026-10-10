@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { startFeishuLogin, startSameOriginDownload } from '../integration/secure-download.js';
 import { buildApplicationWriteInput, launchApplication, resolveDownloadFileId, resolveLiveApplicationId } from '../integration/application-actions.js';
 import { normalizeAttachmentPresentation } from '../integration/attachment-presentation.js';
@@ -8,10 +8,19 @@ const props=defineProps({
   integrationData:{type:Object,default:null}, integrationState:{type:String,default:'loading'}, operationExecutor:{type:Function,default:null},
   actionExecutor:{type:Function,default:null}, writesEnabled:{type:Boolean,default:false}
 });
+const emit=defineEmits(['favorite-change']);
 const announcement=ref('');
 const commentDraft=ref('');
 const favoriteRecord=ref(null);
 const appId=computed(()=>resolveLiveApplicationId(props.integrationData));
+const favoriteFromServer=computed(()=>{
+  const currentAppId=appId.value;
+  if(!currentAppId)return null;
+  const item=(props.integrationData?.['FAV-002']?.items||[]).find(candidate=>String(candidate.resourceId||candidate.appId||'')===currentAppId);
+  if(!item)return null;
+  return {businessKey:String(item.favoriteId||item.businessKey||''),version:Number(item.favoriteVersion||item.version||0)};
+});
+watch([appId,favoriteFromServer],([,value])=>{favoriteRecord.value=value;emit('favorite-change',Boolean(value));},{immediate:true});
 const comments=computed(()=>props.integrationData?.['APP-007']?.items||[]);
 const materials=computed(()=>props.integrationData?.['MAT-002']?.items||[]);
 const attachments=computed(()=>(props.integrationData?.['APP-003']?.attachments||[]).map((file,index)=>({
@@ -54,25 +63,29 @@ async function executeBusinessWrite(operationId,input){
     return response;
   }catch(error){announcement.value=`${operationId} 联调失败：${error.message||'未知错误'}`;return null;}
 }
-const requestUse=()=>executeBusinessWrite('APP-005',buildApplicationWriteInput('APP-005',appId.value,{reason:'页面申请使用'}));
 const requestReuse=()=>executeBusinessWrite('APP-006',buildApplicationWriteInput('APP-006',appId.value,{reason:'页面申请复用'}));
+const requestUseHref=computed(()=>{
+  const returnTo=`${globalThis.location?.pathname||'/apps'}${globalThis.location?.search||''}`;
+  return `/apps/use/apply?${new URLSearchParams({appId:appId.value,returnTo})}`;
+});
 const submitComment=()=>executeBusinessWrite('APP-008',buildApplicationWriteInput('APP-008',appId.value,{comment:commentDraft.value}));
 async function toggleFavorite(){
   if(!favoriteRecord.value){
     const input=buildApplicationWriteInput('FAV-003',appId.value);
     const response=await executeBusinessWrite('FAV-003',input);
-    if(response)favoriteRecord.value={businessKey:input.businessKey,version:response.data.version};
+    if(response){favoriteRecord.value={businessKey:input.businessKey,version:response.data.version};emit('favorite-change',true);}
     return;
   }
   const input={businessKey:favoriteRecord.value.businessKey,idempotencyKey:`IDEM_APP_UNFAVORITE_${window.crypto.randomUUID()}`,ifMatch:favoriteRecord.value.version,fields:{}};
   const response=await executeBusinessWrite('FAV-004',input);
-  if(response)favoriteRecord.value=null;
+  if(response){favoriteRecord.value=null;emit('favorite-change',false);}
 }
 async function launch(){
   if(!appId.value){announcement.value='真实应用标识尚未载入';return;}
   try{const result=await launchApplication(props.operationExecutor,appId.value);announcement.value=result.message;}
   catch(error){if(error?.status===401){startFeishuLogin();return;}announcement.value=error.message||'应用启动失败';}
 }
+defineExpose({toggleFavorite});
 </script>
 
 <template>
@@ -101,7 +114,7 @@ async function launch(){
         <button v-if="integrationState==='normal' && appId" type="button" class="secure-launch" @click="launch">权限校验后使用</button>
         <form v-if="writesEnabled" class="business-write-form" aria-label="应用操作" @submit.prevent="submitComment">
           <strong>应用操作</strong>
-          <div><button type="button" :disabled="!appId" @click="requestUse">申请使用</button><button type="button" :disabled="!appId" @click="requestReuse">申请复用</button><button type="button" :disabled="!appId" :aria-pressed="Boolean(favoriteRecord)" @click="toggleFavorite">{{ favoriteRecord?'取消收藏':'收藏' }}</button></div>
+          <div><a :href="requestUseHref" :aria-disabled="!appId">申请使用</a><button type="button" :disabled="!appId" @click="requestReuse">申请复用</button><button type="button" :disabled="!appId" :aria-pressed="Boolean(favoriteRecord)" @click="toggleFavorite">{{ favoriteRecord?'取消收藏':'收藏' }}</button></div>
           <label>评论<input v-model="commentDraft" required maxlength="200" placeholder="请输入评论内容" /></label>
           <button type="submit" :disabled="!commentDraft.trim()">提交评论</button>
         </form>
@@ -113,5 +126,5 @@ async function launch(){
 <style scoped>
 .live-detail-sections{grid-column:1/-1;display:grid;grid-template-columns:1.2fr .8fr;gap:12px;min-width:0;margin:0;color:#17385f}.live-panel{min-width:0;padding:18px;background:#fff;border:1px solid #dce5ef;border-radius:7px}.live-panel>header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}.live-panel h2{margin:0;font-size:15px}.live-panel header small{color:#70839d;font-size:10px}.live-comment-panel .detail-comment{position:static;display:block;min-width:0;margin:0;padding:0;border:0;box-shadow:none}.material-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;min-width:0}.material-grid article{min-width:0;padding:13px;border:1px solid #e0e7ef;border-radius:6px}.material-grid mark{padding:3px 8px;color:#1461a9;background:#eaf3fb;border-radius:9px;font-size:9px}.material-grid h3{margin:10px 0 6px;font-size:12px}.material-grid p{min-height:34px;margin:0;color:#647892;font-size:10px;line-height:1.7}.material-grid footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px;color:#71849d;font-size:9px}.material-grid button{padding:0;border:0;color:#075fc0;background:transparent}.comment-list{list-style:none;margin:0;padding:0}.comment-list li{padding:10px 0;border-bottom:1px solid #e5ebf1}.comment-list li:last-child{border-bottom:0}.comment-list strong{font-size:11px}.comment-list span{float:right;color:#0d68c7;font-size:10px}.comment-list p{margin:6px 0;color:#435b78;font-size:10px;line-height:1.6}.comment-list small,.empty-copy{color:#71849d;font-size:9px}.empty-copy{min-height:80px;display:grid;place-items:center}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}button:focus-visible{outline:3px solid #1b77d2;outline-offset:2px}@media(max-width:900px){.live-detail-sections{grid-template-columns:minmax(0,1fr)}.live-panel>header{flex-wrap:wrap}.material-grid{grid-template-columns:minmax(0,1fr)}}
 .attachment-list{list-style:none;margin:12px 0 0;padding:0;border-top:1px solid #e5ebf1}.attachment-list li{display:grid;grid-template-columns:minmax(0,1fr) 90px 90px;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #e5ebf1;font-size:10px}.attachment-list li>span{display:grid;min-width:0;gap:2px}.attachment-list strong,.attachment-list small{overflow-wrap:anywhere}.attachment-list small{color:#5b6e82}.attachment-list button{min-height:34px;padding:0 8px;border:1px solid #7891a8;border-radius:5px;color:#075fc0;background:#fff;font-size:10px}@media(max-width:480px){.attachment-list li{grid-template-columns:minmax(0,1fr) auto}.attachment-list li>span{grid-column:1/-1}}
-.business-write-form{display:grid;min-width:0;gap:9px;margin-top:14px;padding-top:12px;border-top:1px solid #e5ebf1}.business-write-form>div{display:flex;flex-wrap:wrap;gap:8px}.business-write-form label{display:grid;min-width:0;gap:5px;font-size:10px}.business-write-form input{width:100%;height:34px;padding:0 10px;border:1px solid #cfdbea;border-radius:4px}.business-write-form button{min-height:32px;padding:0 10px;border:1px solid #0b67c8;border-radius:4px;color:#0b5bac;background:#fff}.business-write-form>button{color:#fff;background:#0b67c8}.business-write-form button:disabled{opacity:.5}@media(max-width:480px){.business-write-form>div{display:grid;grid-template-columns:minmax(0,1fr)}.business-write-form>div button{width:100%;min-width:0!important}}
+.business-write-form{display:grid;min-width:0;gap:9px;margin-top:14px;padding-top:12px;border-top:1px solid #e5ebf1}.business-write-form>div{display:flex;flex-wrap:wrap;gap:8px}.business-write-form label{display:grid;min-width:0;gap:5px;font-size:10px}.business-write-form input{width:100%;height:34px;padding:0 10px;border:1px solid #cfdbea;border-radius:4px}.business-write-form :is(button,a){min-height:32px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px;border:1px solid #0b67c8;border-radius:4px;color:#0b5bac;background:#fff}.business-write-form>button{color:#fff;background:#0b67c8}.business-write-form button:disabled,.business-write-form a[aria-disabled=true]{opacity:.5;pointer-events:none}@media(max-width:480px){.business-write-form>div{display:grid;grid-template-columns:minmax(0,1fr)}.business-write-form>div :is(button,a){width:100%;min-width:0!important}}
 </style>

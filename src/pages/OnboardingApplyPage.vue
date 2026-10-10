@@ -258,11 +258,39 @@ async function loadCurrentApplicant() {
       email: String(body?.identity?.email || "")
     };
     form.applicant = userId;
+    await loadApplicantDirectoryProfile(userId);
     syncApplicantProfile();
   } catch {
     sessionApplicantError.value = "未读取到当前飞书授权用户，暂不能提交申请。";
   } finally {
     sessionApplicantChecked.value = true;
+  }
+}
+async function loadApplicantDirectoryProfile(userId) {
+  if (!userId || typeof props.operationExecutor !== "function") return;
+  try {
+    const response = await props.operationExecutor("COM-004", {
+      userId,
+      includeContact: true,
+      enabled: true,
+      page: 1,
+      pageSize: 10,
+      sort: "name,asc",
+    });
+    const exact = (response?.data?.items || []).find((item) =>
+      [item?.userId, item?.employeeNo].some((value) => String(value || "").trim() === userId)
+    );
+    if (!exact) return;
+    sessionApplicant.value = {
+      ...sessionApplicant.value,
+      displayName: String(exact.displayName || sessionApplicant.value?.displayName || ""),
+      departmentId: String(exact.departmentId || exact.orgId || sessionApplicant.value?.departmentId || ""),
+      departmentName: String(exact.departmentName || exact.orgName || sessionApplicant.value?.departmentName || ""),
+      phone: String(exact.mobile || exact.phone || sessionApplicant.value?.phone || ""),
+      email: String(exact.email || exact.enterpriseEmail || sessionApplicant.value?.email || ""),
+    };
+  } catch {
+    // The session identity still remains usable. Missing contact fields stay editable.
   }
 }
 const directoryState = computed(() => {
@@ -480,6 +508,9 @@ function focusInvalidField(id) {
 }
 function clearValidationSummary() {
   if (validationErrors.value.length) validationErrors.value = [];
+  if (!uncertainResult.value && submitError.value === "请先补全必填项或修正格式错误") {
+    submitError.value = "";
+  }
 }
 async function submitApplication(event) {
   if (submitting.value) return;
@@ -513,7 +544,7 @@ async function submitApplication(event) {
   submitError.value = "";
   submitted.value = false;
   uncertainResult.value = false;
-  announcement.value = form.type === "T005" ? "正在提交海能Work飞书审批" : "正在提交 RPA 应用审批";
+  announcement.value = form.type === "T003" ? "正在提交 RPA 应用审批" : `正在提交${activeApplicationType.value.label}审批`;
   try {
     approvalResult.value = await submitOnboarding(
       {
@@ -537,7 +568,7 @@ async function submitApplication(event) {
     const trackingMessage = approvalResult.value.status === "PENDING"
       ? "当前进入审批中状态"
       : approvalResult.value.message;
-    announcement.value = `${form.type === "T005" ? "海能Work" : "RPA"} 应用上架申请已提交，${trackingMessage}`;
+    announcement.value = `${activeApplicationType.value.label}上架申请已提交，${trackingMessage}`;
     emit("navigate", statusHref.value);
   } catch (error) {
     submitError.value = error instanceof Error ? error.message : "审批接口请求失败";
@@ -689,9 +720,8 @@ onMounted(async () => {
               v-for="item in applicationTypes"
               :key="item.value"
               :value="item.value"
-              :disabled="!item.supported"
               >
-                {{ item.label }}{{ item.supported ? '' : '（真实审批暂未开放）' }}
+                {{ item.label }}
               </option>
             </select></label
           >

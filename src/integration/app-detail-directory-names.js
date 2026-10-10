@@ -2,11 +2,15 @@ const text = value => String(value ?? '').trim();
 
 function isOpaquePersonReference(value) {
   const candidate = text(value);
-  return /^(?:ou|on|oc|cli)[_-][A-Za-z0-9_-]+$/i.test(candidate);
+  if (/^(?:ou|on|oc|cli)[_-][A-Za-z0-9_-]+$/i.test(candidate)) return true;
+  if (candidate.length < 4 || /[\s\u3400-\u9fff]/u.test(candidate)) return false;
+  return /^[a-z][a-z0-9._-]+$/.test(candidate) || /^(?=.*\d)[A-Za-z0-9._-]+$/.test(candidate);
 }
 
 function isOpaqueOrganizationReference(value) {
-  return /^od[-_][A-Za-z0-9_-]+$/i.test(text(value));
+  const candidate = text(value);
+  if (/^od[-_][A-Za-z0-9_-]+$/i.test(candidate)) return true;
+  return candidate.length >= 12 && !/[\s\u3400-\u9fff]/u.test(candidate) && /^[A-Za-z0-9._-]+$/.test(candidate);
 }
 
 function referenceId(detail, idField, nameField, kind) {

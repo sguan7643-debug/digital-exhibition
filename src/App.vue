@@ -25,6 +25,7 @@ import EadDetailPage from './pages/EadDetailPage.vue';
 import RpaDetailPage from './pages/RpaDetailPage.vue';
 import OnboardingPage from './pages/OnboardingPage.vue';
 import OnboardingApplyPage from './pages/OnboardingApplyPage.vue';
+import ApplicationUseApplyPage from './pages/ApplicationUseApplyPage.vue';
 import PointsPage from './pages/PointsPage.vue';
 import PointsDetailsPage from './pages/PointsDetailsPage.vue';
 import TrainingPage from './pages/TrainingPage.vue';
@@ -540,6 +541,7 @@ async function retryEntryAuthorization() {
         :operation-executor="executeReadOperation"
         :action-executor="executePageWriteOperation"
         :request-action-enabled="integrationRuntime.businessWritesEnabled && integrationContract.actions.some(action => action.operationId === 'APP-005')"
+        @navigate="navigateWithinApp"
       />
       <tool-detail-page v-else-if="page.id === '08'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :writes-enabled="appDetailWritesEnabled" />
       <haineng-work-detail-page v-else-if="page.id === '09'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" :operation-executor="executeReadOperation" :action-executor="executePageWriteOperation" :writes-enabled="appDetailWritesEnabled" />
@@ -564,6 +566,13 @@ async function retryEntryAuthorization() {
         :integration-mode="integrationEnvelope.mode"
         :operation-executor="executeReadOperation"
         @navigate="navigateWithinApp"
+      />
+      <application-use-apply-page
+        v-else-if="page.id === '33'"
+        :integration-data="integrationEnvelope.data"
+        :integration-state="integrationEnvelope.state"
+        :action-executor="executePageWriteOperation"
+        :writes-enabled="integrationRuntime.businessWritesEnabled"
       />
       <points-page v-else-if="page.id === '18'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
       <points-details-page v-else-if="page.id === '19'" :integration-data="integrationEnvelope.data" :integration-state="integrationEnvelope.state" />
