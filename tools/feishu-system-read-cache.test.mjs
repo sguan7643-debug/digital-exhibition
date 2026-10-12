@@ -8,6 +8,7 @@ import {
   STRONG_CONSISTENCY_OPERATION_IDS
 } from '../server/feishu-read-cache-policies.mjs';
 import { createFeishuReadOnlyService } from '../server/feishu-read-only-service.mjs';
+import { normalizeReadInput } from '../server/feishu-read-isolation-key.mjs';
 import { OPERATION_REGISTRY } from '../src/integration/operation-registry.js';
 
 const readOperationIds = OPERATION_REGISTRY.filter(operation => operation.readOnly).map(operation => operation.id).sort();
@@ -18,7 +19,25 @@ assert.deepEqual(classifiedIds, readOperationIds, '65 个只读 operation 必须
 assert.equal(CACHEABLE_READ_OPERATION_IDS.length, 54);
 assert.equal(STRONG_CONSISTENCY_OPERATION_IDS.length, 11);
 assert.equal(Object.keys(READ_OPERATION_CACHE_POLICIES).length, 54);
+assert.ok(STRONG_CONSISTENCY_OPERATION_IDS.includes('COM-004'), '原始联系方式必须强一致读取且不得进入业务缓存或持久快照');
+assert.equal(READ_OPERATION_CACHE_POLICIES['COM-001']?.scope, 'user', '当前用户正式投影必须形成用户隔离缓存');
+assert.ok(!STRONG_CONSISTENCY_OPERATION_IDS.includes('COM-001'), 'COM-001 的源读取可保持强校验，但成功结果必须可缓存');
 assert.ok(STRONG_CONSISTENCY_OPERATION_IDS.every(operationId => !READ_OPERATION_CACHE_POLICIES[operationId]));
+assert.deepEqual(
+  normalizeReadInput('COM-004', { page: 1, pageSize: 100, sort: 'name,asc' }),
+  normalizeReadInput('COM-004', { includeContact: false, page: 1, pageSize: 100, sort: 'name,asc' }),
+  '目录模式省略 includeContact 与显式 false 必须形成同一缓存键'
+);
+assert.deepEqual(
+  normalizeReadInput('APP-003', { appId: ' APP0076 ', include: 'owner,developer,owner' }),
+  normalizeReadInput('APP-003', { appId: 'APP0076', include: ['developer', 'owner'] }),
+  'APP-003 详情输入必须规范化'
+);
+assert.deepEqual(
+  normalizeReadInput('MAT-002', { keyword: ' 文件 ', page: 1 }),
+  normalizeReadInput('MAT-002', { query: '文件', page: 1, pageSize: 10, sort: 'updatedAt,desc' }),
+  'MAT-002 query/keyword 别名必须形成同一缓存键'
+);
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const identifierContract = loadFeishuIdentifierContract(path.join(root, 'server', 'contracts', 'feishu-base-identifiers.json'));

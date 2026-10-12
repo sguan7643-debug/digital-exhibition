@@ -34,7 +34,11 @@ export function createFeishuCompositeOperationService({ readService, writeServic
         : readService.execute.bind(readService);
       const user = await permissionRead('COM-001', {}, requestContext);
       if (!permissionAllows(user?.data?.permissions, operationId)) {
-        throw new FeishuProxyError('PERMISSION_DENIED', '当前用户缺少该写操作权限', 403);
+        const code = operationId === 'APP-005' ? 'APPLICATION_REQUEST_PERMISSION_DENIED' : 'PERMISSION_DENIED';
+        throw new FeishuProxyError(code, '当前用户缺少该写操作权限', 403);
+      }
+      if (!businessWriteService && writeService.requiresRequestGovernance?.(operationId)) {
+        throw new FeishuProxyError('REQUEST_GOVERNANCE_REQUIRED', `${operationId} 必须通过正式请求治理链路执行`, 400);
       }
       const result = businessWriteService
         ? await businessWriteService.execute(operationId, input, requestContext)

@@ -5,7 +5,7 @@ import { buildPageReadRequestPlan } from '../src/integration/page-read-request-p
 import { createVerifiedReadOperationContracts, validateContractSchema } from '../src/integration/operation-contract-schemas.js';
 
 const contracts = createVerifiedReadOperationContracts();
-const deferredExpected = new Set(['TRN-003', 'TRN-006', 'CER-003', 'ARC-002']);
+const deferredExpected = new Set(['APP-003', 'TRN-003', 'TRN-006', 'CER-003', 'ARC-002']);
 const planned = new Set();
 const deferred = new Set();
 
@@ -36,4 +36,4 @@ const appSource = readFileSync(new URL('../src/App.vue', import.meta.url), 'utf8
 assert.doesNotMatch(appSource, /\/api\/v1\/approvals\/reconcile/,
   '应用中心首入不得自动执行审批对账；审批提交和状态页负责显式同步，避免旧实例故障污染普通读取');
 assert.ok(planned.size >= 45, `页面自动加载应覆盖主要读接口，实际 ${planned.size}`);
-console.log(`page read plans validate ${planned.size} immediate operations; 4 resource detail operations defer until a selected id exists; interaction reads never auto-run`);
+console.log(`page read plans validate ${planned.size} immediate operations; 5 resource detail operations defer until a selected id exists; interaction reads never auto-run`);

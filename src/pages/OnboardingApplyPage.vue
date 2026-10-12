@@ -272,7 +272,6 @@ async function loadApplicantDirectoryProfile(userId) {
     const response = await props.operationExecutor("COM-004", {
       userId,
       includeContact: true,
-      enabled: true,
       page: 1,
       pageSize: 10,
       sort: "name,asc",
@@ -348,7 +347,7 @@ watch(() => form.contact, async (contact, _previous, onCleanup) => {
   let cancelled = false;
   onCleanup(() => { cancelled = true; });
   try {
-    const response = await props.operationExecutor('COM-004', { userId: contact, includeContact: true, page: 1, pageSize: 10, enabled: true });
+    const response = await props.operationExecutor('COM-004', { userId: contact, includeContact: true, page: 1, pageSize: 10 });
     if (cancelled || form.contact !== contact) return;
     const exact = (response?.data?.items || []).find(item => String(item.userId || item.employeeNo || '') === contact);
     Object.assign(form, buildContactAutofill(exact));

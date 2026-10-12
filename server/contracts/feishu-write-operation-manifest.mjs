@@ -1,7 +1,33 @@
 const DEFAULT_GOVERNANCE = Object.freeze({ versionField: '版本', traceField: '追踪ID', sourceField: '来源系统', deletedField: '已删除' });
-const definition = (operationId, tableName, keyField, mode, allowedFields, cleanup = 'BUSINESS_RETENTION_POLICY', governance = DEFAULT_GOVERNANCE) => Object.freeze({
+const SERVER_CONTROLLED_FIELDS_BY_OPERATION = Object.freeze({
+  'COM-011': ['用户ID'],
+  'MSG-005': ['接收人ID'],
+  'ANN-004': ['用户ID'],
+  'FAV-003': ['用户ID'],
+  'APP-005': ['申请人ID', '状态'],
+  'APP-006': ['申请人ID'],
+  'APP-008': ['评论人ID'],
+  'TRN-004': ['用户ID'],
+  'CER-004': ['用户ID'],
+  'INT-002': ['触发人ID'],
+  'COM-009': ['创建用户ID'],
+  'PTS-005': ['创建用户ID'],
+  'OPS-002': ['创建用户ID'],
+  'OPS-004': ['触发人ID'],
+  'OAN-004': ['发布人ID'],
+  'OAN-005': ['发布人ID'],
+  'OAP-010': ['授权人ID']
+});
+const definition = (operationId, tableName, keyField, mode, allowedFields, cleanup = 'BUSINESS_RETENTION_POLICY', governance = DEFAULT_GOVERNANCE, contract = {}) => Object.freeze({
   operationId, tableName, keyField, mode, allowedFields: Object.freeze(allowedFields), cleanup,
   governance,
+  serverControlledFields: Object.freeze(contract.serverControlledFields || SERVER_CONTROLLED_FIELDS_BY_OPERATION[operationId] || []),
+  clientAllowedFields: Object.freeze(contract.clientAllowedFields || allowedFields.filter(field => !(SERVER_CONTROLLED_FIELDS_BY_OPERATION[operationId] || []).includes(field))),
+  requiredFields: Object.freeze(contract.requiredFields || []),
+  requiresRequestGovernance: contract.requiresRequestGovernance === true,
+  responseSchemaVersion: contract.responseSchemaVersion || 'feishu-business-write.v1',
+  responseKind: contract.responseKind || '',
+  initialStatus: contract.initialStatus || '',
   // The manifest describes the formal business channel. TEST_ isolation is kept
   // only by the dedicated test-record service used by live verification tools.
   requiresTestPrefix: false,
@@ -18,9 +44,18 @@ export const FEISHU_WRITE_OPERATION_MANIFEST = Object.freeze([
   definition('MSG-004', '消息通知', '消息ID', 'UPDATE', ['已读状态']),
   definition('MSG-005', '消息通知', '消息ID', 'UPDATE_MANY', ['接收人ID', '已读状态']),
   definition('ANN-004', '公告已读明细', '已读编码', 'UPSERT', ['公告ID', '用户ID', '首次阅读时间', '最后阅读时间', '阅读次数']),
-  definition('FAV-003', '应用收藏', '主键', 'CREATE', ['应用ID', '用户ID', '收藏时间']),
-  definition('FAV-004', '应用收藏', '主键', 'DELETE', []),
-  definition('APP-005', '使用申请', '主键', 'CREATE', ['应用ID', '申请人ID', '申请理由', '状态', '申请时间']),
+  definition('FAV-003', '应用收藏', '主键', 'CREATE', ['应用ID', '用户ID', '收藏时间'], 'BUSINESS_RETENTION_POLICY', DEFAULT_GOVERNANCE, {
+    clientAllowedFields: ['应用ID', '收藏时间'], requiredFields: ['应用ID', '收藏时间'], requiresRequestGovernance: true,
+    responseSchemaVersion: 'feishu-business-write.v2', responseKind: 'FAVORITE'
+  }),
+  definition('FAV-004', '应用收藏', '主键', 'DELETE', [], 'BUSINESS_RETENTION_POLICY', DEFAULT_GOVERNANCE, {
+    clientAllowedFields: [], requiresRequestGovernance: true,
+    responseSchemaVersion: 'feishu-business-write.v2', responseKind: 'FAVORITE'
+  }),
+  definition('APP-005', '使用申请', '主键', 'CREATE', ['应用ID', '申请人ID', '申请理由', '状态', '申请时间'], 'BUSINESS_RETENTION_POLICY', DEFAULT_GOVERNANCE, {
+    clientAllowedFields: ['应用ID', '申请理由', '申请时间'], requiredFields: ['应用ID'], requiresRequestGovernance: true,
+    responseSchemaVersion: 'feishu-business-write.v2', responseKind: 'APPLICATION_REQUEST', initialStatus: 'PENDING'
+  }),
   definition('APP-006', '应用复用申请', '申请编号', 'CREATE', ['应用ID', '申请类型', '申请人ID', '申请部门ID', '目标部门ID', '申请原因', '业务场景', '复用范围', '预计用户数', '集成要求', '数据要求', '期望上线日期', '本地状态', '外部管理', '外部引用编号', '提交时间', '完成时间', '幂等键']),
   definition('APP-008', '应用评论', '主键', 'CREATE', ['应用ID', '评论人ID', '评论内容', '评论时间']),
   definition('TRN-004', '培训报名', '报名编号', 'CREATE', ['课程ID', '用户ID', '状态', '报名时间', '排队序号', '幂等键']),

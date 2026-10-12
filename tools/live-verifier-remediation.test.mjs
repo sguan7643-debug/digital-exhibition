@@ -42,11 +42,10 @@ const createPathService = createFeishuWriteOperationService({
 const createUpdate = await createPathService.execute('FAV-003', {
   businessKey: 'TEST_CREATE_VERSION',
   idempotencyKey: 'TEST_IDEM_CREATE_VERSION',
-  ifMatch: 1,
-  fields: { 应用ID: 'APP-001', 用户ID: 'USER-001' }
-});
-assert.equal(createUpdate.data.version, 2, 'CREATE operation 的版本验证必须仍经由同一公开 operation 路径');
-assert.deepEqual(createPathCalls.map(([kind]) => kind), ['update']);
+  fields: { 应用ID: 'APP-001', 用户ID: 'USER-001', 收藏时间: '2026-10-12T00:00:00.000Z' }
+}, { governed: true });
+assert.equal(createUpdate.data.favoriteVersion, 1, '收藏创建必须返回可供安全取消收藏使用的版本');
+assert.deepEqual(createPathCalls.map(([kind]) => kind), ['create']);
 
 const registry = [{ id: 'READ-001' }, { id: 'READ-002' }, { id: 'READ-003' }];
 const run = await runOperationRegistry({

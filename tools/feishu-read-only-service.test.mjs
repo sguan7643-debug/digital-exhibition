@@ -27,7 +27,10 @@ const retryService = createFeishuReadOnlyService({
   client: {
     async listRecords(tableId) {
       if (namesById.get(tableId) === '应用类型配置' && retryCalls++ < 2) {
-        throw Object.assign(new Error('temporary upstream failure'), { status: 502 });
+        throw Object.assign(new Error('temporary upstream failure'), {
+          status: 502,
+          code: 'FEISHU_UPSTREAM_UNAVAILABLE'
+        });
       }
       return responseFor(tableId);
     }
@@ -75,7 +78,7 @@ await assert.rejects(
   () => aggregateRetryService.execute('WB-002', { page: 1, pageSize: 20 }),
   error => error?.status === 502
 );
-assert.equal(paginatedRetryCalls, 3, 'the single retry budget applies across every page in one readAll call');
+assert.equal(paginatedRetryCalls, 1, 'page reads must not add hidden retries beyond the operation-level total-attempt controller');
 
 const budgetService = createFeishuReadOnlyService({
   identifierContract,
@@ -89,13 +92,28 @@ await assert.rejects(
   error => error?.status === 504
 );
 
+const previousEnvironmentReadBudget = process.env.FEISHU_READ_BUDGET_MS;
+process.env.FEISHU_READ_BUDGET_MS = '10';
+const legacyEnvironmentBudgetService = createFeishuReadOnlyService({
+  identifierContract,
+  realtimeAuthorization: false,
+  syncRetryAttempts: 1,
+  syncTaskTimeoutMs: 500,
+  client: { listRecords: async tableId => new Promise(resolve => setTimeout(() => resolve(responseFor(tableId)), 30)) }
+});
+if (previousEnvironmentReadBudget == null) delete process.env.FEISHU_READ_BUDGET_MS;
+else process.env.FEISHU_READ_BUDGET_MS = previousEnvironmentReadBudget;
+const legacyEnvironmentBudgetResult = await legacyEnvironmentBudgetService.execute('WB-002', { page: 1, pageSize: 20 });
+assert.equal(legacyEnvironmentBudgetResult.code, 'OK', '旧环境变量不得在后台任务截止前提前触发 FEISHU_READ_BUDGET_EXCEEDED');
+legacyEnvironmentBudgetService.close();
+
 const extendedBudgetService = createFeishuReadOnlyService({
   identifierContract,
   realtimeAuthorization: false,
   readBudgetMs: 50,
   client: { listRecords: async tableId => new Promise(resolve => setTimeout(() => resolve(responseFor(tableId)), 18)) }
 });
-await extendedBudgetService.execute('COM-001', {}, { identity: { userId: 'u-test', adAccount: 'u-test' } });
+await extendedBudgetService.execute('COM-001', {}, { identity: { userId: 'u-test', adAccount: 'u-test', displayName: '测试用户' } });
 
 let defaultBudgetClockReads = 0;
 const defaultBudgetService = createFeishuReadOnlyService({
@@ -122,7 +140,7 @@ const profileFieldService = createFeishuReadOnlyService({
     }
   }
 });
-await profileFieldService.execute('COM-001', {}, { identity: { userId: 'u-test', adAccount: 'u-test' } });
+await profileFieldService.execute('COM-001', {}, { identity: { userId: 'u-test', adAccount: 'u-test', displayName: '测试用户' } });
 const profileUserFields = profileReadQueries.get('用户字典').fieldNames;
 assert.ok(profileUserFields.includes('AD账号'));
 assert.ok(profileUserFields.includes('所属部门名称'));
@@ -210,18 +228,22 @@ await Promise.all([
 assert.equal(typeReads, 1, 'concurrent COM-005 and WB-002 reads must share application-type projection work');
 
 let firstScreenUserDictionaryReads = 0;
+const firstScreenUserDictionaryFilters = [];
 const sharedFirstScreenService = createFeishuReadOnlyService({
   identifierContract,
   realtimeAuthorization: false,
   appProjectionCacheMs: 1_000,
   client: {
-    async listRecords(tableId) {
-      if (namesById.get(tableId) === '用户字典') firstScreenUserDictionaryReads += 1;
+    async listRecords(tableId, query = {}) {
+      if (namesById.get(tableId) === '用户字典') {
+        firstScreenUserDictionaryReads += 1;
+        firstScreenUserDictionaryFilters.push(query.filter || '');
+      }
       return responseFor(tableId);
     }
   }
 });
-const firstScreenContext = { identity: { userId: 'u-test', adAccount: 'u-test', openId: 'u-test' } };
+const firstScreenContext = { identity: { userId: 'u-test', adAccount: 'u-test', openId: 'u-test', displayName: '测试用户' } };
 await Promise.all([
   sharedFirstScreenService.execute('COM-001', {}, firstScreenContext),
   sharedFirstScreenService.execute('COM-002', { platform: 'WEB' }, firstScreenContext),
@@ -229,6 +251,7 @@ await Promise.all([
   sharedFirstScreenService.execute('WB-001', { hotLimit: 4, courseLimit: 3, noticeLimit: 4 }, firstScreenContext),
   sharedFirstScreenService.execute('WB-002', { page: 1, pageSize: 20 }, firstScreenContext)
 ]);
-assert.equal(firstScreenUserDictionaryReads, 3, '关闭鉴权夹具时，三个用户范围强一致操作仍必须独立读取，租户投影可共享');
+assert.equal(firstScreenUserDictionaryReads, 3, 'COM-001 有界身份读取、公共应用投影与强一致 COM-002 必须保持隔离');
+assert.ok(firstScreenUserDictionaryFilters.some(filter => filter.includes('CurrentValue.[AD账号]') && filter.includes('u-test')));
 
 console.log('Feishu read budget, one-retry policy, and shared dictionary projection passed');

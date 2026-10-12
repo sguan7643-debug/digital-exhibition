@@ -58,6 +58,7 @@ function normalizeEntry(entry, now, forbiddenValues = []) {
     key,
     operationId,
     value,
+    committed: entry.committed !== false,
     createdAt: Number(entry.createdAt) || now,
     lastAccessedAt: Number(entry.lastAccessedAt) || Number(entry.createdAt) || now,
     freshUntil,
@@ -120,6 +121,11 @@ export function createPersistentReadCache(options = {}) {
   let writeSuspended = false;
   let integrityFailures = 0;
 
+  function assertWriteActive(signal) {
+    if (!signal?.aborted) return;
+    throw Object.assign(new Error('缓存快照提交已取消'), { code: 'READ_SYNC_DEADLINE_EXCEEDED' });
+  }
+
   async function ensureDirectory() {
     if (!enabled) return;
     if (requiredOwner && userInfo().username !== requiredOwner) {
@@ -166,7 +172,9 @@ export function createPersistentReadCache(options = {}) {
         return [];
       }
       const timestamp = now();
-      const entries = document.entries.map(entry => normalizeEntry(entry, timestamp, forbiddenValues)).filter(Boolean);
+      const entries = document.entries
+        .map(entry => normalizeEntry(entry, timestamp, forbiddenValues))
+        .filter(entry => entry?.committed !== false);
       restoredEntries = entries.length;
       return entries;
     } catch (error) {
@@ -175,10 +183,12 @@ export function createPersistentReadCache(options = {}) {
     }
   }
 
-  async function writeSnapshotUnchecked(entries) {
+  async function writeSnapshotUnchecked(entries, { signal } = {}) {
     if (!enabled) return;
+    assertWriteActive(signal);
     await ensureDirectory();
     await removeOrphanedTemporaryFiles();
+    assertWriteActive(signal);
     const normalized = (Array.isArray(entries) ? entries : [])
       .map(entry => normalizeEntry(entry, now(), forbiddenValues))
       .filter(Boolean)
@@ -197,11 +207,16 @@ export function createPersistentReadCache(options = {}) {
     const currentDirectoryBytes = await directoryFileBytes();
     let projectedBytes = currentDirectoryBytes + Buffer.byteLength(payload, 'utf8');
     while ((Buffer.byteLength(payload, 'utf8') > maxSnapshotBytes || projectedBytes > pruneAtBytes) && document.entries.length) {
-      let removeAt = -1;
-      for (let index = document.entries.length - 1; index >= 0; index -= 1) {
-        if (!REPRESENTATIVE_OPERATION_IDS.has(document.entries[index].operationId)) {
-          removeAt = index;
-          break;
+      // A candidate is never allowed to evict the committed generation it is
+      // meant to replace. If capacity is tight, reject/prune the candidate so
+      // the caller can fail the commit while restart recovery keeps the LKG.
+      let removeAt = document.entries.findIndex(entry => entry.committed === false);
+      if (removeAt < 0) {
+        for (let index = document.entries.length - 1; index >= 0; index -= 1) {
+          if (!REPRESENTATIVE_OPERATION_IDS.has(document.entries[index].operationId)) {
+            removeAt = index;
+            break;
+          }
         }
       }
       if (removeAt < 0) break;
@@ -226,6 +241,9 @@ export function createPersistentReadCache(options = {}) {
         await handle.close();
       }
       await chmod(temporary, 0o600);
+      // The rename is the durable generation switch. Never perform it after
+      // the owning synchronization task has crossed its hard deadline.
+      assertWriteActive(signal);
       await rename(temporary, filePath);
       await chmod(filePath, 0o600);
       assertCurrentProcessOwnership(await stat(filePath), filePath);
@@ -239,12 +257,17 @@ export function createPersistentReadCache(options = {}) {
     writes += 1;
     writeSuspended = false;
     lastError = null;
-    return Object.freeze({ written: true, keys: Object.freeze(document.entries.map(entry => entry.key)) });
+    return Object.freeze({
+      written: true,
+      keys: Object.freeze(document.entries.map(entry => entry.key)),
+      committedKeys: Object.freeze(document.entries.filter(entry => entry.committed !== false).map(entry => entry.key)),
+      candidateKeys: Object.freeze(document.entries.filter(entry => entry.committed === false).map(entry => entry.key))
+    });
   }
 
-  async function writeSnapshot(entries) {
+  async function writeSnapshot(entries, options) {
     try {
-      return await writeSnapshotUnchecked(entries);
+      return await writeSnapshotUnchecked(entries, options);
     } catch (error) {
       lastError = String(error?.code || error?.message || 'SNAPSHOT_WRITE_FAILED');
       throw error;
@@ -267,7 +290,7 @@ export function createPersistentReadCache(options = {}) {
     timer.unref?.();
   }
 
-  async function flush(provider) {
+  async function flush(provider, options = {}) {
     if (!enabled) return true;
     if (timer) {
       clearTimeout(timer);
@@ -277,7 +300,7 @@ export function createPersistentReadCache(options = {}) {
     pendingProvider = null;
     const settledWriteChain = writeChain.then(value => value, () => false);
     if (typeof current === 'function') {
-      writeChain = settledWriteChain.then(() => writeSnapshot(current()));
+      writeChain = settledWriteChain.then(() => writeSnapshot(current(), options));
       return await writeChain;
     }
     const priorResult = await settledWriteChain;

@@ -83,7 +83,7 @@ async function capture(context, origin, route, viewport, label, takeScreenshot =
   const response = await page.goto(`${origin}${route}`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
   await page.waitForSelector('#main-content', { timeout: 15_000 });
   if (label === 'current') {
-    await page.waitForFunction(() => !document.querySelector('.request-loading-toast'), null, { timeout: 10_000 });
+    await page.waitForFunction(() => !document.querySelector('.request-loading-overlay'), null, { timeout: 10_000 });
   }
   await page.waitForTimeout(100);
   const selectors = routeSelectors[route];
@@ -153,7 +153,7 @@ async function capture(context, origin, route, viewport, label, takeScreenshot =
       },
       headings: [...main.querySelectorAll('h1,h2')].filter(visible).map(element => element.textContent.trim()).filter(Boolean),
       updateTimeVisible: document.body.innerText.includes('数据更新时间：') || document.querySelectorAll('.data-update-time').length > 0,
-      requestLoadingVisible: [...document.querySelectorAll('.request-loading-toast')].filter(visible).length,
+      requestLoadingVisible: [...document.querySelectorAll('.request-loading-overlay')].filter(visible).length,
       personLeaks,
       overflowers,
       scrollRegions,
@@ -170,7 +170,7 @@ function assertCurrentRoute(route, viewport, current, reference) {
   assert.deepEqual(current.pageErrors, [], `${route} ${viewport.name} 不得出现页面脚本错误`);
   assert.deepEqual(reference.pageErrors, [], `${route} ${viewport.name} 参考页面不得出现脚本错误`);
   assert.equal(current.updateTimeVisible, false, `${route} ${viewport.name} 不得显示或占位“数据更新时间”`);
-  assert.equal(current.requestLoadingVisible, 0, `${route} ${viewport.name} 正常数据完成后 loading 气泡必须消失`);
+  assert.equal(current.requestLoadingVisible, 0, `${route} ${viewport.name} 正常数据完成后全页面 loading 必须消失`);
   assert.deepEqual(current.personLeaks, [], `${route} ${viewport.name} 人员姓名槽不得泄露编码`);
   assert.equal(current.documentWidth, current.viewportWidth, `${route} ${viewport.name} 不得产生页面级横向溢出`);
   assert.equal(current.bodyWidth, current.viewportWidth, `${route} ${viewport.name} body 不得产生横向溢出`);

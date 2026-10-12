@@ -35,7 +35,7 @@ const denied = await deniedService.execute('APP-004', { appId: 'APP-1', launchMo
 assert.equal(denied.data.allowed, false);
 assert.equal(denied.data.reasonCode, 'APP_HOST_NOT_ALLOWED');
 
-const material = await service.execute('MAT-003', { materialId: 'MAT-1', fileId: 'token-material-1', purpose: 'USER_DOWNLOAD', sourcePage: '/materials/MAT-1', clientOccurredAt: '2026-09-02T06:00:00.000Z' }, context);
+const material = await service.execute('MAT-003', { materialId: 'MAT-1', fileId: 'MAT-1', purpose: 'USER_DOWNLOAD', sourcePage: '/materials/MAT-1', clientOccurredAt: '2026-09-02T06:00:00.000Z' }, context);
 validateContractSchema(material, contracts['MAT-003'].successSchema);
 assert.equal(material.data.accessUrl.startsWith('/api/v1/files/content/'), true);
 

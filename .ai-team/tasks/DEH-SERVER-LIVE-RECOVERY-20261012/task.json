@@ -1,0 +1,85 @@
+{
+  "task_id": "DEH-SERVER-LIVE-RECOVERY-20261012",
+  "title": "测试环境真实读取与同步任务紧急恢复",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "修复 COM-004 后台任务输入污染和测试人员泄漏、首页授权超时、APP-001/APP-002 长时间运行，使首页、应用中心和申请页在真实授权会话中自动取得正式飞书数据。",
+  "target_user": "测试环境中使用关胜等真实授权账号访问数智产品展厅的业务用户。",
+  "in_scope": [
+    "保证 worker 仅重放通过合同校验的原始业务 input，不混入同步任务内部元数据",
+    "清除 COM-004 正式读取通道中的 fixture、fallback、旧测试人员和对应缓存快照",
+    "修复 HOMEPAGE/COM-001 授权阶段超时并保持当前登录用户身份，不以 system-prewarm 替代",
+    "保证 APP-001、APP-002 后台任务在截止时间内进入 completed 并提交可复用缓存",
+    "提供精确缓存清理工具以清除 COM-004、APP-001、APP-002、HOMEPAGE 的错误内存与持久快照",
+    "增加自动化回归并生成纯后端部署包与 SHA-256"
+  ],
+  "out_of_scope": [
+    "修改前端源码或前端 dist",
+    "返回模拟、受控代理或初始化测试业务数据",
+    "降低登录、实时权限、数据范围、审批、幂等或审计校验",
+    "修改生产环境或由 Codex 直接部署测试服务器",
+    "引入 Redis、外部数据库或替换飞书数据源"
+  ],
+  "success_metric": "首页、应用中心、申请页取得真实飞书数据；热缓存读取约 1 秒内 HTTP 200；冷读 5 秒后交接的任务在 25 秒内完成；COM-004 不再输入污染且不返回 U003/U004/U005 等测试人员；申请引用数据、上传和提交合同无回归。",
+  "deadline": "紧急修复，完成本地自动化验证后立即提供后端候选包",
+  "risk_level": "high",
+  "state": "qa",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "User (Product Owner)",
+      "approved_at": "2026-10-11T17:48:30.6325669Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "User (Product Owner)",
+      "approved_at": "2026-10-11T17:49:29.8687089Z"
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": false,
+    "mobile_passed": false,
+    "web_evidence": ".ai-team/tasks/DEH-SERVER-LIVE-RECOVERY-20261012/handoffs/web.md",
+    "web_checked_at": "2026-10-11T19:39:06.8452026Z",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": false,
+    "blocking_defects": 0,
+    "evidence": "",
+    "recorded_at": ""
+  },
+  "repair_attempts": 2,
+  "repair_history": [
+    {
+      "attempt": 1,
+      "platform": "web",
+      "evidence": ".ai-team/tasks/DEH-SERVER-LIVE-RECOVERY-20261012/qa-report.md",
+      "qa_evidence": ".ai-team/tasks/DEH-SERVER-LIVE-RECOVERY-20261012/qa-report.md",
+      "recorded_at": "2026-10-11T18:33:26.4703916Z"
+    },
+    {
+      "attempt": 2,
+      "platform": "web",
+      "evidence": ".ai-team/tasks/DEH-SERVER-LIVE-RECOVERY-20261012/qa-report.md",
+      "qa_evidence": ".ai-team/tasks/DEH-SERVER-LIVE-RECOVERY-20261012/qa-report.md",
+      "recorded_at": "2026-10-11T19:15:02.9363341Z"
+    }
+  ]
+}

@@ -4,7 +4,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadFeishuIdentifierContract } from '../server/feishu-identifier-contract.mjs';
 import { createFeishuReadOnlyService } from '../server/feishu-read-only-service.mjs';
-import { createVerifiedReadOperationContracts, validateContractSchema } from '../src/integration/operation-contract-schemas.js';
+import { validateContractSchema } from '../src/integration/operation-contract-schemas.js';
+import { createVerifiedReadOperationContracts } from '../server/feishu-read-operation-contracts.mjs';
 import { resolveRemoteReadOperation } from '../src/integration/remote-operation-capabilities.js';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -42,7 +43,7 @@ const cases = [
 for (const [operationId, input] of cases) {
   const response = await service.execute(operationId, input);
   assert.equal(response.code, 'OK');
-  assert.equal(response.schemaVersion, 'feishu-first-batch-detail.v1');
+  assert.equal(response.schemaVersion, operationId === 'MAT-002' ? 'feishu-first-batch-detail.v2' : operationId === 'APP-003' ? 'feishu-app-read.v2' : 'feishu-first-batch-detail.v1');
   assert.equal(resolveRemoteReadOperation(operationId).remoteEnabled, true);
   assert.doesNotThrow(() => validateContractSchema(response, contracts[operationId].successSchema));
 }
@@ -69,8 +70,10 @@ assert.equal(announcementRelations.items[0].resourceId, 'APP-001');
 
 const materials = (await service.execute('MAT-002', { relatedAppId: 'APP-001', page: 1, pageSize: 10 })).data;
 assert.equal(materials.items[0].materialId, 'MAT-001');
-assert.equal(materials.items[0].permissions.canDownload, false);
-assert.equal(materials.items[0].primaryFile.downloadUrl, '');
+assert.equal(materials.items[0].permissions.canDownload, true);
+assert.deepEqual(materials.items[0].primaryFile, {
+  fileId: 'MAT-001', fileName: '模板.xlsx', mimeType: 'application/octet-stream', sizeBytes: 2048
+});
 
 await assert.rejects(service.execute('APP-003', { appId: 'missing' }), error => error.code === 'RESOURCE_NOT_FOUND');
 await assert.rejects(service.execute('ANN-003', { announcementId: 'ANN-001', markRead: true }), error => error.code === 'READ_SIDE_EFFECT_FORBIDDEN');

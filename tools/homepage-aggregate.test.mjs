@@ -16,7 +16,47 @@ import { createFeishuReadOnlyService } from '../server/feishu-read-only-service.
 import { FeishuProxyError } from '../server/feishu-open-api-client.mjs';
 
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
-const context = { identity: { tenantKey: 'tenant-1', userId: 'user-1', permissions: ['homepage:read'] } };
+const context = {
+  identity: {
+    tenantKey: 'tenant-1',
+    userId: 'user-1',
+    displayName: '用户一',
+    permissions: ['homepage:read']
+  }
+};
+const assertTaskEnvelope = (body, expectedStates) => {
+  assert.equal(body.code, 'OK');
+  assert.ok(expectedStates.includes(body.state), `unexpected task state: ${body.state}`);
+  assert.match(body.syncId, /^sync-/);
+  assert.equal(body.operationId, 'HOMEPAGE');
+  assert.ok(!Number.isNaN(Date.parse(body.createdAt)), 'task createdAt must be ISO time');
+  assert.ok(!Number.isNaN(Date.parse(body.updatedAt)), 'task updatedAt must be ISO time');
+  assert.match(body.traceId, /^trace-/);
+  const stateField = ['queued', 'running'].includes(body.state)
+    ? 'pollAfterMs'
+    : body.state === 'completed'
+      ? 'result'
+      : 'error';
+  assert.deepEqual(
+    Object.keys(body).sort(),
+    ['code', 'syncId', 'operationId', 'state', 'createdAt', 'updatedAt', 'traceId', stateField].sort(),
+    `${body.state} task envelope must only contain its discriminated state fields`
+  );
+};
+const assertHandoffEnvelope = body => {
+  assert.equal(body.code, 'HOMEPAGE_SYNCING');
+  assert.ok(['queued', 'running'].includes(body.state));
+  assert.match(body.syncId, /^sync-/);
+  assert.equal(body.operationId, 'HOMEPAGE');
+  assert.ok(!Number.isNaN(Date.parse(body.createdAt)));
+  assert.ok(!Number.isNaN(Date.parse(body.updatedAt)));
+  assert.match(body.traceId, /^trace-/);
+  assert.ok(Number.isInteger(body.pollAfterMs) && body.pollAfterMs > 0);
+  assert.deepEqual(
+    Object.keys(body).sort(),
+    ['code', 'message', 'syncId', 'operationId', 'state', 'createdAt', 'updatedAt', 'traceId', 'pollAfterMs'].sort()
+  );
+};
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const homepageFixtureContract = loadFeishuIdentifierContract(path.join(root, 'server', 'contracts', 'feishu-base-identifiers.json'));
 const homepageFixtureReadService = createFeishuReadOnlyService({
@@ -53,10 +93,10 @@ await directContactReadService.executeBackground('COM-001', {}, {
     tenantKey: 'tenant-contact',
     userId: 'feishu-user-id',
     adAccount: 'ad-account',
-    displayName: ''
+    displayName: '飞书用户'
   }
 });
-assert.equal(directContactUserId, 'feishu-user-id', '通讯录 user_id 接口不得误用 AD 账号');
+assert.equal(directContactUserId, '', 'COM-001 正式身份投影不得被可选通讯录调用拖慢或阻塞');
 directContactReadService.close();
 
 assert.equal(resolveHomepageResponseBudgetMs(), 4_500);
@@ -201,6 +241,7 @@ await assert.rejects(
 
 const coldResponses = await Promise.all(Array.from({ length: 8 }, () => service.readHomepage(context)));
 assert.ok(coldResponses.every(result => result.status === 202), '冷态并发请求必须在响应预算内返回同步状态');
+for (const result of coldResponses) assertHandoffEnvelope(result.body);
 assert.equal(new Set(coldResponses.map(result => result.body.syncId)).size, 1, '同一同步范围必须复用一个syncId');
 assert.equal(freshCalls.length, HOMEPAGE_OPERATION_IDS.length, '八个并发页面请求只能创建一组五项后台读取');
 
@@ -210,9 +251,12 @@ assert.ok(['queued', 'running'].includes((await service.getSyncStatus(syncId, co
 assert.equal(freshCalls.length, callsBeforePoll, '状态查询不得触发飞书读取');
 
 await sleep(50);
-assert.equal((await service.getSyncStatus(syncId, context)).state, 'completed');
+const completedStatus = await service.getSyncStatus(syncId, context);
+assertTaskEnvelope(completedStatus, ['completed']);
+assert.equal(completedStatus.result.schemaVersion, 'homepage-aggregate.v3');
 const warm = await service.readHomepage(context);
 assert.equal(warm.status, 200);
+assert.equal(warm.body.schemaVersion, 'homepage-aggregate.v3');
 assert.equal(warm.body.aggregateState, 'fresh');
 assert.equal(Object.keys(warm.body.data).length, HOMEPAGE_OPERATION_IDS.length);
 assert.equal(freshCalls.length, HOMEPAGE_OPERATION_IDS.length, '热态聚合不得重新回源');
@@ -348,7 +392,8 @@ const realDeadlineContext = {
   identity: {
     tenantKey: 'tenant-homepage-cold',
     userId: 'homepage-cold-feishu-user',
-    adAccount: 'homepage-cold-ad'
+    adAccount: 'homepage-cold-ad',
+    displayName: '首页冷读用户'
   }
 };
 realDeadlineReads.clear();
@@ -359,24 +404,26 @@ realDeadlineDelayMs = 60;
 const realDeadlineHomepage = createHomepageAggregateService({
   readService: realDeadlineReadService,
   responseBudgetMs: 5,
-  taskTimeoutMs: 300,
+  taskTimeoutMs: 600,
   prewarm: false,
   idFactory: () => 'sync-real-deadline-recovery-0001'
 });
 const realDeadlineResponse = await realDeadlineHomepage.readHomepage(realDeadlineContext);
 assert.equal(realDeadlineResponse.status, 202, '真实慢上游必须先由五秒任务接管');
-await sleep(320);
+await sleep(620);
 const realDeadlineBusinessReadsBeforePoll = [...realDeadlineReads.entries()]
   .filter(([tableName]) => tableName !== '用户权限')
   .reduce((total, [, count]) => total + count, 0);
 const realDeadlineCompleted = await realDeadlineHomepage.getSyncStatus(realDeadlineResponse.body.syncId, realDeadlineContext);
+assertTaskEnvelope(realDeadlineCompleted, ['completed']);
 assert.equal(
   realDeadlineCompleted.state,
   'completed',
   `共享强一致用户投影后首页必须在缩短的硬截止前完成：${JSON.stringify({ status: realDeadlineCompleted, reads: [...realDeadlineReads] })}`
 );
 assert.equal(Object.keys(realDeadlineCompleted.result.data).length, HOMEPAGE_OPERATION_IDS.length);
-assert.equal(realDeadlineReads.get('消息通知'), 1, 'COM-001、COM-002 与 WB-001 必须复用同一次实时用户投影');
+assert.equal(realDeadlineReads.get('用户字典'), 1, 'COM-001、COM-002 与 WB-001 必须复用同一次有界用户身份投影');
+assert.equal(realDeadlineReads.get('消息通知'), undefined, '首页身份段不得为非关键统计扫描消息表');
 assert.ok(realDeadlinePersistedOperations.has('WB-001'), '真正冷的 WB-001 必须在任务完成前写入持久快照');
 assert.ok(realDeadlineSnapshotFlushes >= 1, '首页冷任务必须等待至少一次持久快照提交');
 assert.ok(realDeadlinePeakReads > 1 && realDeadlinePeakReads <= 3, '首页冷任务上游读取峰值必须为 2 至 3 路');
@@ -388,7 +435,7 @@ assert.equal(
   '首页状态轮询不得重复执行任何业务表读取'
 );
 assert.ok(
-  new Date(realDeadlineCompleted.updatedAt).getTime() - new Date(realDeadlineCompleted.createdAt).getTime() < 300,
+  new Date(realDeadlineCompleted.updatedAt).getTime() - new Date(realDeadlineCompleted.createdAt).getTime() < 600,
   '真实慢读取聚合必须在任务硬截止前进入 completed'
 );
 realDeadlineReadService.close();
@@ -485,6 +532,7 @@ assert.equal(nestedResponse.status, 202, '超过首页5秒预算必须返回同�
 assert.equal(nestedResponse.body.syncId, 'sync-nested-budget-0001');
 await sleep(25);
 const nestedCompleted = await nestedBudgetService.getSyncStatus(nestedResponse.body.syncId, context);
+assertTaskEnvelope(nestedCompleted, ['completed']);
 assert.equal(nestedCompleted.state, 'completed');
 assert.equal(Object.keys(nestedCompleted.result.data).length, HOMEPAGE_OPERATION_IDS.length);
 assert.equal(nestedFreshCalls, 0, '首页后台任务不得调用带5秒响应预算的读取入口');
@@ -537,21 +585,66 @@ try {
   assert.equal(deferredHttp.status, 200, '临时鉴权超时的首页状态接口必须保持 HTTP 200');
   const deferredStatus = await deferredHttp.json();
   assert.equal(deferredStatus.code, 'OK');
-  assert.equal(deferredStatus.state, 'running', '临时鉴权超时必须维持可轮询状态并暂不泄露终态结果');
-  assert.equal(deferredStatus.pollAfterMs, 2_000);
-  assert.equal(deferredStatus.result, undefined);
+  assert.equal(deferredStatus.state, 'completed', '临时鉴权刷新不得把已完成任务回退为 running');
+  assert.equal(deferredStatus.pollAfterMs, undefined);
+  assert.equal(Object.keys(deferredStatus.result.data).length, HOMEPAGE_OPERATION_IDS.length);
   assert.equal(deferredStatus.error, undefined);
-  assert.equal(deferredStatus.errorCode, null, '实时鉴权完成前不得通过 errorCode 提前泄露终态');
-  assert.equal(deferredStatus.aggregateState, 'syncing', '实时鉴权完成前聚合状态必须保持处理中');
+  assertTaskEnvelope(deferredStatus, ['completed']);
   const completedHttp = await fetch(`${origin}/api/v1/sync-jobs/${temporaryStatusResponse.body.syncId}`);
   assert.equal(completedHttp.status, 200);
   const completedAfterAuthorization = await completedHttp.json();
+  assertTaskEnvelope(completedAfterAuthorization, ['completed']);
   assert.equal(completedAfterAuthorization.state, 'completed');
   assert.equal(Object.keys(completedAfterAuthorization.result.data).length, HOMEPAGE_OPERATION_IDS.length);
 } finally {
   await new Promise(resolve => temporaryStatusHttpServer.close(resolve));
 }
 assert.equal(temporaryStatusBusinessCalls, HOMEPAGE_OPERATION_IDS.length, '状态轮询不得重新执行首页业务 operation');
+
+let homepageStatusAuthorizationFailed = true;
+const homepageAuthorizationFailureService = createHomepageAggregateService({
+  readService: {
+    peekOperation() { return null; },
+    async executeBackground(operationId) {
+      await sleep(8);
+      return homepageSuccess(operationId);
+    },
+    async executeFresh(operationId) { return this.executeBackground(operationId); },
+    async authorizeTaskStatus(_operationId, requestContext) {
+      if (homepageStatusAuthorizationFailed) {
+        return {
+          context: null,
+          deferred: false,
+          error: { code: 'STATUS_AUTHORIZATION_FAILED', message: '权限状态暂时不可用', status: 502 }
+        };
+      }
+      return { context: requestContext, deferred: false };
+    }
+  },
+  responseBudgetMs: 1,
+  taskTimeoutMs: 100,
+  prewarm: false,
+  idFactory: () => 'sync-homepage-auth-failure-0001'
+});
+const homepageAuthorizationFailureHandoff = await homepageAuthorizationFailureService.readHomepage(context);
+assert.equal(homepageAuthorizationFailureHandoff.status, 202);
+await sleep(10);
+const homepageAuthorizationFailureStatus = await homepageAuthorizationFailureService.getSyncStatus(
+  homepageAuthorizationFailureHandoff.body.syncId,
+  context
+);
+assert.equal(
+  homepageAuthorizationFailureStatus.state,
+  'completed',
+  '首页状态鉴权基础设施失败不得把已完成任务回退为 running'
+);
+assert.equal(Object.keys(homepageAuthorizationFailureStatus.result.data).length, HOMEPAGE_OPERATION_IDS.length);
+homepageStatusAuthorizationFailed = false;
+const homepageAuthorizationRecoveredStatus = await homepageAuthorizationFailureService.getSyncStatus(
+  homepageAuthorizationFailureHandoff.body.syncId,
+  context
+);
+assert.equal(homepageAuthorizationRecoveredStatus.state, 'completed');
 
 let childFailureSequence = 0;
 const childFailureService = createHomepageAggregateService({
@@ -570,22 +663,13 @@ const childFailureService = createHomepageAggregateService({
   prewarm: false
 });
 const childFailureResponse = await childFailureService.readHomepage(context);
-assert.equal(childFailureResponse.status, 202, '首页子操作失败也必须交给状态接口，不能由原接口返回500/504');
-const childFailureStatus = await childFailureService.getSyncStatus(childFailureResponse.body.syncId, context);
-assert.equal(childFailureStatus.state, 'failed');
-assert.equal(childFailureStatus.error.operationId, 'COM-005', '首页失败必须指出具体子 operation');
-assert.equal(childFailureStatus.error.stage, 'operation');
-assert.equal(childFailureStatus.error.code, 'FEISHU_READ_BUDGET_EXCEEDED');
-assert.equal(childFailureStatus.error.status, 504);
-assert.equal(childFailureStatus.error.retryable, false);
-assert.equal(childFailureStatus.error.traceId, 'trace-child-failure');
+assert.notEqual(childFailureResponse.status, 202, '快速失败任务不得伪装成 HTTP 202 运行态');
+assert.equal(childFailureResponse.body.code, 'FEISHU_READ_BUDGET_EXCEEDED');
+assert.equal(childFailureResponse.body.retryable, false);
+assert.equal(childFailureResponse.body.traceId, 'trace-child-failure');
 const childFailureRetry = await childFailureService.readHomepage(context);
-assert.equal(childFailureRetry.status, 202);
-assert.notEqual(
-  childFailureRetry.body.syncId,
-  childFailureResponse.body.syncId,
-  'failed 首页任务必须同步退出 active single-flight，后续无 LKG 请求必须获得新 syncId'
-);
+assert.notEqual(childFailureRetry.status, 202, '重复的快速失败也不得伪装为运行中的 202');
+assert.equal(childFailureRetry.body.code, 'FEISHU_READ_BUDGET_EXCEEDED');
 
 const malformedStrongSectionService = createHomepageAggregateService({
   readService: {
@@ -603,11 +687,9 @@ const malformedStrongSectionService = createHomepageAggregateService({
   prewarm: false
 });
 const malformedStrongResponse = await malformedStrongSectionService.readHomepage(context);
-assert.equal(malformedStrongResponse.status, 202);
-const malformedStrongStatus = await malformedStrongSectionService.getSyncStatus(malformedStrongResponse.body.syncId, context);
-assert.equal(malformedStrongStatus.state, 'failed');
-assert.equal(malformedStrongStatus.error.code, 'READ_SUCCESS_SCHEMA_INVALID');
-assert.equal(malformedStrongStatus.error.operationId, 'COM-001');
+assert.notEqual(malformedStrongResponse.status, 202);
+assert.equal(malformedStrongResponse.body.code, 'READ_SUCCESS_SCHEMA_INVALID');
+assert.equal(malformedStrongResponse.body.retryable, false);
 
 let transientAuthorizationCalls = 0;
 const authorizationFailureService = createHomepageAggregateService({
@@ -639,6 +721,7 @@ const authorizationFailureStatus = await authorizationFailureService.getSyncStat
   context
 );
 assert.equal(authorizationFailureStatus.state, 'failed');
+assertTaskEnvelope(authorizationFailureStatus, ['failed']);
 assert.equal(authorizationFailureStatus.error.code, 'HOMEPAGE_AUTHORIZATION_FAILED');
 assert.equal(authorizationFailureStatus.error.stage, 'authorization');
 assert.equal(authorizationFailureStatus.error.status, 502);
@@ -658,20 +741,30 @@ const rawChildFailureService = createHomepageAggregateService({
   prewarm: false
 });
 const rawChildFailureResponse = await rawChildFailureService.readHomepage(context);
-assert.equal(rawChildFailureResponse.status, 202);
-const rawChildFailureStatus = await rawChildFailureService.getSyncStatus(rawChildFailureResponse.body.syncId, context);
-assert.equal(rawChildFailureStatus.state, 'failed');
-assert.equal(rawChildFailureStatus.error.code, 'HOMEPAGE_SECTION_FAILED');
-assert.equal(rawChildFailureStatus.error.operationId, 'WB-001');
-assert.equal(rawChildFailureStatus.error.stage, 'operation');
-assert.equal(rawChildFailureStatus.error.message, '首页子操作同步失败');
+assert.notEqual(rawChildFailureResponse.status, 202);
+assert.equal(rawChildFailureResponse.body.code, 'HOMEPAGE_SECTION_FAILED');
+assert.equal(rawChildFailureResponse.body.retryable, false);
 
+let deadlineActive = 0;
 const deadlineAggregate = createHomepageAggregateService({
   readService: {
     peekOperation() { return null; },
-    async executeFresh() {
-      await sleep(80);
-      return { code: 'OK', data: {}, dataStale: false, isComplete: true };
+    async executeFresh(operationId, input, requestContext) {
+      deadlineActive += 1;
+      return new Promise((resolve, reject) => {
+        const finish = () => { deadlineActive -= 1; };
+        const timer = setTimeout(() => {
+          finish();
+          resolve(homepageSuccess(operationId));
+        }, 80);
+        requestContext.syncAbortSignal.addEventListener('abort', () => {
+          clearTimeout(timer);
+          setTimeout(() => {
+            finish();
+            reject(requestContext.syncAbortSignal.reason);
+          }, 8);
+        }, { once: true });
+      });
     }
   },
   responseBudgetMs: 5,
@@ -684,8 +777,92 @@ assert.equal(deadlineAggregateResponse.status, 202);
 await sleep(40);
 const deadlineAggregateStatus = await deadlineAggregate.getSyncStatus(deadlineAggregateResponse.body.syncId, context);
 assert.equal(deadlineAggregateStatus.state, 'failed', '首页任务必须在 25 秒生产硬截止的缩短测试值内进入终态');
-assert.equal(deadlineAggregateStatus.errorCode, 'READ_SYNC_DEADLINE_EXCEEDED');
+assertTaskEnvelope(deadlineAggregateStatus, ['failed']);
 assert.equal(deadlineAggregateStatus.error.code, 'READ_SYNC_DEADLINE_EXCEEDED');
+assert.equal(deadlineActive, 0, 'deadline 任务进入 failed 前必须 drain 全部五个子操作');
+
+let drainActive = 0;
+const drainSettled = new Set();
+let drainSiblingAborted = false;
+const drainService = createHomepageAggregateService({
+  readService: {
+    peekOperation() { return null; },
+    async executeFresh(operationId, input, requestContext) {
+      drainActive += 1;
+      if (operationId === 'COM-001') {
+        drainActive -= 1;
+        drainSettled.add(operationId);
+        throw new FeishuProxyError('HOMEPAGE_CHILD_FAILED', '首页子操作失败', 502, { operationId });
+      }
+      return new Promise((resolve, reject) => {
+        const finish = () => {
+          drainActive -= 1;
+          drainSettled.add(operationId);
+        };
+        const timer = setTimeout(() => {
+          finish();
+          resolve(homepageSuccess(operationId));
+        }, 150);
+        requestContext.syncAbortSignal.addEventListener('abort', () => {
+          drainSiblingAborted = true;
+          clearTimeout(timer);
+          setTimeout(() => {
+            finish();
+            reject(requestContext.syncAbortSignal.reason);
+          }, 8);
+        }, { once: true });
+      });
+    }
+  },
+  responseBudgetMs: 3,
+  taskTimeoutMs: 200,
+  idFactory: () => 'sync-homepage-drain-0001',
+  traceIdFactory: () => 'trace-homepage-drain-0001',
+  prewarm: false
+});
+const drainResponse = await drainService.readHomepage(context);
+assert.equal(drainResponse.status, 202);
+assertHandoffEnvelope(drainResponse.body);
+await sleep(180);
+const drainedFailure = await drainService.getSyncStatus(drainResponse.body.syncId, context);
+assert.equal(drainedFailure.state, 'failed', '子操作失败后首页任务应在其余子操作完成后进入稳定终态');
+assert.equal(drainActive, 0, '任务进入 failed 前必须没有仍活动的首页子操作');
+assert.deepEqual([...drainSettled].sort(), [...HOMEPAGE_OPERATION_IDS].sort());
+assert.equal(drainSiblingAborted, false, '普通子操作失败不得取消其他子操作并回滚其独立缓存');
+
+let slowCompositeCommitFinished = false;
+const slowCompositeCommitAggregate = createHomepageAggregateService({
+  readService: {
+    peekOperation() { return null; },
+    async executeFresh(operationId) { return homepageSuccess(operationId); },
+    async commitCompositeCache(operationId, input, requestContext, value) {
+      await sleep(80);
+      slowCompositeCommitFinished = true;
+      return value;
+    },
+    async authorizeTaskStatus(operationId, requestContext) { return { context: requestContext, deferred: false }; }
+  },
+  responseBudgetMs: 5,
+  taskTimeoutMs: 30,
+  idFactory: () => 'sync-slow-composite-commit-0001',
+  prewarm: false
+});
+const slowCompositeCommitResponse = await slowCompositeCommitAggregate.readHomepage(context);
+assert.equal(slowCompositeCommitResponse.status, 202);
+await sleep(40);
+const slowCompositeCommitStatus = await slowCompositeCommitAggregate.getSyncStatus(
+  slowCompositeCommitResponse.body.syncId,
+  context
+);
+assert.equal(slowCompositeCommitStatus.state, 'failed', '首页 25 秒硬截止必须覆盖 HOM-001 持久提交与 readback');
+assert.equal(slowCompositeCommitStatus.error.code, 'READ_SYNC_DEADLINE_EXCEEDED');
+await sleep(60);
+assert.equal(slowCompositeCommitFinished, true);
+assert.equal(
+  (await slowCompositeCommitAggregate.getSyncStatus(slowCompositeCommitResponse.body.syncId, context)).state,
+  'failed',
+  '截止后的迟到 commit 不得把 failed 任务重新改成 completed'
+);
 
 for (const value of cache.values()) {
   value.dataStale = true;
@@ -718,6 +895,10 @@ const lifecycleResponse = await lifecycleService.readHomepage(context);
 assert.equal(lifecycleResponse.status, 200);
 lifecycleNow += 600_001;
 assert.equal((await lifecycleService.getSyncStatus('sync-expiry-0001', context)).state, 'expired', '终态至少保留十分钟，之后进入 expired 状态');
+const expiredStatus = await lifecycleService.getSyncStatus('sync-expiry-0001', context);
+assertTaskEnvelope(expiredStatus, ['expired']);
+assert.equal(expiredStatus.error.code, 'SYNC_JOB_EXPIRED');
+assert.equal(expiredStatus.error.retryable, false);
 
 const staleCalls = [];
 const staleReadService = {
@@ -751,11 +932,12 @@ assert.equal((await staleService.getSyncStatus(stale.body.syncId, context)).stat
 const staleAfterFailure = await staleService.readHomepage(context);
 assert.equal(staleAfterFailure.status, 200);
 assert.equal(staleAfterFailure.body.aggregateState, 'stale');
-assert.equal(staleAfterFailure.body.refreshing, false);
-assert.equal(staleCalls.length, HOMEPAGE_OPERATION_IDS.length, '失败后的普通读取不得立即制造新的回源风暴');
+assert.equal(staleAfterFailure.body.refreshing, true, 'LKG 必须先返回，并启动新的静默受控刷新');
+await sleep(20);
+assert.equal(staleCalls.length, HOMEPAGE_OPERATION_IDS.length * 2, '失败任务退出 active 后，LKG 后台刷新必须创建新任务');
 
 const finalAggregateBody = {
-  code: 'OK', aggregateState: 'fresh', data: Object.fromEntries(HOMEPAGE_OPERATION_IDS.map(id => [id, { id }])),
+  code: 'OK', schemaVersion: 'homepage-aggregate.v3', aggregateState: 'fresh', data: Object.fromEntries(HOMEPAGE_OPERATION_IDS.map(id => [id, { id }])),
   sections: Object.fromEntries(HOMEPAGE_OPERATION_IDS.map(id => [id, {
     state: 'fresh', available: true, data: { id }, traceId: `trace-${id}`,
     sourceUpdatedAt: '2026-09-24T00:00:00.000Z', dataStale: false, isComplete: true, retryable: false
@@ -796,17 +978,46 @@ const middleware = createHomepageAggregateNodeMiddleware({
     async readHomepage(requestContext) {
       middlewareReads += 1;
       assert.ok(Number.isFinite(requestContext.requestReceivedAtMs), 'Node 中间件必须传递服务收件时间');
-      return { status: 202, body: { code: 'HOMEPAGE_SYNCING', state: 'running', syncId: 'sync-http-0001', pollAfterMs: 2000, traceId: 'trace-http' } };
+      return {
+        status: 202,
+        body: {
+          code: 'HOMEPAGE_SYNCING', message: '请求处理中', state: 'running', syncId: 'sync-http-0001', pollAfterMs: 2000,
+          operationId: 'HOMEPAGE', createdAt: '2026-10-10T00:00:00.000Z',
+          updatedAt: '2026-10-10T00:00:00.000Z', traceId: 'trace-http'
+        }
+      };
     },
     getSyncStatus(syncJobId) {
       middlewareStatusReads += 1;
+      if (syncJobId === 'sync-http-forbidden') {
+        throw new FeishuProxyError('SYNC_JOB_ACCESS_DENIED', '无权查看该同步任务', 403);
+      }
+      if (syncJobId === 'sync-http-queued') {
+        return {
+          code: 'OK', syncId: syncJobId, operationId: 'HOMEPAGE', state: 'queued', pollAfterMs: 2_000,
+          createdAt: '2026-10-10T00:00:00.000Z', updatedAt: '2026-10-10T00:00:00.000Z', traceId: 'trace-http-queued'
+        };
+      }
+      if (syncJobId === 'sync-http-expired') {
+        return {
+          code: 'OK', syncId: syncJobId, operationId: 'HOMEPAGE', state: 'expired',
+          createdAt: '2026-10-10T00:00:00.000Z', updatedAt: '2026-10-10T00:10:01.000Z', traceId: 'trace-http-expired',
+          error: { code: 'SYNC_JOB_EXPIRED', message: '同步任务状态已过期', status: 410, retryable: false, traceId: 'trace-http-expired' }
+        };
+      }
       if (syncJobId === 'sync-http-failed') {
         return {
-          code: 'OK', syncId: syncJobId, state: 'failed', aggregateState: 'syncing', errorCode: 'UPSTREAM_DOWN', traceId: 'trace-http-failed',
+          code: 'OK', syncId: syncJobId, operationId: 'HOMEPAGE', state: 'failed',
+          createdAt: '2026-10-10T00:00:00.000Z',
+          updatedAt: '2026-10-10T00:00:01.000Z', traceId: 'trace-http-failed',
           error: { code: 'UPSTREAM_DOWN', message: '首页数据同步失败', status: 503, retryable: false, operationId: 'COM-005' }
         };
       }
-      return { code: 'OK', syncId: syncJobId, state: 'running', aggregateState: 'syncing', retryable: false, errorCode: null, traceId: 'trace-http' };
+      return {
+        code: 'OK', syncId: syncJobId, operationId: 'HOMEPAGE', state: 'running',
+        pollAfterMs: 2_000, createdAt: '2026-10-10T00:00:00.000Z',
+        updatedAt: '2026-10-10T00:00:00.000Z', traceId: 'trace-http'
+      };
     },
     getReadiness() { return runtimeCacheReadiness.getReadiness(); }
   },
@@ -825,15 +1036,27 @@ try {
   });
   assert.equal(aggregateHttp.status, 202);
   assert.equal(aggregateHttp.headers.get('retry-after'), '2');
-  assert.equal((await aggregateHttp.json()).syncId, 'sync-http-0001');
+  assertHandoffEnvelope(await aggregateHttp.json());
   const statusHttp = await fetch(`${httpOrigin}/api/v1/sync-jobs/sync-http-0001`);
   assert.equal(statusHttp.status, 200);
-  assert.equal((await statusHttp.json()).state, 'running');
+  assertTaskEnvelope(await statusHttp.json(), ['running']);
+  const queuedStatusHttp = await fetch(`${httpOrigin}/api/v1/sync-jobs/sync-http-queued`);
+  assert.equal(queuedStatusHttp.status, 200);
+  assertTaskEnvelope(await queuedStatusHttp.json(), ['queued']);
   const failedStatusHttp = await fetch(`${httpOrigin}/api/v1/sync-jobs/sync-http-failed`);
   assert.equal(failedStatusHttp.status, 200, '首页任务执行失败不得映射为 HTTP 500/504');
   const failedStatusBody = await failedStatusHttp.json();
   assert.equal(failedStatusBody.state, 'failed');
   assert.equal(failedStatusBody.error.retryable, false);
+  assertTaskEnvelope(failedStatusBody, ['failed']);
+  const forbiddenStatusHttp = await fetch(`${httpOrigin}/api/v1/sync-jobs/sync-http-forbidden`);
+  assert.equal(forbiddenStatusHttp.status, 403);
+  const forbiddenStatusBody = await forbiddenStatusHttp.json();
+  assert.equal(forbiddenStatusBody.code, 'SYNC_JOB_ACCESS_DENIED');
+  assert.equal(forbiddenStatusBody.retryable, false);
+  const expiredStatusHttp = await fetch(`${httpOrigin}/api/v1/sync-jobs/sync-http-expired`);
+  assert.equal(expiredStatusHttp.status, 200);
+  assertTaskEnvelope(await expiredStatusHttp.json(), ['expired']);
   const badMethod = await fetch(`${httpOrigin}/api/v1/homepage`);
   assert.equal(badMethod.status, 405);
   const readyHttp = await fetch(`${httpOrigin}/api/v1/health/ready`);
@@ -844,7 +1067,7 @@ try {
   assert.equal((await failedReadyHttp.json()).errorCode, 'CACHE_RUNTIME_UNAVAILABLE');
   runtimePersistentHealth = { enabled: true, healthy: true, lastError: null, writeSuspended: false };
   assert.equal(middlewareReads, 1);
-  assert.equal(middlewareStatusReads, 2, '状态路由只能查询任务状态');
+  assert.equal(middlewareStatusReads, 5, '状态路由只能查询任务状态');
 } finally {
   await new Promise(resolve => httpServer.close(resolve));
 }

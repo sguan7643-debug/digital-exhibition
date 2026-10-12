@@ -31,8 +31,10 @@ assert.doesNotMatch(app, /data-update-time|数据更新时间/,
   '全站必须删除可见的数据更新时间节点，不能保留隐藏节点或占位');
 assert.doesNotMatch(styles, /\.data-update-time\b/,
   '全站必须删除数据更新时间的布局样式');
-assert.match(app, /request-loading-toast/,
-  '前台请求处理中的 loading 气泡必须继续保留');
+assert.match(app, /request-loading-overlay/,
+  '后继任务批准的前台请求全页面 loading 必须保留');
+assert.doesNotMatch(app, /request-loading-toast/,
+  '旧右上角 loading 气泡不得回归');
 
 const routeContracts = new Map([
   ['WorkbenchPage.vue', ['workbench-page', 'hero-panel', 'dashboard-grid']],

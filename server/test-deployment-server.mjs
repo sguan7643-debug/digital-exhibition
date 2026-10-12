@@ -3,6 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createFeishuMiddlewareStack } from './feishu-vite-plugin.mjs';
+import { getRuntimeMetadata } from './runtime-metadata.mjs';
 
 const CONTENT_TYPES = Object.freeze({
   '.css': 'text/css; charset=utf-8',
@@ -129,6 +130,7 @@ function runMiddlewareChain(middlewares, request, response, fallback) {
 
 export function createTestDeploymentServer({ config, prewarm = true, feishuOptions = {} } = {}) {
   const normalized = normalizeServerConfig(config || {});
+  const runtime = getRuntimeMetadata();
   const stack = createFeishuMiddlewareStack({
     ...feishuOptions,
     prewarm,
@@ -137,22 +139,42 @@ export function createTestDeploymentServer({ config, prewarm = true, feishuOptio
   });
   const staticHandler = createStaticHandler(normalized);
   const server = createServer((request, response) => {
+    response.setHeader('X-DEH-Release', runtime.release);
+    response.setHeader('X-DEH-Process-Pid', String(runtime.pid));
+    response.setHeader('X-DEH-Cache-Schema', runtime.cacheSchemaVersion);
     runMiddlewareChain(stack.middlewares, request, response, staticHandler).catch(() => {
       if (!response.headersSent) sendJson(response, 500, { code: 'TEST_SERVER_ERROR', message: '测试服务暂不可用' });
       else response.destroy();
     });
   });
   server.flushRuntimeCache = () => stack.readService.flushPersistentCache?.();
-  server.on('close', () => stack.readService.close?.());
+  let closed = false;
+  server.startPrewarm = () => {
+    if (closed) return Promise.reject(Object.assign(new Error('服务已关闭，不能启动预热'), { code: 'SERVER_CLOSED' }));
+    if (!server.listening) return Promise.reject(Object.assign(new Error('HTTP 服务尚未监听，不能启动预热'), { code: 'SERVER_NOT_LISTENING' }));
+    return stack.startPrewarm();
+  };
+  server.on('close', () => {
+    closed = true;
+    void stack.close().catch(() => null);
+  });
   return server;
 }
 
-export async function startTestDeploymentServer() {
-  const config = await loadServerConfig();
-  const server = createTestDeploymentServer({ config });
+export async function startTestDeploymentServer(options = {}) {
+  const config = options.config
+    ? normalizeServerConfig(options.config)
+    : await loadServerConfig(options.configPath);
+  const server = createTestDeploymentServer({
+    config,
+    prewarm: options.prewarm ?? true,
+    feishuOptions: options.feishuOptions || {}
+  });
   await new Promise((resolveListen, reject) => server.listen(config.port, config.host, error => error ? reject(error) : resolveListen()));
+  void server.startPrewarm().catch(() => null);
   const address = server.address();
   const actualPort = typeof address === 'object' && address ? address.port : config.port;
+  process.stdout.write(`[deh-runtime] ${JSON.stringify({ event: 'runtime-started', ...getRuntimeMetadata() })}\n`);
   process.stdout.write(`Digital Exhibition test server ready: http://${config.host}:${actualPort}${config.appBase}/\n`);
   return server;
 }

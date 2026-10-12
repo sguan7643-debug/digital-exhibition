@@ -201,4 +201,25 @@ assert.deepEqual(JSON.parse(messageRequests[1].options.body), {
   receive_id: 'user-001', msg_type: 'text', content: JSON.stringify({ text: '海能Work应用“测试”已上架。' })
 });
 
+const departmentRequests = [];
+const departmentClient = createFeishuOpenApiClient({
+  appId: 'id', appSecret: 'secret', baseToken: 'base',
+  fetchImpl: async url => {
+    departmentRequests.push(String(url));
+    if (String(url).endsWith('/auth/v3/tenant_access_token/internal')) {
+      return Response.json({ code: 0, tenant_access_token: 'tenant-token', expire: 7200 });
+    }
+    return Response.json({
+      code: 0,
+      data: { department: { open_department_id: 'od-real', department_id: '42', name: '真实部门', parent_department_id: '0' } }
+    });
+  }
+});
+const department = await departmentClient.getContactDepartment('od-real');
+assert.deepEqual(department, {
+  id: 'od-real', code: '42', name: '真实部门', parentId: '0', memberCount: 0, enabled: true
+});
+assert.match(departmentRequests[1], /\/contact\/v3\/departments\/od-real\?/);
+assert.match(departmentRequests[1], /department_id_type=open_department_id/);
+
 console.log('Feishu upstream deadline and tenant-token single-flight passed');

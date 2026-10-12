@@ -47,11 +47,23 @@ try {
 
   const liveResponse = await fetch(`${origin}/api/v1/health/live`);
   assert.equal(liveResponse.status, 200);
-  assert.equal((await liveResponse.json()).state, 'live');
+  const liveBody = await liveResponse.json();
+  assert.equal(liveBody.state, 'live');
+  assert.equal(liveBody.runtime.pid, process.pid);
+  assert.equal(liveBody.runtime.cacheSchemaVersion, 'feishu-read-cache.v1');
+  assert.equal(liveBody.runtime.taskStore, 'process-memory');
+  assert.ok(liveBody.runtime.release);
+  assert.ok(liveBody.runtime.gitCommit);
+  assert.equal(typeof liveBody.runtime.gitDirty, 'boolean');
+  assert.ok(liveBody.runtime.cacheDirectory);
+  assert.equal(liveResponse.headers.get('x-deh-process-pid'), String(process.pid));
+  assert.equal(liveResponse.headers.get('x-deh-release'), liveBody.runtime.release);
 
   const readyResponse = await fetch(`${origin}/api/v1/health/ready`);
   assert.equal(readyResponse.status, 200, 'prewarm-disabled test service must be ready immediately');
-  assert.equal((await readyResponse.json()).ready, true);
+  const readyBody = await readyResponse.json();
+  assert.equal(readyBody.ready, true);
+  assert.equal(readyBody.runtime.pid, process.pid);
 
   const traversalResponse = await fetch(`${origin}/test2/%2e%2e/server/test-deployment-server.mjs`);
   assert.equal(traversalResponse.status, 404);

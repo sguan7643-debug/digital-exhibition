@@ -94,16 +94,41 @@ const integrationClient = createPersistentReadClient({ client: rawIntegrationCli
 const homepageClient = createPersistentHomepageClient({ client: rawHomepageClient, cache: browserCache });
 const requestActivity = ref(getRequestActivity());
 const stopRequestActivity = subscribeRequestActivity(value => { requestActivity.value = value; });
+let activeIntegrationLoads = 0;
+let cachedViewRefreshTimer = null;
+watch(
+  () => requestActivity.value.isLoading,
+  isLoading => document.body.classList.toggle('request-loading-active', isLoading),
+  { immediate: true }
+);
 const refreshCachedView = () => {
-  if (!integrationDataSource || integrationRetrying.value || integrationPolling.value) return;
-  const source = integrationDataSource;
-  source.load({}, integrationLoadOptions).then(result => {
-    if (source === integrationDataSource) integrationEnvelope.value = result;
-  }).catch(() => {});
+  if (!integrationDataSource || activeIntegrationLoads > 0 || integrationRetrying.value || integrationPolling.value) return;
+  if (cachedViewRefreshTimer !== null) return;
+  cachedViewRefreshTimer = window.setTimeout(async () => {
+    cachedViewRefreshTimer = null;
+    if (!integrationDataSource || activeIntegrationLoads > 0 || integrationRetrying.value || integrationPolling.value) return;
+    const source = integrationDataSource;
+    activeIntegrationLoads += 1;
+    try {
+      const result = await source.load({}, integrationLoadOptions);
+      if (source === integrationDataSource) integrationEnvelope.value = result;
+    } catch {
+      // A cache notification is advisory; the page's normal retry path owns visible errors.
+    } finally {
+      activeIntegrationLoads = Math.max(0, activeIntegrationLoads - 1);
+    }
+  }, 50);
 };
 const stopReadCache = integrationClient.subscribe(refreshCachedView);
 const stopHomepageCache = homepageClient.subscribe(refreshCachedView);
-onBeforeUnmount(() => { stopRequestActivity(); stopReadCache(); stopHomepageCache(); browserCache.close(); });
+onBeforeUnmount(() => {
+  if (cachedViewRefreshTimer !== null) window.clearTimeout(cachedViewRefreshTimer);
+  document.body.classList.remove('request-loading-active');
+  stopRequestActivity();
+  stopReadCache();
+  stopHomepageCache();
+  browserCache.close();
+});
 const showControlledWritePanel = computed(() => import.meta.env.DEV && new URLSearchParams(window.location.search).get('test-write-panel') === '1');
 let appBaseLinkObserver;
 
@@ -394,12 +419,17 @@ async function syncIntegrationEnvelope() {
     };
   }
   integrationLoadOptions = loadOptions;
-  const pending = integrationDataSource.load({}, loadOptions);
-  integrationEnvelope.value = integrationDataSource.snapshot();
-  const result = await pending;
-  if (page.value.route === route) {
-    integrationEnvelope.value = result;
-    scheduleInitialSyncRetry();
+  activeIntegrationLoads += 1;
+  try {
+    const pending = integrationDataSource.load({}, loadOptions);
+    integrationEnvelope.value = integrationDataSource.snapshot();
+    const result = await pending;
+    if (page.value.route === route) {
+      integrationEnvelope.value = result;
+      scheduleInitialSyncRetry();
+    }
+  } finally {
+    activeIntegrationLoads = Math.max(0, activeIntegrationLoads - 1);
   }
 }
 
@@ -510,8 +540,19 @@ async function retryEntryAuthorization() {
       <button type="button" :disabled="entryRetrying" @click="retryEntryAuthorization">{{ entryRetrying ? '正在重试…' : '重试登录检查' }}</button>
     </section>
   </main>
+  <template v-else>
+  <teleport v-if="requestActivity.isLoading" to="body">
+    <aside class="request-loading-overlay" role="status" aria-live="polite" aria-atomic="true" aria-busy="true">
+      <div class="request-loading-content">
+        <span class="request-loading-spinner" aria-hidden="true"></span>
+        <strong>正在处理 {{ requestActivity.activeCount }} 项请求</strong>
+        <p>请稍候，完成后将自动恢复页面</p>
+      </div>
+    </aside>
+  </teleport>
   <exhibition-shell
-    v-else
+    :inert="requestActivity.isLoading"
+    :aria-busy="requestActivity.isLoading ? 'true' : 'false'"
     :page="page"
     :app-base-path="appBasePath"
     :account-identity="entryAuth.identity"
@@ -519,10 +560,6 @@ async function retryEntryAuthorization() {
     :data-integration-mode="integrationEnvelope.mode"
     :data-integration-operations="integrationContract?.readOperationIds.join(',')"
   >
-    <aside v-if="requestActivity.isLoading" class="request-loading-toast" role="status" aria-live="polite">
-      <span class="request-loading-spinner" aria-hidden="true"></span>
-      <div><strong>正在处理 {{ requestActivity.activeCount }} 项请求</strong><p>页面其他区域仍可继续使用</p></div>
-    </aside>
     <integration-auth-banner v-if="integrationAuthRequired" :href="feishuAuthUrl" />
     <p class="sr-only integration-source-status" data-integration-status aria-live="polite">{{ integrationLiveAnnouncement }}</p>
     <page-state-boundary :page="page" :state="page.state" @restore="restoreNormal">
@@ -613,4 +650,5 @@ async function retryEntryAuthorization() {
       />
     </page-state-boundary>
   </exhibition-shell>
+  </template>
 </template>

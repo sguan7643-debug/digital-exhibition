@@ -42,9 +42,14 @@ const writeService = createFeishuWriteOperationService({
 
 for (const plan of FEISHU_WRITE_OPERATION_MANIFEST) {
   assert.equal(plan.requiresTestPrefix, false, `${plan.operationId} 不应再限制 TEST_ 前缀`);
-  const input = { businessKey: `BUSINESS_${plan.operationId}`, idempotencyKey: `IDEM_${plan.operationId}`, fields: {} };
+  const fields = plan.operationId === 'FAV-003'
+    ? { 应用ID: 'APP-001', 收藏时间: '2026-10-10T10:00:00.000Z', 用户ID: 'USER001' }
+    : plan.operationId === 'APP-005'
+      ? { 应用ID: 'APP-001', 申请人ID: 'USER001', 状态: 'PENDING' }
+      : {};
+  const input = { businessKey: `BUSINESS_${plan.operationId}`, idempotencyKey: `IDEM_${plan.operationId}`, fields };
   if (plan.requiresVersion) input.ifMatch = 1;
-  assert.doesNotThrow(() => writeService.validate(plan.operationId, input), `${plan.operationId} 正式合同应完成受控映射`);
+  assert.doesNotThrow(() => writeService.validate(plan.operationId, input, { governed: plan.requiresRequestGovernance }), `${plan.operationId} 正式合同应完成受控映射`);
 }
 
 const commandFields = {
@@ -57,10 +62,14 @@ const commandFields = {
 for (const plan of FEISHU_WRITE_OPERATION_MANIFEST) {
   const fields = plan.operationId === 'MSG-005'
     ? { 接收人ID: 'USER001', 已读状态: true }
+    : plan.operationId === 'FAV-003'
+      ? { 应用ID: 'APP-001', 收藏时间: '2026-10-10T10:00:00.000Z', 用户ID: 'USER001' }
+      : plan.operationId === 'APP-005'
+        ? { 应用ID: 'APP-001', 申请人ID: 'USER001', 状态: 'PENDING' }
     : commandFields[plan.operationId] || {};
   const input = { businessKey: `BUSINESS_EXEC_${plan.operationId}`, idempotencyKey: `IDEM_EXEC_${plan.operationId}`, fields };
   if (plan.requiresVersion) input.ifMatch = 1;
-  const result = await writeService.execute(plan.operationId, input);
+  const result = await writeService.execute(plan.operationId, input, { governed: plan.requiresRequestGovernance });
   assert.equal(result.code, 'OK', `${plan.operationId} 应具有正式执行映射`);
 }
 
@@ -96,7 +105,13 @@ const conflict = { ...applicationInput, fields: { ...applicationInput.fields, �
 await assert.rejects(() => businessService.execute('APP-005', governed('APP-005', conflict), { identity }), error => error.code === 'IDEMPOTENCY_CONFLICT');
 
 const spoof = { businessKey: 'FAVORITE-001', idempotencyKey: 'IDEM-FAVORITE-001', fields: { 应用ID: 'APP-001', 用户ID: 'OTHER' } };
-await assert.rejects(() => businessService.execute('FAV-003', governed('FAV-003', spoof), { identity }), error => error.code === 'ACTOR_MISMATCH');
+await assert.rejects(() => businessService.execute('FAV-003', governed('FAV-003', spoof), { identity }), error => error.code === 'SERVER_CONTROLLED_FIELD_FORBIDDEN' && error.status === 400);
+const sameActorSpoof = { businessKey: 'FAVORITE-002', idempotencyKey: 'IDEM-FAVORITE-002', fields: { 应用ID: 'APP-001', 用户ID: 'USER001' } };
+await assert.rejects(() => businessService.execute('FAV-003', governed('FAV-003', sameActorSpoof), { identity }), error => error.code === 'SERVER_CONTROLLED_FIELD_FORBIDDEN' && error.status === 400);
+const missingFavoriteApp = { businessKey: 'FAVORITE-003', idempotencyKey: 'IDEM-FAVORITE-003', fields: { 收藏时间: '2026-10-10T10:00:00.000Z' } };
+await assert.rejects(() => businessService.execute('FAV-003', governed('FAV-003', missingFavoriteApp), { identity }), error => error.code === 'REQUIRED_FIELD_MISSING' && error.status === 400);
+const missingApplicationApp = { businessKey: 'APPLICATION-2026-MISSING', idempotencyKey: 'IDEM-APPLICATION-MISSING', fields: { 申请理由: '缺少应用' } };
+await assert.rejects(() => businessService.execute('APP-005', governed('APP-005', missingApplicationApp), { identity }), error => error.code === 'REQUIRED_FIELD_MISSING' && error.status === 400);
 
 const bypass = { businessKey: 'APP-001', idempotencyKey: 'IDEM-BYPASS-001', ifMatch: 1, fields: { 状态: 'PUBLISHED' } };
 await assert.rejects(() => businessService.execute('OAP-005', governed('OAP-005', bypass), { identity }), error => error.code === 'DIRECT_PUBLISH_FORBIDDEN');
@@ -106,7 +121,7 @@ await businessService.execute('OAP-009', governed('OAP-009', publish, { approval
 assert.deepEqual(approvals.at(-1).expectation, { operationId: 'OAP-009', resourceId: 'APP-001' });
 assert.equal(calls.at(-1)[0], 'update');
 
-const markAll = { businessKey: 'READ-ALL-USER001', idempotencyKey: 'IDEM-READ-ALL-001', fields: { 接收人ID: 'USER001', 已读状态: true } };
+const markAll = { businessKey: 'READ-ALL-USER001', idempotencyKey: 'IDEM-READ-ALL-001', fields: { 已读状态: true } };
 const markAllResult = await businessService.execute('MSG-005', governed('MSG-005', markAll), { identity });
 assert.equal(markAllResult.data.updatedCount, 3);
 assert.equal(calls.at(-1)[0], 'updateMany');

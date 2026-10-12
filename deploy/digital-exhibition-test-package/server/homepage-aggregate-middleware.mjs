@@ -1,4 +1,5 @@
 import { FeishuProxyError } from './feishu-open-api-client.mjs';
+import { getRuntimeMetadata } from './runtime-metadata.mjs';
 
 const AGGREGATE_PATH = '/api/v1/homepage';
 const SYNC_PATH = /^\/api\/v1\/sync-jobs\/([A-Za-z0-9-]{8,160})$/;
@@ -41,12 +42,16 @@ function sendJson(response, status, body) {
 
 function errorBody(error, traceId) {
   const controlled = error instanceof FeishuProxyError;
+  const status = controlled ? error.status : 500;
   return {
-    status: controlled ? error.status : 500,
+    status,
     body: {
       code: controlled ? error.code : 'HOMEPAGE_AGGREGATE_ERROR',
       message: controlled ? error.message : '首页数据服务暂不可用',
-      traceId: error?.traceId || traceId
+      traceId: error?.traceId || traceId,
+      retryable: typeof error?.retryable === 'boolean'
+        ? error.retryable
+        : [429, 502, 503, 504].includes(status)
     }
   };
 }
@@ -56,6 +61,7 @@ export function createHomepageAggregateNodeMiddleware(options = {}) {
   if (!service?.readHomepage || !service?.getSyncStatus) throw new Error('缺少首页聚合服务');
   const resolveRequestContext = options.resolveRequestContext || (() => ({}));
   const traceIdFactory = options.traceIdFactory || (() => `trace-${globalThis.crypto?.randomUUID?.() || Date.now()}`);
+  const runtimeInfoProvider = options.runtimeInfoProvider || getRuntimeMetadata;
 
   return async function homepageAggregateMiddleware(request, response, next) {
     const requestReceivedAtMs = Date.now();
@@ -67,12 +73,17 @@ export function createHomepageAggregateNodeMiddleware(options = {}) {
     try {
       if (pathname === LIVE_PATH) {
         if (request.method !== 'GET') return sendJson(response, 405, { code: 'METHOD_NOT_ALLOWED', message: '该接口仅接受 GET', traceId });
-        return sendJson(response, 200, { code: 'OK', state: 'live', traceId });
+        return sendJson(response, 200, { code: 'OK', state: 'live', runtime: runtimeInfoProvider(), traceId });
       }
       if (pathname === READY_PATH) {
         if (request.method !== 'GET') return sendJson(response, 405, { code: 'METHOD_NOT_ALLOWED', message: '该接口仅接受 GET', traceId });
         const readiness = await service.getReadiness();
-        return sendJson(response, readiness.ready ? 200 : 503, { code: readiness.ready ? 'OK' : 'NOT_READY', ...readiness, traceId });
+        return sendJson(response, readiness.ready ? 200 : 503, {
+          code: readiness.ready ? 'OK' : 'NOT_READY',
+          ...readiness,
+          runtime: runtimeInfoProvider(),
+          traceId
+        });
       }
       const requestContext = { ...(await resolveRequestContext(request)), requestReceivedAtMs };
       if (syncMatch) {

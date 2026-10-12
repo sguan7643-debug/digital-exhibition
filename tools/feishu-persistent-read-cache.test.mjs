@@ -89,6 +89,32 @@ try {
   assert.ok(capacityDocument.entries.length < 3, '达到 2.4GB 等比例阈值时应先淘汰非代表性 LRU 项');
   assert.ok(capacityStore.metrics().prunedEntries > 0);
 
+  const generationCapacityDirectory = join(temporaryRoot, 'generation-capacity');
+  const generationCapacityStore = createPersistentReadCache({
+    enabled: true,
+    directory: generationCapacityDirectory,
+    namespace: 'generation-capacity-test',
+    now: () => clock,
+    maxDiskBytes: 4_096,
+    pruneAtBytes: 2_000,
+    stopAtBytes: 3_800,
+    debounceMs: 0
+  });
+  const committedGeneration = { ...capacityEntry('ANN-002', 'old', 300), key: 'ANN-002\u0000same-key', committed: true };
+  const candidateGeneration = { ...capacityEntry('ANN-002', 'new', 300), key: 'ANN-002\u0000same-key', committed: false };
+  const generationWrite = await generationCapacityStore.flush(() => [committedGeneration, candidateGeneration]);
+  assert.ok(generationWrite.committedKeys.includes(committedGeneration.key), '容量压力下必须保留旧 committed generation');
+  assert.ok(!generationWrite.candidateKeys.includes(candidateGeneration.key), '容量压力下必须先裁剪未提交 candidate');
+  const generationRestore = await createPersistentReadCache({
+    enabled: true,
+    directory: generationCapacityDirectory,
+    namespace: 'generation-capacity-test',
+    now: () => clock,
+    debounceMs: 0
+  }).restore();
+  assert.equal(generationRestore.length, 1);
+  assert.equal(generationRestore[0].value.data.payload.startsWith('old'), true, '重启只能恢复旧 committed generation');
+
   const homepageCapacityDirectory = join(temporaryRoot, 'homepage-capacity');
   const homepageCapacityStore = createPersistentReadCache({
     enabled: true,

@@ -1158,9 +1158,14 @@ body { color: var(--xlt-text); background: var(--xlt-canvas); }
     grid-template-columns: 1fr;
   }
 }
-/* Foreground requests remain visible; background cache refreshes stay silent. */
-.request-loading-toast{position:fixed;right:24px;top:84px;z-index:2000;display:flex;align-items:center;gap:14px;max-width:calc(100vw - 32px);padding:18px 22px;border:1px solid #bed6f2;border-radius:14px;background:#eff6ff;color:#153d65;box-shadow:0 8px 24px #18365518;pointer-events:none}
-.request-loading-toast p{margin:6px 0 0;font-size:14px;color:#466685}
-.request-loading-spinner{width:26px;height:26px;flex:none;border:3px solid #bad3ed;border-top-color:#0060a6;border-radius:50%;animation:request-spin .8s linear infinite}
+/* Foreground requests block the whole application; background cache refreshes stay silent. */
+body.request-loading-active{overflow:hidden}
+.request-loading-overlay{position:fixed;inset:0;z-index:3000;min-width:320px;min-height:100vh;min-height:100dvh;display:grid;place-items:center;overflow:hidden;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));background:rgba(245,247,250,.96);color:var(--xlt-ink,#102a4c);pointer-events:all;overscroll-behavior:none;touch-action:none}
+.request-loading-content{display:grid;justify-items:center;max-width:360px;text-align:center}
+.request-loading-content strong{margin-top:16px;color:var(--xlt-ink,#102a4c);font-size:20px;font-weight:700;line-height:1.45;overflow-wrap:anywhere}
+.request-loading-content p{margin-top:8px;color:var(--xlt-muted,#6b7d91);font-size:14px;line-height:1.65;overflow-wrap:anywhere}
+.request-loading-spinner{width:40px;height:40px;flex:none;border:4px solid var(--xlt-line,#d9e2ec);border-top-color:var(--xlt-navy-900,#0060a6);border-radius:50%;animation:request-spin .8s linear infinite}
 @keyframes request-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.request-loading-spinner{animation:none}}
+@media(max-width:760px){.request-loading-overlay{padding-inline:max(20px,env(safe-area-inset-left)) max(20px,env(safe-area-inset-right))}.request-loading-content strong{font-size:18px}}
+@media(forced-colors:active){.request-loading-overlay{background:Canvas;color:CanvasText}.request-loading-content strong,.request-loading-content p{color:CanvasText}.request-loading-spinner{border-color:GrayText;border-top-color:CanvasText}}

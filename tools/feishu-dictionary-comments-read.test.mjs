@@ -4,7 +4,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadFeishuIdentifierContract } from '../server/feishu-identifier-contract.mjs';
 import { createFeishuReadOnlyService } from '../server/feishu-read-only-service.mjs';
-import { createVerifiedReadOperationContracts, validateContractSchema } from '../src/integration/operation-contract-schemas.js';
+import { validateContractSchema } from '../src/integration/operation-contract-schemas.js';
+import { createVerifiedReadOperationContracts } from '../server/feishu-read-operation-contracts.mjs';
 import { resolveRemoteReadOperation } from '../src/integration/remote-operation-capabilities.js';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));

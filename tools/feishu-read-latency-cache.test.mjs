@@ -54,7 +54,7 @@ assert.ok(callsAfterWarmup > 0, '预热必须真实建立飞书表快照');
 const inputs = [
   ['COM-001', {}, userA],
   ['COM-002', { platform: 'WEB' }, userA],
-  ['COM-005', { dictTypes: ['APPLICATION_TYPE', 'BUSINESS_DOMAIN', 'SCENE', 'MATERIAL_CATEGORY'], includeDisabled: false }, userA],
+  ['COM-005', { dictTypes: ['APPLICATION_TYPE', 'BUSINESS_DOMAIN', 'SCENE'], includeDisabled: false }, userA],
   ['WB-001', { hotLimit: 4, courseLimit: 3, noticeLimit: 4 }, userA],
   ['WB-002', { page: 1, pageSize: 20 }, userA]
 ];
@@ -64,11 +64,11 @@ assert.ok(warmed.every(result => result.cacheStatus === 'fresh' && result.dataSt
 
 const userBResult = await service.execute('COM-001', {}, userB);
 assert.equal(userBResult.data.displayName, '用户乙', '用户缓存必须按身份隔离');
-assert.equal(calls.length, callsAfterWarmup + 4, '新用户只应读取四张按身份过滤的用户表');
-assert.ok(calls.filter(call => call.tableName === '应用收藏').every(call => call.filter.includes('CurrentValue.[用户ID]')), '大用户表必须在飞书侧按身份过滤');
+assert.equal(calls.length, callsAfterWarmup + 2, '新用户身份投影只应读取用户与权限两张有界表');
 
 const userDictionaryCalls = calls.filter(call => call.tableName === '用户字典');
-assert.equal(userDictionaryCalls.length, 1, '同表不同字段投影必须合并为一次原始表读取');
+assert.equal(userDictionaryCalls.length, 3, '公共应用投影与两个用户的有界身份投影必须保持隔离键');
+assert.ok(userDictionaryCalls.some(call => call.filter.includes('CurrentValue.[AD账号]') && call.filter.includes('user-b')), 'COM-001 不得全表扫描用户字典');
 
 clock += 61_000;
 const stale = await service.execute('WB-001', { hotLimit: 4, courseLimit: 3, noticeLimit: 4 }, userA);
@@ -149,6 +149,7 @@ assert.equal(delayedRestoreHandoff?.code, 'FEISHU_INITIAL_SYNCING');
 assert.equal(restoreCompleted, false, '五秒接管不得等待持久快照恢复结束后才开始计时');
 assert.ok(Date.now() - delayedRestoreStartedAt < 50, '持久恢复延迟必须计入首响应预算');
 await sleep(80);
+await delayedRestoreService.waitForIdle();
 assert.equal((await delayedRestoreService.getReadSyncStatus(delayedRestoreHandoff.syncId, userA)).state, 'completed');
 delayedRestoreService.close();
 
@@ -161,6 +162,15 @@ const delayedAuthorizationService = createFeishuReadOnlyService({
       if (tableNameById.get(tableId) === '用户权限') {
         authorizationReads += 1;
         await sleep(60);
+        return {
+          items: [{
+            record_id: 'delayed-authorization',
+            fields: { 'AD账号': 'user-a', '状态': '启用', '权限编码': 'talent.view', '数据范围': ['org-a'], '启用': true }
+          }],
+          total: 1,
+          hasMore: false,
+          nextPageToken: ''
+        };
       }
       return { items: [], total: 0, hasMore: false, nextPageToken: '' };
     }
@@ -169,13 +179,14 @@ const delayedAuthorizationService = createFeishuReadOnlyService({
 const delayedAuthorizationStartedAt = Date.now();
 let delayedAuthorizationHandoff;
 try {
-  await delayedAuthorizationService.execute('COM-005', { dictTypes: ['APPLICATION_TYPE'], includeDisabled: false }, userA);
+  await delayedAuthorizationService.execute('TAL-002', { page: 1, pageSize: 10 }, userA);
 } catch (error) {
   delayedAuthorizationHandoff = error;
 }
 assert.equal(delayedAuthorizationHandoff?.code, 'FEISHU_INITIAL_SYNCING');
 assert.ok(Date.now() - delayedAuthorizationStartedAt < 50, '实时鉴权延迟必须计入首响应预算');
 await sleep(80);
+await delayedAuthorizationService.waitForIdle();
 assert.equal((await delayedAuthorizationService.getReadSyncStatus(delayedAuthorizationHandoff.syncId, userA)).state, 'completed');
 assert.ok(authorizationReads >= 2, '初始请求与任务查询都必须实时读取权限');
 delayedAuthorizationService.close();
@@ -196,6 +207,60 @@ const parallelPrewarmService = createFeishuReadOnlyService({
 });
 await parallelPrewarmService.prewarm();
 assert.ok(peakPrewarmReads > 1 && peakPrewarmReads <= 3, '预热和后台同步必须采用最多三路受控并发');
+
+let tenantPrewarmCalls = 0;
+const tenantPrewarmService = createFeishuReadOnlyService({
+  identifierContract,
+  tableReadCacheMs: 0,
+  client: {
+    async listRecords() {
+      tenantPrewarmCalls += 1;
+      return { items: [], total: 0, hasMore: false, nextPageToken: '' };
+    }
+  }
+});
+await tenantPrewarmService.prewarm();
+const callsAfterTenantPrewarm = tenantPrewarmCalls;
+const tenantDictionaryInput = {
+  dictTypes: ['APPLICATION_TYPE', 'BUSINESS_DOMAIN', 'SCENE'],
+  includeDisabled: false
+};
+const tenantSearchInput = { page: 1, pageSize: 20, sort: 'RELEVANCE' };
+assert.equal((await tenantPrewarmService.execute('COM-005', tenantDictionaryInput, userA)).cacheStatus, 'fresh');
+assert.equal((await tenantPrewarmService.execute('WB-002', tenantSearchInput, userB)).cacheStatus, 'fresh');
+assert.equal(
+  tenantPrewarmCalls,
+  callsAfterTenantPrewarm,
+  '启动预热与同租户真实用户必须共享租户级 operation 缓存键，不能依赖底层表缓存碰巧兜底'
+);
+tenantPrewarmService.close();
+
+const sharedProjectionCalls = new Map();
+const sharedProjectionService = createFeishuReadOnlyService({
+  identifierContract,
+  realtimeAuthorization: false,
+  client: {
+    async listRecords(tableId) {
+      const tableName = tableNameById.get(tableId);
+      const count = (sharedProjectionCalls.get(tableName) || 0) + 1;
+      sharedProjectionCalls.set(tableName, count);
+      return { items: [], total: 0, hasMore: false, nextPageToken: '' };
+    }
+  }
+});
+const sharedUserResult = await sharedProjectionService.runWithSharedReadBatch(
+  () => sharedProjectionService.executeBackground('COM-001', {}, userA)
+);
+assert.equal(sharedUserResult.code, 'OK');
+const sharedWorkbenchResult = await sharedProjectionService.runWithSharedReadBatch(
+  () => sharedProjectionService.executeBackground('WB-001', { hotLimit: 4, courseLimit: 3, noticeLimit: 4 }, userA)
+);
+assert.equal(sharedWorkbenchResult.code, 'OK');
+assert.equal(sharedProjectionCalls.get('应用收藏'), undefined, '身份首屏不得扫描收藏表');
+assert.equal(sharedProjectionCalls.get('消息通知'), undefined, '身份首屏不得扫描消息表');
+assert.equal(sharedProjectionCalls.get('积分余额'), undefined, '身份首屏不得扫描积分表');
+assert.equal(sharedProjectionCalls.get('用户字典'), 2, '当前用户有界读取与应用目录公共投影不得共用无过滤快照');
+sharedProjectionService.close();
 
 let retryClock = 10_000;
 let retryCalls = 0;
@@ -218,6 +283,28 @@ const retryService = createFeishuReadOnlyService({
 const retryResult = await retryService.execute('COM-005', { dictTypes: ['APPLICATION_TYPE'], includeDisabled: false }, userA);
 assert.equal(retryResult.code, 'OK', '一次上游超时后必须获得完整的独立重试预算');
 assert.equal(retryCalls, 2);
+
+let insufficientRunwayClock = 20_000;
+let insufficientRunwayCalls = 0;
+const insufficientRunwayService = createFeishuReadOnlyService({
+  identifierContract,
+  realtimeAuthorization: false,
+  readNow: () => insufficientRunwayClock,
+  readSleep: async () => {},
+  client: {
+    async listRecords() {
+      insufficientRunwayCalls += 1;
+      insufficientRunwayClock += 16_000;
+      throw Object.assign(new Error('slow upstream timeout'), { code: 'FEISHU_UPSTREAM_TIMEOUT', status: 504 });
+    }
+  }
+});
+await assert.rejects(
+  () => insufficientRunwayService.executeBackground('COM-005', { dictTypes: ['APPLICATION_TYPE'], includeDisabled: false }, userA),
+  error => error.code === 'FEISHU_UPSTREAM_TIMEOUT'
+);
+assert.equal(insufficientRunwayCalls, 1, '剩余不足一次有效读取窗口时不得启动注定失败的第二、三次尝试');
+insufficientRunwayService.close();
 
 let taskRetryCalls = 0;
 const taskRetryDelays = [];

@@ -109,8 +109,8 @@ await Promise.all([
   concurrentService.execute('WB-003', { recentMessageLimit: 5, todoLimit: 5 }, context),
   concurrentService.execute('WB-004', { page: 1, pageSize: 10 }, context)
 ]);
-assert.equal(concurrentReads.get('用户字典'), 2, '强一致 COM-001 独立读取，其他同刻个人读取仍复用用户字典请求');
-assert.equal(concurrentReads.get('消息通知'), 2, '强一致 COM-001 独立读取，其他同刻个人读取仍复用消息通知请求');
+assert.equal(concurrentReads.get('用户字典'), 1, '同一授权用户的并发个人读取必须复用用户字典请求');
+assert.equal(concurrentReads.get('消息通知'), 1, '同一授权用户的并发个人读取必须复用消息通知请求');
 
 for (const operationId of ['MSG-001', 'MSG-002', 'FAV-001', 'FAV-002', 'PTS-001', 'PTS-002', 'PTS-003', 'WB-001', 'WB-003', 'WB-004']) {
   assert.doesNotThrow(() => validateContractSchema(responses.get(operationId), contracts[operationId].successSchema, operationId));

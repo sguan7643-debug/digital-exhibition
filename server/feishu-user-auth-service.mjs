@@ -256,6 +256,18 @@ export function createFeishuUserAuthService(options = {}) {
     return resolveSession(cookieHeader)?.identity || null;
   }
 
+  function listAuthorizedIdentities() {
+    removeExpired();
+    const unique = new Map();
+    for (const session of sessions.values()) {
+      const identity = session?.identity;
+      if (!identity) continue;
+      const key = `${String(identity.tenantKey || '')}\u0000${String(identity.adAccount || identity.userId || identity.openId || '')}`;
+      if (!unique.has(key)) unique.set(key, identity);
+    }
+    return Object.freeze([...unique.values()]);
+  }
+
   function resolveSession(cookieHeader = '') {
     removeExpired();
     const sessionId = parseCookies(cookieHeader)[SESSION_COOKIE];
@@ -287,7 +299,16 @@ export function createFeishuUserAuthService(options = {}) {
     return createCookie(STATE_COOKIE, '', { maxAge: 0, secure: secureCookies });
   }
 
-  return Object.freeze({ credentialsReady, beginAuthorization, completeAuthorization, resolveIdentity, resolveSession, resolveSessionProfile, clearStateCookie });
+  return Object.freeze({
+    credentialsReady,
+    beginAuthorization,
+    completeAuthorization,
+    resolveIdentity,
+    resolveSession,
+    resolveSessionProfile,
+    listAuthorizedIdentities,
+    clearStateCookie
+  });
 }
 
 export const FEISHU_AUTH_PATHS = Object.freeze({

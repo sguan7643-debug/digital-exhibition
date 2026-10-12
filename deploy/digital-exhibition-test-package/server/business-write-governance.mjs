@@ -41,6 +41,7 @@ export function createBusinessWriteGovernance({ writeService, recordService, led
     const digest = hash({ operationId, input: businessInput });
     if (contract.requestHash !== `sha256:${digest}`) throw new FeishuProxyError('REQUEST_HASH_MISMATCH', '写请求摘要校验失败', 400);
     if (!String(input.businessKey || '').trim() || !String(input.idempotencyKey || '').trim()) throw new FeishuProxyError('IDEMPOTENCY_REQUIRED', '业务键和幂等键不能为空', 400);
+    writeService.validateClientInput?.(operationId, businessInput);
     const tenant = String(identity.tenantKey || identity.tenantId || 'default');
     const key = hash({ tenant, actor, operationId, idempotencyKey: input.idempotencyKey });
     const lockKey = hash({ tenant, table: plan.tableName, businessKey: input.businessKey });
@@ -76,12 +77,12 @@ export function createBusinessWriteGovernance({ writeService, recordService, led
         if (fields[statusField] && !['PENDING','待处理','待审批'].includes(fields[statusField])) throw new FeishuProxyError('APPROVAL_STATE_FORBIDDEN', '申请不能由前端直接设为已通过', 403);
         fields[statusField] = 'PENDING';
       }
-      writeService.validate?.(operationId, { ...businessInput, fields });
+      writeService.validate?.(operationId, { ...businessInput, fields }, { governed: true });
       const entry = { operationId, businessKey: input.businessKey, actor, tenant, requestHash: digest, changedFields: Object.keys(fields), state: 'prepared', startedAt: now() };
       entries[key] = entry;
       persist();
       try {
-        const result = await writeService.execute(operationId, { ...businessInput, fields });
+        const result = await writeService.execute(operationId, { ...businessInput, fields }, { governed: true });
         entry.result = result;
         entry.state = 'completed';
         entry.finishedAt = now();

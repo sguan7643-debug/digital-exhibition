@@ -7,17 +7,28 @@ const SYNC_ROUTE = /^\/api\/v1\/operations\/sync-jobs\/([A-Za-z0-9-]{8,160})$/;
 
 function errorResult(error, traceId) {
   const controlled = error instanceof FeishuProxyError;
+  const status = controlled ? error.status : 500;
   const retryAfterSeconds = controlled && Number.isInteger(error.retryAfterSeconds)
     ? Math.min(86400, Math.max(1, error.retryAfterSeconds))
     : undefined;
   return {
-    status: controlled ? error.status : 500,
+    status,
     body: {
       code: controlled ? error.code : 'INTERNAL_PROXY_ERROR',
       message: controlled ? error.message : '安全代理处理失败',
-      traceId,
-      ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
-      ...(controlled && error.syncId ? { syncId: error.syncId, pollAfterMs: error.pollAfterMs || 2000 } : {}),
+      traceId: controlled && error.traceId ? error.traceId : traceId,
+      ...(status === 202 ? {} : {
+        retryable: typeof error?.retryable === 'boolean'
+          ? error.retryable
+          : [429, 502, 503, 504].includes(status)
+      }),
+      ...(retryAfterSeconds && status !== 202 ? { retryAfterSeconds } : {}),
+      ...(controlled && error.syncId ? {
+        syncId: error.syncId,
+        operationId: error.operationId,
+        state: error.state || 'running',
+        pollAfterMs: error.pollAfterMs || 2000
+      } : {}),
       ...(controlled && error.writeCommitted === true ? { writeCommitted: true, retryable: false } : {})
     }
   };
@@ -160,6 +171,9 @@ export function createFeishuNodeMiddleware(options = {}) {
     response.statusCode = result.status;
     response.setHeader('Content-Type', 'application/json; charset=utf-8');
     response.setHeader('Cache-Control', 'no-store');
+    if (result.status === 202 && Number.isInteger(result.body?.pollAfterMs)) {
+      response.setHeader('Retry-After', String(Math.max(1, Math.ceil(result.body.pollAfterMs / 1000))));
+    }
     response.end(JSON.stringify(result.body));
   };
 }

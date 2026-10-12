@@ -161,7 +161,7 @@ function memoryCache() {
   for (let index = 0; index < sources.length; index += 1) {
     assert.doesNotMatch(sources[index], /正式飞书数据正在首次同步/, `${files[index]} 不得保留面向用户的首次同步提示`);
   }
-  assert.match(sources[0], /class="request-loading-toast"/, '请求处理中的 loading 气泡必须继续保留');
+  assert.match(sources[0], /class="request-loading-overlay"/, '请求处理中的全页面 loading 必须继续保留');
 }
 
 console.log('frontend sync polling recovers without replaying original requests or leaking loading state');

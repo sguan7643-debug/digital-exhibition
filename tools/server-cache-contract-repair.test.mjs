@@ -12,7 +12,7 @@ import { runFeishuStartupPrewarmSequence } from '../server/feishu-vite-plugin.mj
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const identifierContract = loadFeishuIdentifierContract(path.join(root, 'server', 'contracts', 'feishu-base-identifiers.json'));
-const context = { identity: { tenantKey: 'tenant-a', userId: 'user-a', adAccount: 'user-a', permissions: ['apps.read'], dataScope: 'org-a' } };
+const context = { identity: { tenantKey: 'tenant-a', userId: 'user-a', adAccount: 'user-a', displayName: '张三', permissions: ['apps.read'], dataScope: 'org-a' } };
 
 let releaseHomepagePrewarm;
 const homepagePrewarmGate = new Promise(resolve => { releaseHomepagePrewarm = resolve; });
@@ -61,6 +61,47 @@ assert.deepEqual(
   '首页预热异常后仍应安全启动独立的入职 Schema 预热'
 );
 
+let startupTransientCalls = 0;
+const startupTransientEvents = [];
+const startupTransientService = createFeishuReadOnlyService({
+  identifierContract,
+  realtimeAuthorization: false,
+  readSleep: async () => {},
+  eventLogger: event => startupTransientEvents.push(event),
+  client: {
+    async listRecords() {
+      startupTransientCalls += 1;
+      if (startupTransientCalls === 1) {
+        throw Object.assign(new Error('one transient startup timeout'), {
+          code: 'FEISHU_UPSTREAM_TIMEOUT',
+          status: 504,
+          upstreamPath: '/bitable/v1/apps/base/tables/table/records'
+        });
+      }
+      return { items: [], total: 0, hasMore: false, nextPageToken: '' };
+    }
+  }
+});
+const recoveredStartup = await startupTransientService.prewarm();
+assert.deepEqual(
+  [...recoveredStartup.verifiedHits].sort(),
+  ['COM-005', 'WB-002'],
+  '一次临时上游超时必须由受控 operation 任务在启动预算内恢复，不得永久毒化 readiness'
+);
+assert.ok(startupTransientCalls > 1, '启动预热必须在临时超时后继续受控重试');
+const startupReadEvents = startupTransientEvents.filter(event => event.event === 'feishu-read-page');
+assert.ok(startupReadEvents.length > 0, '启动预热必须输出分页诊断事件');
+assert.ok(
+  startupReadEvents.every(event => ['COM-005', 'WB-002'].includes(event.operationId) && event.traceId && event.syncId),
+  '启动预热分页日志必须携带 operationId、traceId 和 syncId，禁止继续输出无法定位的 null 关联字段'
+);
+assert.equal(
+  startupReadEvents.some(event => event.operationId && !['COM-005', 'WB-002'].includes(event.operationId)),
+  false,
+  '无身份启动预热只能执行 readiness 代表 operation 和首页公共源种子，不得批量抢占无关表读取'
+);
+startupTransientService.close();
+
 const normalizedKeyA = createReadIsolationKey(
   'COM-005',
   { dictTypes: ['SCENE', 'APPLICATION_TYPE'], includeDisabled: false },
@@ -103,6 +144,36 @@ assert.equal(
   }, context),
   'MAT-001 缺省输入与浏览器空筛选输入必须复用同一六维键'
 );
+assert.equal(
+  createReadIsolationKey('COM-001', {}, {
+    identity: { tenantKey: 'tenant-a', adAccount: '3d8egf55', permissions: ['apps.read'], dataScope: 'org-a' }
+  }),
+  createReadIsolationKey('COM-001', {}, {
+    identity: {
+      tenantKey: 'tenant-a', adAccount: '3d8egf55', userId: 'ou_runtime_alias', openId: 'ou_open_alias',
+      permissions: ['apps.read'], dataScope: ['org-a']
+    }
+  }),
+  '同一 AD 主体后续补齐 userId/openId 时不得改变缓存键'
+);
+for (const [operationId, input] of [
+  ['APP-002', { page: 1, pageSize: 10, query: '', filters: {}, sort: 'default' }],
+  ['COM-005', { dictTypes: ['APPLICATION_TYPE'], includeDisabled: false }],
+  ['WB-001', { hotLimit: 4, courseLimit: 3, noticeLimit: 4 }],
+  ['WB-002', { page: 1, pageSize: 20, sort: 'RELEVANCE' }]
+]) {
+  assert.equal(
+    createReadIsolationKey(operationId, input, context),
+    createReadIsolationKey(operationId, {
+      ...input,
+      syncId: 'read-internal-only',
+      traceId: 'trace-internal-only',
+      state: 'running',
+      createdAt: '2026-10-12T00:00:00.000Z'
+    }, context),
+    `${operationId} 的内部任务元数据不得进入业务缓存键`
+  );
+}
 
 let releaseSnapshot;
 let snapshotStarted;
@@ -161,7 +232,7 @@ const normalizedHit = await persistenceService.execute(
 );
 assert.equal(normalizedHit.cacheStatus, 'fresh');
 assert.equal(persistenceReads, readsAfterCommit, '任务完成后规范化相同请求必须直接命中内存缓存');
-assert.equal(snapshotFlushes, 1, '同一完成任务只提交一次持久快照');
+assert.equal(snapshotFlushes, 2, '同一完成任务必须完成 candidate 与 committed 两阶段持久提交');
 persistenceService.close();
 
 let invalidSchemaFlushes = 0;
@@ -205,6 +276,7 @@ const invalidStatus = await invalidDispatcher({
 assert.equal(invalidStatus.status, 200, '任务自身失败必须由 HTTP 200 状态合同表达');
 assert.equal(invalidStatus.body.state, 'failed');
 assert.equal(invalidStatus.body.operationId, 'COM-005');
+assert.ok(invalidStatus.body.createdAt && invalidStatus.body.updatedAt && invalidStatus.body.traceId);
 assert.deepEqual(invalidStatus.body.error, {
   code: 'READ_SUCCESS_SCHEMA_INVALID',
   message: '读取结果未通过成功数据合同校验',
@@ -213,6 +285,36 @@ assert.deepEqual(invalidStatus.body.error, {
 });
 assert.equal(invalidSchemaFlushes, 0, '未通过 success schema 的结果禁止写入持久快照');
 invalidSchemaService.close();
+
+let expirationNow = 1_800_000_000_000;
+const expirationService = createFeishuReadOnlyService({
+  identifierContract,
+  realtimeAuthorization: false,
+  coldMissBudgetMs: 1,
+  syncTaskTimeoutMs: 500,
+  cacheNow: () => expirationNow,
+  client: {
+    async listRecords() {
+      await sleep(10);
+      return { items: [], total: 0, hasMore: false, nextPageToken: '' };
+    }
+  }
+});
+const expirationHandoff = await expirationService.execute(
+  'COM-005',
+  { dictTypes: ['APPLICATION_TYPE'], includeDisabled: false },
+  context
+).catch(error => error);
+await expirationService.waitForIdle();
+await sleep(0);
+expirationNow += 600_001;
+const expiredStatus = await expirationService.getReadSyncStatus(expirationHandoff.syncId, context);
+assert.equal(expiredStatus.state, 'expired');
+assert.ok(expiredStatus.createdAt && expiredStatus.updatedAt && expiredStatus.traceId);
+assert.deepEqual(expiredStatus.error, {
+  code: 'SYNC_JOB_EXPIRED', message: '同步任务状态已过期', status: 410, retryable: false
+});
+expirationService.close();
 
 const capacityService = createFeishuReadOnlyService({
   identifierContract,
@@ -288,7 +390,7 @@ await sleep(0);
 const prunedSnapshotStatus = await prunedSnapshotService.getReadSyncStatus(prunedSnapshotHandoff.syncId, context);
 assert.equal(prunedSnapshotStatus.state, 'failed', '持久层裁剪当前键时任务必须确定性失败');
 assert.equal(prunedSnapshotStatus.error.code, 'CACHE_RUNTIME_UNAVAILABLE');
-assert.equal(prunedSnapshotFlushes, 1, '持久层已确认裁剪当前键后不得无限重复提交快照');
+assert.equal(prunedSnapshotFlushes, 2, '持久层裁剪后只允许一次候选提交和一次有界补偿提交');
 prunedSnapshotService.close();
 
 const representativeMemoryService = createFeishuReadOnlyService({
@@ -336,8 +438,218 @@ await Promise.all([
   coalescedSnapshotService.execute('APP-002', {}, context),
   coalescedSnapshotService.execute('WB-002', {}, context)
 ]);
-assert.equal(coalescedSnapshotFlushes, 1, '并发完成的缓存 operation 必须合并为一次完整快照提交');
+assert.equal(coalescedSnapshotFlushes, 4, '并发 operation 合并 candidate 快照，但每个键必须独立完成 committed 原子切换');
 coalescedSnapshotService.close();
+
+let representativeUpstreamCalls = 0;
+const recoveryEvents = [];
+const representativeService = createFeishuReadOnlyService({
+  identifierContract,
+  realtimeAuthorization: false,
+  coldMissBudgetMs: 0,
+  eventLogger: event => recoveryEvents.push(event),
+  client: {
+    async listRecords() {
+      representativeUpstreamCalls += 1;
+      return { items: [], total: 0, hasMore: false, nextPageToken: '' };
+    }
+  }
+});
+const representativeRequests = [
+  ['COM-005', { dictTypes: ['APPLICATION_TYPE'], includeDisabled: false }],
+  ['APP-002', {}],
+  ['MAT-001', {}],
+  ['WB-003', {}],
+  ['ADM-003', {}]
+];
+const representativeContext = {
+  identity: { ...context.identity, permissions: [...context.identity.permissions, 'admin.audit.view'] },
+  verifiedAuthorization: {
+    userId: context.identity.userId,
+    permissions: [...context.identity.permissions, 'admin.audit.view'],
+    dataScope: ['org-a']
+  }
+};
+for (const [operationId, input] of representativeRequests) {
+  const completed = await representativeService.execute(operationId, input, representativeContext);
+  assert.equal(completed.code, 'OK', `${operationId} 必须取得完整结果`);
+  const callsAfterCompletion = representativeUpstreamCalls;
+  const reread = await representativeService.execute(operationId, input, representativeContext);
+  assert.equal(reread.cacheStatus, 'fresh', `${operationId} completed 后相同输入必须直接命中`);
+  assert.equal(representativeUpstreamCalls, callsAfterCompletion, `${operationId} 回读不得再次访问上游`);
+}
+assert.ok(recoveryEvents.some(event => event.commit === 'published-readback-ok'));
+assert.ok(recoveryEvents.some(event => event.attempt === 1));
+assert.ok(recoveryEvents.some(event => event.page === 1));
+for (const event of recoveryEvents) {
+  assert.deepEqual(
+    Object.keys(event).sort(),
+    ['attempt', 'budgetMs', 'commit', 'elapsedMs', 'errorCode', 'event', 'keyDigest', 'operationId', 'page', 'queueMs', 'resource', 'syncId', 'traceId', 'transition', 'upstreamPath'].sort(),
+    '结构化缓存日志字段必须稳定'
+  );
+}
+representativeService.close();
+
+let lkgNow = 0;
+let lkgFlushCount = 0;
+let releaseLkgRefreshFlush;
+let markLkgRefreshFlushStarted;
+const lkgRefreshFlushStarted = new Promise(resolve => { markLkgRefreshFlushStarted = resolve; });
+const lkgRefreshFlushGate = new Promise(resolve => { releaseLkgRefreshFlush = resolve; });
+const lkgService = createFeishuReadOnlyService({
+  identifierContract,
+  realtimeAuthorization: false,
+  coldMissBudgetMs: 10,
+  cacheNow: () => lkgNow,
+  persistentCommitCoalesceMs: 0,
+  persistentCache: {
+    async restore() { return []; },
+    enqueue() {},
+    async flush(provider) {
+      lkgFlushCount += 1;
+      const entries = provider();
+      if (lkgFlushCount === 3) {
+        markLkgRefreshFlushStarted();
+        await lkgRefreshFlushGate;
+      }
+      return { written: true, keys: entries.map(entry => entry.key) };
+    },
+    metrics() { return { enabled: true, lastError: null, writeSuspended: false }; }
+  },
+  client: {
+    async listRecords() { return { items: [], total: 0, hasMore: false, nextPageToken: '' }; }
+  }
+});
+await lkgService.execute('COM-005', { dictTypes: ['APPLICATION_TYPE'] }, context);
+lkgNow = 60_001;
+const staleBeforeRefreshCommit = await lkgService.execute('COM-005', { dictTypes: ['APPLICATION_TYPE'] }, context);
+assert.equal(staleBeforeRefreshCommit.cacheStatus, 'stale');
+await lkgRefreshFlushStarted;
+const lkgDuringRefreshCommit = await lkgService.execute('COM-005', { dictTypes: ['APPLICATION_TYPE'] }, context);
+assert.equal(lkgDuringRefreshCommit.cacheStatus, 'stale', '慢持久提交期间旧 committed LKG 必须继续直接服务读取');
+releaseLkgRefreshFlush();
+await lkgService.waitForIdle();
+assert.equal((await lkgService.execute('COM-005', { dictTypes: ['APPLICATION_TYPE'] }, context)).cacheStatus, 'fresh');
+lkgService.close();
+
+let deterministicAuthorizationCalls = 0;
+const deterministicAuthorizationService = createFeishuReadOnlyService({
+  identifierContract,
+  coldMissBudgetMs: 0,
+  readSleep: async () => {},
+  client: {
+    async listRecords() {
+      deterministicAuthorizationCalls += 1;
+      throw new (await import('../server/feishu-open-api-client.mjs')).FeishuProxyError(
+        'IDENTIFIER_CONTRACT_MISSING',
+        'deterministic authorization failure',
+        503
+      );
+    }
+  }
+});
+const deterministicAuthorization = await deterministicAuthorizationService.authorizeTaskStatus('APP-002', context);
+assert.equal(deterministicAuthorization.deferred, false, '确定性鉴权错误不得无限伪装为 running');
+assert.equal(deterministicAuthorization.error.code, 'STATUS_AUTHORIZATION_FAILED');
+assert.equal(deterministicAuthorizationCalls, 1, '确定性鉴权错误不得重试');
+deterministicAuthorizationService.close();
+
+let totalAttemptCalls = 0;
+const totalAttemptService = createFeishuReadOnlyService({
+  identifierContract,
+  coldMissBudgetMs: 0,
+  readSleep: async () => {},
+  client: {
+    async listRecords(tableId) {
+      totalAttemptCalls += 1;
+      if (totalAttemptCalls < 3) {
+        throw Object.assign(new Error('temporary authorization transport failure'), {
+          code: 'FEISHU_UPSTREAM_TIMEOUT',
+          status: 504
+        });
+      }
+      if (tableId === identifierContract.byName.get('用户权限').tableId) {
+        return {
+          items: [{
+            record_id: 'attempt-permission',
+            fields: { 'AD账号': 'user-a', '状态': '启用', '权限编码': 'talent.view', '数据范围': ['org-a'], '启用': true }
+          }],
+          total: 1,
+          hasMore: false,
+          nextPageToken: ''
+        };
+      }
+      return { items: [], total: 0, hasMore: false, nextPageToken: '' };
+    }
+  }
+});
+await assert.rejects(
+  totalAttemptService.execute('TAL-002', { page: 1, pageSize: 10 }, context),
+  error => error?.code === 'READ_SYNC_ATTEMPTS_EXHAUSTED',
+  '鉴权与业务读取必须共享最多三次任务尝试预算'
+);
+assert.equal(totalAttemptCalls, 3, '鉴权和业务读取合计不得超过三次上游尝试');
+totalAttemptService.close();
+
+let orphanAuthorizationAborts = 0;
+const permissionTableId = identifierContract.byName.get('用户权限').tableId;
+const orphanAuthorizationService = createFeishuReadOnlyService({
+  identifierContract,
+  coldMissBudgetMs: 5,
+  syncTaskTimeoutMs: 30,
+  client: {
+    async listRecords(tableId, query, options = {}) {
+      if (tableId !== permissionTableId) return { items: [], total: 0, hasMore: false, nextPageToken: '' };
+      return new Promise((resolve, reject) => {
+        const abort = () => {
+          orphanAuthorizationAborts += 1;
+          reject(Object.assign(new Error('authorization aborted'), { code: 'READ_SYNC_DEADLINE_EXCEEDED', status: 504 }));
+        };
+        if (options.signal?.aborted) abort();
+        else options.signal?.addEventListener('abort', abort, { once: true });
+      });
+    }
+  }
+});
+await assert.rejects(
+  orphanAuthorizationService.execute('TAL-002', { page: 1, pageSize: 10 }, context),
+  error => error?.status === 202,
+  '慢鉴权必须先交接后台任务'
+);
+await sleep(60);
+assert.equal(orphanAuthorizationAborts, 1, '任务硬截止后必须中止底层鉴权读取，不能留下孤儿请求');
+assert.equal(orphanAuthorizationService.getPerformanceSnapshot().inflight.feishuSyncs, 0);
+orphanAuthorizationService.close();
+
+const correlatedEvents = [];
+const correlatedEventService = createFeishuReadOnlyService({
+  identifierContract,
+  realtimeAuthorization: false,
+  coldMissBudgetMs: 5,
+  syncTaskTimeoutMs: 500,
+  eventLogger: event => correlatedEvents.push(event),
+  client: {
+    async listRecords() {
+      await sleep(15);
+      return { items: [], total: 0, hasMore: false, nextPageToken: '' };
+    }
+  }
+});
+let correlatedSyncId = '';
+try {
+  await correlatedEventService.execute('COM-005', { dictTypes: ['APPLICATION_TYPE'] }, context);
+} catch (error) {
+  assert.equal(error.status, 202);
+  correlatedSyncId = error.syncId;
+}
+await correlatedEventService.waitForIdle();
+const correlatedTransition = correlatedEvents.find(event => event.event === 'sync-transition' && event.syncId === correlatedSyncId);
+assert.ok(correlatedTransition?.traceId, '同步任务必须生成非空 traceId');
+const correlatedTimeline = correlatedEvents.filter(event => ['sync-attempt', 'feishu-read-page', 'cache-commit'].includes(event.event));
+assert.ok(correlatedTimeline.length > 0);
+assert.ok(correlatedTimeline.every(event => event.syncId === correlatedSyncId), 'attempt/page/commit 必须关联同一 syncId');
+assert.ok(correlatedTimeline.every(event => event.traceId === correlatedTransition.traceId), 'attempt/page/commit 必须关联同一 traceId');
+correlatedEventService.close();
 
 let batchUpstreamCalls = 0;
 const batchService = createFeishuReadOnlyService({
@@ -374,6 +686,7 @@ assert.equal(coldBatch.status, 200);
 assert.ok(coldBatchElapsed < 100, `缩短预算下批量接口必须及时交接，实际 ${coldBatchElapsed.toFixed(2)}ms`);
 assert.ok(coldBatch.body.results.every(item => item.status === 202));
 assert.ok(coldBatch.body.results.every(item => item.body.syncId && item.body.pollAfterMs > 0));
+assert.ok(coldBatch.body.results.every(item => item.body.state === 'running' && item.body.operationId === item.operationId && item.body.traceId));
 await batchService.waitForIdle();
 await sleep(0);
 for (const item of coldBatch.body.results) {
@@ -381,6 +694,7 @@ for (const item of coldBatch.body.results) {
   assert.equal(status.status, 200);
   assert.equal(status.body.state, 'completed');
   assert.equal(status.body.operationId, item.operationId);
+  assert.ok(status.body.createdAt && status.body.updatedAt && status.body.traceId);
   assert.equal(status.body.result.code, 'OK');
 }
 const callsAfterColdBatch = batchUpstreamCalls;

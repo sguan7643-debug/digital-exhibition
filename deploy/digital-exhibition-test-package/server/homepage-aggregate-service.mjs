@@ -6,7 +6,8 @@ import {
   fingerprintReadIsolation,
   normalizeReadIdentity
 } from './feishu-read-isolation-key.mjs';
-import { createVerifiedReadOperationContracts, validateContractSchema } from '../src/integration/operation-contract-schemas.js';
+import { validateContractSchema } from '../src/integration/operation-contract-schemas.js';
+import { createVerifiedReadOperationContracts } from './feishu-read-operation-contracts.mjs';
 
 export const HOMEPAGE_OPERATION_INPUTS = Object.freeze({
   'COM-001': Object.freeze({}),
@@ -20,6 +21,10 @@ export const HOMEPAGE_OPERATION_INPUTS = Object.freeze({
 });
 
 export const HOMEPAGE_OPERATION_IDS = Object.freeze(Object.keys(HOMEPAGE_OPERATION_INPUTS));
+export const HOMEPAGE_CACHE_OPERATION_ID = 'HOM-001';
+const HOMEPAGE_TASK_OPERATION_ID = 'HOMEPAGE';
+const HOMEPAGE_CACHE_INPUT = Object.freeze({ layout: 'default', version: 1 });
+const HOMEPAGE_CACHE_POLICY = Object.freeze({ freshMs: 30_000, staleMs: 300_000 });
 const HOMEPAGE_OPERATION_CONTRACTS = createVerifiedReadOperationContracts();
 
 function identityScope(requestContext = {}) {
@@ -27,15 +32,8 @@ function identityScope(requestContext = {}) {
 }
 
 function rawIdentityScope(requestContext = {}) {
-  const identity = requestContext.identity || {};
-  return {
-    tenant: String(identity.tenantKey || identity.tenantId || 'default-tenant'),
-    identity: {
-      userId: String(identity.userId || ''),
-      openId: String(identity.openId || ''),
-      adAccount: String(identity.adAccount || '')
-    }
-  };
+  const normalized = normalizeReadIdentity(requestContext);
+  return { tenant: normalized.tenant, identity: normalized.identity };
 }
 
 function safeError(error, fallbackTraceId = null) {
@@ -75,7 +73,7 @@ function normalizeHomepageFailure(error, {
 }
 
 function isTransientAuthorizationFailure(error) {
-  const code = String(error?.code || '');
+  const code = String(error?.code || error?.cause?.code || '');
   const status = Number(error?.status || 0);
   if ([401, 403].includes(status)) return false;
   return status === 429
@@ -84,11 +82,15 @@ function isTransientAuthorizationFailure(error) {
       'FEISHU_UPSTREAM_UNAVAILABLE',
       'FEISHU_READ_BUDGET_EXCEEDED',
       'READ_SYNC_DEADLINE_EXCEEDED',
-      'TENANT_TOKEN_FAILED',
-      'UPSTREAM_INVALID_JSON',
-      'HOMEPAGE_AUTHORIZATION_FAILED'
-    ].includes(code)
-    || (status >= 500 && /^(?:FEISHU_|TENANT_TOKEN_|UPSTREAM_)/.test(code));
+      'ECONNABORTED',
+      'ECONNRESET',
+      'EHOSTUNREACH',
+      'ENETUNREACH',
+      'ETIMEDOUT',
+      'UND_ERR_CONNECT_TIMEOUT',
+      'UND_ERR_HEADERS_TIMEOUT',
+      'UND_ERR_SOCKET'
+    ].includes(code);
 }
 
 function sectionFromResponse(response, stateOverride) {
@@ -116,6 +118,9 @@ function aggregateSections(sectionEntries, { refreshing = false, syncId = null, 
   const sourceTimes = availableEntries.map(([, section]) => section.sourceUpdatedAt).filter(Boolean).sort();
   return {
     code: 'OK',
+    schemaVersion: 'homepage-aggregate.v3',
+    isComplete: unavailableEntries.length === 0
+      && availableEntries.every(([, section]) => section.isComplete === true),
     aggregateState,
     data,
     sections,
@@ -165,12 +170,18 @@ export function createHomepageAggregateService(options = {}) {
   const now = options.now || Date.now;
   const idFactory = options.idFactory || (() => `sync-${randomUUID()}`);
   const traceIdFactory = options.traceIdFactory || (() => `trace-${randomUUID()}`);
+  const eventLogger = typeof options.eventLogger === 'function' ? options.eventLogger : null;
   const responseBudgetMs = resolveHomepageResponseBudgetMs(
     options.responseBudgetMs ?? process.env.HOMEPAGE_RESPONSE_BUDGET_MS
   );
   const requirePersistentCache = options.requirePersistentCache === true;
   const taskRetentionMs = Math.max(600_000, Number(options.taskRetentionMs ?? 600_000) || 600_000);
   const taskTimeoutMs = Math.max(1, Math.min(25_000, Number(options.taskTimeoutMs ?? 25_000) || 25_000));
+  const taskDrainReserveMs = Math.min(
+    500,
+    Math.max(10, Math.ceil(taskTimeoutMs * 0.05)),
+    Math.max(1, Math.floor(taskTimeoutMs / 2))
+  );
   const tasksByKey = new Map();
   const tasksById = new Map();
   let readiness = options.prewarm === false
@@ -180,6 +191,50 @@ export function createHomepageAggregateService(options = {}) {
 
   function ownerKey(requestContext) {
     return fingerprintReadIsolation(identityScope(requestContext));
+  }
+
+  function taskIdentity(task, state = task.state) {
+    return {
+      syncId: task.id,
+      operationId: HOMEPAGE_TASK_OPERATION_ID,
+      state,
+      createdAt: new Date(task.createdAt).toISOString(),
+      updatedAt: new Date(task.updatedAt).toISOString(),
+      traceId: task.traceId
+    };
+  }
+
+  function handoffResponse(task) {
+    if (!['queued', 'running'].includes(task.state)) return null;
+    return {
+      status: 202,
+      body: {
+        code: 'HOMEPAGE_SYNCING',
+        message: '请求处理中',
+        ...taskIdentity(task),
+        pollAfterMs: 2_000
+      }
+    };
+  }
+
+  function terminalResponse(task) {
+    if (task.state === 'completed' && task.result
+        && Object.keys(task.result.data || {}).length === HOMEPAGE_OPERATION_IDS.length) {
+      return { status: 200, body: task.result };
+    }
+    const error = task.error || safeError(
+      new FeishuProxyError('HOMEPAGE_SYNC_FAILED', '首页数据同步失败', 500),
+      task.traceId
+    );
+    return {
+      status: error.status,
+      body: {
+        code: error.code,
+        message: error.message,
+        traceId: error.traceId || task.traceId,
+        retryable: false
+      }
+    };
   }
 
   function rawOwnerKey(requestContext) {
@@ -198,14 +253,11 @@ export function createHomepageAggregateService(options = {}) {
   }
 
   function taskKey(requestContext) {
-    return fingerprintReadIsolation({
-      operations: HOMEPAGE_OPERATION_IDS.map(operationId => createReadIsolationDescriptor(
-        operationId,
-        HOMEPAGE_OPERATION_INPUTS[operationId],
-        requestContext
-      )),
-      contractVersion: 'homepage-aggregate.v1'
-    });
+    return fingerprintReadIsolation(createReadIsolationDescriptor(
+      HOMEPAGE_CACHE_OPERATION_ID,
+      HOMEPAGE_CACHE_INPUT,
+      requestContext
+    ));
   }
 
   async function authorizeRequestContext(requestContext) {
@@ -257,6 +309,13 @@ export function createHomepageAggregateService(options = {}) {
         task.state = 'expired';
         task.updatedAt = timestamp;
         task.expiredAt = timestamp;
+        task.error = {
+          code: 'SYNC_JOB_EXPIRED',
+          message: '同步任务状态已过期',
+          status: 410,
+          retryable: false,
+          traceId: task.traceId
+        };
         if (tasksByKey.get(task.key) === task) tasksByKey.delete(task.key);
         continue;
       }
@@ -267,6 +326,20 @@ export function createHomepageAggregateService(options = {}) {
   }
 
   function cachedAggregate(requestContext) {
+    if (typeof readService.peekCompositeCache === 'function') {
+      const aggregate = readService.peekCompositeCache(
+        HOMEPAGE_CACHE_OPERATION_ID,
+        HOMEPAGE_CACHE_INPUT,
+        requestContext
+      );
+      if (aggregate) {
+        return {
+          ...aggregate,
+          schemaVersion: 'homepage-aggregate.v3',
+          ...(aggregate.dataStale === true ? { aggregateState: 'stale' } : {})
+        };
+      }
+    }
     const entries = HOMEPAGE_OPERATION_IDS.map(operationId => {
       const response = readService.peekOperation(operationId, HOMEPAGE_OPERATION_INPUTS[operationId], requestContext);
       return response ? [operationId, sectionFromResponse(response)] : [operationId, {
@@ -282,9 +355,6 @@ export function createHomepageAggregateService(options = {}) {
     const key = taskKey(requestContext);
     const existing = tasksByKey.get(key);
     if (existing && (existing.state === 'queued' || existing.state === 'running')) return existing;
-    if (existing?.state === 'failed' && !forceRefresh && existing.finishedAt && now() - existing.finishedAt < taskRetentionMs) {
-      return existing;
-    }
 
     const canonicalOwnerKey = ownerKey(requestContext);
     const provisionalKey = provisionalTaskKey(requestContext);
@@ -308,6 +378,7 @@ export function createHomepageAggregateService(options = {}) {
       ownerKey: canonicalOwnerKey,
       rawOwnerKey: rawOwnerKey(requestContext),
       authorizationKey: canonicalOwnerKey,
+      operationId: HOMEPAGE_CACHE_OPERATION_ID,
       state: 'queued',
       aggregateState: 'syncing',
       createdAt: reusableProvisional?.createdAt || now(),
@@ -319,61 +390,123 @@ export function createHomepageAggregateService(options = {}) {
       deadlineAt: effectiveDeadlineAt,
       result: null,
       error: null,
+      drainPromise: Promise.resolve(),
       promise: null
     };
+    task.aliases = new Set([key, ...(reusableProvisional ? [provisionalKey] : [])]);
     tasksByKey.set(key, task);
     if (reusableProvisional) tasksByKey.set(provisionalKey, task);
     tasksById.set(task.id, task);
+    requestContext.syncTraceId = task.traceId;
+    requestContext.syncId = task.id;
+    eventLogger?.({
+      event: 'homepage-sync-transition', traceId: task.traceId, syncId: task.id,
+      keyDigest: key, operationId: HOMEPAGE_CACHE_OPERATION_ID, attempt: 1, page: 0,
+      queueMs: 0, budgetMs: taskTimeoutMs, commit: null, transition: 'queued'
+    });
     task.promise = (async () => {
       task.state = 'running';
       task.updatedAt = now();
+      eventLogger?.({
+        event: 'homepage-sync-transition', traceId: task.traceId, syncId: task.id,
+        keyDigest: key, operationId: HOMEPAGE_CACHE_OPERATION_ID, attempt: 1, page: 0,
+        queueMs: Math.max(0, task.updatedAt - task.createdAt), budgetMs: taskTimeoutMs,
+        commit: null, transition: 'running'
+      });
       let deadlineTimer;
-      const executeBatch = () => Promise.allSettled(HOMEPAGE_OPERATION_IDS.map(operationId => executeHomepageOperation(
-        operationId,
-        requestContext
-      )));
-      const execution = typeof readService.runWithSharedReadBatch === 'function'
-        ? readService.runWithSharedReadBatch(executeBatch)
-        : executeBatch();
-      const deadline = new Promise((_, reject) => {
-        deadlineTimer = setTimeout(() => {
-          const error = new FeishuProxyError('READ_SYNC_DEADLINE_EXCEEDED', '数据同步超时', 504);
-          taskController.abort(error);
-          reject(error);
-        }, Math.max(0, effectiveDeadlineAt - now()));
+      let childBatchDrain = Promise.resolve();
+      const execution = async () => {
+        const executeBatch = () => Promise.allSettled(HOMEPAGE_OPERATION_IDS.map(operationId => (
+          executeHomepageOperation(operationId, requestContext)
+        )));
+        const childBatch = typeof readService.runWithSharedReadBatch === 'function'
+          ? readService.runWithSharedReadBatch(executeBatch, { priority: true })
+          : executeBatch();
+        childBatchDrain = Promise.resolve(childBatch).catch(() => {});
+        task.drainPromise = childBatchDrain;
+        const settled = await childBatch;
+        const entries = settled.map((result, index) => {
+          const operationId = HOMEPAGE_OPERATION_IDS[index];
+          return result.status === 'fulfilled'
+            ? [operationId, sectionFromResponse(result.value, 'fresh')]
+            : pendingSection(operationId, result.reason);
+        });
+        const result = aggregateSections(entries, { traceId: task.traceId });
+        const availableCount = Object.keys(result.data).length;
+        const firstFailure = settled.find(item => item.status === 'rejected');
+        const authorizationFailure = settled.find(item => item.status === 'rejected' && [401, 403].includes(item.reason?.status));
+        if (availableCount !== HOMEPAGE_OPERATION_IDS.length || authorizationFailure) {
+          throw authorizationFailure?.reason || firstFailure?.reason || new FeishuProxyError(
+            'HOMEPAGE_INCOMPLETE',
+            '首页完整数据尚未取得',
+            502
+          );
+        }
+        const committed = typeof readService.commitCompositeCache === 'function'
+          ? await readService.commitCompositeCache(
+              HOMEPAGE_CACHE_OPERATION_ID,
+              HOMEPAGE_CACHE_INPUT,
+              requestContext,
+              result,
+              HOMEPAGE_CACHE_POLICY
+            )
+          : result;
+        return { result: committed, aggregateState: result.aggregateState };
+      };
+      const executionPromise = execution();
+      const executionOutcome = executionPromise.then(
+        value => ({ state: 'completed', value }),
+        error => ({ state: 'failed', error })
+      );
+      const deadline = new Promise(resolve => {
+        const workDeadlineAt = effectiveDeadlineAt - taskDrainReserveMs;
+        deadlineTimer = setTimeout(() => resolve({ state: 'deadline' }), Math.max(0, workDeadlineAt - now()));
       });
-      const settled = await Promise.race([execution, deadline]).finally(() => clearTimeout(deadlineTimer));
-      const entries = settled.map((result, index) => {
-        const operationId = HOMEPAGE_OPERATION_IDS[index];
-        return result.status === 'fulfilled'
-          ? [operationId, sectionFromResponse(result.value, 'fresh')]
-          : pendingSection(operationId, result.reason);
-      });
-      const result = aggregateSections(entries, { traceId: task.traceId });
-      const availableCount = Object.keys(result.data).length;
-      const firstFailure = settled.find(item => item.status === 'rejected');
-      const authorizationFailure = settled.find(item => item.status === 'rejected' && [401, 403].includes(item.reason?.status));
-      if (availableCount !== HOMEPAGE_OPERATION_IDS.length || authorizationFailure) {
-        const effectiveFailure = authorizationFailure || firstFailure;
-        task.error = safeError(effectiveFailure?.reason || new FeishuProxyError(
-          'HOMEPAGE_INCOMPLETE',
-          '首页完整数据尚未取得',
-          502
-        ), task.traceId);
-        task.state = 'failed';
-      } else {
-        task.result = result;
-        task.aggregateState = result.aggregateState;
-        task.state = 'completed';
+      const outcome = await Promise.race([executionOutcome, deadline]);
+      clearTimeout(deadlineTimer);
+      if (outcome.state === 'deadline') {
+        const deadlineError = new FeishuProxyError('READ_SYNC_DEADLINE_EXCEEDED', '数据同步超时', 504);
+        if (!taskController.signal.aborted) taskController.abort(deadlineError);
+        // Mark the user-visible task terminal at the approved deadline. Child
+        // reads keep draining in the background under the shared abort signal.
+        void childBatchDrain.catch(() => {});
+        throw deadlineError;
       }
+      if (outcome.state === 'failed') throw outcome.error;
+      const completed = outcome.value;
+      task.result = completed.result;
+      task.aggregateState = completed.aggregateState;
+      task.state = 'completed';
       task.updatedAt = now();
       task.finishedAt = now();
+      eventLogger?.({
+        event: 'homepage-sync-transition', traceId: task.traceId, syncId: task.id,
+        keyDigest: key, operationId: HOMEPAGE_CACHE_OPERATION_ID, attempt: 1, page: 0,
+        queueMs: 0, budgetMs: taskTimeoutMs,
+        commit: task.state === 'completed' ? 'published-readback-ok' : null,
+        transition: task.state
+      });
+      for (const alias of task.aliases) {
+        if (tasksByKey.get(alias) === task) tasksByKey.delete(alias);
+      }
       return task.result;
     })().catch(error => {
+      if (error?.code === 'READ_SYNC_DEADLINE_EXCEEDED' && !taskController.signal.aborted) {
+        taskController.abort(error);
+      }
+      void task.drainPromise.catch(() => {});
       task.error = safeError(error, task.traceId);
       task.state = 'failed';
       task.updatedAt = now();
       task.finishedAt = now();
+      eventLogger?.({
+        event: 'homepage-sync-transition', traceId: task.traceId, syncId: task.id,
+        keyDigest: key, operationId: HOMEPAGE_CACHE_OPERATION_ID, attempt: 1, page: 0,
+        queueMs: 0, budgetMs: taskTimeoutMs, commit: null, transition: 'failed'
+      });
+      for (const alias of task.aliases) {
+        if (tasksByKey.get(alias) === task) tasksByKey.delete(alias);
+      }
       return null;
     });
     return task;
@@ -401,6 +534,7 @@ export function createHomepageAggregateService(options = {}) {
       ownerKey: rawOwnerKey(requestContext),
       rawOwnerKey: rawOwnerKey(requestContext),
       authorizationKey: null,
+      operationId: HOMEPAGE_CACHE_OPERATION_ID,
       state: 'running',
       aggregateState: 'syncing',
       createdAt: now(),
@@ -414,6 +548,7 @@ export function createHomepageAggregateService(options = {}) {
       error: null,
       promise: null
     };
+    task.aliases = new Set([key]);
     tasksByKey.set(key, task);
     tasksById.set(task.id, task);
     let deadlineTimer;
@@ -447,6 +582,9 @@ export function createHomepageAggregateService(options = {}) {
       task.state = 'completed';
       task.updatedAt = now();
       task.finishedAt = now();
+      for (const alias of task.aliases) {
+        if (tasksByKey.get(alias) === task) tasksByKey.delete(alias);
+      }
       return task.result;
     }).catch(error => {
       const authorizedContext = authorizedContextProvider?.();
@@ -455,6 +593,9 @@ export function createHomepageAggregateService(options = {}) {
       task.state = 'failed';
       task.updatedAt = now();
       task.finishedAt = now();
+      for (const alias of task.aliases) {
+        if (tasksByKey.get(alias) === task) tasksByKey.delete(alias);
+      }
       return null;
     }).finally(() => clearTimeout(deadlineTimer));
     return task;
@@ -499,21 +640,7 @@ export function createHomepageAggregateService(options = {}) {
       }
 
       await task.promise;
-      if (task.state === 'completed' && task.result
-          && Object.keys(task.result.data || {}).length === HOMEPAGE_OPERATION_IDS.length) {
-        return { status: 200, body: task.result };
-      }
-      return {
-        status: 202,
-        body: {
-          code: 'HOMEPAGE_SYNCING',
-          message: '请求处理中',
-          state: task.state,
-          syncId: task.id,
-          pollAfterMs: 2_000,
-          traceId: task.traceId
-        }
-      };
+      return terminalResponse(task);
     })();
 
     const remaining = Math.max(0, startedAt + responseBudgetMs - now());
@@ -530,17 +657,7 @@ export function createHomepageAggregateService(options = {}) {
       () => authorizedContext,
       { deadlineAt: taskDeadlineAt, controller }
     );
-    return {
-      status: 202,
-      body: {
-        code: 'HOMEPAGE_SYNCING',
-        message: '请求处理中',
-        state: handoffTask.state,
-        syncId: handoffTask.id,
-        pollAfterMs: 2_000,
-        traceId: handoffTask.traceId
-      }
-    };
+    return handoffResponse(handoffTask) || terminalResponse(handoffTask);
   }
 
   async function getSyncStatus(syncId, requestContext = {}) {
@@ -553,36 +670,35 @@ export function createHomepageAggregateService(options = {}) {
       throw new FeishuProxyError('SYNC_JOB_FORBIDDEN', '无权查看该同步任务', 403);
     }
     let statusAuthorization;
-    if (typeof readService.authorizeTaskStatus === 'function') {
-      statusAuthorization = await readService.authorizeTaskStatus('', requestContext);
-    } else {
-      try {
+    try {
+      if (typeof readService.authorizeTaskStatus === 'function') {
+        statusAuthorization = await readService.authorizeTaskStatus('', requestContext, task.id);
+      } else {
         statusAuthorization = { context: await authorizeRequestContext(requestContext), deferred: false };
-      } catch (error) {
-        if (!isTransientAuthorizationFailure(error)) throw error;
-        statusAuthorization = { context: null, deferred: true };
       }
+    } catch (error) {
+      if (!isTransientAuthorizationFailure(error)) throw error;
+      statusAuthorization = { context: null, deferred: true };
     }
-    if (!statusAuthorization.deferred) {
+    if (!statusAuthorization.deferred && !statusAuthorization.error) {
       const currentOwnerKey = ownerKey(statusAuthorization.context);
       if (task.authorizationKey && task.authorizationKey !== currentOwnerKey) {
         throw new FeishuProxyError('SYNC_JOB_FORBIDDEN', '当前权限或数据范围已变化，不能查看该同步任务', 403);
       }
     }
-    const actualState = task.state === 'queued' ? 'running' : task.state;
-    const authorizationPending = statusAuthorization.deferred && actualState !== 'running';
-    const state = authorizationPending ? 'running' : actualState;
+    const actualState = task.state;
+    const authorizationPending = statusAuthorization.deferred || Boolean(statusAuthorization.error);
+    const state = actualState;
+    if (['completed', 'failed', 'expired'].includes(state)) {
+      task.reportedTerminalState = state;
+    }
     return {
       code: 'OK',
-      syncId: task.id,
-      state,
-      aggregateState: authorizationPending ? 'syncing' : task.aggregateState,
-      errorCode: state === 'failed' ? task.error?.code || null : null,
-      createdAt: new Date(task.createdAt).toISOString(),
-      updatedAt: new Date(task.updatedAt).toISOString(),
-      traceId: task.traceId,
-      ...(state === 'running' ? { pollAfterMs: 2_000 } : {}),
-      ...(state === 'failed' && task.error ? { error: { ...task.error, retryable: false } } : {}),
+      ...taskIdentity(task, state),
+      ...(['queued', 'running'].includes(state) ? { pollAfterMs: 2_000 } : {}),
+      ...(['failed', 'expired'].includes(state) && task.error
+        ? { error: { ...task.error, retryable: false } }
+        : {}),
       ...(state === 'completed' && task.result ? { result: task.result } : {})
     };
   }

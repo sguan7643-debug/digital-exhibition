@@ -406,8 +406,8 @@ const contactUserItemSchema = Object.freeze({
   properties: {
     userId: identifier, employeeNo: optionalText, displayName: text, avatarUrl: optionalText,
     orgId: optionalText, orgName: optionalText, departmentId: optionalText, departmentName: optionalText,
-    officeId: optionalText, officeName: optionalText, title: optionalText, mobile: optionalText, email: optionalText,
-    mobileMasked: optionalText, emailMasked: optionalText, enabled: booleanValue
+    officeId: optionalText, officeName: optionalText, title: optionalText, mobile: nullableText, email: nullableText,
+    mobileMasked: nullableText, emailMasked: nullableText, enabled: booleanValue
   },
   additionalProperties: false
 });

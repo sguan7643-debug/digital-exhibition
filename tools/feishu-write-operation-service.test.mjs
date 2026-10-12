@@ -18,7 +18,7 @@ await assert.rejects(() => service.execute('APP-006', { businessKey: 'TEST_REUSE
 await assert.rejects(() => service.execute('APP-006', { businessKey: 'TEST_REUSE_001', idempotencyKey: 'TEST_IDEM_001', fields: { 版本: 99 } }), error => error.code === 'FIELD_NOT_ALLOWED' || error.code === 'MANAGED_FIELD_FORBIDDEN');
 const updated = await service.execute('OAN-005', { businessKey: 'TEST_NOTICE_001', idempotencyKey: 'TEST_IDEM_002', ifMatch: 1, fields: { 公告标题: '测试公告' } });
 assert.equal(updated.data.version, 2);
-const deleted = await service.execute('FAV-004', { businessKey: 'TEST_FAV_001', idempotencyKey: 'TEST_IDEM_003', ifMatch: 1, fields: {} });
+const deleted = await service.execute('FAV-004', { businessKey: 'TEST_FAV_001', idempotencyKey: 'TEST_IDEM_003', ifMatch: 1, fields: {} }, { governed: true });
 assert.equal(deleted.data.deleted, true);
 const identity = { userId: 'TEST_USER' };
 const invalidatedTables = [];
@@ -33,6 +33,23 @@ await assert.rejects(() => createFeishuCompositeOperationService({ readService, 
 await assert.rejects(() => composite.execute('APP-006', browserInput, { identity }), error => error.code === 'WRITE_ORIGIN_DENIED');
 await assert.rejects(() => composite.execute('APP-006', browserInput, { sameOriginRequest: true }), error => error.code === 'USER_AUTH_REQUIRED');
 await assert.rejects(() => composite.execute('FAV-003', { businessKey: 'TEST_FAV_002', idempotencyKey: 'TEST_IDEM_005', fields: {} }, { identity, sameOriginRequest: true }), error => error.code === 'PERMISSION_DENIED');
+const formalPermissionReadService = {
+  execute: async () => ({ code: 'OK', data: { permissions: ['operation:FAV-003:execute'] } }),
+  invalidateTables() {}
+};
+const rawFormalComposite = createFeishuCompositeOperationService({
+  readService: formalPermissionReadService,
+  writeService: service,
+  browserWriteEnabled: true
+});
+await assert.rejects(
+  () => rawFormalComposite.execute('FAV-003', {
+    businessKey: 'TEST_FAV_GOVERNANCE',
+    idempotencyKey: 'TEST_FAV_GOVERNANCE_IDEM',
+    fields: { 应用ID: 'APP-001', 收藏时间: '2026-10-10T10:00:00.000Z' }
+  }, { identity, sameOriginRequest: true }),
+  error => error.code === 'REQUEST_GOVERNANCE_REQUIRED' && error.status === 400
+);
 assert.equal((await composite.execute('APP-006', browserInput, { identity, sameOriginRequest: true })).code, 'OK');
 assert.deepEqual(invalidatedTables, ['应用复用申请'], '业务写成功后必须失效对应飞书表快照');
 console.log('36-operation write mapping, field whitelist, composite routing and write envelopes passed');

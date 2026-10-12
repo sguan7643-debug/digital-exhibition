@@ -219,6 +219,13 @@ const fakeFetch = async (url, options = {}) => {
       status: 200, headers: { 'Content-Type': 'application/json' }
     });
   }
+  if (String(url).includes('/contact/v3/users/ou-user-001')) {
+    return new Response(JSON.stringify({ code: 0, data: { user: {
+      user_id: 'ou-user-001', employee_no: 'EMP-001', name: '张三丰', department_ids: ['od-dept-001'],
+      avatar: { avatar_72: 'https://example.invalid/avatar-safe.png' }, job_title: '产品经理',
+      mobile: '13800000000', email: 'private@example.invalid', status: { is_resigned: false, is_exited: false, is_frozen: false }
+    } } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
   if (String(url).includes('/contact/v3/users/find_by_department')) {
     const departmentId = new URL(String(url)).searchParams.get('department_id');
     const items = departmentId === '0' ? [{
@@ -348,8 +355,8 @@ assert.ok(calls.some(call => call.url.includes(`/tables/${contract.byName.get('�
 const materials = await service.execute('MAT-002', {});
 assert.equal(materials.data.pageSize, 10);
 assert.equal(materials.data.items[0].name, '操作手册');
-assert.equal(materials.data.items[0].permissions.canDownload, false);
-assert.equal(materials.data.items[0].primaryFile.downloadUrl, '');
+assert.equal(materials.data.items[0].permissions.canDownload, true);
+assert.equal(materials.data.items[0].primaryFile.fileId, 'rec-material');
 assert.ok(calls.some(call => call.url.includes(`/tables/${contract.byName.get('素材中心').tableId}/records`)));
 
 const organizationTree = await service.execute('COM-003', { includeUsers: true, maxDepth: 5 });
@@ -359,20 +366,21 @@ assert.equal(organizationTree.data.items[0].orgName, '经营管理部');
 assert.deepEqual(organizationTree.data.items[0].pathIds, ['od-dept-001']);
 assert.equal(organizationTree.data.items[0].hasChildren, false);
 assert.equal(organizationTree.data.userCount, 1);
-const contactUsers = await service.execute('COM-004', { page: 1, pageSize: 10 });
+const contactUsers = await service.execute('COM-004', { userId: 'ou-user-001', includeContact: true, page: 1, pageSize: 10, sort: 'name,asc' }, { identity: {
+  userId: 'ou-user-001', adAccount: 'ou-user-001', departmentId: 'od-dept-001', departmentName: '经营管理部', orgId: 'od-dept-001', orgName: '经营管理部'
+} });
 assert.deepEqual(contactUsers.data.items[0], {
   userId: 'ou-user-001', employeeNo: 'EMP-001', displayName: '张三丰',
   avatarUrl: 'https://example.invalid/avatar-safe.png', orgId: 'od-dept-001', orgName: '经营管理部',
   departmentId: 'od-dept-001', departmentName: '经营管理部', officeId: '', officeName: '', title: '产品经理',
-  mobileMasked: '', emailMasked: '', enabled: true
+  mobile: '13800000000', email: 'private@example.invalid', mobileMasked: '', emailMasked: '', enabled: true
 });
 assert.equal(contactUsers.data.sort, 'name,asc');
-assert.equal(contactUsers.data.filtersApplied.enabled, true);
-assert.doesNotMatch(JSON.stringify(contactUsers), /13800000000|private@example\.invalid/, '通讯录代理不得暴露手机号或邮箱原值');
-const selectedContact = await service.execute('COM-004', { userId: 'ou-user-001', includeContact: true, page: 1, pageSize: 10 }, { identity: { userId: 'ou-requester' } });
-assert.equal(selectedContact.data.items.length, 1);
-assert.equal(selectedContact.data.items[0].mobile, '13800000000', '只允许对明确选中的联系人返回电话');
-assert.equal(selectedContact.data.items[0].email, 'private@example.invalid', '只允许对明确选中的联系人返回邮箱');
+assert.deepEqual(contactUsers.data.filtersApplied, { userId: 'ou-user-001' });
+await assert.rejects(
+  () => service.execute('COM-004', { userId: 'ou-user-001', includeContact: true }, { identity: { userId: 'ou-requester', adAccount: 'ou-requester' } }),
+  error => error?.code === 'CONTACT_SELF_ONLY' && error?.status === 403
+);
 
 const talentFacets = await service.execute('TAL-005', { page: 1, pageSize: 10 });
 assert.equal(talentFacets.data.types[0].name, '数字化人才');

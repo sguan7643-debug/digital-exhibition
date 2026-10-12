@@ -3,7 +3,7 @@
 const P0_USER = Object.freeze(['WB-001']);
 const P0_TENANT = Object.freeze(['COM-005', 'WB-002']);
 const CACHED_TENANT = Object.freeze([
-  'COM-003', 'COM-004',
+  'COM-003',
   'ANN-001', 'ANN-002', 'ANN-003', 'ANN-005',
   'APP-001', 'APP-002', 'APP-003', 'APP-007', 'APP-009',
   'PTS-004',
@@ -13,6 +13,7 @@ const CACHED_TENANT = Object.freeze([
   'MAT-001', 'MAT-002'
 ]);
 const CACHED_USER = Object.freeze([
+  'COM-001',
   'WB-003', 'WB-004',
   'MSG-001', 'MSG-002',
   'FAV-001', 'FAV-002',
@@ -28,7 +29,7 @@ const CACHED_ADMIN = Object.freeze([
 ]);
 
 export const STRONG_CONSISTENCY_OPERATION_IDS = Object.freeze([
-  'COM-001', 'COM-002', 'COM-008', 'APP-004', 'APP-010', 'TRN-006', 'CER-003',
+  'COM-002', 'COM-004', 'COM-008', 'APP-004', 'APP-010', 'TRN-006', 'CER-003',
   'ADM-007', 'MAT-003', 'COM-010', 'ARC-002'
 ]);
 
@@ -37,7 +38,8 @@ export const STRONG_CONSISTENCY_OPERATION_IDS = Object.freeze([
 // they cannot all fit, startup/task completion must fail instead of silently
 // replacing them with lower-priority entries.
 export const REPRESENTATIVE_CACHE_OPERATION_IDS = Object.freeze([
-  'COM-005', 'APP-002', 'MAT-001', 'WB-001', 'WB-002', 'WB-003', 'ADM-003'
+  'COM-001', 'COM-003', 'COM-005', 'APP-002', 'MAT-001', 'MAT-002', 'FAV-002',
+  'WB-001', 'WB-002', 'WB-003', 'ADM-003'
 ]);
 
 const policy = (code, freshMs, staleMs, scope) => Object.freeze({ code, freshMs, staleMs, scope });

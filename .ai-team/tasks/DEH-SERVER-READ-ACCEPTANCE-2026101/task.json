@@ -1,0 +1,89 @@
+{
+  "task_id": "DEH-SERVER-READ-ACCEPTANCE-2026101",
+  "title": "后端读取验收、缓存稳定性与人员目录兼容修复",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "修复测试环境普通读取的缓存命中、同步完成、持久恢复和业务数据可用性，使首页、个人中心、申请页、应用列表与详情无需人工刷新即可获得正式完整数据。",
+  "target_user": "数智产品展厅测试环境中的已登录授权业务用户，以及执行只读验收的 QA 和运维人员。",
+  "in_scope": [
+    "统一普通读取的六维稳定缓存键、内存缓存、持久快照、fresh/stale 命中和后台静默刷新",
+    "修复五秒冷读交接、任务合并、任务终态、失败任务退出合并索引和 completed 结果提交",
+    "修复首页聚合第二次请求仍 202 和重启后热缓存无法恢复",
+    "修复 COM-001 同步超时及个人中心身份、组织、部门数据最终可用",
+    "修复 COM-003、COM-005、APP-002、MAT-002、FAV-002 完成后的稳定热缓存命中",
+    "将 COM-004 兼容为授权范围人员目录查询与当前用户联系方式查询两种互不冲突的模式，并保持联系方式仅本人可见",
+    "修复 COM-005 的九类应用类型、业务域等正式字典在申请页面所需合同中的完整返回",
+    "修复 APP-003/APP0076 详情读取、缓存与人员部门名称批量投影",
+    "增加缓存、同步、COM-004 双模式、个人中心、字典和应用详情自动化回归，并生成纯后端部署包及 SHA-256"
+  ],
+  "out_of_scope": [
+    "修改前端源码、前端 dist、页面交互、样式或路由",
+    "向普通人员目录返回手机号、邮箱或其他未授权联系方式",
+    "用用户 ID、部门 ID、测试字典、代理占位或伪造数据冒充正式名称和业务数据",
+    "削弱登录、实时权限、数据范围、审批、幂等、审计或同源下载保护",
+    "引入 Redis、外部数据库或替换飞书多维表格数据源",
+    "由 Codex 直接部署服务器、修改飞书权限或清理正式业务数据"
+  ],
+  "success_metric": "首页首次冷读允许 202 并自动完成，后续同键请求约 1 秒内 HTTP 200；COM-003、COM-005、APP-002、MAT-002、FAV-002 热读稳定返回 200；90% 普通读取首次请求 5 秒内完整返回；COM-001 不再超时；申请页 30 秒内获得九类应用类型、业务域、部门和授权人员；个人中心及 APP0076 详情 30 秒内展示正式数据；重启后可恢复合法快照。",
+  "deadline": "尽快完成，以 2026-10-10 测试环境只读验收缺陷为修复基线",
+  "risk_level": "high",
+  "state": "blocked",
+  "stop": {
+    "reason": "Repair attempt 2 deployment 20261012004613 still failed live homepage sync with FEISHU_READ_BUDGET_EXCEEDED for sync-4529f440-aa86-4601-89b9-fb0aa6c3d427; real-environment root cause evidence is required before any new scoped task.",
+    "stopped_by": "AI Team Lead",
+    "stopped_at": "2026-10-11T16:50:36.9618608Z"
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "User (Product Owner)",
+      "approved_at": "2026-10-10T14:54:09.4927467Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "User (Product Owner)",
+      "approved_at": "2026-10-10T14:57:48.4939862Z"
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": true,
+    "mobile_passed": false,
+    "web_evidence": ".ai-team/tasks/DEH-SERVER-READ-ACCEPTANCE-2026101/engineering-handoff.md",
+    "web_checked_at": "2026-10-11T16:42:39.1565150Z",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": false,
+    "blocking_defects": 0,
+    "evidence": "",
+    "recorded_at": ""
+  },
+  "repair_attempts": 2,
+  "repair_history": [
+    {
+      "attempt": 1,
+      "platform": "web",
+      "evidence": "2026-10-11 live read acceptance blockers: COM-001 deadline, authorization-before-cache latency, failed sync reuse/recovery",
+      "qa_evidence": ".ai-team/tasks/DEH-SERVER-READ-ACCEPTANCE-2026101/functional-qa-report.md",
+      "recorded_at": "2026-10-10T16:55:52.9078031Z"
+    },
+    {
+      "attempt": 2,
+      "platform": "web",
+      "evidence": "2026-10-11 deployment 20261011224534: startup/public cache key mismatch, read-slot queue to 9158ms, COM-001 and WB-001 deadline failure",
+      "qa_evidence": ".ai-team/tasks/DEH-SERVER-READ-ACCEPTANCE-2026101/qa-report.md",
+      "recorded_at": "2026-10-11T15:39:20.3855169Z"
+    }
+  ]
+}

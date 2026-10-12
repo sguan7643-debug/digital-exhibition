@@ -446,7 +446,17 @@ export function createFeishuOpenApiClient(options = {}) {
     const user = body.data.user;
     return Object.freeze({
       userId: String(user.user_id || normalized),
-      displayName: String(user.name || user.en_name || user.nickname || user.user_id || normalized)
+      employeeNo: String(user.employee_no || ''),
+      displayName: String(user.name || user.en_name || user.nickname || ''),
+      avatarUrl: String(user.avatar?.avatar_72 || user.avatar?.avatar_240 || ''),
+      departmentIds: Object.freeze((Array.isArray(user.department_ids) ? user.department_ids : []).map(String).filter(Boolean)),
+      title: String(user.job_title || ''),
+      mobile: user.mobile == null ? null : String(user.mobile),
+      email: (user.enterprise_email ?? user.email) == null ? null : String(user.enterprise_email ?? user.email),
+      contactFieldsVisible: Object.hasOwn(user, 'mobile')
+        || Object.hasOwn(user, 'enterprise_email')
+        || Object.hasOwn(user, 'email'),
+      enabled: user.status?.is_resigned !== true && user.status?.is_exited !== true && user.status?.is_frozen !== true
     });
   }
 
@@ -546,6 +556,38 @@ export function createFeishuOpenApiClient(options = {}) {
     return contactList(`/contact/v3/departments/${encodeURIComponent(normalized)}/children`, query, requestOptions);
   }
 
+  async function getContactDepartment(departmentId, requestOptions = {}) {
+    const normalized = String(departmentId || '').trim();
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_\-@.]{0,255}$/.test(normalized)) {
+      throw new FeishuProxyError('INVALID_DEPARTMENT_ID', '飞书部门标识非法', 400);
+    }
+    const token = await getTenantToken(requestOptions);
+    const url = new URL(`${API_ROOT}/contact/v3/departments/${encodeURIComponent(normalized)}`);
+    url.searchParams.set('user_id_type', 'user_id');
+    url.searchParams.set('department_id_type', 'open_department_id');
+    const response = await fetchUpstream(url, {
+      method: 'GET', headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+    }, '/contact/v3/departments/{departmentId}', requestOptions);
+    const body = await safeJson(response);
+    if (!response.ok || body.code !== 0 || !body.data?.department) {
+      const status = response.status === 401 ? 401 : response.status === 403 ? 403 : response.status === 404 ? 404 : response.status === 429 ? 429 : 502;
+      throw new FeishuProxyError('FEISHU_CONTACT_DEPARTMENT_FAILED', '飞书部门名称读取失败', status, {
+        upstreamCode: Number.isInteger(body.code) ? body.code : undefined,
+        upstreamMessage: String(body.msg || body.error_msg || '').slice(0, 240),
+        upstreamPath: '/contact/v3/departments/{departmentId}'
+      });
+    }
+    const department = body.data.department;
+    return Object.freeze({
+      id: String(department.open_department_id || department.department_id || normalized),
+      code: String(department.department_id || ''),
+      name: String(department.name || ''),
+      parentId: String(department.parent_department_id || '0'),
+      memberCount: Number(department.member_count || 0),
+      enabled: department.status?.is_deleted !== true
+    });
+  }
+
   const listUsersByDepartmentWithId = async (departmentId = '0', query = {}, requestOptions = {}) => {
     requireCredentials();
     const normalized = String(departmentId || '');
@@ -610,7 +652,7 @@ export function createFeishuOpenApiClient(options = {}) {
   }
 
   return Object.freeze({
-    credentialsReady, listRecords, downloadMedia, listDepartmentChildren,
+    credentialsReady, listRecords, downloadMedia, listDepartmentChildren, getContactDepartment,
     listUsersByDepartment: listUsersByDepartmentWithId,
     preflightOnboardingPocActor,
     createApprovalDefinition, createApprovalInstance, getApprovalInstance, approveApprovalTask,

@@ -1,0 +1,76 @@
+{
+  "task_id": "DEH-SERVER-REAL-DATA-20261010",
+  "title": "后端真实数据读取、名称投影与业务接口完整性",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "让数智展厅业务页面首次进入、刷新和后续操作稳定取得飞书正式数据：缓存命中立即返回，冷读取五秒内完成或自动交接同步任务，并补齐人员部门名称、联系方式、正式字典、个人中心、收藏、应用申请和素材下载的后端合同。",
+  "target_user": "使用数智展厅测试环境的已授权业务用户，以及负责验证缓存、权限和正式飞书数据质量的测试与运维人员。",
+  "in_scope": [
+    "阻止 Vite build、测试导入和配置加载触发飞书预热，预热仅在 Node 服务真实启动后执行",
+    "统一缓存命中、五秒冷读交接、后台同步、同任务合并、状态轮询和第二次刷新缓存命中的读取链路",
+    "修复 COM-005、WB-002 和飞书读取槽位的慢请求、排队与资源级失败隔离",
+    "APP-001、APP-002、APP-003 批量投影 owner、developer 和部门正式名称，禁止用 ID 填充 Name",
+    "COM-004 在 includeContact=true 且查询当前授权用户时返回受权限保护的身份、部门和联系方式",
+    "COM-005 过滤 TEST_、测试初始化和停用字典项，并接入业务负责人确认的正式业务域字典",
+    "WB-003 在统计或待办为空时仍返回当前授权用户身份与空结构，并按 userId 隔离",
+    "FAV-002 支持 APP 类型且只返回当前用户收藏，FAV-003/FAV-004 返回稳定收藏标识和版本",
+    "APP-005 支持正式应用使用申请并返回稳定申请标识、状态和版本，保留权限、审批、幂等和审计",
+    "MAT-002 返回可下载素材的 primaryFile/fileId，MAT-003 执行同源安全下载并明确表达无文件状态",
+    "补充后端自动化测试、构建副作用测试、权限隔离测试和纯后端服务器部署包，不直接部署服务器"
+  ],
+  "out_of_scope": [
+    "修改前端源码、根 dist、组件、样式、路由或视觉资源",
+    "用用户 ID、部门 ID、TEST_ 字典、假姓名、假联系方式或受控代理占位冒充正式数据",
+    "引入 Redis、外部数据库或替换飞书多维表格这一唯一业务数据源",
+    "削弱登录、权限、数据范围、审批、幂等、审计、同源下载或强一致性保护",
+    "在业务负责人确认前擅自创造或修改正式业务域字段与选项",
+    "由 Codex 直接操作测试服务器、生产环境、飞书权限或业务数据清理"
+  ],
+  "success_metric": "构建和测试导入零次触发飞书预热；真实授权账号下冷启动无需人工刷新，常用读取至少90%首次请求5秒内返回完整结果，热缓存接近即时且第二次刷新明显更快；状态轮询不重跑业务请求；所有人员和部门字段展示正式名称；COM-004、WB-003、FAV-002/003/004、APP-005、MAT-002/003合同及401/403、跨用户隔离、审批幂等审计均通过自动化和真实测试环境验证。",
+  "deadline": "尽快完成；已批准取消正式字典 baseline 部署门禁，仍需真实环境验证飞书现有字典质量",
+  "risk_level": "high",
+  "state": "qa",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "User (Product Owner)",
+      "approved_at": "2026-10-10T08:32:07.8447254Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "User (Product Owner)",
+      "approved_at": "2026-10-10T08:58:59.7801700Z"
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": true,
+    "mobile_passed": false,
+    "web_evidence": "已取消正式字典 baseline 强制门禁，修复真实飞书人员对象/数组字段名称投影，并按记录隔离 TEST_ 应用和名称映射脏记录。test:server-real-data 一次通过，混合正式/测试/脏记录回归通过；纯后端包 SHA-256=34c7dc0d87329f8435f9c8786f31b6bc5411108c1a6f260d66fbdf2e44debcf6；未修改前端 src/dist。",
+    "web_checked_at": "2026-10-10T12:00:00.000Z",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": false,
+    "blocking_defects": 0,
+    "evidence": "baseline 已改为可选；开发证据已移交 QA。真实授权账号的字典质量、冷暖性能、联系人、双用户隔离、下载与正式申请仍待验证，不能标记发布通过。",
+    "recorded_at": "2026-10-10T11:30:02.6476298Z"
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

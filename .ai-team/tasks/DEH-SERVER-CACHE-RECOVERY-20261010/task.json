@@ -35,7 +35,7 @@
   "success_metric": "真实测试环境中：强制冷首页 5/5 在25秒内 completed 且返回完整五段正式数据；暖首页至少27/30在5秒内首次HTTP 200完整返回；所有 sync-jobs 状态查询0次HTTP 500/504；轮询不重复POST首页；COM-005、APP-002、MAT-001、WB-003、ADM-003均取得完整结果并在相同输入复读时直接命中缓存；失败任务不被后续普通请求复用；真实首页无需手动刷新；401/403、安全校验及1.5 CPU、2GB内存、3GB磁盘、最多3路同步并发无回归。",
   "deadline": "尽快完成；不得用继续消耗共享服务器或飞书配额替代根因修复",
   "risk_level": "high",
-  "state": "development",
+  "state": "qa",
   "stop": {
     "reason": null,
     "stopped_by": null,
@@ -72,6 +72,14 @@
     "evidence": "",
     "recorded_at": ""
   },
-  "repair_attempts": 0,
-  "repair_history": []
+  "repair_attempts": 1,
+  "repair_history": [
+    {
+      "attempt": 1,
+      "platform": "web",
+      "evidence": ".ai-team/tasks/DEH-SERVER-CACHE-RECOVERY-20261010/qa-report.md",
+      "qa_evidence": ".ai-team/tasks/DEH-SERVER-CACHE-RECOVERY-20261010/qa-report.md",
+      "recorded_at": "2026-10-10T05:47:24.3150219Z"
+    }
+  ]
 }

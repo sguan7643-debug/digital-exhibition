@@ -1,0 +1,72 @@
+{
+  "task_id": "DEH-SERVER-LIVE-RECOVERY-20261012-R2",
+  "title": "测试环境真实数据链路最终恢复与自主部署验收",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "完成数智产品展厅后端真实数据、缓存、同步任务和失败恢复链路修复，并在测试环境逐页验证首页、应用中心和申请页达到最终五项产品条件。",
+  "target_user": "在测试环境使用关胜等真实授权账号访问数智产品展厅的业务用户。",
+  "in_scope": [
+    "定位并修复 HOMEPAGE、COM-001、APP-001、APP-002、COM-003、COM-004、COM-005 及相关缓存和同步任务链路",
+    "保证热缓存首次读取直接返回，冷读最多等待 5 秒后交接唯一任务且任务在 25 秒内稳定完成",
+    "保证首页、应用中心、申请页展示真实飞书数据并完成姓名和部门名称投影",
+    "保证申请页应用类型、业务域、部门、授权人员、图标上传、附件上传和申请提交可用",
+    "清理目标 operation 的错误缓存、旧任务快照和测试数据污染，同时保留无关合法缓存",
+    "生成纯后端部署包和 SHA-256，并部署到测试服务器 /home/seaoil/pre-demo 范围内",
+    "通过测试环境真实授权会话逐页验证并记录 HTTP 状态、syncId、耗时、终态和结果"
+  ],
+  "out_of_scope": [
+    "修改前端源码或前端 dist",
+    "操作服务器 /home/seaoil/pre-demo 之外的任何文件、目录、服务或项目",
+    "操作生产环境",
+    "返回模拟数据、受控代理数据、fixture 或初始化测试人员作为正式结果",
+    "降低登录、实时权限、数据范围、审批、幂等、审计或资源限制",
+    "引入 Redis、外部数据库或替换飞书正式数据源"
+  ],
+  "success_metric": "同时满足五项结果：三页展示真实飞书数据；热缓存约 1 秒内 HTTP 200、冷读 5 秒后单任务自动轮询并在 25 秒内完成；申请引用、上传和提交可用；无测试人员、受控代理、空白页和首次同步提示；测试环境部署后由真实授权会话逐页实测通过。",
+  "deadline": "紧急恢复，完成修复、测试环境部署和真实会话验收后交付",
+  "risk_level": "high",
+  "state": "development",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "User (Product Owner)",
+      "approved_at": "2026-10-12T01:08:53.5994433Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "User (Product Owner)",
+      "approved_at": "2026-10-12T01:16:26.8452997Z"
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": false,
+    "mobile_passed": false,
+    "web_evidence": "",
+    "web_checked_at": "",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": false,
+    "blocking_defects": 0,
+    "evidence": "",
+    "recorded_at": ""
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

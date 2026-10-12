@@ -1,0 +1,72 @@
+{
+  "task_id": "DEH-FULL-PAGE-LOADING-20261011",
+  "title": "数智展厅前台请求全页面 Loading 改造",
+  "mode": "existing",
+  "platforms": [
+    "web"
+  ],
+  "web_framework": "vue",
+  "mobile_framework": "none",
+  "mobile_targets": [],
+  "goal": "将当前右上角请求处理中气泡改为覆盖整个浏览器视口的全页面 Loading，并在所有前台请求结束后自动恢复页面。",
+  "target_user": "进入数智产品展厅并等待页面真实数据加载或前台业务操作完成的 Web 用户。",
+  "in_scope": [
+    "复用现有全局前台请求计数作为唯一 Loading 触发源",
+    "使用固定定位遮罩覆盖整个视口，包括顶部导航、侧栏和内容区",
+    "遮罩期间阻止底层页面点击、滚动和重复操作",
+    "显示居中加载动画、正在处理请求文案及当前请求数量",
+    "请求全部结束、失败、取消或超时后自动关闭遮罩",
+    "保留静默后台刷新不触发可见 Loading 的现有规则",
+    "覆盖桌面、窄屏和移动 Web，并提供状态播报与减少动画支持",
+    "新增回归测试，禁止右上角 loading 气泡样式回归"
+  ],
+  "out_of_scope": [
+    "修改后端缓存、同步任务、超时或轮询协议",
+    "修改业务接口、权限、审批、上传、幂等或审计逻辑",
+    "恢复正式飞书首次同步、数据缺失或更新时间提示",
+    "修改页面局部 loading、空态和错误态的业务含义",
+    "部署、发布、合并或推送代码"
+  ],
+  "success_metric": "任一受跟踪前台请求执行期间只显示一个覆盖全视口且阻断底层交互的 Loading；所有终态均自动关闭；静默刷新不显示；桌面和移动 Web 无遮挡、溢出或焦点陷阱。",
+  "deadline": "立即处理；未指定发布期限",
+  "risk_level": "high",
+  "state": "release_review",
+  "stop": {
+    "reason": null,
+    "stopped_by": null,
+    "stopped_at": null
+  },
+  "approvals": {
+    "scope": {
+      "approved": true,
+      "approved_by": "User",
+      "approved_at": "2026-10-11T14:48:30.0017978Z"
+    },
+    "design": {
+      "approved": true,
+      "approved_by": "User",
+      "approved_at": "2026-10-11T14:51:59.5482718Z"
+    },
+    "release": {
+      "approved": false,
+      "approved_by": "",
+      "approved_at": ""
+    }
+  },
+  "checks": {
+    "web_passed": true,
+    "mobile_passed": false,
+    "web_evidence": ".ai-team/tasks/DEH-FULL-PAGE-LOADING-20261011/handoffs/web.md",
+    "web_checked_at": "2026-10-11T14:59:12.7816915Z",
+    "mobile_evidence": "",
+    "mobile_checked_at": ""
+  },
+  "qa": {
+    "passed": true,
+    "blocking_defects": 0,
+    "evidence": ".ai-team/tasks/DEH-FULL-PAGE-LOADING-20261011/qa-report.md",
+    "recorded_at": "2026-10-11T15:01:35.4426036Z"
+  },
+  "repair_attempts": 0,
+  "repair_history": []
+}

@@ -74,8 +74,29 @@ try {
   });
   const response = await recoveryPage.goto(`${origin}/workbench`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
   assert.equal(response?.status(), 200);
-  await recoveryPage.locator('.request-loading-toast').waitFor({ state: 'visible', timeout: 8_000 });
-  await recoveryPage.locator('.request-loading-toast').waitFor({ state: 'hidden', timeout: 8_000 });
+  await recoveryPage.locator('.request-loading-overlay').waitFor({ state: 'visible', timeout: 8_000 });
+  const loadingContract = await recoveryPage.evaluate(() => {
+    const overlay = document.querySelector('.request-loading-overlay');
+    const shell = document.querySelector('.exhibition-shell');
+    const rect = overlay.getBoundingClientRect();
+    return {
+      rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      bodyLocked: document.body.classList.contains('request-loading-active') && getComputedStyle(document.body).overflow === 'hidden',
+      shellInert: shell?.hasAttribute('inert') === true,
+      pointerEvents: getComputedStyle(overlay).pointerEvents,
+      spinnerAnimation: getComputedStyle(overlay.querySelector('.request-loading-spinner')).animationName
+    };
+  });
+  assert.deepEqual(loadingContract.rect, { left: 0, top: 0, width: loadingContract.viewport.width, height: loadingContract.viewport.height },
+    '全页面 Loading 必须覆盖完整浏览器视口');
+  assert.equal(loadingContract.bodyLocked, true, '全页面 Loading 显示时必须锁定文档滚动');
+  assert.equal(loadingContract.shellInert, true, '全页面 Loading 显示时底层应用壳必须 inert');
+  assert.equal(loadingContract.pointerEvents, 'all', '全页面 Loading 必须阻止指针穿透');
+  assert.equal(loadingContract.spinnerAnimation, 'none', '减少动画模式必须停止旋转动画');
+  await recoveryPage.locator('.request-loading-overlay').waitFor({ state: 'hidden', timeout: 8_000 });
+  assert.equal(await recoveryPage.evaluate(() => document.body.classList.contains('request-loading-active')), false,
+    '请求完成后必须解除文档滚动锁');
   assert.equal(aggregateCalls, 1, '同步完成后必须直接消费任务结果，不得重发首页聚合请求');
   assert.equal(statusCalls, 2, '任务状态短暂失败后必须继续查询同一任务');
   assert.deepEqual(recoveryErrors, [], '任务状态短暂失败不得产生未捕获页面异常');
@@ -98,7 +119,7 @@ try {
   });
   await transientPage.goto(`${origin}/workbench`, { waitUntil: 'domcontentloaded', timeout: 15_000 });
   for (let attempt = 0; attempt < 40 && transientCalls < 2; attempt += 1) await transientPage.waitForTimeout(100);
-  await transientPage.locator('.request-loading-toast').waitFor({ state: 'hidden', timeout: 8_000 });
+  await transientPage.locator('.request-loading-overlay').waitFor({ state: 'hidden', timeout: 8_000 });
   assert.equal(transientCalls, 2, '首页临时503后必须自动重试，无需用户刷新');
   assert.deepEqual(pageErrors, [], '临时503不得产生未捕获页面异常');
   await transientPage.close();
